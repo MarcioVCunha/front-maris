@@ -1,0 +1,21 @@
+body{
+    font-family:Arial;
+    padding:40px;
+    background:#f4f4f4;
+    }
+    
+    button{
+    padding:10px 20px;
+    background:#3ECF8E;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    }
+    
+    pre{
+    margin-top:20px;
+    background:#111;
+    color:#0f0;
+    padding:10px;
+    }
