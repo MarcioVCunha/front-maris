@@ -191,7 +191,7 @@ button:disabled{
   width:auto;
 }
 
-.qty-input:disabled{
+.qty-select:disabled{
   opacity:0.6;
 }
 

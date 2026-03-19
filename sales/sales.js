@@ -76,6 +76,12 @@ function renderProductCards() {
   productsGrid.innerHTML = sorted.map((product) => {
     const quantity = Number(product.quantity) || 0
     const soldOut = quantity <= 0
+    const qtyOptions = soldOut
+      ? `<option value="0">Sem estoque</option>`
+      : Array.from({ length: quantity }, (_, i) => i + 1)
+          .map((q) => `<option value="${q}" ${q === 1 ? "selected" : ""}>${q}</option>`)
+          .join("")
+
     return `
       <div class="product">
         <img src="${product.image_url}" alt="${product.name}">
@@ -86,40 +92,18 @@ function renderProductCards() {
         </div>
         <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${quantity}</div>
         <div class="sale-controls">
-          <label class="select-line">
-            <input type="checkbox" class="product-check" data-code="${product.code}" ${soldOut ? "disabled" : ""}>
-            Selecionar
-          </label>
-          <input
-            type="number"
-            class="qty-input"
-            data-code="${product.code}"
-            min="1"
-            max="${Math.max(quantity, 1)}"
-            value="1"
-            ${soldOut ? "disabled" : ""}
-          >
+          <label class="select-line">Quantidade</label>
+          <select class="qty-select" data-code="${product.code}" ${soldOut ? "disabled" : ""}>
+            ${qtyOptions}
+          </select>
         </div>
       </div>
     `
   }).join("")
 
-  const checkboxes = productsGrid.querySelectorAll(".product-check")
-  checkboxes.forEach((checkbox) => {
-    checkbox.addEventListener("change", (event) => {
-      const code = event.target.dataset.code
-      const qtyInput = productsGrid.querySelector(`.qty-input[data-code="${code}"]`)
-      if (!qtyInput) return
-      qtyInput.disabled = !event.target.checked
-      updateSaleSummary()
-    })
-  })
-
-  const qtyInputs = productsGrid.querySelectorAll(".qty-input")
-  qtyInputs.forEach((input) => {
-    const checkbox = productsGrid.querySelector(`.product-check[data-code="${input.dataset.code}"]`)
-    input.disabled = !checkbox || !checkbox.checked
-    input.addEventListener("input", updateSaleSummary)
+  const qtySelects = productsGrid.querySelectorAll(".qty-select")
+  qtySelects.forEach((select) => {
+    select.addEventListener("change", updateSaleSummary)
   })
 
   updateSaleSummary()
@@ -171,13 +155,12 @@ async function loadSellers() {
 }
 
 function getSelectedItems() {
-  const checks = productsGrid.querySelectorAll(".product-check:checked")
+  const selects = productsGrid.querySelectorAll(".qty-select")
   const selected = []
 
-  checks.forEach((check) => {
-    const code = check.dataset.code
-    const qtyInput = productsGrid.querySelector(`.qty-input[data-code="${code}"]`)
-    const quantity = Number(qtyInput?.value)
+  selects.forEach((select) => {
+    const code = select.dataset.code
+    const quantity = Number(select.value)
     if (Number.isInteger(quantity) && quantity > 0) {
       selected.push({ code, quantity })
     }
