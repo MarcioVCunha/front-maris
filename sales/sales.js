@@ -4,13 +4,14 @@ const supabaseClient = window.supabase.createClient(
 )
 
 const form = document.getElementById("sale-form")
-const sellerNameInput = document.getElementById("seller-name")
+const sellerSelect = document.getElementById("seller-select")
 const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
 const submitBtn = document.getElementById("submit-btn")
 const messageEl = document.getElementById("message")
 
 let products = []
+let sellers = []
 
 function setMessage(text, type = "") {
   messageEl.textContent = text
@@ -98,6 +99,36 @@ async function loadProducts() {
   renderProductCards()
 }
 
+function renderSellerOptions() {
+  if (!sellers.length) {
+    sellerSelect.innerHTML = '<option value="">Nenhuma vendedora cadastrada</option>'
+    submitBtn.disabled = true
+    return
+  }
+
+  sellerSelect.innerHTML = `
+    <option value="">Selecione a vendedora</option>
+    ${sellers.map((seller) => `<option value="${seller.id}">${seller.name}</option>`).join("")}
+  `
+}
+
+async function loadSellers() {
+  const { data, error } = await supabaseClient
+    .from("sellers")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("name")
+
+  if (error) {
+    setMessage("Erro ao carregar vendedoras.", "error")
+    console.log(error)
+    return
+  }
+
+  sellers = data || []
+  renderSellerOptions()
+}
+
 function getSelectedItems() {
   const checks = productsGrid.querySelectorAll(".product-check:checked")
   const selected = []
@@ -118,12 +149,12 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault()
   setMessage("")
 
-  const sellerName = sellerNameInput.value.trim()
+  const sellerId = Number(sellerSelect.value)
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
 
-  if (!sellerName) {
-    setMessage("Informe o nome da vendedora.", "error")
+  if (!Number.isInteger(sellerId) || sellerId <= 0) {
+    setMessage("Selecione a vendedora.", "error")
     return
   }
 
@@ -145,7 +176,7 @@ form.addEventListener("submit", async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        seller_name: sellerName,
+        seller_id: sellerId,
         payment_method: paymentMethod,
         items: selectedItems
       })
@@ -161,7 +192,7 @@ form.addEventListener("submit", async (event) => {
 
     await loadProducts()
     paymentMethodSelect.value = ""
-    sellerNameInput.value = ""
+    sellerSelect.value = ""
     setMessage("Venda registrada com sucesso!", "success")
     submitBtn.disabled = false
   } catch (error) {
@@ -171,4 +202,4 @@ form.addEventListener("submit", async (event) => {
   }
 })
 
-loadProducts()
+Promise.all([loadSellers(), loadProducts()])
