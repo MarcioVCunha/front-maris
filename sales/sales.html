@@ -19,16 +19,12 @@
 </header>
 
 <main class="container">
-  <form id="sale-form" class="card">
-    <h2>Nova venda</h2>
+  <form id="sale-form" class="sale-form">
+    <section class="card">
+      <h2>Nova venda</h2>
 
-    <label for="product-select">Modelo</label>
-    <select id="product-select" required>
-      <option value="">Carregando produtos...</option>
-    </select>
-
-    <label for="quantity-input">Quantidade</label>
-    <input id="quantity-input" type="number" min="1" step="1" value="1" required>
+      <label for="seller-name">Vendedora</label>
+      <input id="seller-name" type="text" placeholder="Nome de quem realizou a venda" required>
 
     <label for="payment-method">Método de pagamento</label>
     <select id="payment-method" required>
@@ -40,10 +36,14 @@
       <option value="transferencia">Transferência</option>
     </select>
 
-    <div id="stock-info" class="stock-info"></div>
-
     <button id="submit-btn" type="submit">Registrar venda</button>
     <div id="message" class="message"></div>
+    </section>
+
+    <section>
+      <h2 class="catalog-title">Selecione os produtos vendidos</h2>
+      <div id="products-grid" class="catalog"></div>
+    </section>
   </form>
 </main>
 
