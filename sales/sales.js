@@ -46,7 +46,9 @@ function renderProductCards() {
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
         <div class="code">Código: ${product.code}</div>
-        <div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>
+        <div class="price ${soldOut ? "unavailable" : ""}">
+          ${soldOut ? "Indisponível" : `R$ ${Number(product.unit_price).toFixed(2)}`}
+        </div>
         <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${quantity}</div>
         <div class="sale-controls">
           <label class="select-line">

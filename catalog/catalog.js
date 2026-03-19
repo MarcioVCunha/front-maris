@@ -37,7 +37,11 @@ const supabaseClient = window.supabase.createClient(
     return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
   })
 
-  catalog.innerHTML = sortedProducts.map(product => `
+  catalog.innerHTML = sortedProducts.map(product => {
+    const quantity = Number(product.quantity) || 0
+    const showPrice = quantity > 0
+
+    return `
   
       <div class="product">
   
@@ -49,17 +53,18 @@ const supabaseClient = window.supabase.createClient(
           Código: ${product.code}
         </div>
   
-        <div class="price">
-          R$ ${Number(product.unit_price).toFixed(2)}
+        <div class="price ${showPrice ? "" : "unavailable"}">
+          ${showPrice ? `R$ ${Number(product.unit_price).toFixed(2)}` : "Indisponível"}
         </div>
   
-        <div class="stock ${Number(product.quantity) <= 0 ? "zero" : ""}">
-          Estoque: ${Number(product.quantity) || 0}
+        <div class="stock ${quantity <= 0 ? "zero" : ""}">
+          Quantidade: ${quantity}
         </div>
 
       </div>
   
-    `).join("")
+    `
+  }).join("")
   }
   
   loadProducts()
