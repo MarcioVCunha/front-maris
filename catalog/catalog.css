@@ -59,14 +59,15 @@ body{
     }
 
     .catalog{
-      grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+      grid-template-columns:1fr;
       gap:12px;
-      padding:16px;
+      padding:16px 12px;
     }
 
     .product{
       padding:12px;
       border-radius:10px;
+      box-shadow:0 3px 10px rgba(0,0,0,0.06);
     }
 
     .product img{
