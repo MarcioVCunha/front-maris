@@ -76,11 +76,13 @@ function renderProductCards() {
   productsGrid.innerHTML = sorted.map((product) => {
     const quantity = Number(product.quantity) || 0
     const soldOut = quantity <= 0
-    const qtyOptions = soldOut
-      ? `<option value="0">Sem estoque</option>`
-      : Array.from({ length: quantity }, (_, i) => i + 1)
-          .map((q) => `<option value="${q}" ${q === 1 ? "selected" : ""}>${q}</option>`)
-          .join("")
+    const qtyOptions = Array.from({ length: Math.max(quantity, 0) + 1 }, (_, i) => i)
+      .map((q) => {
+        const label = q === 0 ? "0" : String(q)
+        const selected = q === 0 ? "selected" : ""
+        return `<option value="${q}" ${selected}>${label}</option>`
+      })
+      .join("")
 
     return `
       <div class="product">
