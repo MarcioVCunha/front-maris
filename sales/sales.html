@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrar Venda</title>
+
+<link rel="stylesheet" href="sales.css">
+
+<script src="../env.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<header>
+  <h1>Maris Semijoias</h1>
+  <p>Registrar venda</p>
+</header>
+
+<main class="container">
+  <form id="sale-form" class="card">
+    <h2>Nova venda</h2>
+
+    <label for="product-select">Modelo</label>
+    <select id="product-select" required>
+      <option value="">Carregando produtos...</option>
+    </select>
+
+    <label for="quantity-input">Quantidade</label>
+    <input id="quantity-input" type="number" min="1" step="1" value="1" required>
+
+    <label for="payment-method">Método de pagamento</label>
+    <select id="payment-method" required>
+      <option value="">Selecione</option>
+      <option value="pix">Pix</option>
+      <option value="cartao_credito">Cartão de crédito</option>
+      <option value="cartao_debito">Cartão de débito</option>
+      <option value="dinheiro">Dinheiro</option>
+      <option value="transferencia">Transferência</option>
+    </select>
+
+    <div id="stock-info" class="stock-info"></div>
+
+    <button id="submit-btn" type="submit">Registrar venda</button>
+    <div id="message" class="message"></div>
+  </form>
+</main>
+
+<script src="sales.js"></script>
+</body>
+</html>

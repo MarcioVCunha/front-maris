@@ -10,7 +10,8 @@ const supabaseClient = window.supabase.createClient(
     const { data, error } = await supabaseClient
     .from("products")
     .select("*")
-    .order("name")
+  .order("quantity", { ascending: false })
+  .order("name")
   
     if(error){
       catalog.innerHTML = "Erro ao carregar produtos"
@@ -18,12 +19,25 @@ const supabaseClient = window.supabase.createClient(
       return
     }
   
-    if(!data.length){
+  if(!data.length){
       catalog.innerHTML = "Nenhum produto encontrado"
       return
     }
   
-    catalog.innerHTML = data.map(product => `
+  const sortedProducts = [...data].sort((a, b) => {
+    const stockA = Number(a.quantity) || 0
+    const stockB = Number(b.quantity) || 0
+    const outOfStockA = stockA <= 0 ? 1 : 0
+    const outOfStockB = stockB <= 0 ? 1 : 0
+
+    if (outOfStockA !== outOfStockB) {
+      return outOfStockA - outOfStockB
+    }
+
+    return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
+  })
+
+  catalog.innerHTML = sortedProducts.map(product => `
   
       <div class="product">
   
@@ -39,6 +53,10 @@ const supabaseClient = window.supabase.createClient(
           R$ ${Number(product.unit_price).toFixed(2)}
         </div>
   
+        <div class="stock ${Number(product.quantity) <= 0 ? "zero" : ""}">
+          Estoque: ${Number(product.quantity) || 0}
+        </div>
+
       </div>
   
     `).join("")

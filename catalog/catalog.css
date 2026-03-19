@@ -63,3 +63,14 @@ body{
     color:#e75480;
     font-weight:bold;
   }
+
+.product .stock{
+  margin-top:8px;
+  font-size:14px;
+  color:#3b6e4f;
+  font-weight:600;
+}
+
+.product .stock.zero{
+  color:#a94442;
+}
