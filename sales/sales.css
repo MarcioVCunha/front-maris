@@ -82,6 +82,9 @@ button:disabled{
   border-radius:10px;
   padding:12px;
   background:#fff9fb;
+  position:sticky;
+  top:12px;
+  z-index:10;
 }
 
 .summary-row{
