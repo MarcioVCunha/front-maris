@@ -7,6 +7,9 @@ const form = document.getElementById("sale-form")
 const sellerSelect = document.getElementById("seller-select")
 const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
+const summarySubtotalEl = document.getElementById("summary-subtotal")
+const summaryDiscountEl = document.getElementById("summary-discount")
+const summaryTotalEl = document.getElementById("summary-total")
 const submitBtn = document.getElementById("submit-btn")
 const messageEl = document.getElementById("message")
 
@@ -16,6 +19,38 @@ let sellers = []
 function setMessage(text, type = "") {
   messageEl.textContent = text
   messageEl.className = `message ${type}`.trim()
+}
+
+function roundMoney(value) {
+  return Math.round(value * 100) / 100
+}
+
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  })
+}
+
+function updateSaleSummary() {
+  const selectedItems = getSelectedItems()
+  const paymentMethod = paymentMethodSelect.value
+
+  let subtotal = 0
+
+  selectedItems.forEach((item) => {
+    const product = products.find((p) => p.code === item.code)
+    const unitPrice = Number(product?.unit_price) || 0
+    subtotal += unitPrice * item.quantity
+  })
+
+  const roundedSubtotal = roundMoney(subtotal)
+  const discount = paymentMethod === "pix" ? roundMoney(roundedSubtotal * 0.05) : 0
+  const total = roundMoney(roundedSubtotal - discount)
+
+  summarySubtotalEl.textContent = formatMoney(roundedSubtotal)
+  summaryDiscountEl.textContent = formatMoney(discount)
+  summaryTotalEl.textContent = formatMoney(total)
 }
 
 function getSortedProducts(list) {
@@ -76,6 +111,7 @@ function renderProductCards() {
       const qtyInput = productsGrid.querySelector(`.qty-input[data-code="${code}"]`)
       if (!qtyInput) return
       qtyInput.disabled = !event.target.checked
+      updateSaleSummary()
     })
   })
 
@@ -83,7 +119,10 @@ function renderProductCards() {
   qtyInputs.forEach((input) => {
     const checkbox = productsGrid.querySelector(`.product-check[data-code="${input.dataset.code}"]`)
     input.disabled = !checkbox || !checkbox.checked
+    input.addEventListener("input", updateSaleSummary)
   })
+
+  updateSaleSummary()
 }
 
 async function loadProducts() {
@@ -195,6 +234,7 @@ form.addEventListener("submit", async (event) => {
     await loadProducts()
     paymentMethodSelect.value = ""
     sellerSelect.value = ""
+    updateSaleSummary()
     setMessage("Venda registrada com sucesso!", "success")
     submitBtn.disabled = false
   } catch (error) {
@@ -203,5 +243,7 @@ form.addEventListener("submit", async (event) => {
     submitBtn.disabled = false
   }
 })
+
+paymentMethodSelect.addEventListener("change", updateSaleSummary)
 
 Promise.all([loadSellers(), loadProducts()])

@@ -76,6 +76,38 @@ button:disabled{
   cursor:not-allowed;
 }
 
+.sale-summary{
+  margin-top:8px;
+  border:1px solid #f1dbe4;
+  border-radius:10px;
+  padding:12px;
+  background:#fff9fb;
+}
+
+.summary-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  color:#5a2a3a;
+  font-size:14px;
+  margin:4px 0;
+}
+
+.summary-row strong{
+  color:#5a2a3a;
+}
+
+.summary-row.total{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed #f1dbe4;
+  font-size:16px;
+}
+
+.summary-row.total strong{
+  color:#e75480;
+}
+
 .catalog-title{
   margin:20px 0 14px;
   color:#5a2a3a;
