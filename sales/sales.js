@@ -138,84 +138,37 @@ form.addEventListener("submit", async (event) => {
   }
 
   submitBtn.disabled = true
-
-  const updatesToRollback = []
-  const saleRows = []
-
-  for (const item of selectedItems) {
-    const selectedProduct = products.find((product) => product.code === item.code)
-    if (!selectedProduct) {
-      setMessage("Produto não encontrado.", "error")
-      submitBtn.disabled = false
-      return
-    }
-
-    const availableQuantity = Number(selectedProduct.quantity) || 0
-    if (availableQuantity < item.quantity) {
-      setMessage(`Estoque insuficiente para ${selectedProduct.name}.`, "error")
-      submitBtn.disabled = false
-      return
-    }
-
-    const newQuantity = availableQuantity - item.quantity
-
-    const { error: updateError } = await supabaseClient
-      .from("products")
-      .update({ quantity: newQuantity })
-      .eq("code", item.code)
-
-    if (updateError) {
-      for (const previous of updatesToRollback) {
-        await supabaseClient
-          .from("products")
-          .update({ quantity: previous.oldQuantity })
-          .eq("code", previous.code)
-      }
-      setMessage("Erro ao atualizar estoque.", "error")
-      submitBtn.disabled = false
-      console.log(updateError)
-      return
-    }
-
-    updatesToRollback.push({
-      code: item.code,
-      oldQuantity: availableQuantity
+  try {
+    const response = await fetch(window.ENV.SUPABASE_SALES_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        seller_name: sellerName,
+        payment_method: paymentMethod,
+        items: selectedItems
+      })
     })
 
-    selectedProduct.quantity = newQuantity
+    const result = await response.json()
 
-    saleRows.push({
-      product_code: item.code,
-      product_name: selectedProduct.name,
-      quantity: item.quantity,
-      payment_method: paymentMethod,
-      seller_name: sellerName
-    })
-  }
-
-  const { error: saleError } = await supabaseClient
-    .from("sales")
-    .insert(saleRows)
-
-  if (saleError) {
-    for (const previous of updatesToRollback) {
-      await supabaseClient
-        .from("products")
-        .update({ quantity: previous.oldQuantity })
-        .eq("code", previous.code)
+    if (!response.ok) {
+      setMessage(result?.error || "Erro ao registrar venda.", "error")
+      submitBtn.disabled = false
+      return
     }
+
+    await loadProducts()
+    paymentMethodSelect.value = ""
+    sellerNameInput.value = ""
+    setMessage("Venda registrada com sucesso!", "success")
+    submitBtn.disabled = false
+  } catch (error) {
+    console.log(error)
     setMessage("Erro ao registrar venda.", "error")
     submitBtn.disabled = false
-    console.log(saleError)
-    return
   }
-
-  renderProductCards()
-  paymentMethodSelect.value = ""
-  sellerNameInput.value = ""
-
-  setMessage("Venda registrada com sucesso!", "success")
-  submitBtn.disabled = false
 })
 
 loadProducts()
