@@ -1,7 +1,25 @@
 body{
     font-family:Arial;
-    padding:40px;
+    padding:20px;
     background:#f4f4f4;
+    }
+
+    *{
+    box-sizing:border-box;
+    }
+
+    @media (max-width: 480px){
+    body{
+        padding:12px;
+    }
+
+    input[type="file"]{
+        width:100%;
+    }
+
+    button{
+        width:100%;
+    }
     }
     
     button{

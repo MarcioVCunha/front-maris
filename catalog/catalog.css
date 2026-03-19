@@ -2,6 +2,11 @@ body{
     margin:0;
     font-family:Arial, Helvetica, sans-serif;
     background:#fff5f7;
+    min-height:100vh;
+  }
+
+  *{
+    box-sizing:border-box;
   }
   
   header{
@@ -38,6 +43,58 @@ body{
   
   .product:hover{
     transform:translateY(-5px);
+  }
+
+  @media (max-width: 480px){
+    header{
+      padding:18px;
+    }
+
+    header h1{
+      font-size:24px;
+    }
+
+    header p{
+      font-size:14px;
+    }
+
+    .catalog{
+      grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+      gap:12px;
+      padding:16px;
+    }
+
+    .product{
+      padding:12px;
+      border-radius:10px;
+    }
+
+    .product img{
+      margin-bottom:8px;
+    }
+
+    .product h3{
+      font-size:14px;
+      margin:8px 0;
+    }
+
+    .product .code{
+      font-size:12px;
+    }
+
+    .product .price{
+      margin-top:6px;
+      font-size:16px;
+    }
+
+    .product .stock{
+      font-size:12px;
+      margin-top:6px;
+    }
+
+    .product:hover{
+      transform:none;
+    }
   }
   
   .product img{

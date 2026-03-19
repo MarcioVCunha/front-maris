@@ -2,6 +2,11 @@ body{
   margin:0;
   font-family:Arial, Helvetica, sans-serif;
   background:#fff5f7;
+  min-height:100vh;
+}
+
+*{
+  box-sizing:border-box;
 }
 
 header{
@@ -203,4 +208,55 @@ button:disabled{
 
 .message.error{
   color:#a94442;
+}
+
+@media (max-width: 480px){
+  .container{
+    padding:12px;
+  }
+
+  .sale-form{
+    width:100%;
+    margin:0;
+  }
+
+  .card{
+    padding:14px;
+  }
+
+  .catalog-title{
+    font-size:18px;
+    margin:14px 0 10px;
+  }
+
+  .catalog{
+    grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+    gap:12px;
+  }
+
+  .product img{
+    margin-bottom:8px;
+  }
+
+  .product h3{
+    font-size:14px;
+    margin:8px 0;
+  }
+
+  .product .code{
+    font-size:12px;
+  }
+
+  .product .price{
+    font-size:16px;
+  }
+
+  .product .stock{
+    font-size:12px;
+  }
+
+  .sale-summary{
+    top:8px;
+    padding:10px;
+  }
 }
