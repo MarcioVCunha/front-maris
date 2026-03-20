@@ -96,7 +96,13 @@ button:disabled{
   margin-top:10px;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:4px;
+}
+
+/* Reduce o espaço quando a mensagem estiver vazia. */
+.sale-submit .message{
+  margin-top:0;
+  min-height:0;
 }
 
 .product-search{
