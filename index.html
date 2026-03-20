@@ -2,80 +2,76 @@
 <html lang="pt-BR">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel</title>
 
-<style>
+  <style>
+    /* Página de menu (links) para acessar as áreas do sistema. */
+    body{
+      font-family:Arial;
+      background:#f4f4f4;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+    }
 
-body{
-font-family:Arial;
-background:#f4f4f4;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
+    .container{
+      background:white;
+      padding:40px;
+      border-radius:10px;
+      box-shadow:0 10px 20px rgba(0,0,0,0.1);
+      text-align:center;
+    }
 
-.container{
-background:white;
-padding:40px;
-border-radius:10px;
-box-shadow:0 10px 20px rgba(0,0,0,0.1);
-text-align:center;
-}
+    /* Botões/links do menu */
+    a{
+      display:block;
+      margin:10px;
+      padding:10px;
+      background:#3ECF8E;
+      color:white;
+      text-decoration:none;
+      border-radius:6px;
+    }
 
-a{
-display:block;
-margin:10px;
-padding:10px;
-background:#3ECF8E;
-color:white;
-text-decoration:none;
-border-radius:6px;
-}
+    @media (max-width: 480px){
+      body{
+        height:auto;
+        min-height:100vh;
+        padding:16px;
+      }
 
-@media (max-width: 480px){
-  body{
-    height:auto;
-    min-height:100vh;
-    padding:16px;
-  }
+      .container{
+        padding:20px;
+        width:90vw;
+      }
 
-  .container{
-    padding:20px;
-    width:90vw;
-  }
-
-  a{
-    margin:8px 0;
-    padding:12px;
-  }
-}
-
-</style>
-
+      a{
+        margin:8px 0;
+        padding:12px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="container">
+  <div class="container">
+    <h1>Painel da Loja</h1>
 
-<h1>Painel da Loja</h1>
+    <a href="importJson/import.html">
+      Importar Produtos
+    </a>
 
-<a href="importJson/import.html">
-Importar Produtos
-</a>
+    <a href="catalog/catalog.html">
+      Ver Catálogo
+    </a>
 
-<a href="catalog/catalog.html">
-Ver Catálogo
-</a>
-
-<a href="sales/sales.html">
-Registrar Vendas
-</a>
-
-</div>
-
+    <a href="sales/sales.html">
+      Registrar Vendas
+    </a>
+  </div>
 </body>
 </html>

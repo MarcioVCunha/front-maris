@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="sales.css">
 
 <script src="../env.js"></script>
+<script src="../utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -28,22 +29,24 @@
         <option value="">Carregando vendedoras...</option>
       </select>
 
-    <label for="payment-method">Método de pagamento</label>
-    <select id="payment-method" required>
-      <option value="">Selecione</option>
-      <option value="pix">Pix</option>
-      <option value="cartao_credito">Cartão de crédito</option>
-      <option value="cartao_debito">Cartão de débito</option>
-      <option value="dinheiro">Dinheiro</option>
-      <option value="transferencia">Transferência</option>
-    </select>
+      <label for="payment-method">Método de pagamento</label>
+      <select id="payment-method" required>
+        <option value="">Selecione</option>
+        <option value="pix">Pix</option>
+        <option value="cartao_credito">Cartão de crédito</option>
+        <option value="cartao_debito">Cartão de débito</option>
+        <option value="dinheiro">Dinheiro</option>
+        <option value="transferencia">Transferência</option>
+      </select>
 
-    <button id="submit-btn" type="submit">Registrar venda</button>
-    <div id="message" class="message"></div>
     </section>
 
     <section>
       <h2 class="catalog-title">Selecione os produtos vendidos</h2>
+      <!-- Busca em tempo real por nome ou código -->
+      <div class="product-search">
+        <input id="product-search" type="text" placeholder="Buscar por nome ou código" autocomplete="off">
+      </div>
       <div class="sale-summary">
         <div class="summary-row">
           <span>Subtotal</span>
@@ -56,6 +59,11 @@
         <div class="summary-row total">
           <span>Total da venda</span>
           <strong id="summary-total">R$ 0,00</strong>
+        </div>
+
+        <div class="sale-submit">
+          <button id="submit-btn" type="submit">Registrar venda</button>
+          <div id="message" class="message"></div>
         </div>
       </div>
       <div id="products-grid" class="catalog"></div>

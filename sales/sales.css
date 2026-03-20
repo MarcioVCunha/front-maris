@@ -92,6 +92,21 @@ button:disabled{
   z-index:10;
 }
 
+.sale-submit{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.product-search{
+  margin:0 0 12px;
+}
+
+.product-search input{
+  background:#fff;
+}
+
 .summary-row{
   display:flex;
   align-items:center;

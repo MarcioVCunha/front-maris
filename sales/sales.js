@@ -1,12 +1,12 @@
-const supabaseClient = window.supabase.createClient(
-  window.ENV.SUPABASE_URL,
-  window.ENV.SUPABASE_ANON_KEY
-)
+const { createSupabaseClient, sortProductsByStockAndName, roundMoney, formatMoneyBRL } = window.MarisUtils
+
+const supabaseClient = createSupabaseClient()
 
 const form = document.getElementById("sale-form")
 const sellerSelect = document.getElementById("seller-select")
 const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
+const productSearchInput = document.getElementById("product-search")
 const summarySubtotalEl = document.getElementById("summary-subtotal")
 const summaryDiscountEl = document.getElementById("summary-discount")
 const summaryTotalEl = document.getElementById("summary-total")
@@ -15,53 +15,70 @@ const messageEl = document.getElementById("message")
 
 let products = []
 let sellers = []
+// Armazena a quantidade selecionada por código, para que a busca/filtragem
+// não “perca” itens que já foram escolhidos.
+let selectedQuantitiesByCode = Object.create(null)
 
 function setMessage(text, type = "") {
   messageEl.textContent = text
   messageEl.className = `message ${type}`.trim()
 }
 
-function roundMoney(value) {
-  return Math.round(value * 100) / 100
-}
-
-function formatMoney(value) {
-  return Number(value || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  })
-}
-
 function updateSaleSummary() {
-  const selectedItems = getSelectedItems()
   const paymentMethod = paymentMethodSelect.value
+  const selectedItems = getSelectedItems()
 
-  let subtotal = 0
-
-  selectedItems.forEach((item) => {
+  const subtotal = selectedItems.reduce((acc, item) => {
     const product = products.find((p) => p.code === item.code)
     const unitPrice = Number(product?.unit_price) || 0
-    subtotal += unitPrice * item.quantity
-  })
+    return acc + unitPrice * item.quantity
+  }, 0)
 
   const roundedSubtotal = roundMoney(subtotal)
   const discount = paymentMethod === "pix" ? roundMoney(roundedSubtotal * 0.05) : 0
   const total = roundMoney(roundedSubtotal - discount)
 
-  summarySubtotalEl.textContent = formatMoney(roundedSubtotal)
-  summaryDiscountEl.textContent = formatMoney(discount)
-  summaryTotalEl.textContent = formatMoney(total)
+  summarySubtotalEl.textContent = formatMoneyBRL(roundedSubtotal)
+  summaryDiscountEl.textContent = formatMoneyBRL(discount)
+  summaryTotalEl.textContent = formatMoneyBRL(total)
 }
 
-function getSortedProducts(list) {
-  return [...list].sort((a, b) => {
-    const stockA = Number(a.quantity) || 0
-    const stockB = Number(b.quantity) || 0
-    const outA = stockA <= 0 ? 1 : 0
-    const outB = stockB <= 0 ? 1 : 0
-    if (outA !== outB) return outA - outB
-    return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
-  })
+function getSearchTerm() {
+  return (productSearchInput?.value || "").trim().toLowerCase()
+}
+
+function doesProductMatchSearch(product, term) {
+  if (!term) return true
+  const name = String(product?.name || "").toLowerCase()
+  const code = String(product?.code || "").toLowerCase()
+  return name.includes(term) || code.includes(term)
+}
+
+function getClampedSelectedQuantity(code, stockQuantity) {
+  // Quantidade selecionada pode ficar “stale” se o usuário buscou e o card sumiu.
+  // Então sempre clampa usando o estoque atual do produto.
+  const raw = selectedQuantitiesByCode[code]
+  let selectedQty = Number(raw)
+  if (!Number.isFinite(selectedQty) || selectedQty < 0) selectedQty = 0
+  if (!Number.isInteger(selectedQty)) selectedQty = 0
+
+  const stock = Number(stockQuantity) || 0
+  if (stock <= 0) selectedQty = 0
+  selectedQty = Math.min(selectedQty, stock)
+
+  return selectedQty
+}
+
+function buildQtyOptions(stockQuantity, selectedQty) {
+  const quantity = Math.max(Number(stockQuantity) || 0, 0)
+  const options = Array.from({ length: quantity + 1 }, (_, i) => i)
+  return options
+    .map((q) => {
+      const label = q === 0 ? "0" : String(q)
+      const isSelected = q === selectedQty
+      return `<option value="${q}" ${isSelected ? "selected" : ""}>${label}</option>`
+    })
+    .join("")
 }
 
 function renderProductCards() {
@@ -71,42 +88,49 @@ function renderProductCards() {
     return
   }
 
-  const sorted = getSortedProducts(products)
+  const term = getSearchTerm()
 
-  productsGrid.innerHTML = sorted.map((product) => {
-    const quantity = Number(product.quantity) || 0
-    const soldOut = quantity <= 0
-    const qtyOptions = Array.from({ length: Math.max(quantity, 0) + 1 }, (_, i) => i)
-      .map((q) => {
-        const label = q === 0 ? "0" : String(q)
-        const selected = q === 0 ? "selected" : ""
-        return `<option value="${q}" ${selected}>${label}</option>`
-      })
-      .join("")
+  const sorted = sortProductsByStockAndName(products)
+  const filtered = sorted.filter((product) => doesProductMatchSearch(product, term))
+
+  if (!filtered.length) {
+    productsGrid.innerHTML = term ? "Nenhum produto encontrado para a busca" : "Nenhum produto encontrado"
+    updateSaleSummary()
+    return
+  }
+
+  productsGrid.innerHTML = filtered.map((product) => {
+    const code = product.code
+    const stockQuantity = Number(product.quantity) || 0
+    const soldOut = stockQuantity <= 0
+
+    const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
+    if (selectedQty > 0) {
+      selectedQuantitiesByCode[code] = selectedQty
+    } else {
+      delete selectedQuantitiesByCode[code]
+    }
+
+    const qtyOptions = buildQtyOptions(stockQuantity, selectedQty)
 
     return `
       <div class="product">
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
-        <div class="code">Código: ${product.code}</div>
+        <div class="code">Código: ${code}</div>
         <div class="price ${soldOut ? "unavailable" : ""}">
           ${soldOut ? "Indisponível" : `R$ ${Number(product.unit_price).toFixed(2)}`}
         </div>
-        <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${quantity}</div>
+        <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${stockQuantity}</div>
         <div class="sale-controls">
           <label class="select-line">Quantidade</label>
-          <select class="qty-select" data-code="${product.code}" ${soldOut ? "disabled" : ""}>
+          <select class="qty-select" data-code="${code}" ${soldOut ? "disabled" : ""}>
             ${qtyOptions}
           </select>
         </div>
       </div>
     `
   }).join("")
-
-  const qtySelects = productsGrid.querySelectorAll(".qty-select")
-  qtySelects.forEach((select) => {
-    select.addEventListener("change", updateSaleSummary)
-  })
 
   updateSaleSummary()
 }
@@ -157,16 +181,22 @@ async function loadSellers() {
 }
 
 function getSelectedItems() {
-  const selects = productsGrid.querySelectorAll(".qty-select")
+  // Sempre clampa a quantidade selecionada com base no estoque atual do produto.
+  // Isso evita discrepância quando o card some por causa da busca (ou estoque muda).
   const selected = []
 
-  selects.forEach((select) => {
-    const code = select.dataset.code
-    const quantity = Number(select.value)
-    if (Number.isInteger(quantity) && quantity > 0) {
-      selected.push({ code, quantity })
+  for (const [code, rawQuantity] of Object.entries(selectedQuantitiesByCode)) {
+    const product = products.find((p) => p.code === code)
+    const stockQuantity = Number(product?.quantity) || 0
+    const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
+
+    if (Number.isInteger(selectedQty) && selectedQty > 0) {
+      selected.push({ code, quantity: selectedQty })
+    } else {
+      // Mantém o estado consistente com o estoque (ou remove códigos inválidos).
+      delete selectedQuantitiesByCode[code]
     }
-  })
+  }
 
   return selected
 }
@@ -216,6 +246,7 @@ form.addEventListener("submit", async (event) => {
       return
     }
 
+    selectedQuantitiesByCode = Object.create(null)
     await loadProducts()
     paymentMethodSelect.value = ""
     sellerSelect.value = ""
@@ -230,5 +261,32 @@ form.addEventListener("submit", async (event) => {
 })
 
 paymentMethodSelect.addEventListener("change", updateSaleSummary)
+
+if (productSearchInput) {
+  productSearchInput.addEventListener("input", () => {
+    renderProductCards()
+  })
+}
+
+// Atualiza o estado da venda quando o usuário altera a quantidade.
+// Usamos delegacao de eventos para nao precisar re-registrar listener
+// a cada renderizacao dos cards.
+productsGrid.addEventListener("change", (event) => {
+  const target = event.target
+  if (!target || !(target instanceof HTMLSelectElement)) return
+  if (!target.classList.contains("qty-select")) return
+
+  const code = target.dataset.code
+  if (!code) return
+
+  const quantity = Number(target.value)
+  if (Number.isInteger(quantity) && quantity > 0) {
+    selectedQuantitiesByCode[code] = quantity
+  } else {
+    delete selectedQuantitiesByCode[code]
+  }
+
+  updateSaleSummary()
+})
 
 Promise.all([loadSellers(), loadProducts()])

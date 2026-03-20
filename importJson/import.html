@@ -1,31 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Importar JSON</title>
 
-<head>
-<meta charset="UTF-8">
-<title>Importar JSON</title>
+    <link rel="stylesheet" href="import.css">
+  </head>
 
-<link rel="stylesheet" href="import.css">
+  <body>
+    <h1>Importar Produtos</h1>
 
-</head>
+    <input type="file" id="fileInput" accept=".json">
 
-<body>
+    <button id="uploadBtn">Enviar JSON</button>
 
-<h1>Importar Produtos</h1>
+    <pre id="result"></pre>
 
-<input type="file" id="fileInput" accept=".json">
+    <a href="../index.html">Voltar</a>
 
-<button id="uploadBtn">
-Enviar JSON
-</button>
-
-<pre id="result"></pre>
-
-<a href="../index.html">Voltar</a>
-
-<script src="../env.js"></script>
-<script src="import.js"></script>
-
-</body>
-
+    <script src="../env.js"></script>
+    <script src="import.js"></script>
+  </body>
 </html>

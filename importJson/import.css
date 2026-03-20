@@ -1,39 +1,40 @@
+/* Estilos da tela de importação JSON */
 body{
-    font-family:Arial;
-    padding:20px;
-    background:#f4f4f4;
-    }
+  font-family:Arial;
+  padding:20px;
+  background:#f4f4f4;
+}
 
-    *{
-    box-sizing:border-box;
-    }
+*{
+  box-sizing:border-box;
+}
 
-    @media (max-width: 480px){
-    body{
-        padding:12px;
-    }
+@media (max-width: 480px){
+  body{
+    padding:12px;
+  }
 
-    input[type="file"]{
-        width:100%;
-    }
+  input[type="file"]{
+    width:100%;
+  }
 
-    button{
-        width:100%;
-    }
-    }
-    
-    button{
-    padding:10px 20px;
-    background:#3ECF8E;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    }
-    
-    pre{
-    margin-top:20px;
-    background:#111;
-    color:#0f0;
-    padding:10px;
-    }
+  button{
+    width:100%;
+  }
+}
+
+button{
+  padding:10px 20px;
+  background:#3ECF8E;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+pre{
+  margin-top:20px;
+  background:#111;
+  color:#0f0;
+  padding:10px;
+}
