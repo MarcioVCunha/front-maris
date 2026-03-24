@@ -49,15 +49,11 @@ function renderCatalogProduct(product) {
     <div class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
       <img src="${product.image_url}" alt="${product.name}">
       <h3>${product.name}</h3>
-      <div class="code">Código: ${product.code}</div>
       ${splitInfo}
       <div class="price ${showPrice ? "" : "unavailable"}">
         ${showPrice ? `R$ ${unitPrice.toFixed(2)}` : "Em falta"}
       </div>
       ${soldOut ? '<div class="backorder-note">Encomende com o vendedor</div>' : ""}
-      <div class="stock ${quantity <= 0 ? "zero" : ""}">
-        Quantidade: ${quantity}
-      </div>
     </div>
   `
 }
@@ -95,13 +91,12 @@ function openProductModal(product) {
   productModalImage.src = product.image_url || ""
   productModalImage.alt = product.name || "Produto"
   productModalTitle.textContent = product.name || "Produto"
-  productModalCode.textContent = `Código: ${product.code || "-"}`
+  productModalCode.textContent = ""
   productModalPrice.textContent = soldOut ? "Preço: Em falta" : `Preço: ${formatMoney(unitPrice)}`
-  productModalStock.textContent = `Estoque: ${quantity}`
-  productModalStatus.textContent = soldOut ? "Encomende com o vendedor" : "Disponível para pronta entrega"
+  productModalStock.textContent = ""
+  productModalStatus.textContent = soldOut ? "Encomende com o vendedor" : ""
   if (components.length) {
-    const soldOutCount = components.filter((component) => (Number(component.quantity) || 0) <= 0).length
-    productModalStatus.textContent += ` | Componentes cadastrados: ${components.length} (${soldOutCount} em falta)`
+    productModalStatus.textContent = `Pode ser comprado separado em ${components.length} tipo(s).`
   }
 
   renderModalComponentsRows(components)
