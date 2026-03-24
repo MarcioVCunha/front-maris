@@ -14,23 +14,41 @@
   <body>
     <header>
       <h1>Gerenciar Tipos do Produto</h1>
-      <p>Divida produtos em quantos tipos quiser (ex.: brinco, colar)</p>
+      <p>Clique no produto para abrir os detalhes e separar em tipos.</p>
     </header>
 
     <main class="container">
-      <section class="card">
-        <label for="product-select">Produto</label>
-        <select id="product-select">
-          <option value="">Selecione um produto</option>
-        </select>
+      <section>
+        <h2 class="catalog-title">Produtos disponíveis</h2>
+        <div id="products-grid" class="catalog"></div>
+      </section>
 
-        <div id="components-list" class="components-list"></div>
-
-        <button id="add-component-btn" type="button" class="secondary-btn">Adicionar tipo</button>
-        <button id="save-components-btn" type="button">Salvar tipos</button>
-        <div id="components-message" class="message"></div>
+      <section id="unavailable-products-section" class="unavailable-products">
+        <h2 class="catalog-title">Produtos em falta</h2>
+        <div id="unavailable-products-grid" class="catalog"></div>
       </section>
     </main>
+
+    <div id="product-modal" class="product-modal" hidden>
+      <div class="product-modal-backdrop" data-close-modal="true"></div>
+      <div class="product-modal-content" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+        <button id="product-modal-close" class="product-modal-close" type="button" aria-label="Fechar">x</button>
+        <img id="product-modal-image" class="product-modal-image" src="" alt="">
+        <h3 id="product-modal-title"></h3>
+        <div id="product-modal-code" class="modal-line"></div>
+        <div id="product-modal-price" class="modal-line"></div>
+        <div id="product-modal-stock" class="modal-line"></div>
+
+        <section class="modal-components">
+          <h4>Separar em tipos</h4>
+          <p class="modal-components-help">Defina nome, valor e estoque para cada tipo (ex.: brinco, colar).</p>
+          <div id="components-list" class="components-list"></div>
+          <button id="add-component-btn" type="button" class="secondary-btn">Adicionar tipo</button>
+          <button id="save-components-btn" type="button">Salvar tipos</button>
+          <div id="components-message" class="message"></div>
+        </section>
+      </div>
+    </div>
 
     <script src="components.js"></script>
   </body>

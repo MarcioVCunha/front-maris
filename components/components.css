@@ -29,28 +29,158 @@ header p{
   padding:20px;
 }
 
-.card{
-  width:min(900px, 100%);
+.catalog-title{
+  width:min(1100px, 100%);
+  margin:0 auto 10px;
+  color:#5a2a3a;
+}
+
+.catalog{
+  width:min(1100px, 100%);
   margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+  gap:20px;
+}
+
+.unavailable-products{
+  margin-top:18px;
+}
+
+.product{
   background:white;
   border-radius:12px;
+  padding:15px;
   box-shadow:0 5px 15px rgba(0,0,0,0.08);
-  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  cursor:pointer;
 }
 
-label{
+.product img{
+  width:100%;
+  aspect-ratio:1 / 1;
+  object-fit:cover;
+  border-radius:10px;
+}
+
+.product h3{
+  font-size:16px;
   color:#5a2a3a;
-  font-weight:700;
+  margin:0;
+  min-height:2.5em;
 }
 
-select, input, button{
+.product .code{
+  font-size:13px;
+  color:#888;
+}
+
+.product .price{
+  font-size:18px;
+  color:#e75480;
+  font-weight:bold;
+}
+
+.product .stock{
+  margin-top:auto;
+  font-size:14px;
+  color:#3b6e4f;
+  font-weight:600;
+}
+
+.product .stock.zero{
+  color:#a94442;
+}
+
+.split-info{
+  font-size:13px;
+  color:#5a2a3a;
+  font-weight:600;
+}
+
+.product-modal{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.product-modal[hidden]{
+  display:none;
+}
+
+.product-modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+}
+
+.product-modal-content{
+  position:relative;
+  width:min(560px, calc(100% - 24px));
+  max-height:calc(100vh - 30px);
+  overflow:auto;
+  background:#fff;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  z-index:1;
+}
+
+.product-modal-close{
+  width:auto;
+  margin:0;
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:6px 10px;
+  border-radius:8px;
+  background:#f1dbe4;
+  color:#5a2a3a;
+}
+
+.product-modal-image{
+  width:100%;
+  aspect-ratio:1 / 1;
+  object-fit:cover;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.modal-line{
+  margin-top:6px;
+  color:#5a2a3a;
+}
+
+.modal-components{
+  margin-top:12px;
+  border-top:1px dashed #e1d6db;
+  padding-top:12px;
+}
+
+.modal-components h4{
+  margin:0 0 6px;
+  color:#5a2a3a;
+}
+
+.modal-components-help{
+  margin:0 0 10px;
+  color:#666;
+  font-size:13px;
+}
+
+input, button{
   width:100%;
   padding:10px;
   border-radius:8px;
   font-size:14px;
 }
 
-select, input{
+input{
   border:1px solid #e1d6db;
 }
 
@@ -69,7 +199,6 @@ button{
 }
 
 .components-list{
-  margin-top:12px;
   display:flex;
   flex-direction:column;
   gap:8px;
@@ -106,6 +235,10 @@ button{
 }
 
 @media (max-width: 700px){
+  .catalog{
+    grid-template-columns:1fr;
+  }
+
   .component-row{
     grid-template-columns:1fr;
   }
