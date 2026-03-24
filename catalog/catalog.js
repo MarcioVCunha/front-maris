@@ -3,6 +3,9 @@ const { createSupabaseClient, sortProductsByStockAndName } = window.MarisUtils
 const supabaseClient = createSupabaseClient()
 
 const catalogEl = document.getElementById("catalog")
+const unavailableProductsSection = document.getElementById("unavailable-products-section")
+const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
+const unavailableCountEl = document.getElementById("unavailable-count")
 
 function renderCatalogProduct(product) {
   const quantity = Number(product.quantity) || 0
@@ -40,11 +43,27 @@ async function loadProducts() {
 
   if (!data?.length) {
     catalogEl.innerHTML = "Nenhum produto encontrado"
+    unavailableProductsSection.hidden = true
     return
   }
 
   const sortedProducts = sortProductsByStockAndName(data)
-  catalogEl.innerHTML = sortedProducts.map(renderCatalogProduct).join("")
+  const availableProducts = sortedProducts.filter((product) => (Number(product.quantity) || 0) > 0)
+  const unavailableProducts = sortedProducts.filter((product) => (Number(product.quantity) || 0) <= 0)
+
+  catalogEl.innerHTML = availableProducts.length
+    ? availableProducts.map(renderCatalogProduct).join("")
+    : "Nenhum produto disponível"
+
+  unavailableCountEl.textContent = `(${unavailableProducts.length})`
+  if (!unavailableProducts.length) {
+    unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
+    return
+  }
+
+  unavailableProductsSection.hidden = false
+  unavailableProductsGrid.innerHTML = unavailableProducts.map(renderCatalogProduct).join("")
 }
 
 loadProducts()
