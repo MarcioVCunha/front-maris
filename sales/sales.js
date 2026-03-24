@@ -189,7 +189,7 @@ function renderProductCards() {
         <div class="stock">Estoque: ${stockQuantity}</div>
         ${buildComponentControls(code)}
         ${hasComponents
-          ? '<div class="sale-controls no-whole-sale">Venda apenas pelos itens separados.</div>'
+          ? ""
           : `
             <div class="sale-controls">
               <label class="select-line">Quantidade</label>
