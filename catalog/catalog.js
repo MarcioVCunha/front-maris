@@ -65,16 +65,12 @@ function renderModalComponentsRows(components) {
   }
 
   productModalComponentsList.innerHTML = components.map((component) => {
-    const stock = Number(component.quantity) || 0
-    const soldOut = stock <= 0
     return `
-      <div class="component-row ${soldOut ? "sold-out" : ""}">
+      <div class="component-row">
         <div class="component-col">
           <strong>${component.name}</strong>
-          ${soldOut ? "Em falta" : "Disponível"}
         </div>
         <div class="component-col">Valor: ${formatMoney(component.unit_price)}</div>
-        <div class="component-col">Estoque: ${stock}</div>
       </div>
     `
   }).join("")
@@ -96,7 +92,7 @@ function openProductModal(product) {
   productModalStock.textContent = ""
   productModalStatus.textContent = soldOut ? "Encomende com o vendedor" : ""
   if (components.length) {
-    productModalStatus.textContent = `Pode ser comprado separado em ${components.length} tipo(s).`
+    productModalStatus.textContent = `Pode ser comprado separado.`
   }
 
   renderModalComponentsRows(components)

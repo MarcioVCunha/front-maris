@@ -262,17 +262,13 @@ header p{
 
 .component-row{
   display:grid;
-  grid-template-columns:2fr 1fr 1fr;
+  grid-template-columns:2fr 1fr;
   gap:8px;
   align-items:center;
   border:1px solid #f1dbe4;
   border-radius:8px;
   padding:8px;
   background:#fff9fb;
-}
-
-.component-row.sold-out{
-  border-color:#ecd3dd;
 }
 
 .component-col{
