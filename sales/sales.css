@@ -257,6 +257,15 @@ button:disabled{
   gap:8px;
 }
 
+.no-whole-sale{
+  font-size:13px;
+  color:#5a2a3a;
+  border:1px dashed #e1d6db;
+  border-radius:8px;
+  padding:8px;
+  background:#fff9fb;
+}
+
 .select-line{
   display:flex;
   align-items:center;

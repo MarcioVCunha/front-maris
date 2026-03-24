@@ -168,9 +168,11 @@ function renderProductCards() {
   productsGrid.innerHTML = filteredAvailable.map((product) => {
     const code = product.code
     const stockQuantity = Number(product.quantity) || 0
+    const components = getComponentsForProduct(code)
+    const hasComponents = components.length > 0
 
-    const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
-    if (selectedQty > 0) {
+    const selectedQty = hasComponents ? 0 : getClampedSelectedQuantity(code, stockQuantity)
+    if (selectedQty > 0 && !hasComponents) {
       selectedQuantitiesByCode[code] = selectedQty
     } else {
       delete selectedQuantitiesByCode[code]
@@ -183,15 +185,19 @@ function renderProductCards() {
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
         <div class="code">Código: ${code}</div>
-        <div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>
+        ${hasComponents ? "" : `<div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>`}
         <div class="stock">Estoque: ${stockQuantity}</div>
         ${buildComponentControls(code)}
-        <div class="sale-controls">
-          <label class="select-line">Quantidade</label>
-          <select class="qty-select" data-code="${code}">
-            ${qtyOptions}
-          </select>
-        </div>
+        ${hasComponents
+          ? '<div class="sale-controls no-whole-sale">Venda apenas pelos itens separados.</div>'
+          : `
+            <div class="sale-controls">
+              <label class="select-line">Quantidade</label>
+              <select class="qty-select" data-code="${code}">
+                ${qtyOptions}
+              </select>
+            </div>
+          `}
       </div>
     `
   }).join("")
@@ -270,6 +276,11 @@ function getSelectedItems() {
   const selected = []
 
   for (const [code, rawQuantity] of Object.entries(selectedQuantitiesByCode)) {
+    if (getComponentsForProduct(code).length) {
+      delete selectedQuantitiesByCode[code]
+      continue
+    }
+
     const product = products.find((p) => p.code === code)
     const stockQuantity = Number(product?.quantity) || 0
     const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
