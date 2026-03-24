@@ -154,6 +154,13 @@ header p{
   font-weight:bold;
 }
 
+.backorder-note{
+  margin-top:6px;
+  font-size:13px;
+  color:#a94442;
+  font-weight:600;
+}
+
 .product .stock{
   margin-top:8px;
   font-size:14px;

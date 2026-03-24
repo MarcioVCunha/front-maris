@@ -18,8 +18,9 @@ function renderCatalogProduct(product) {
       <h3>${product.name}</h3>
       <div class="code">Código: ${product.code}</div>
       <div class="price ${showPrice ? "" : "unavailable"}">
-        ${showPrice ? `R$ ${unitPrice.toFixed(2)}` : "Indisponível"}
+        ${showPrice ? `R$ ${unitPrice.toFixed(2)}` : "Em falta"}
       </div>
+      ${soldOut ? '<div class="backorder-note">Encomende com o vendedor</div>' : ""}
       <div class="stock ${quantity <= 0 ? "zero" : ""}">
         Quantidade: ${quantity}
       </div>
