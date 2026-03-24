@@ -169,10 +169,6 @@ button:disabled{
   margin-bottom:0;
 }
 
-.product.sold-out img{
-  filter:grayscale(100%);
-}
-
 .product h3{
   font-size:16px;
   color:#5a2a3a;
@@ -246,10 +242,6 @@ button:disabled{
   color:#a94442;
 }
 
-.product .stock.zero{
-  color:#a94442;
-}
-
 .product .sale-controls{
   margin-top:auto;
   display:flex;
@@ -263,10 +255,6 @@ button:disabled{
   gap:8px;
   color:#5a2a3a;
   font-weight:600;
-}
-
-.select-line input{
-  width:auto;
 }
 
 .qty-select:disabled{

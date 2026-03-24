@@ -108,18 +108,9 @@ header p{
     margin:8px 0;
   }
 
-  .product .code{
-    font-size:12px;
-  }
-
   .product .price{
     margin-top:6px;
     font-size:16px;
-  }
-
-  .product .stock{
-    font-size:12px;
-    margin-top:6px;
   }
 
   .product:hover{
