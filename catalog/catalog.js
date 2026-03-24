@@ -5,7 +5,6 @@ const supabaseClient = createSupabaseClient()
 const catalogEl = document.getElementById("catalog")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
-const unavailableCountEl = document.getElementById("unavailable-count")
 
 function renderCatalogProduct(product) {
   const quantity = Number(product.quantity) || 0
@@ -55,7 +54,6 @@ async function loadProducts() {
     ? availableProducts.map(renderCatalogProduct).join("")
     : "Nenhum produto disponível"
 
-  unavailableCountEl.textContent = `(${unavailableProducts.length})`
   if (!unavailableProducts.length) {
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
