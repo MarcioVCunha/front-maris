@@ -191,6 +191,11 @@ header p{
   justify-content:center;
 }
 
+/* Garante que o atributo hidden realmente esconda o modal. */
+.product-modal[hidden]{
+  display:none;
+}
+
 .product-modal-backdrop{
   position:absolute;
   inset:0;
