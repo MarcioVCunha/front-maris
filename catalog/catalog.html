@@ -26,6 +26,19 @@
       </section>
     </main>
 
+    <div id="product-modal" class="product-modal" hidden>
+      <div class="product-modal-backdrop" data-close-modal="true"></div>
+      <div class="product-modal-content" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
+        <button id="product-modal-close" class="product-modal-close" type="button" aria-label="Fechar">x</button>
+        <img id="product-modal-image" class="product-modal-image" src="" alt="">
+        <h3 id="product-modal-title"></h3>
+        <div id="product-modal-code" class="modal-line"></div>
+        <div id="product-modal-price" class="modal-line"></div>
+        <div id="product-modal-stock" class="modal-line"></div>
+        <div id="product-modal-status" class="modal-status"></div>
+      </div>
+    </div>
+
     <script src="catalog.js"></script>
   </body>
 </html>

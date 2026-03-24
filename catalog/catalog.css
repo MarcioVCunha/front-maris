@@ -63,6 +63,7 @@ header p{
   flex-direction:column;
   gap:8px;
   height:100%;
+  cursor:pointer;
 }
 
 .product:hover{
@@ -178,5 +179,61 @@ header p{
 }
 
 .product .stock.zero{
+  color:#a94442;
+}
+
+.product-modal{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.product-modal-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+}
+
+.product-modal-content{
+  position:relative;
+  width:min(520px, calc(100% - 24px));
+  background:#fff;
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.2);
+  z-index:1;
+}
+
+.product-modal-close{
+  width:auto;
+  margin:0;
+  position:absolute;
+  top:10px;
+  right:10px;
+  padding:6px 10px;
+  border-radius:8px;
+  background:#f1dbe4;
+  color:#5a2a3a;
+}
+
+.product-modal-image{
+  width:100%;
+  aspect-ratio:1 / 1;
+  object-fit:cover;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+
+.modal-line{
+  margin-top:6px;
+  color:#5a2a3a;
+}
+
+.modal-status{
+  margin-top:10px;
+  font-weight:700;
   color:#a94442;
 }
