@@ -6,6 +6,9 @@ const form = document.getElementById("sale-form")
 const sellerSelect = document.getElementById("seller-select")
 const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
+const unavailableProductsSection = document.getElementById("unavailable-products-section")
+const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
+const unavailableCountEl = document.getElementById("unavailable-count")
 const productSearchInput = document.getElementById("product-search")
 const summarySubtotalEl = document.getElementById("summary-subtotal")
 const summaryDiscountEl = document.getElementById("summary-discount")
@@ -81,65 +84,89 @@ function buildQtyOptions(stockQuantity, selectedQty) {
     .join("")
 }
 
+function renderUnavailableProductCard(product) {
+  return `
+    <div class="product sold-out">
+      <img src="${product.image_url}" alt="${product.name}">
+      <h3>${product.name}</h3>
+      <div class="code">Código: ${product.code}</div>
+      <div class="price unavailable">Indisponível</div>
+      <div class="stock zero">Estoque: 0</div>
+    </div>
+  `
+}
+
 function renderProductCards() {
   if (!products.length) {
     productsGrid.innerHTML = "Nenhum produto encontrado"
+    unavailableProductsSection.hidden = true
     submitBtn.disabled = true
     return
   }
 
   const term = getSearchTerm()
 
-  // Em vendas, exibimos apenas produtos disponíveis (estoque > 0).
   const availableProducts = products.filter((product) => (Number(product.quantity) || 0) > 0)
+  const unavailableProducts = products.filter((product) => (Number(product.quantity) || 0) <= 0)
 
   if (!availableProducts.length) {
     productsGrid.innerHTML = "Nenhum produto disponível para venda"
-    updateSaleSummary()
-    return
   }
 
-  const sorted = sortProductsByStockAndName(availableProducts)
-  const filtered = sorted.filter((product) => doesProductMatchSearch(product, term))
+  const sortedAvailable = sortProductsByStockAndName(availableProducts)
+  const filteredAvailable = sortedAvailable.filter((product) => doesProductMatchSearch(product, term))
 
-  if (!filtered.length) {
-    productsGrid.innerHTML = term ? "Nenhum produto encontrado para a busca" : "Nenhum produto encontrado"
+  const sortedUnavailable = sortProductsByStockAndName(unavailableProducts)
+  const filteredUnavailable = sortedUnavailable.filter((product) => doesProductMatchSearch(product, term))
+
+  if (!filteredAvailable.length && availableProducts.length) {
+    productsGrid.innerHTML = term
+      ? "Nenhum produto disponível encontrado para a busca"
+      : "Nenhum produto disponível para venda"
     updateSaleSummary()
-    return
+  } else if (filteredAvailable.length) {
+    productsGrid.innerHTML = filteredAvailable.map((product) => {
+      const code = product.code
+      const stockQuantity = Number(product.quantity) || 0
+      const soldOut = stockQuantity <= 0
+
+      const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
+      if (selectedQty > 0) {
+        selectedQuantitiesByCode[code] = selectedQty
+      } else {
+        delete selectedQuantitiesByCode[code]
+      }
+
+      const qtyOptions = buildQtyOptions(stockQuantity, selectedQty)
+
+      return `
+        <div class="product ${soldOut ? "sold-out" : ""}">
+          <img src="${product.image_url}" alt="${product.name}">
+          <h3>${product.name}</h3>
+          <div class="code">Código: ${code}</div>
+          <div class="price ${soldOut ? "unavailable" : ""}">
+            ${soldOut ? "Indisponível" : `R$ ${Number(product.unit_price).toFixed(2)}`}
+          </div>
+          <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${stockQuantity}</div>
+          <div class="sale-controls">
+            <label class="select-line">Quantidade</label>
+            <select class="qty-select" data-code="${code}" ${soldOut ? "disabled" : ""}>
+              ${qtyOptions}
+            </select>
+          </div>
+        </div>
+      `
+    }).join("")
   }
 
-  productsGrid.innerHTML = filtered.map((product) => {
-    const code = product.code
-    const stockQuantity = Number(product.quantity) || 0
-    const soldOut = stockQuantity <= 0
-
-    const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
-    if (selectedQty > 0) {
-      selectedQuantitiesByCode[code] = selectedQty
-    } else {
-      delete selectedQuantitiesByCode[code]
-    }
-
-    const qtyOptions = buildQtyOptions(stockQuantity, selectedQty)
-
-    return `
-      <div class="product ${soldOut ? "sold-out" : ""}">
-        <img src="${product.image_url}" alt="${product.name}">
-        <h3>${product.name}</h3>
-        <div class="code">Código: ${code}</div>
-        <div class="price ${soldOut ? "unavailable" : ""}">
-          ${soldOut ? "Indisponível" : `R$ ${Number(product.unit_price).toFixed(2)}`}
-        </div>
-        <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${stockQuantity}</div>
-        <div class="sale-controls">
-          <label class="select-line">Quantidade</label>
-          <select class="qty-select" data-code="${code}" ${soldOut ? "disabled" : ""}>
-            ${qtyOptions}
-          </select>
-        </div>
-      </div>
-    `
-  }).join("")
+  unavailableCountEl.textContent = `(${filteredUnavailable.length})`
+  if (!filteredUnavailable.length) {
+    unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
+  } else {
+    unavailableProductsSection.hidden = false
+    unavailableProductsGrid.innerHTML = filteredUnavailable.map(renderUnavailableProductCard).join("")
+  }
 
   updateSaleSummary()
 }

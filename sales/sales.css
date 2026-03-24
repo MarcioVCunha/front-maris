@@ -149,6 +149,29 @@ button:disabled{
   gap:20px;
 }
 
+.unavailable-products{
+  margin-top:16px;
+  border:1px solid #f1dbe4;
+  border-radius:10px;
+  background:#fff9fb;
+  padding:10px 12px;
+}
+
+.unavailable-title{
+  margin:0;
+  font-weight:700;
+  color:#5a2a3a;
+}
+
+.unavailable-count{
+  font-weight:600;
+  color:#a94442;
+}
+
+.unavailable-catalog{
+  margin-top:12px;
+}
+
 .product{
   background:white;
   border-radius:12px;
