@@ -90,7 +90,16 @@ function renderProductCards() {
 
   const term = getSearchTerm()
 
-  const sorted = sortProductsByStockAndName(products)
+  // Em vendas, exibimos apenas produtos disponíveis (estoque > 0).
+  const availableProducts = products.filter((product) => (Number(product.quantity) || 0) > 0)
+
+  if (!availableProducts.length) {
+    productsGrid.innerHTML = "Nenhum produto disponível para venda"
+    updateSaleSummary()
+    return
+  }
+
+  const sorted = sortProductsByStockAndName(availableProducts)
   const filtered = sorted.filter((product) => doesProductMatchSearch(product, term))
 
   if (!filtered.length) {
@@ -114,7 +123,7 @@ function renderProductCards() {
     const qtyOptions = buildQtyOptions(stockQuantity, selectedQty)
 
     return `
-      <div class="product">
+      <div class="product ${soldOut ? "sold-out" : ""}">
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
         <div class="code">Código: ${code}</div>

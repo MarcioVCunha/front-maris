@@ -6,11 +6,12 @@ const catalogEl = document.getElementById("catalog")
 
 function renderCatalogProduct(product) {
   const quantity = Number(product.quantity) || 0
+  const soldOut = quantity <= 0
   const showPrice = quantity > 0
   const unitPrice = Number(product.unit_price) || 0
 
   return `
-    <div class="product">
+    <div class="product ${soldOut ? "sold-out" : ""}">
       <img src="${product.image_url}" alt="${product.name}">
       <h3>${product.name}</h3>
       <div class="code">Código: ${product.code}</div>

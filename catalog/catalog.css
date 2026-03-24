@@ -105,6 +105,10 @@ header p{
   margin-bottom:10px;
 }
 
+.product.sold-out img{
+  filter:grayscale(100%);
+}
+
 .product h3{
   font-size:16px;
   color:#5a2a3a;
