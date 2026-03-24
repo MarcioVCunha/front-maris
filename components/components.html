@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Tipos do Produto</title>
+
+    <link rel="stylesheet" href="components.css">
+    <script src="../env.js"></script>
+    <script src="../utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+
+  <body>
+    <header>
+      <h1>Gerenciar Tipos do Produto</h1>
+      <p>Divida produtos em quantos tipos quiser (ex.: brinco, colar)</p>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <label for="product-select">Produto</label>
+        <select id="product-select">
+          <option value="">Selecione um produto</option>
+        </select>
+
+        <div id="components-list" class="components-list"></div>
+
+        <button id="add-component-btn" type="button" class="secondary-btn">Adicionar tipo</button>
+        <button id="save-components-btn" type="button">Salvar tipos</button>
+        <div id="components-message" class="message"></div>
+      </section>
+    </main>
+
+    <script src="components.js"></script>
+  </body>
+</html>

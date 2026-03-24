@@ -274,46 +274,31 @@ header p{
 
 .component-row{
   display:grid;
-  grid-template-columns:2fr 1fr 1fr auto;
+  grid-template-columns:2fr 1fr 1fr;
   gap:8px;
   align-items:center;
-}
-
-.component-row input{
-  width:100%;
-  border:1px solid #e1d6db;
+  border:1px solid #f1dbe4;
   border-radius:8px;
   padding:8px;
+  background:#fff9fb;
 }
 
-.modal-secondary-btn{
-  margin-top:10px;
-  background:#f1dbe4;
+.component-row.sold-out{
+  border-color:#ecd3dd;
+}
+
+.component-col{
   color:#5a2a3a;
-}
-
-.component-remove-btn{
-  width:auto;
-  margin:0;
-  background:#f1dbe4;
-  color:#a94442;
-  padding:8px 10px;
-}
-
-.modal-components-message{
-  margin-top:8px;
-  min-height:18px;
   font-size:13px;
-  font-weight:600;
-  color:#2f7a4a;
+}
+
+.component-col strong{
+  display:block;
+  font-size:14px;
 }
 
 @media (max-width: 560px){
   .component-row{
     grid-template-columns:1fr;
-  }
-
-  .component-remove-btn{
-    width:100%;
   }
 }

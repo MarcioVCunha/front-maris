@@ -14,13 +14,9 @@ const productModalPrice = document.getElementById("product-modal-price")
 const productModalStock = document.getElementById("product-modal-stock")
 const productModalStatus = document.getElementById("product-modal-status")
 const productModalComponentsList = document.getElementById("product-modal-components-list")
-const productModalAddComponentBtn = document.getElementById("product-modal-add-component")
-const productModalSaveComponentsBtn = document.getElementById("product-modal-save-components")
-const productModalComponentsMessage = document.getElementById("product-modal-components-message")
 
 let productsByCode = Object.create(null)
 let componentsByProductCode = Object.create(null)
-let currentModalProductCode = null
 
 function formatMoney(value) {
   return Number(value || 0).toLocaleString("pt-BR", {
@@ -31,11 +27,6 @@ function formatMoney(value) {
 
 function getProductComponents(productCode) {
   return componentsByProductCode[productCode] || []
-}
-
-function setComponentsMessage(text, type = "success") {
-  productModalComponentsMessage.textContent = text
-  productModalComponentsMessage.style.color = type === "error" ? "#a94442" : "#2f7a4a"
 }
 
 function renderCatalogProduct(product) {
@@ -51,7 +42,7 @@ function renderCatalogProduct(product) {
       .map((component) => Number(component.unit_price) || 0)
       .sort((a, b) => a - b)
     const minPrice = sortedPrices[0] || 0
-    splitInfo = `<div class="split-info">Divisível a partir de ${formatMoney(minPrice)}</div>`
+    splitInfo = `<div class="split-info">Pode ser comprado separado a partir de ${formatMoney(minPrice)}</div>`
   }
 
   return `
@@ -69,6 +60,28 @@ function renderCatalogProduct(product) {
       </div>
     </div>
   `
+}
+
+function renderModalComponentsRows(components) {
+  if (!components.length) {
+    productModalComponentsList.innerHTML = '<div class="component-col">Este produto não tem divisão cadastrada.</div>'
+    return
+  }
+
+  productModalComponentsList.innerHTML = components.map((component) => {
+    const stock = Number(component.quantity) || 0
+    const soldOut = stock <= 0
+    return `
+      <div class="component-row ${soldOut ? "sold-out" : ""}">
+        <div class="component-col">
+          <strong>${component.name}</strong>
+          ${soldOut ? "Em falta" : "Disponível"}
+        </div>
+        <div class="component-col">Valor: ${formatMoney(component.unit_price)}</div>
+        <div class="component-col">Estoque: ${stock}</div>
+      </div>
+    `
+  }).join("")
 }
 
 function openProductModal(product) {
@@ -91,39 +104,13 @@ function openProductModal(product) {
     productModalStatus.textContent += ` | Componentes cadastrados: ${components.length} (${soldOutCount} em falta)`
   }
 
-  currentModalProductCode = product.code
   renderModalComponentsRows(components)
-  setComponentsMessage("")
 
   productModal.hidden = false
 }
 
 function closeProductModal() {
   productModal.hidden = true
-  currentModalProductCode = null
-}
-
-function createComponentRow(component = null) {
-  const id = component?.id ? String(component.id) : ""
-  const name = component?.name || ""
-  const price = component?.unit_price != null ? String(component.unit_price) : ""
-  const quantity = component?.quantity != null ? String(component.quantity) : "0"
-  return `
-    <div class="component-row" data-component-id="${id}">
-      <input data-field="name" type="text" placeholder="Nome (ex.: Brinco)" value="${name}">
-      <input data-field="unit_price" type="number" min="0" step="0.01" placeholder="Valor" value="${price}">
-      <input data-field="quantity" type="number" min="0" step="1" placeholder="Estoque" value="${quantity}">
-      <button type="button" class="component-remove-btn">Remover</button>
-    </div>
-  `
-}
-
-function renderModalComponentsRows(components) {
-  if (!components.length) {
-    productModalComponentsList.innerHTML = createComponentRow()
-    return
-  }
-  productModalComponentsList.innerHTML = components.map((component) => createComponentRow(component)).join("")
 }
 
 async function loadCatalogData() {
@@ -187,67 +174,6 @@ async function loadCatalogData() {
   unavailableProductsGrid.innerHTML = unavailableProducts.map(renderCatalogProduct).join("")
 }
 
-async function saveComponentsForCurrentProduct() {
-  if (!currentModalProductCode) return
-
-  const rows = Array.from(productModalComponentsList.querySelectorAll(".component-row"))
-  const parsedRows = []
-
-  for (const row of rows) {
-    const nameInput = row.querySelector('input[data-field="name"]')
-    const priceInput = row.querySelector('input[data-field="unit_price"]')
-    const quantityInput = row.querySelector('input[data-field="quantity"]')
-    const name = String(nameInput?.value || "").trim()
-    const unitPrice = Number(priceInput?.value)
-    const quantity = Number(quantityInput?.value)
-
-    if (!name) continue
-    if (!Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isFinite(quantity) || quantity < 0 || !Number.isInteger(quantity)) {
-      setComponentsMessage("Preencha valor e estoque corretamente (estoque inteiro e >= 0).", "error")
-      return
-    }
-
-    parsedRows.push({
-      product_code: currentModalProductCode,
-      name,
-      unit_price: unitPrice,
-      quantity,
-      is_active: true
-    })
-  }
-
-  const { error: deleteError } = await supabaseClient
-    .from("product_components")
-    .delete()
-    .eq("product_code", currentModalProductCode)
-
-  if (deleteError) {
-    setComponentsMessage("Erro ao atualizar componentes.", "error")
-    console.log(deleteError)
-    return
-  }
-
-  if (parsedRows.length) {
-    const { error: insertError } = await supabaseClient
-      .from("product_components")
-      .insert(parsedRows)
-
-    if (insertError) {
-      setComponentsMessage("Erro ao salvar componentes.", "error")
-      console.log(insertError)
-      return
-    }
-  }
-
-  setComponentsMessage("Divisão salva com sucesso!")
-  await loadCatalogData()
-
-  const currentProduct = productsByCode[currentModalProductCode]
-  if (currentProduct) {
-    openProductModal(currentProduct)
-  }
-}
-
 function handleProductClick(target) {
   const productCard = target.closest(".product[data-product-code]")
   if (!productCard) return
@@ -281,25 +207,5 @@ productModal.addEventListener("click", (event) => {
 })
 
 productModalCloseBtn.addEventListener("click", closeProductModal)
-
-productModalComponentsList.addEventListener("click", (event) => {
-  const target = event.target
-  if (!(target instanceof HTMLElement)) return
-  if (!target.classList.contains("component-remove-btn")) return
-  const row = target.closest(".component-row")
-  if (row) row.remove()
-
-  if (!productModalComponentsList.querySelector(".component-row")) {
-    productModalComponentsList.innerHTML = createComponentRow()
-  }
-})
-
-productModalAddComponentBtn.addEventListener("click", () => {
-  productModalComponentsList.insertAdjacentHTML("beforeend", createComponentRow())
-})
-
-productModalSaveComponentsBtn.addEventListener("click", () => {
-  saveComponentsForCurrentProduct()
-})
 
 loadCatalogData()
