@@ -15,9 +15,13 @@ const messageEl = document.getElementById("message")
 
 let products = []
 let sellers = []
+let productComponents = []
+let componentsByProductCode = Object.create(null)
+let componentsById = Object.create(null)
 // Armazena a quantidade selecionada por código, para que a busca/filtragem
 // não “perca” itens que já foram escolhidos.
 let selectedQuantitiesByCode = Object.create(null)
+let selectedComponentQuantitiesById = Object.create(null)
 
 function setMessage(text, type = "") {
   messageEl.textContent = text
@@ -27,12 +31,19 @@ function setMessage(text, type = "") {
 function updateSaleSummary() {
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
+  const selectedComponentItems = getSelectedComponentItems()
 
-  const subtotal = selectedItems.reduce((acc, item) => {
+  const productsSubtotal = selectedItems.reduce((acc, item) => {
     const product = products.find((p) => p.code === item.code)
     const unitPrice = Number(product?.unit_price) || 0
     return acc + unitPrice * item.quantity
   }, 0)
+  const componentsSubtotal = selectedComponentItems.reduce((acc, item) => {
+    const component = componentsById[item.component_id]
+    const unitPrice = Number(component?.unit_price) || 0
+    return acc + unitPrice * item.quantity
+  }, 0)
+  const subtotal = productsSubtotal + componentsSubtotal
 
   const roundedSubtotal = roundMoney(subtotal)
   const discount = paymentMethod === "pix" ? roundMoney(roundedSubtotal * 0.05) : 0
@@ -79,6 +90,50 @@ function buildQtyOptions(stockQuantity, selectedQty) {
       return `<option value="${q}" ${isSelected ? "selected" : ""}>${label}</option>`
     })
     .join("")
+}
+
+function getComponentsForProduct(productCode) {
+  return componentsByProductCode[productCode] || []
+}
+
+function buildComponentControls(productCode) {
+  const components = getComponentsForProduct(productCode)
+  if (!components.length) return ""
+
+  const rows = components.map((component) => {
+    const stock = Number(component.quantity) || 0
+    const soldOut = stock <= 0
+    const selectedQtyRaw = Number(selectedComponentQuantitiesById[component.id] || 0)
+    const selectedQty = soldOut ? 0 : Math.min(Math.max(selectedQtyRaw, 0), stock)
+    if (selectedQty > 0) {
+      selectedComponentQuantitiesById[component.id] = selectedQty
+    } else {
+      delete selectedComponentQuantitiesById[component.id]
+    }
+
+    const qtyOptions = buildQtyOptions(stock, selectedQty)
+    const priceLabel = formatMoneyBRL(Number(component.unit_price) || 0)
+
+    return `
+      <div class="component-item ${soldOut ? "sold-out" : ""}">
+        <div class="component-header">
+          <strong>${component.name}</strong>
+          <span>${soldOut ? "Em falta" : priceLabel}</span>
+        </div>
+        <div class="component-stock">${soldOut ? "Vendido/sem estoque" : `Estoque: ${stock}`}</div>
+        <select class="qty-select component-qty-select" data-component-id="${component.id}" ${soldOut ? "disabled" : ""}>
+          ${qtyOptions}
+        </select>
+      </div>
+    `
+  }).join("")
+
+  return `
+    <div class="component-block">
+      <div class="component-title">Este item pode ser dividido:</div>
+      ${rows}
+    </div>
+  `
 }
 
 function renderProductCards() {
@@ -130,6 +185,7 @@ function renderProductCards() {
         <div class="code">Código: ${code}</div>
         <div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>
         <div class="stock">Estoque: ${stockQuantity}</div>
+        ${buildComponentControls(code)}
         <div class="sale-controls">
           <label class="select-line">Quantidade</label>
           <select class="qty-select" data-code="${code}">
@@ -144,17 +200,37 @@ function renderProductCards() {
 }
 
 async function loadProducts() {
-  const { data, error } = await supabaseClient
-    .from("products")
-    .select("id, code, name, quantity, image_url, unit_price")
+  const [productsResponse, componentsResponse] = await Promise.all([
+    supabaseClient
+      .from("products")
+      .select("id, code, name, quantity, image_url, unit_price"),
+    supabaseClient
+      .from("product_components")
+      .select("id, product_code, name, quantity, unit_price, is_active")
+      .eq("is_active", true)
+  ])
 
-  if (error) {
+  const { data, error } = productsResponse
+  const { data: componentsData, error: componentsError } = componentsResponse
+
+  if (error || componentsError) {
     setMessage("Erro ao carregar produtos", "error")
-    console.log(error)
+    console.log(error || componentsError)
     return
   }
 
   products = data || []
+  productComponents = componentsData || []
+  componentsByProductCode = Object.create(null)
+  componentsById = Object.create(null)
+  productComponents.forEach((component) => {
+    componentsById[component.id] = component
+    if (!componentsByProductCode[component.product_code]) {
+      componentsByProductCode[component.product_code] = []
+    }
+    componentsByProductCode[component.product_code].push(component)
+  })
+
   renderProductCards()
 }
 
@@ -209,6 +285,27 @@ function getSelectedItems() {
   return selected
 }
 
+function getSelectedComponentItems() {
+  const selected = []
+  for (const [componentIdRaw, rawQuantity] of Object.entries(selectedComponentQuantitiesById)) {
+    const componentId = Number(componentIdRaw)
+    const component = componentsById[componentId]
+    const stockQuantity = Number(component?.quantity) || 0
+    let quantity = Number(rawQuantity)
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      delete selectedComponentQuantitiesById[componentId]
+      continue
+    }
+    quantity = Math.min(quantity, stockQuantity)
+    if (quantity <= 0) {
+      delete selectedComponentQuantitiesById[componentId]
+      continue
+    }
+    selected.push({ component_id: componentId, quantity })
+  }
+  return selected
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault()
   setMessage("")
@@ -216,14 +313,15 @@ form.addEventListener("submit", async (event) => {
   const sellerId = Number(sellerSelect.value)
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
+  const selectedComponentItems = getSelectedComponentItems()
 
   if (!Number.isInteger(sellerId) || sellerId <= 0) {
     setMessage("Selecione a vendedora.", "error")
     return
   }
 
-  if (!selectedItems.length) {
-    setMessage("Selecione pelo menos um produto.", "error")
+  if (!selectedItems.length && !selectedComponentItems.length) {
+    setMessage("Selecione pelo menos um produto ou componente.", "error")
     return
   }
 
@@ -242,7 +340,8 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         seller_id: sellerId,
         payment_method: paymentMethod,
-        items: selectedItems
+        items: selectedItems,
+        component_items: selectedComponentItems
       })
     })
 
@@ -255,6 +354,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     selectedQuantitiesByCode = Object.create(null)
+    selectedComponentQuantitiesById = Object.create(null)
     await loadProducts()
     paymentMethodSelect.value = ""
     sellerSelect.value = ""
@@ -283,6 +383,19 @@ productsGrid.addEventListener("change", (event) => {
   const target = event.target
   if (!target || !(target instanceof HTMLSelectElement)) return
   if (!target.classList.contains("qty-select")) return
+
+  const componentId = Number(target.dataset.componentId)
+  if (Number.isInteger(componentId) && componentId > 0) {
+    const quantity = Number(target.value)
+    if (Number.isInteger(quantity) && quantity > 0) {
+      selectedComponentQuantitiesById[componentId] = quantity
+    } else {
+      delete selectedComponentQuantitiesById[componentId]
+    }
+
+    updateSaleSummary()
+    return
+  }
 
   const code = target.dataset.code
   if (!code) return

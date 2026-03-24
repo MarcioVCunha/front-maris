@@ -200,6 +200,52 @@ button:disabled{
   font-weight:600;
 }
 
+.component-block{
+  margin-top:8px;
+  border:1px solid #f1dbe4;
+  border-radius:8px;
+  background:#fff9fb;
+  padding:8px;
+}
+
+.component-title{
+  font-size:13px;
+  color:#5a2a3a;
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.component-item{
+  border-top:1px dashed #ecd3dd;
+  padding-top:6px;
+  margin-top:6px;
+}
+
+.component-item:first-of-type{
+  border-top:none;
+  padding-top:0;
+  margin-top:0;
+}
+
+.component-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:13px;
+  color:#5a2a3a;
+}
+
+.component-stock{
+  margin-top:4px;
+  font-size:12px;
+  color:#666;
+}
+
+.component-item.sold-out .component-stock{
+  color:#a94442;
+}
+
 .product .stock.zero{
   color:#a94442;
 }

@@ -157,6 +157,12 @@ header p{
   color:#888;
 }
 
+.split-info{
+  font-size:13px;
+  color:#5a2a3a;
+  font-weight:600;
+}
+
 .product .price{
   margin-top:0;
   font-size:18px;
@@ -241,4 +247,73 @@ header p{
   margin-top:10px;
   font-weight:700;
   color:#a94442;
+}
+
+.modal-components{
+  margin-top:14px;
+  border-top:1px dashed #e1d6db;
+  padding-top:12px;
+}
+
+.modal-components h4{
+  margin:0 0 6px;
+  color:#5a2a3a;
+}
+
+.modal-components-help{
+  margin:0 0 10px;
+  color:#666;
+  font-size:13px;
+}
+
+.modal-components-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.component-row{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr auto;
+  gap:8px;
+  align-items:center;
+}
+
+.component-row input{
+  width:100%;
+  border:1px solid #e1d6db;
+  border-radius:8px;
+  padding:8px;
+}
+
+.modal-secondary-btn{
+  margin-top:10px;
+  background:#f1dbe4;
+  color:#5a2a3a;
+}
+
+.component-remove-btn{
+  width:auto;
+  margin:0;
+  background:#f1dbe4;
+  color:#a94442;
+  padding:8px 10px;
+}
+
+.modal-components-message{
+  margin-top:8px;
+  min-height:18px;
+  font-size:13px;
+  font-weight:600;
+  color:#2f7a4a;
+}
+
+@media (max-width: 560px){
+  .component-row{
+    grid-template-columns:1fr;
+  }
+
+  .component-remove-btn{
+    width:100%;
+  }
 }
