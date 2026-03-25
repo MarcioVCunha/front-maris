@@ -1,4 +1,4 @@
-const { createSupabaseClient, sortProductsByStockAndName, roundMoney, formatMoneyBRL } = window.MarisUtils
+const { createSupabaseClient, roundMoney, formatMoneyBRL } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -96,6 +96,22 @@ function getComponentsForProduct(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
+// Com subdivisões: ignora estoque do pai; mostra na lista se algum componente tiver quantidade > 0.
+// Sem subdivisões: só entra se `product.quantity` > 0.
+function isSalesProductShowable(product) {
+  const components = getComponentsForProduct(product.code)
+  if (components.length > 0) {
+    return components.some((c) => (Number(c.quantity) || 0) > 0)
+  }
+  return (Number(product.quantity) || 0) > 0
+}
+
+function sortSalesProductsByName(products) {
+  return [...products].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
+  )
+}
+
 function buildComponentControls(productCode) {
   const components = getComponentsForProduct(productCode)
   if (!components.length) return ""
@@ -145,8 +161,8 @@ function renderProductCards() {
 
   const term = getSearchTerm()
 
-  // Em vendas, listamos apenas produtos com estoque disponível.
-  const availableProducts = products.filter((product) => (Number(product.quantity) || 0) > 0)
+  // Em vendas, listamos só o que pode ser vendido: pai com estoque ou, com subdivisões, algum componente com estoque.
+  const availableProducts = products.filter((product) => isSalesProductShowable(product))
 
   if (!availableProducts.length) {
     productsGrid.innerHTML = "Nenhum produto disponível para venda"
@@ -154,7 +170,7 @@ function renderProductCards() {
     return
   }
 
-  const sortedAvailable = sortProductsByStockAndName(availableProducts)
+  const sortedAvailable = sortSalesProductsByName(availableProducts)
   const filteredAvailable = sortedAvailable.filter((product) => doesProductMatchSearch(product, term))
 
   if (!filteredAvailable.length && availableProducts.length) {
@@ -186,7 +202,7 @@ function renderProductCards() {
         <h3>${product.name}</h3>
         <div class="code">Código: ${code}</div>
         ${hasComponents ? "" : `<div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>`}
-        <div class="stock">Estoque: ${stockQuantity}</div>
+        ${hasComponents ? "" : `<div class="stock">Estoque: ${stockQuantity}</div>`}
         ${buildComponentControls(code)}
         ${hasComponents
           ? ""
