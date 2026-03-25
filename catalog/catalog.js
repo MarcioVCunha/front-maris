@@ -1,4 +1,4 @@
-const { createSupabaseClient, sortProductsByStockAndName } = window.MarisUtils
+const { createSupabaseClient } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -29,10 +29,29 @@ function getProductComponents(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
+// Com subdivisões: ignora estoque do pai; disponível se algum componente tiver quantidade > 0.
+// Sem subdivisões: usa apenas `product.quantity`.
+function isCatalogProductAvailable(product) {
+  const components = getProductComponents(product.code)
+  if (components.length > 0) {
+    return components.some((c) => (Number(c.quantity) || 0) > 0)
+  }
+  return (Number(product.quantity) || 0) > 0
+}
+
+function sortCatalogByAvailabilityThenName(products) {
+  return [...products].sort((a, b) => {
+    const availA = isCatalogProductAvailable(a) ? 0 : 1
+    const availB = isCatalogProductAvailable(b) ? 0 : 1
+    if (availA !== availB) return availA - availB
+    return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
+  })
+}
+
 function renderCatalogProduct(product) {
-  const quantity = Number(product.quantity) || 0
-  const soldOut = quantity <= 0
-  const showPrice = quantity > 0
+  const available = isCatalogProductAvailable(product)
+  const soldOut = !available
+  const showPrice = !soldOut
   const unitPrice = Number(product.unit_price) || 0
   const components = getProductComponents(product.code)
 
@@ -83,8 +102,8 @@ function renderModalComponentsRows(components) {
 function openProductModal(product) {
   if (!product) return
 
-  const quantity = Number(product.quantity) || 0
-  const soldOut = quantity <= 0
+  const available = isCatalogProductAvailable(product)
+  const soldOut = !available
   const unitPrice = Number(product.unit_price) || 0
   const components = getProductComponents(product.code)
 
@@ -98,9 +117,11 @@ function openProductModal(product) {
       ? "Preço: Em falta"
       : `Preço: ${formatMoney(unitPrice)}`
   productModalStock.textContent = ""
-  productModalStatus.textContent = soldOut ? "Encomende com o vendedor" : ""
-  if (components.length) {
-    productModalStatus.textContent = `Pode ser comprado separado.`
+  productModalStatus.textContent = ""
+  if (!available) {
+    productModalStatus.textContent = "Encomende com o vendedor"
+  } else if (components.length) {
+    productModalStatus.textContent = "Pode ser comprado separado."
   }
 
   renderModalComponentsRows(components)
@@ -150,14 +171,14 @@ async function loadCatalogData() {
     return
   }
 
-  const sortedProducts = sortProductsByStockAndName(data)
+  const sortedProducts = sortCatalogByAvailabilityThenName(data)
   productsByCode = Object.create(null)
   sortedProducts.forEach((product) => {
     productsByCode[product.code] = product
   })
 
-  const availableProducts = sortedProducts.filter((product) => (Number(product.quantity) || 0) > 0)
-  const unavailableProducts = sortedProducts.filter((product) => (Number(product.quantity) || 0) <= 0)
+  const availableProducts = sortedProducts.filter((product) => isCatalogProductAvailable(product))
+  const unavailableProducts = sortedProducts.filter((product) => !isCatalogProductAvailable(product))
 
   catalogEl.innerHTML = availableProducts.length
     ? availableProducts.map(renderCatalogProduct).join("")
