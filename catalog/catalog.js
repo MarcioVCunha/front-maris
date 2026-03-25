@@ -1,4 +1,4 @@
-const { createSupabaseClient } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -18,23 +18,17 @@ const productModalComponentsList = document.getElementById("product-modal-compon
 let productsByCode = Object.create(null)
 let componentsByProductCode = Object.create(null)
 
-function formatMoney(value) {
-  return Number(value || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  })
-}
-
 function getProductComponents(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
 // Com subdivisões: ignora estoque do pai; disponível se algum componente tiver quantidade > 0.
 // Sem subdivisões: usa apenas `product.quantity`.
-function isCatalogProductAvailable(product) {
-  const components = getProductComponents(product.code)
-  if (components.length > 0) {
-    return components.some((c) => (Number(c.quantity) || 0) > 0)
+// `components` opcional evita segundo lookup no mesmo render.
+function isCatalogProductAvailable(product, components = null) {
+  const list = components ?? getProductComponents(product.code)
+  if (list.length > 0) {
+    return list.some((c) => (Number(c.quantity) || 0) > 0)
   }
   return (Number(product.quantity) || 0) > 0
 }
@@ -49,19 +43,22 @@ function sortCatalogByAvailabilityThenName(products) {
 }
 
 function renderCatalogProduct(product) {
-  const available = isCatalogProductAvailable(product)
+  const components = getProductComponents(product.code)
+  const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
   const showPrice = !soldOut
   const unitPrice = Number(product.unit_price) || 0
-  const components = getProductComponents(product.code)
 
   let splitInfo = ""
   if (components.length) {
-    const sortedPrices = components
-      .map((component) => Number(component.unit_price) || 0)
-      .sort((a, b) => a - b)
-    const minPrice = sortedPrices[0] || 0
-    splitInfo = `<div class="split-info">Pode ser comprado separado a partir de ${formatMoney(minPrice)}</div>`
+    let minPrice = Infinity
+    for (const c of components) {
+      const p = Number(c.unit_price) || 0
+      if (p < minPrice) minPrice = p
+    }
+    if (minPrice !== Infinity) {
+      splitInfo = `<div class="split-info">Pode ser comprado separado a partir de ${formatMoneyBRL(minPrice)}</div>`
+    }
   }
 
   return `
@@ -93,7 +90,7 @@ function renderModalComponentsRows(components) {
         <div class="component-col">
           <strong>${component.name}</strong>
         </div>
-        <div class="component-col">Valor: ${formatMoney(component.unit_price)}</div>
+        <div class="component-col">Valor: ${formatMoneyBRL(component.unit_price)}</div>
       </div>
     `
   }).join("")
@@ -102,10 +99,10 @@ function renderModalComponentsRows(components) {
 function openProductModal(product) {
   if (!product) return
 
-  const available = isCatalogProductAvailable(product)
+  const components = getProductComponents(product.code)
+  const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
   const unitPrice = Number(product.unit_price) || 0
-  const components = getProductComponents(product.code)
 
   productModalImage.src = product.image_url || ""
   productModalImage.alt = product.name || "Produto"
@@ -115,7 +112,7 @@ function openProductModal(product) {
     ? "Preço: consulte os valores das subdivisões"
     : soldOut
       ? "Preço: Em falta"
-      : `Preço: ${formatMoney(unitPrice)}`
+      : `Preço: ${formatMoneyBRL(unitPrice)}`
   productModalStock.textContent = ""
   productModalStatus.textContent = ""
   if (!available) {
@@ -156,14 +153,7 @@ async function loadCatalogData() {
     return
   }
 
-  componentsByProductCode = Object.create(null)
-  ;(componentsData || []).forEach((component) => {
-    const productCode = component.product_code
-    if (!componentsByProductCode[productCode]) {
-      componentsByProductCode[productCode] = []
-    }
-    componentsByProductCode[productCode].push(component)
-  })
+  componentsByProductCode = window.MarisUtils.groupByKey(componentsData || [], (c) => c.product_code)
 
   if (!data?.length) {
     catalogEl.innerHTML = "Nenhum produto encontrado"
@@ -177,8 +167,12 @@ async function loadCatalogData() {
     productsByCode[product.code] = product
   })
 
-  const availableProducts = sortedProducts.filter((product) => isCatalogProductAvailable(product))
-  const unavailableProducts = sortedProducts.filter((product) => !isCatalogProductAvailable(product))
+  const availableProducts = []
+  const unavailableProducts = []
+  for (const product of sortedProducts) {
+    if (isCatalogProductAvailable(product)) availableProducts.push(product)
+    else unavailableProducts.push(product)
+  }
 
   catalogEl.innerHTML = availableProducts.length
     ? availableProducts.map(renderCatalogProduct).join("")

@@ -29,6 +29,29 @@ window.MarisUtils = {
       style: "currency",
       currency: "BRL"
     })
+  },
+
+  // Agrupa linhas por uma chave string (ex.: product_code) sem lodash.
+  groupByKey(rows, keyFn) {
+    const out = Object.create(null)
+    for (const row of rows) {
+      const key = keyFn(row)
+      if (!out[key]) out[key] = []
+      out[key].push(row)
+    }
+    return out
+  },
+
+  // Atrasa execução (ex.: busca em tempo real sem re-render a cada tecla).
+  debounce(fn, ms) {
+    let timer = null
+    return (...args) => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        timer = null
+        fn(...args)
+      }, ms)
+    }
   }
 }
 

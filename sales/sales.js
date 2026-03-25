@@ -1,4 +1,4 @@
-const { createSupabaseClient, roundMoney, formatMoneyBRL } = window.MarisUtils
+const { createSupabaseClient, roundMoney, formatMoneyBRL, debounce, groupByKey } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -14,6 +14,7 @@ const submitBtn = document.getElementById("submit-btn")
 const messageEl = document.getElementById("message")
 
 let products = []
+let productsByCode = Object.create(null)
 let sellers = []
 let productComponents = []
 let componentsByProductCode = Object.create(null)
@@ -34,7 +35,7 @@ function updateSaleSummary() {
   const selectedComponentItems = getSelectedComponentItems()
 
   const productsSubtotal = selectedItems.reduce((acc, item) => {
-    const product = products.find((p) => p.code === item.code)
+    const product = productsByCode[item.code]
     const unitPrice = Number(product?.unit_price) || 0
     return acc + unitPrice * item.quantity
   }, 0)
@@ -242,16 +243,16 @@ async function loadProducts() {
   }
 
   products = data || []
+  productsByCode = Object.create(null)
+  for (const p of products) {
+    productsByCode[p.code] = p
+  }
   productComponents = componentsData || []
-  componentsByProductCode = Object.create(null)
   componentsById = Object.create(null)
-  productComponents.forEach((component) => {
+  for (const component of productComponents) {
     componentsById[component.id] = component
-    if (!componentsByProductCode[component.product_code]) {
-      componentsByProductCode[component.product_code] = []
-    }
-    componentsByProductCode[component.product_code].push(component)
-  })
+  }
+  componentsByProductCode = groupByKey(productComponents, (c) => c.product_code)
 
   renderProductCards()
 }
@@ -297,7 +298,7 @@ function getSelectedItems() {
       continue
     }
 
-    const product = products.find((p) => p.code === code)
+    const product = productsByCode[code]
     const stockQuantity = Number(product?.quantity) || 0
     const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
 
@@ -398,9 +399,8 @@ form.addEventListener("submit", async (event) => {
 paymentMethodSelect.addEventListener("change", updateSaleSummary)
 
 if (productSearchInput) {
-  productSearchInput.addEventListener("input", () => {
-    renderProductCards()
-  })
+  const scheduleRenderCards = debounce(() => renderProductCards(), 120)
+  productSearchInput.addEventListener("input", scheduleRenderCards)
 }
 
 // Atualiza o estado da venda quando o usuário altera a quantidade.

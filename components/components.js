@@ -1,4 +1,4 @@
-const { createSupabaseClient } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, groupByKey } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -20,13 +20,6 @@ const messageEl = document.getElementById("components-message")
 let products = []
 let componentsByProductCode = Object.create(null)
 let currentProductCode = ""
-
-function formatMoney(value) {
-  return Number(value || 0).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  })
-}
 
 function setMessage(text, type = "") {
   messageEl.textContent = text
@@ -63,7 +56,7 @@ function renderProductCard(product) {
       <h3>${product.name}</h3>
       <div class="code">Código: ${product.code}</div>
       ${splitInfo}
-      <div class="price">${soldOut ? "Em falta" : formatMoney(product.unit_price)}</div>
+      <div class="price">${soldOut ? "Em falta" : formatMoneyBRL(product.unit_price)}</div>
       <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${quantity}</div>
     </div>
   `
@@ -89,13 +82,7 @@ async function loadComponents() {
     return
   }
 
-  componentsByProductCode = Object.create(null)
-  ;(data || []).forEach((component) => {
-    if (!componentsByProductCode[component.product_code]) {
-      componentsByProductCode[component.product_code] = []
-    }
-    componentsByProductCode[component.product_code].push(component)
-  })
+  componentsByProductCode = groupByKey(data || [], (c) => c.product_code)
 }
 
 function openProductModal(product) {
@@ -106,7 +93,7 @@ function openProductModal(product) {
   productModalImage.alt = product.name || "Produto"
   productModalTitle.textContent = product.name || "Produto"
   productModalCode.textContent = `Código: ${product.code || "-"}`
-  productModalPrice.textContent = `Preço atual do produto: ${formatMoney(product.unit_price)}`
+  productModalPrice.textContent = `Preço atual do produto: ${formatMoneyBRL(product.unit_price)}`
   productModalStock.textContent = `Estoque do produto: ${Number(product.quantity) || 0}`
   renderComponentRows(product.code)
   productModal.hidden = false

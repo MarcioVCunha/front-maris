@@ -14,20 +14,41 @@ uploadBtn.addEventListener("click", async () => {
     return
   }
 
-  const text = await file.text()
-  const json = JSON.parse(text)
+  let json
+  try {
+    const text = await file.text()
+    json = JSON.parse(text)
+  } catch {
+    resultEl.textContent = "JSON inválido ou arquivo ilegível."
+    return
+  }
 
   resultEl.textContent = "Enviando..."
+  uploadBtn.disabled = true
 
-  const response = await fetch(FUNCTION_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-    },
-    body: JSON.stringify(json)
-  })
+  try {
+    const response = await fetch(FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify(json)
+    })
 
-  const data = await response.json()
-  resultEl.textContent = JSON.stringify(data, null, 2)
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      resultEl.textContent = JSON.stringify(
+        { error: data?.error || `Erro HTTP ${response.status}` },
+        null,
+        2
+      )
+      return
+    }
+    resultEl.textContent = JSON.stringify(data, null, 2)
+  } catch {
+    resultEl.textContent = "Falha de rede ao enviar o arquivo."
+  } finally {
+    uploadBtn.disabled = false
+  }
 })
