@@ -82,7 +82,6 @@ async function loadComponents() {
   const { data, error } = await supabaseClient
     .from("product_components")
     .select("id, product_code, name, unit_price, quantity, is_active")
-    .eq("is_active", true)
     .order("name")
 
   if (error) {
@@ -167,6 +166,14 @@ async function saveCurrentProductComponents() {
   const parsedRows = []
 
   for (const row of rows) {
+    const idAttr = row.getAttribute("data-component-id")
+    const parsedId =
+      idAttr && String(idAttr).trim() !== ""
+        ? Number(idAttr)
+        : null
+    const id =
+      Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null
+
     const name = String(row.querySelector('input[data-field="name"]')?.value || "").trim()
     const unitPrice = Number(row.querySelector('input[data-field="unit_price"]')?.value)
     const quantity = Number(row.querySelector('input[data-field="quantity"]')?.value)
@@ -179,6 +186,7 @@ async function saveCurrentProductComponents() {
     }
 
     parsedRows.push({
+      id,
       product_code: productCode,
       name,
       unit_price: unitPrice,
@@ -187,24 +195,73 @@ async function saveCurrentProductComponents() {
     })
   }
 
-  const { error: deleteError } = await supabaseClient
+  const { data: existingRows, error: existingError } = await supabaseClient
     .from("product_components")
-    .delete()
+    .select("id")
     .eq("product_code", productCode)
 
-  if (deleteError) {
-    setMessage("Erro ao atualizar tipos.", "error")
+  if (existingError) {
+    setMessage("Erro ao ler subdivisões atuais.", "error")
     return
   }
 
-  if (parsedRows.length) {
-    const { error: insertError } = await supabaseClient
-      .from("product_components")
-      .insert(parsedRows)
+  const existingIds = new Set((existingRows || []).map((r) => r.id))
+  const keptIds = new Set(parsedRows.filter((r) => r.id).map((r) => r.id))
 
-    if (insertError) {
-      setMessage("Erro ao salvar tipos.", "error")
+  for (const row of parsedRows) {
+    if (row.id && !existingIds.has(row.id)) {
+      setMessage("Subdivisão inválida: atualize a página e tente de novo.", "error")
       return
+    }
+  }
+
+  for (const id of existingIds) {
+    if (!keptIds.has(id)) {
+      const { error: deleteOneError } = await supabaseClient
+        .from("product_components")
+        .delete()
+        .eq("id", id)
+        .eq("product_code", productCode)
+
+      if (deleteOneError) {
+        setMessage("Erro ao remover subdivisão retirada.", "error")
+        return
+      }
+    }
+  }
+
+  for (const row of parsedRows) {
+    if (row.id) {
+      const { error: updateError } = await supabaseClient
+        .from("product_components")
+        .update({
+          name: row.name,
+          unit_price: row.unit_price,
+          quantity: row.quantity,
+          is_active: true
+        })
+        .eq("id", row.id)
+        .eq("product_code", productCode)
+
+      if (updateError) {
+        setMessage("Erro ao atualizar subdivisão.", "error")
+        return
+      }
+    } else {
+      const { error: insertError } = await supabaseClient
+        .from("product_components")
+        .insert({
+          product_code: row.product_code,
+          name: row.name,
+          unit_price: row.unit_price,
+          quantity: row.quantity,
+          is_active: true
+        })
+
+      if (insertError) {
+        setMessage("Erro ao criar subdivisão.", "error")
+        return
+      }
     }
   }
 
