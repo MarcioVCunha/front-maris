@@ -65,6 +65,7 @@ function renderCatalogProduct(product) {
     <div class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
       <img src="${product.image_url}" alt="${product.name}">
       <h3>${product.name}</h3>
+      <div class="code">Código: ${product.code}</div>
       ${splitInfo}
       ${components.length
         ? ""

@@ -138,6 +138,11 @@ header p{
   min-height:2.5em;
 }
 
+.product .code{
+  font-size:13px;
+  color:#888;
+}
+
 .split-info{
   font-size:13px;
   color:#5a2a3a;
