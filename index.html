@@ -4,53 +4,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel</title>
-
+  <title>Painel — Maris Semijoias</title>
   <style>
-    /* Página de menu (links) para acessar as áreas do sistema. */
-    body{
-      font-family:Arial;
-      background:#f4f4f4;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
+    * {
+      box-sizing: border-box;
     }
 
-    .container{
-      background:white;
-      padding:40px;
-      border-radius:10px;
-      box-shadow:0 10px 20px rgba(0,0,0,0.1);
-      text-align:center;
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(165deg, #fff5f7 0%, #f4eef2 45%, #eef8f3 100%);
+      color: #3a2a32;
     }
 
-    /* Botões/links do menu */
-    a{
-      display:block;
-      margin:10px;
-      padding:10px;
-      background:#3ECF8E;
-      color:white;
-      text-decoration:none;
-      border-radius:6px;
+    .dashboard {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
     }
 
-    @media (max-width: 480px){
-      body{
-        height:auto;
-        min-height:100vh;
-        padding:16px;
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .dashboard-header h1 {
+      margin: 0;
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 700;
+      color: #5a2a3a;
+      letter-spacing: 0.02em;
+    }
+
+    .dashboard-header p {
+      margin: 10px 0 0;
+      font-size: 1.1rem;
+      color: #7a5a68;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .menu-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 36px 28px 32px;
+      background: #fff;
+      border-radius: 20px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 8px 32px rgba(90, 42, 58, 0.08);
+      border: 1px solid rgba(241, 219, 228, 0.9);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 40px rgba(90, 42, 58, 0.12);
+    }
+
+    .menu-card:focus-visible {
+      outline: 3px solid #3ecf8e;
+      outline-offset: 4px;
+    }
+
+    .menu-card-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #fce4ec 0%, #f8c8dc 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 22px;
+    }
+
+    .menu-card-icon svg {
+      width: 44px;
+      height: 44px;
+      stroke: #8b3a5c;
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .menu-card h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #4a3038;
+      line-height: 1.35;
+    }
+
+    .menu-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #6d5a62;
+      max-width: 280px;
+    }
+
+    @media (max-width: 480px) {
+      .dashboard {
+        padding: 24px 16px 40px;
       }
 
-      .container{
-        padding:20px;
-        width:90vw;
+      .menu-card {
+        padding: 28px 20px 26px;
       }
 
-      a{
-        margin:8px 0;
-        padding:12px;
+      .menu-card-icon {
+        width: 76px;
+        height: 76px;
+      }
+
+      .menu-card-icon svg {
+        width: 38px;
+        height: 38px;
       }
     }
   </style>
@@ -58,28 +137,77 @@
 
 <body>
 
-  <div class="container">
-    <h1>Painel da Loja</h1>
+  <div class="dashboard">
+    <header class="dashboard-header">
+      <h1>Maris Semijoias</h1>
+      <p>Painel da loja — escolha uma área para continuar</p>
+    </header>
 
-    <a href="importJson/import.html">
-      Importar Produtos
-    </a>
+    <nav class="cards" aria-label="Áreas do sistema">
 
-    <a href="catalog/catalog.html">
-      Ver Catálogo
-    </a>
+      <a class="menu-card" href="importJson/import.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v12M8 8l4-4 4 4" />
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+        </span>
+        <h2>Importar produtos</h2>
+        <p>Envie arquivos JSON para criar ou atualizar itens, preços e estoque de uma vez.</p>
+      </a>
 
-    <a href="sales/sales.html">
-      Registrar Vendas
-    </a>
+      <a class="menu-card" href="catalog/catalog.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </span>
+        <h2>Ver catálogo</h2>
+        <p>Consulte fotos, códigos, preços e estoque dos produtos disponíveis.</p>
+      </a>
 
-    <a href="contas-vendedoras/contas-vendedoras.html">
-      Contas vendedoras
-    </a>
+      <a class="menu-card" href="sales/sales.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 8h15l-1.5 9H7.5L6 8z" />
+            <path d="M6 8 5 5H3" />
+            <circle cx="9" cy="20" r="1" fill="#8b3a5c" stroke="none" />
+            <circle cx="18" cy="20" r="1" fill="#8b3a5c" stroke="none" />
+          </svg>
+        </span>
+        <h2>Registrar vendas</h2>
+        <p>Registre a vendedora, o pagamento e os itens vendidos com baixa no estoque.</p>
+      </a>
 
-    <a href="components/components.html">
-      Gerenciar Tipos dos Produtos
-    </a>
+      <a class="menu-card" href="contas-vendedoras/contas-vendedoras.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="M3 10h18" />
+            <path d="M7 15h5" />
+          </svg>
+        </span>
+        <h2>Contas vendedoras</h2>
+        <p>Acompanhe vendas a receber, totais, repasse (70%) e marque o pagamento como feito.</p>
+      </a>
+
+      <a class="menu-card" href="components/components.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 7v2l8 4 8-4V7l-8-4z" />
+            <path d="M4 12v2l8 4 8-4v-2" />
+            <path d="M4 17v2l8 4 8-4v-2" />
+          </svg>
+        </span>
+        <h2>Tipos dos produtos</h2>
+        <p>Gerencie subdivisões e tipos (componentes) ligados a cada produto do catálogo.</p>
+      </a>
+
+    </nav>
   </div>
 </body>
+
 </html>
