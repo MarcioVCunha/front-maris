@@ -5,7 +5,7 @@ if (!utils || typeof utils.createSupabaseClient !== "function") {
   throw new Error("MarisUtils ausente")
 }
 
-const { createSupabaseClient, formatMoneyBRL } = utils
+const { createSupabaseClient, formatMoneyBRL, roundMoney } = utils
 const debounce =
   typeof utils.debounce === "function"
     ? utils.debounce
@@ -27,9 +27,11 @@ const filterPaidSelect = document.getElementById("filter-paid")
 const searchInput = document.getElementById("search-input")
 const salesTbody = document.getElementById("sales-tbody")
 const messageEl = document.getElementById("message")
-const toolbarSummaryEl = document.getElementById("toolbar-summary")
 const toolbarSelectedEl = document.getElementById("toolbar-selected")
 const selectAllCheckbox = document.getElementById("select-all-visible")
+const modoRepasseCheckbox = document.getElementById("modo-repasse")
+
+const REPASSE_PERCENT = 0.7
 
 /** @type {Set<string>} */
 const selectedSaleIds = new Set()
@@ -91,15 +93,17 @@ function applySearchFilter(rows) {
 }
 
 function selectionTotals(rows) {
-  let count = 0
+  let lines = 0
+  let pieces = 0
   let sum = 0
   for (const row of rows) {
     const id = saleIdKey(row)
     if (!id || !selectedSaleIds.has(id)) continue
-    count += 1
+    lines += 1
+    pieces += Number(row.quantity) || 0
     sum += Number(row.total_value) || 0
   }
-  return { count, sum }
+  return { lines, pieces, sum }
 }
 
 function syncSelectAllCheckbox(rows) {
@@ -120,23 +124,30 @@ function renderRows(rows) {
   if (!salesTbody) return
   if (!rows.length) {
     salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
-    if (toolbarSummaryEl) toolbarSummaryEl.innerHTML = ""
     if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
     syncSelectAllCheckbox([])
     return
   }
 
-  const total = rows.reduce((acc, row) => acc + (Number(row.total_value) || 0), 0)
-  if (toolbarSummaryEl) {
-    toolbarSummaryEl.innerHTML = `<span class="summary-line">Exibindo <strong>${rows.length}</strong> linha(s) · Total listado: <strong>${formatMoneyBRL(total)}</strong></span>`
-  }
+  const { lines: selLines, pieces: selPieces, sum: selSum } = selectionTotals(rows)
+  const repasseOn = Boolean(modoRepasseCheckbox?.checked)
+  const repasseVal =
+    typeof roundMoney === "function" ? roundMoney(selSum * REPASSE_PERCENT) : Math.round(selSum * REPASSE_PERCENT * 100) / 100
 
-  const { count: selCount, sum: selSum } = selectionTotals(rows)
   if (toolbarSelectedEl) {
-    toolbarSelectedEl.innerHTML =
-      selCount > 0
-        ? `<span class="summary-line">Selecionadas: <strong>${selCount}</strong> · Total selecionado: <strong>${formatMoneyBRL(selSum)}</strong></span>`
-        : `<span class="summary-line">Nenhuma linha selecionada · Total selecionado: <strong>${formatMoneyBRL(0)}</strong></span>`
+    if (selLines === 0) {
+      toolbarSelectedEl.innerHTML = `<span class="summary-line">Selecione linhas na tabela para ver <strong>peças</strong> e <strong>valor</strong>.</span>`
+    } else {
+      const lines = [
+        `<span class="summary-line">Peças selecionadas: <strong>${selPieces}</strong> · Valor selecionado: <strong>${formatMoneyBRL(selSum)}</strong></span>`
+      ]
+      if (repasseOn && selSum > 0) {
+        lines.push(
+          `<span class="summary-line summary-repasse">Repasse ao titular (70%): <strong>${formatMoneyBRL(repasseVal)}</strong></span>`
+        )
+      }
+      toolbarSelectedEl.innerHTML = lines.join("")
+    }
   }
 
   salesTbody.innerHTML = rows
@@ -182,7 +193,6 @@ async function loadSales() {
 
   setMessage("")
   salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Carregando…</td></tr>`
-  if (toolbarSummaryEl) toolbarSummaryEl.textContent = ""
   if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
 
   const mode = filterPaidSelect.value
@@ -277,6 +287,10 @@ if (searchInput) {
     "input",
     debounce(() => refreshDisplay(), 150)
   )
+}
+
+if (modoRepasseCheckbox) {
+  modoRepasseCheckbox.addEventListener("change", () => refreshDisplay())
 }
 
 loadSales()

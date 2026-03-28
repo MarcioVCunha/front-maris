@@ -67,19 +67,26 @@ input {
   border: 1px solid #e1d6db;
 }
 
-.toolbar-summary {
-  margin: 0;
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
   color: #5a2a3a;
-  font-size: 15px;
+  cursor: pointer;
+  margin: 0;
 }
 
-.toolbar-summary strong {
-  color: #3a1f2a;
+.checkbox-line input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .toolbar-selected {
   margin: 0;
-  padding-top: 8px;
+  padding-top: 12px;
   border-top: 1px solid #f1dbe4;
   color: #3a1f2a;
   font-size: 16px;
@@ -87,6 +94,15 @@ input {
 
 .toolbar-selected strong {
   color: #1e6b45;
+}
+
+.summary-repasse {
+  color: #5a2a3a;
+}
+
+.summary-repasse strong {
+  color: #7c3aed;
+  font-size: 1.05em;
 }
 
 .summary-line {
