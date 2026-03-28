@@ -1,7 +1,7 @@
 const utils = window.MarisUtils
 if (!utils || typeof utils.createSupabaseClient !== "function") {
   document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="7" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
+    `<tr><td colspan="8" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
   throw new Error("MarisUtils ausente")
 }
 
@@ -19,7 +19,7 @@ try {
 } catch (e) {
   console.error(e)
   document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="7" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
+    `<tr><td colspan="8" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
   throw e
 }
 
@@ -28,6 +28,11 @@ const searchInput = document.getElementById("search-input")
 const salesTbody = document.getElementById("sales-tbody")
 const messageEl = document.getElementById("message")
 const toolbarSummaryEl = document.getElementById("toolbar-summary")
+const toolbarSelectedEl = document.getElementById("toolbar-selected")
+const selectAllCheckbox = document.getElementById("select-all-visible")
+
+/** @type {Set<string>} */
+const selectedSaleIds = new Set()
 
 const PAYMENT_LABELS = {
   pix: "Pix",
@@ -70,6 +75,10 @@ function isPaidValue(row) {
   return false
 }
 
+function saleIdKey(row) {
+  return String(row.id ?? "")
+}
+
 function applySearchFilter(rows) {
   const term = (searchInput?.value || "").trim().toLowerCase()
   if (!term) return rows
@@ -81,17 +90,53 @@ function applySearchFilter(rows) {
   })
 }
 
+function selectionTotals(rows) {
+  let count = 0
+  let sum = 0
+  for (const row of rows) {
+    const id = saleIdKey(row)
+    if (!id || !selectedSaleIds.has(id)) continue
+    count += 1
+    sum += Number(row.total_value) || 0
+  }
+  return { count, sum }
+}
+
+function syncSelectAllCheckbox(rows) {
+  if (!selectAllCheckbox || !rows.length) {
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false
+      selectAllCheckbox.indeterminate = false
+    }
+    return
+  }
+  const visibleIds = rows.map(saleIdKey).filter(Boolean)
+  const nSelected = visibleIds.filter((id) => selectedSaleIds.has(id)).length
+  selectAllCheckbox.checked = nSelected === visibleIds.length
+  selectAllCheckbox.indeterminate = nSelected > 0 && nSelected < visibleIds.length
+}
+
 function renderRows(rows) {
   if (!salesTbody) return
   if (!rows.length) {
-    salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
+    salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
     if (toolbarSummaryEl) toolbarSummaryEl.innerHTML = ""
+    if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
+    syncSelectAllCheckbox([])
     return
   }
 
   const total = rows.reduce((acc, row) => acc + (Number(row.total_value) || 0), 0)
   if (toolbarSummaryEl) {
-    toolbarSummaryEl.innerHTML = `Exibindo <strong>${rows.length}</strong> linha(s) · Total: <strong>${formatMoneyBRL(total)}</strong>`
+    toolbarSummaryEl.innerHTML = `<span class="summary-line">Exibindo <strong>${rows.length}</strong> linha(s) · Total listado: <strong>${formatMoneyBRL(total)}</strong></span>`
+  }
+
+  const { count: selCount, sum: selSum } = selectionTotals(rows)
+  if (toolbarSelectedEl) {
+    toolbarSelectedEl.innerHTML =
+      selCount > 0
+        ? `<span class="summary-line">Selecionadas: <strong>${selCount}</strong> · Total selecionado: <strong>${formatMoneyBRL(selSum)}</strong></span>`
+        : `<span class="summary-line">Nenhuma linha selecionada · Total selecionado: <strong>${formatMoneyBRL(0)}</strong></span>`
   }
 
   salesTbody.innerHTML = rows
@@ -100,9 +145,15 @@ function renderRows(rows) {
       const badgeClass = paid ? "badge-paid" : "badge-unpaid"
       const badgeText = paid ? "Paga" : "A receber"
       const type = String(row.sale_item_type || "product") === "component" ? "Componente" : "Produto"
+      const id = saleIdKey(row)
+      const checked = id && selectedSaleIds.has(id) ? "checked" : ""
+      const rowClass = checked ? "row-selected" : ""
 
       return `
-        <tr>
+        <tr class="${rowClass}">
+          <td class="col-check">
+            <input type="checkbox" class="row-select" data-sale-id="${id}" ${checked} aria-label="Selecionar linha">
+          </td>
           <td>${formatDate(row.created_at)}</td>
           <td>
             <span>${String(row.product_name || "—")}</span>
@@ -117,6 +168,8 @@ function renderRows(rows) {
       `
     })
     .join("")
+
+  syncSelectAllCheckbox(rows)
 }
 
 function refreshDisplay() {
@@ -128,8 +181,9 @@ async function loadSales() {
   if (!salesTbody || !filterPaidSelect) return
 
   setMessage("")
-  salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Carregando…</td></tr>`
+  salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Carregando…</td></tr>`
   if (toolbarSummaryEl) toolbarSummaryEl.textContent = ""
+  if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
 
   const mode = filterPaidSelect.value
 
@@ -164,19 +218,52 @@ async function loadSales() {
       console.error(error)
       const detail = error.message || error.code || String(error)
       setMessage(`Erro ao carregar vendas: ${detail}`, "error")
-      salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar.</td></tr>`
+      salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Erro ao carregar.</td></tr>`
       loadedSales = []
+      selectedSaleIds.clear()
       return
     }
 
+    selectedSaleIds.clear()
     loadedSales = data || []
     refreshDisplay()
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
-    salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar.</td></tr>`
+    salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Erro ao carregar.</td></tr>`
     loadedSales = []
+    selectedSaleIds.clear()
   }
+}
+
+if (selectAllCheckbox) {
+  selectAllCheckbox.addEventListener("change", () => {
+    const filtered = applySearchFilter(loadedSales)
+    if (selectAllCheckbox.checked) {
+      for (const row of filtered) {
+        const id = saleIdKey(row)
+        if (id) selectedSaleIds.add(id)
+      }
+    } else {
+      for (const row of filtered) {
+        const id = saleIdKey(row)
+        if (id) selectedSaleIds.delete(id)
+      }
+    }
+    refreshDisplay()
+  })
+}
+
+if (salesTbody) {
+  salesTbody.addEventListener("change", (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLInputElement) || !target.classList.contains("row-select")) return
+    const id = target.dataset.saleId
+    if (!id) return
+    if (target.checked) selectedSaleIds.add(id)
+    else selectedSaleIds.delete(id)
+    refreshDisplay()
+  })
 }
 
 if (filterPaidSelect) {

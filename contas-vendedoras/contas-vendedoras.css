@@ -77,6 +77,49 @@ input {
   color: #3a1f2a;
 }
 
+.toolbar-selected {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid #f1dbe4;
+  color: #3a1f2a;
+  font-size: 16px;
+}
+
+.toolbar-selected strong {
+  color: #1e6b45;
+}
+
+.summary-line {
+  display: block;
+}
+
+.summary-line + .summary-line {
+  margin-top: 6px;
+}
+
+.col-check {
+  width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.select-all-checkbox,
+.row-select {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #3ecf8e;
+}
+
+.sales-table tbody tr.row-selected {
+  background: #f0fdf4;
+}
+
+.sales-table tbody tr.row-selected:hover {
+  background: #dcfce7;
+}
+
 .message {
   margin: 0 0 12px;
   padding: 10px 12px;

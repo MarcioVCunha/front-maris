@@ -30,6 +30,7 @@
         <input id="search-input" type="text" placeholder="Digite para filtrar a lista atual" autocomplete="off">
       </div>
       <p id="toolbar-summary" class="toolbar-summary" aria-live="polite"></p>
+      <p id="toolbar-selected" class="toolbar-selected" aria-live="polite"></p>
     </section>
 
     <div id="message" class="message" role="status"></div>
@@ -38,6 +39,9 @@
       <table class="sales-table">
         <thead>
           <tr>
+            <th class="col-check" scope="col">
+              <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas as linhas visíveis" aria-label="Selecionar todas as linhas visíveis">
+            </th>
             <th>Data</th>
             <th>Produto</th>
             <th>Qtd</th>
@@ -48,7 +52,7 @@
           </tr>
         </thead>
         <tbody id="sales-tbody">
-          <tr><td colspan="7" class="empty-cell">Carregando…</td></tr>
+          <tr><td colspan="8" class="empty-cell">Carregando…</td></tr>
         </tbody>
       </table>
     </div>
