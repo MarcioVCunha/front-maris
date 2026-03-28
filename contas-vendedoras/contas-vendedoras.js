@@ -30,6 +30,7 @@ const messageEl = document.getElementById("message")
 const toolbarSelectedEl = document.getElementById("toolbar-selected")
 const selectAllCheckbox = document.getElementById("select-all-visible")
 const modoRepasseCheckbox = document.getElementById("modo-repasse")
+const btnMarcarRepasse = document.getElementById("btn-marcar-repasse")
 
 const REPASSE_PERCENT = 0.7
 
@@ -181,6 +182,67 @@ function renderRows(rows) {
     .join("")
 
   syncSelectAllCheckbox(rows)
+  syncRepasseButton(rows)
+}
+
+function syncRepasseButton(rows) {
+  if (!btnMarcarRepasse) return
+  if (btnMarcarRepasse.dataset.loading === "1") return
+  const { lines } = selectionTotals(rows)
+  btnMarcarRepasse.disabled = lines === 0
+}
+
+function selectedIdsInView(rows) {
+  const ids = []
+  for (const row of rows) {
+    const id = saleIdKey(row)
+    if (!id || !selectedSaleIds.has(id)) continue
+    const n = Number(id)
+    if (Number.isInteger(n) && n > 0) ids.push(n)
+  }
+  return ids
+}
+
+async function marcarSelecionadasComoPagas() {
+  const filtered = applySearchFilter(loadedSales)
+  const ids = selectedIdsInView(filtered)
+  if (!ids.length) {
+    setMessage("Selecione ao menos uma venda na lista.", "error")
+    return
+  }
+
+  if (btnMarcarRepasse) {
+    btnMarcarRepasse.dataset.loading = "1"
+    btnMarcarRepasse.disabled = true
+  }
+  setMessage("Salvando…", "")
+
+  try {
+    const { error } = await supabaseClient.from("sales").update({ is_paid: true }).in("id", ids)
+
+    if (error) {
+      console.error(error)
+      const detail = error.message || error.code || String(error)
+      setMessage(`Não foi possível atualizar: ${detail}`, "error")
+      if (btnMarcarRepasse) {
+        delete btnMarcarRepasse.dataset.loading
+      }
+      refreshDisplay()
+      return
+    }
+
+    const n = ids.length
+    await loadSales()
+    setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
+  } catch (e) {
+    console.error(e)
+    setMessage(`Erro inesperado: ${e?.message || e}`, "error")
+  } finally {
+    if (btnMarcarRepasse) {
+      delete btnMarcarRepasse.dataset.loading
+    }
+    refreshDisplay()
+  }
 }
 
 function refreshDisplay() {
@@ -291,6 +353,12 @@ if (searchInput) {
 
 if (modoRepasseCheckbox) {
   modoRepasseCheckbox.addEventListener("change", () => refreshDisplay())
+}
+
+if (btnMarcarRepasse) {
+  btnMarcarRepasse.addEventListener("click", () => {
+    marcarSelecionadasComoPagas()
+  })
 }
 
 loadSales()
