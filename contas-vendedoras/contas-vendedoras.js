@@ -1,6 +1,27 @@
-const { createSupabaseClient, formatMoneyBRL, debounce } = window.MarisUtils
+const utils = window.MarisUtils
+if (!utils || typeof utils.createSupabaseClient !== "function") {
+  document.getElementById("sales-tbody").innerHTML =
+    `<tr><td colspan="7" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
+  throw new Error("MarisUtils ausente")
+}
 
-const supabase = createSupabaseClient()
+const { createSupabaseClient, formatMoneyBRL } = utils
+const debounce =
+  typeof utils.debounce === "function"
+    ? utils.debounce
+    : (fn, _ms) => {
+        return (...args) => fn(...args)
+      }
+
+let supabase
+try {
+  supabase = createSupabaseClient()
+} catch (e) {
+  console.error(e)
+  document.getElementById("sales-tbody").innerHTML =
+    `<tr><td colspan="7" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
+  throw e
+}
 
 const filterPaidSelect = document.getElementById("filter-paid")
 const searchInput = document.getElementById("search-input")
@@ -20,6 +41,7 @@ const PAYMENT_LABELS = {
 let loadedSales = []
 
 function setMessage(text, type = "") {
+  if (!messageEl) return
   messageEl.textContent = text
   messageEl.className = `message ${type}`.trim()
 }
@@ -60,14 +82,17 @@ function applySearchFilter(rows) {
 }
 
 function renderRows(rows) {
+  if (!salesTbody) return
   if (!rows.length) {
     salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
-    toolbarSummaryEl.innerHTML = ""
+    if (toolbarSummaryEl) toolbarSummaryEl.innerHTML = ""
     return
   }
 
   const total = rows.reduce((acc, row) => acc + (Number(row.total_value) || 0), 0)
-  toolbarSummaryEl.innerHTML = `Exibindo <strong>${rows.length}</strong> linha(s) · Total: <strong>${formatMoneyBRL(total)}</strong>`
+  if (toolbarSummaryEl) {
+    toolbarSummaryEl.innerHTML = `Exibindo <strong>${rows.length}</strong> linha(s) · Total: <strong>${formatMoneyBRL(total)}</strong>`
+  }
 
   salesTbody.innerHTML = rows
     .map((row) => {
@@ -100,43 +125,71 @@ function refreshDisplay() {
 }
 
 async function loadSales() {
+  if (!salesTbody || !filterPaidSelect) return
+
   setMessage("")
   salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Carregando…</td></tr>`
-  toolbarSummaryEl.textContent = ""
+  if (toolbarSummaryEl) toolbarSummaryEl.textContent = ""
 
   const mode = filterPaidSelect.value
 
-  let query = supabase
-    .from("sales")
-    .select(
+  try {
+    let query = supabase.from("sales").select(
       "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
     )
-    .order("created_at", { ascending: false })
 
-  if (mode === "unpaid") {
-    query = query.or("is_paid.eq.false,is_paid.is.null")
-  } else if (mode === "paid") {
-    query = query.eq("is_paid", true)
-  }
+    if (mode === "unpaid") {
+      query = query.or("is_paid.eq.false,is_paid.is.null")
+    } else if (mode === "paid") {
+      query = query.eq("is_paid", true)
+    }
 
-  const { data, error } = await query
+    query = query.order("created_at", { ascending: false })
 
-  if (error) {
-    console.error(error)
-    setMessage("Erro ao carregar vendas. Verifique se a coluna is_paid existe e as permissões do Supabase.", "error")
+    let { data, error } = await query
+
+    if (error && mode === "unpaid") {
+      const retry = await supabase
+        .from("sales")
+        .select(
+          "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
+        )
+        .eq("is_paid", false)
+        .order("created_at", { ascending: false })
+      data = retry.data
+      error = retry.error
+    }
+
+    if (error) {
+      console.error(error)
+      const detail = error.message || error.code || String(error)
+      setMessage(`Erro ao carregar vendas: ${detail}`, "error")
+      salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar.</td></tr>`
+      loadedSales = []
+      return
+    }
+
+    loadedSales = data || []
+    refreshDisplay()
+  } catch (e) {
+    console.error(e)
+    setMessage(`Erro inesperado: ${e?.message || e}`, "error")
     salesTbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar.</td></tr>`
     loadedSales = []
-    return
   }
-
-  loadedSales = data || []
-  refreshDisplay()
 }
 
-filterPaidSelect.addEventListener("change", () => {
-  loadSales()
-})
+if (filterPaidSelect) {
+  filterPaidSelect.addEventListener("change", () => {
+    loadSales()
+  })
+}
 
-searchInput.addEventListener("input", debounce(() => refreshDisplay(), 150))
+if (searchInput) {
+  searchInput.addEventListener(
+    "input",
+    debounce(() => refreshDisplay(), 150)
+  )
+}
 
 loadSales()
