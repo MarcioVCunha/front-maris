@@ -13,9 +13,9 @@ const debounce =
         return (...args) => fn(...args)
       }
 
-let supabase
+let supabaseClient
 try {
-  supabase = createSupabaseClient()
+  supabaseClient = createSupabaseClient()
 } catch (e) {
   console.error(e)
   document.getElementById("sales-tbody").innerHTML =
@@ -134,7 +134,7 @@ async function loadSales() {
   const mode = filterPaidSelect.value
 
   try {
-    let query = supabase.from("sales").select(
+    let query = supabaseClient.from("sales").select(
       "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
     )
 
@@ -149,7 +149,7 @@ async function loadSales() {
     let { data, error } = await query
 
     if (error && mode === "unpaid") {
-      const retry = await supabase
+      const retry = await supabaseClient
         .from("sales")
         .select(
           "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
