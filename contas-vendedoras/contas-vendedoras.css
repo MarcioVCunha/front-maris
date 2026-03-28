@@ -1,0 +1,169 @@
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #fff5f7;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+header {
+  text-align: center;
+  padding: 30px;
+  background: #f8c8dc;
+  color: #5a2a3a;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+header p {
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+.toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+label {
+  color: #5a2a3a;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+select,
+input {
+  font-size: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  width: 100%;
+  border: 1px solid #e1d6db;
+}
+
+.toolbar-summary {
+  margin: 0;
+  color: #5a2a3a;
+  font-size: 15px;
+}
+
+.toolbar-summary strong {
+  color: #3a1f2a;
+}
+
+.message {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.message.error {
+  background: #ffe5e5;
+  color: #8b2020;
+}
+
+.table-wrap {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.sales-table th,
+.sales-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #f1dbe4;
+  vertical-align: top;
+}
+
+.sales-table th {
+  background: #fff9fb;
+  color: #5a2a3a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sales-table th.num,
+.sales-table td.num {
+  text-align: right;
+}
+
+.sales-table tbody tr:hover {
+  background: #fff9fb;
+}
+
+.empty-cell {
+  text-align: center;
+  color: #7a5a68;
+  padding: 24px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-paid {
+  background: #d4f5e3;
+  color: #1e6b45;
+}
+
+.badge-unpaid {
+  background: #ffe8d4;
+  color: #8b4a12;
+}
+
+.code-muted {
+  display: block;
+  font-size: 12px;
+  color: #7a5a68;
+  margin-top: 2px;
+}
+
+@media (max-width: 720px) {
+  .sales-table {
+    font-size: 13px;
+  }
+
+  .sales-table th,
+  .sales-table td {
+    padding: 8px 10px;
+  }
+}

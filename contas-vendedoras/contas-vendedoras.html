@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contas vendedoras</title>
+  <link rel="stylesheet" href="contas-vendedoras.css">
+  <script src="../env.js"></script>
+  <script src="../utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h1>Maris Semijoias</h1>
+    <p>Contas vendedoras</p>
+  </header>
+
+  <main class="container">
+    <section class="toolbar card">
+      <div class="toolbar-row">
+        <label for="filter-paid">Situação do pagamento</label>
+        <select id="filter-paid">
+          <option value="unpaid" selected>A receber (não pagas)</option>
+          <option value="paid">Pagas</option>
+          <option value="all">Todas</option>
+        </select>
+      </div>
+      <div class="toolbar-row">
+        <label for="search-input">Buscar (produto, código, vendedora)</label>
+        <input id="search-input" type="text" placeholder="Digite para filtrar a lista atual" autocomplete="off">
+      </div>
+      <p id="toolbar-summary" class="toolbar-summary" aria-live="polite"></p>
+    </section>
+
+    <div id="message" class="message" role="status"></div>
+
+    <div class="table-wrap">
+      <table class="sales-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Vendedora</th>
+            <th>Pagamento</th>
+            <th class="num">Valor</th>
+            <th>Situação</th>
+          </tr>
+        </thead>
+        <tbody id="sales-tbody">
+          <tr><td colspan="7" class="empty-cell">Carregando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="contas-vendedoras.js"></script>
+</body>
+</html>
