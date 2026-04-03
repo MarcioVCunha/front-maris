@@ -2,21 +2,49 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
-    <title>Importar JSON</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar produtos — Maris</title>
     <link rel="stylesheet" href="import.css">
   </head>
 
   <body>
-    <h1>Importar Produtos</h1>
+    <div class="page">
+      <header class="page-header">
+        <a class="back-link" href="../index.html">← Voltar ao painel</a>
+        <h1>Importar produtos</h1>
+        <p class="lead">
+          Escolha um arquivo JSON exportado do catálogo ou do pedido e envie para atualizar os dados.
+        </p>
+      </header>
 
-    <input type="file" id="fileInput" accept=".json">
+      <main class="card">
+        <div class="upload-block">
+          <input type="file" id="fileInput" accept=".json,.txt" class="visually-hidden" />
 
-    <button id="uploadBtn">Enviar JSON</button>
+          <label for="fileInput" class="drop-zone">
+            <span class="drop-zone__icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="6" width="24" height="28" rx="3" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M13 14h14M13 19h14M13 24h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="drop-zone__title">Escolher arquivo JSON</span>
+            <span class="drop-zone__hint">JSON com lista de produtos</span>
+          </label>
 
-    <pre id="result"></pre>
+          <p class="file-name" id="fileName">Nenhum arquivo selecionado</p>
 
-    <a href="../index.html">Voltar</a>
+          <button type="button" id="uploadBtn" class="btn-primary">
+            Enviar JSON
+          </button>
+        </div>
+
+        <section class="result-wrap" id="resultWrap" hidden>
+          <h2 class="result-title">Resposta do servidor</h2>
+          <pre id="result" class="result-body" role="status"></pre>
+        </section>
+      </main>
+    </div>
 
     <script src="../env.js"></script>
     <script src="import.js"></script>

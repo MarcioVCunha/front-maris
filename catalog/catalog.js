@@ -1,8 +1,9 @@
-const { createSupabaseClient, formatMoneyBRL } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, debounce } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
 const catalogEl = document.getElementById("catalog")
+const catalogSearchInput = document.getElementById("catalog-search")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
 const productModal = document.getElementById("product-modal")
@@ -17,6 +18,20 @@ const productModalComponentsList = document.getElementById("product-modal-compon
 
 let productsByCode = Object.create(null)
 let componentsByProductCode = Object.create(null)
+/** Listas após carregar (antes do filtro de busca). */
+let availableProducts = []
+let unavailableProducts = []
+
+function getSearchTerm() {
+  return (catalogSearchInput?.value || "").trim().toLowerCase()
+}
+
+function doesProductMatchSearch(product, term) {
+  if (!term) return true
+  const name = String(product?.name || "").toLowerCase()
+  const code = String(product?.code || "").toLowerCase()
+  return name.includes(term) || code.includes(term)
+}
 
 function getProductComponents(productCode) {
   return componentsByProductCode[productCode] || []
@@ -131,6 +146,38 @@ function closeProductModal() {
   productModal.hidden = true
 }
 
+function renderCatalogGrids() {
+  const term = getSearchTerm()
+
+  const availFiltered = availableProducts.filter((p) => doesProductMatchSearch(p, term))
+  const unavailFiltered = unavailableProducts.filter((p) => doesProductMatchSearch(p, term))
+
+  if (!availableProducts.length) {
+    catalogEl.innerHTML = "Nenhum produto disponível"
+  } else if (!availFiltered.length) {
+    catalogEl.innerHTML = term
+      ? "Nenhum produto disponível encontrado para a busca"
+      : "Nenhum produto disponível"
+  } else {
+    catalogEl.innerHTML = availFiltered.map(renderCatalogProduct).join("")
+  }
+
+  if (!unavailableProducts.length) {
+    unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
+    return
+  }
+
+  if (!unavailFiltered.length) {
+    unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
+    return
+  }
+
+  unavailableProductsSection.hidden = false
+  unavailableProductsGrid.innerHTML = unavailFiltered.map(renderCatalogProduct).join("")
+}
+
 async function loadCatalogData() {
   const [productsResponse, componentsResponse] = await Promise.all([
     supabaseClient
@@ -149,7 +196,11 @@ async function loadCatalogData() {
   const { data: componentsData, error: componentsError } = componentsResponse
 
   if (error || componentsError) {
+    availableProducts = []
+    unavailableProducts = []
     catalogEl.innerHTML = "Erro ao carregar produtos"
+    unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
     console.log(error || componentsError)
     return
   }
@@ -157,8 +208,11 @@ async function loadCatalogData() {
   componentsByProductCode = window.MarisUtils.groupByKey(componentsData || [], (c) => c.product_code)
 
   if (!data?.length) {
+    availableProducts = []
+    unavailableProducts = []
     catalogEl.innerHTML = "Nenhum produto encontrado"
     unavailableProductsSection.hidden = true
+    unavailableProductsGrid.innerHTML = ""
     return
   }
 
@@ -168,25 +222,14 @@ async function loadCatalogData() {
     productsByCode[product.code] = product
   })
 
-  const availableProducts = []
-  const unavailableProducts = []
+  availableProducts = []
+  unavailableProducts = []
   for (const product of sortedProducts) {
     if (isCatalogProductAvailable(product)) availableProducts.push(product)
     else unavailableProducts.push(product)
   }
 
-  catalogEl.innerHTML = availableProducts.length
-    ? availableProducts.map(renderCatalogProduct).join("")
-    : "Nenhum produto disponível"
-
-  if (!unavailableProducts.length) {
-    unavailableProductsSection.hidden = true
-    unavailableProductsGrid.innerHTML = ""
-    return
-  }
-
-  unavailableProductsSection.hidden = false
-  unavailableProductsGrid.innerHTML = unavailableProducts.map(renderCatalogProduct).join("")
+  renderCatalogGrids()
 }
 
 function handleProductClick(target) {
@@ -222,5 +265,10 @@ productModal.addEventListener("click", (event) => {
 })
 
 productModalCloseBtn.addEventListener("click", closeProductModal)
+
+if (catalogSearchInput) {
+  const scheduleRender = debounce(() => renderCatalogGrids(), 120)
+  catalogSearchInput.addEventListener("input", scheduleRender)
+}
 
 loadCatalogData()

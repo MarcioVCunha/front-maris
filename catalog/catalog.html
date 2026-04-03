@@ -2,6 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Semijoias</title>
 
     <link rel="stylesheet" href="catalog.css">
@@ -17,6 +18,19 @@
     </header>
 
     <main>
+      <div class="catalog-controls">
+        <div class="product-search">
+          <label for="catalog-search" class="catalog-search-label">Buscar no catálogo</label>
+          <input
+            id="catalog-search"
+            type="search"
+            placeholder="Nome (ex.: Brinco) ou código (ex.: BM1786)"
+            autocomplete="off"
+            enterkeyhint="search"
+          />
+        </div>
+      </div>
+
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog"></div>
 
