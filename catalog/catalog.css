@@ -33,6 +33,8 @@ header p{
   grid-template-columns:2fr 1fr;
   gap:12px;
   align-items:end;
+  max-width:980px;
+  margin:0 auto;
 }
 
 .product-search{
@@ -51,7 +53,7 @@ header p{
   color:#5a2a3a;
 }
 
-.product-search input{
+.product-search input,
 .catalog-sort select{
   width:100%;
   font-size:15px;
