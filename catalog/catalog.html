@@ -29,6 +29,16 @@
             enterkeyhint="search"
           />
         </div>
+        <div class="catalog-sort">
+          <label for="catalog-sort" class="catalog-search-label">Ordenar por</label>
+          <select id="catalog-sort">
+            <option value="name_asc">Nome (A-Z)</option>
+            <option value="price_asc">Preco (menor primeiro)</option>
+            <option value="price_desc">Preco (maior primeiro)</option>
+            <option value="created_desc">Mais recentes</option>
+            <option value="created_asc">Mais antigos</option>
+          </select>
+        </div>
       </div>
 
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->

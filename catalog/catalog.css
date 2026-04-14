@@ -29,11 +29,18 @@ header p{
 
 .catalog-controls{
   padding:20px 30px 8px;
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:12px;
+  align-items:end;
 }
 
 .product-search{
-  max-width:560px;
-  margin:0 auto;
+  width:100%;
+}
+
+.catalog-sort{
+  width:100%;
 }
 
 .catalog-search-label{
@@ -45,6 +52,7 @@ header p{
 }
 
 .product-search input{
+.catalog-sort select{
   width:100%;
   font-size:15px;
   padding:10px 14px;
@@ -58,7 +66,8 @@ header p{
   color:#9a8890;
 }
 
-.product-search input:focus{
+.product-search input:focus,
+.catalog-sort select:focus{
   outline:none;
   border-color:#e75480;
   box-shadow:0 0 0 3px rgba(231,84,128,0.15);
@@ -117,6 +126,7 @@ header p{
 
   .catalog-controls{
     padding:16px 12px 8px;
+    grid-template-columns:1fr;
   }
 
   .catalog{
