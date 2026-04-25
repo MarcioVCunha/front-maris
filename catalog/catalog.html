@@ -54,7 +54,12 @@
       <div class="product-modal-backdrop" data-close-modal="true"></div>
       <div class="product-modal-content" role="dialog" aria-modal="true" aria-labelledby="product-modal-title">
         <button id="product-modal-close" class="product-modal-close" type="button" aria-label="Fechar">x</button>
-        <img id="product-modal-image" class="product-modal-image" src="" alt="">
+        <div class="product-modal-carousel">
+          <button id="product-modal-prev" class="carousel-nav prev" type="button" aria-label="Imagem anterior">‹</button>
+          <img id="product-modal-image" class="product-modal-image" src="" alt="">
+          <button id="product-modal-next" class="carousel-nav next" type="button" aria-label="Próxima imagem">›</button>
+        </div>
+        <div id="product-modal-dots" class="carousel-dots" aria-label="Lista de imagens do produto"></div>
         <h3 id="product-modal-title"></h3>
         <div id="product-modal-code" class="modal-line"></div>
         <div id="product-modal-price" class="modal-line"></div>

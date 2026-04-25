@@ -6,7 +6,7 @@ const codeInput = document.getElementById("codeInput")
 const nameInput = document.getElementById("nameInput")
 const priceInput = document.getElementById("priceInput")
 const quantityInput = document.getElementById("quantityInput")
-const imageUrlInput = document.getElementById("imageUrlInput")
+const imageUrlsInput = document.getElementById("imageUrlsInput")
 
 const FUNCTION_URL = window.ENV.SUPABASE_ADD_PRODUCT_FUNCTION_URL
 const SUPABASE_ANON_KEY = window.ENV.SUPABASE_ANON_KEY
@@ -21,12 +21,18 @@ function setResult(text, kind) {
 }
 
 function getPayload() {
+  const imageUrls = String(imageUrlsInput.value || "")
+    .split(/\r?\n|,/)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+
   return {
     code: String(codeInput.value || "").trim(),
     name: String(nameInput.value || "").trim(),
     unit_price: Number(priceInput.value),
     quantity: Number(quantityInput.value),
-    image_url: String(imageUrlInput.value || "").trim()
+    image_url: imageUrls[0] || "",
+    image_urls: imageUrls
   }
 }
 

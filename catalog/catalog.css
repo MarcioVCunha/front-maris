@@ -270,6 +270,66 @@ header p{
   margin-bottom:12px;
 }
 
+.product-modal-carousel{
+  position:relative;
+}
+
+.carousel-nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:34px;
+  height:34px;
+  margin:0;
+  padding:0;
+  border:none;
+  border-radius:999px;
+  background:rgba(58,42,50,0.65);
+  color:#fff;
+  font-size:22px;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+.carousel-nav.prev{
+  left:8px;
+}
+
+.carousel-nav.next{
+  right:8px;
+}
+
+.carousel-nav:disabled{
+  opacity:0.35;
+  cursor:not-allowed;
+}
+
+.carousel-dots{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin:-2px 0 12px;
+}
+
+.carousel-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  border:none;
+  margin:0;
+  padding:0;
+  background:#d4c2cb;
+  cursor:pointer;
+}
+
+.carousel-dot.active{
+  background:#e75480;
+}
+
 .modal-line{
   margin-top:6px;
   color:#5a2a3a;

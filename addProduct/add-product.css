@@ -85,7 +85,19 @@ body {
   background: #fff;
 }
 
-.field input:focus {
+.field textarea {
+  width: 100%;
+  border: 1px solid #dbc5ce;
+  border-radius: 10px;
+  padding: 12px 12px;
+  font: inherit;
+  color: #3a2a32;
+  background: #fff;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
   outline: none;
   border-color: #3ecf8e;
   box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.2);

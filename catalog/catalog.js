@@ -9,7 +9,10 @@ const unavailableProductsSection = document.getElementById("unavailable-products
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
 const productModal = document.getElementById("product-modal")
 const productModalCloseBtn = document.getElementById("product-modal-close")
+const productModalPrevBtn = document.getElementById("product-modal-prev")
+const productModalNextBtn = document.getElementById("product-modal-next")
 const productModalImage = document.getElementById("product-modal-image")
+const productModalDots = document.getElementById("product-modal-dots")
 const productModalTitle = document.getElementById("product-modal-title")
 const productModalCode = document.getElementById("product-modal-code")
 const productModalPrice = document.getElementById("product-modal-price")
@@ -19,9 +22,12 @@ const productModalComponentsList = document.getElementById("product-modal-compon
 
 let productsByCode = Object.create(null)
 let componentsByProductCode = Object.create(null)
+let imageUrlsByProductId = Object.create(null)
 /** Listas após carregar (antes do filtro de busca). */
 let availableProducts = []
 let unavailableProducts = []
+let modalImageUrls = []
+let modalImageIndex = 0
 
 function getSearchTerm() {
   return (catalogSearchInput?.value || "").trim().toLowerCase()
@@ -57,6 +63,34 @@ function getProductComponents(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
+function getProductImageUrls(product) {
+  const productId = Number(product?.id)
+  const urlsFromTable = Number.isInteger(productId) ? (imageUrlsByProductId[productId] || []) : []
+  if (urlsFromTable.length) return urlsFromTable
+  const fallback = String(product?.image_url || "").trim()
+  return fallback ? [fallback] : []
+}
+
+function setModalImageIndex(index) {
+  if (!modalImageUrls.length) {
+    productModalImage.src = ""
+    productModalImage.alt = "Produto"
+    productModalPrevBtn.disabled = true
+    productModalNextBtn.disabled = true
+    productModalDots.innerHTML = ""
+    return
+  }
+
+  modalImageIndex = (index + modalImageUrls.length) % modalImageUrls.length
+  productModalImage.src = modalImageUrls[modalImageIndex]
+  productModalImage.alt = `${productModalTitle.textContent || "Produto"} (${modalImageIndex + 1}/${modalImageUrls.length})`
+  productModalPrevBtn.disabled = modalImageUrls.length <= 1
+  productModalNextBtn.disabled = modalImageUrls.length <= 1
+  productModalDots.innerHTML = modalImageUrls
+    .map((_, dotIndex) => `<button class="carousel-dot ${dotIndex === modalImageIndex ? "active" : ""}" data-index="${dotIndex}" type="button" aria-label="Ir para imagem ${dotIndex + 1}"></button>`)
+    .join("")
+}
+
 // Com subdivisões: ignora estoque do pai; disponível se algum componente tiver quantidade > 0.
 // Sem subdivisões: usa apenas `product.quantity`.
 // `components` opcional evita segundo lookup no mesmo render.
@@ -83,6 +117,8 @@ function renderCatalogProduct(product) {
   const soldOut = !available
   const showPrice = !soldOut
   const unitPrice = Number(product.unit_price) || 0
+  const imageUrls = getProductImageUrls(product)
+  const coverImage = imageUrls[0] || ""
 
   let splitInfo = ""
   if (components.length) {
@@ -98,7 +134,7 @@ function renderCatalogProduct(product) {
 
   return `
     <div class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
-      <img src="${product.image_url}" alt="${product.name}">
+      <img src="${coverImage}" alt="${product.name}">
       <h3>${product.name}</h3>
       <div class="code">Código: ${product.code}</div>
       ${splitInfo}
@@ -139,10 +175,11 @@ function openProductModal(product) {
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
   const unitPrice = Number(product.unit_price) || 0
+  modalImageUrls = getProductImageUrls(product)
+  modalImageIndex = 0
 
-  productModalImage.src = product.image_url || ""
-  productModalImage.alt = product.name || "Produto"
   productModalTitle.textContent = product.name || "Produto"
+  setModalImageIndex(0)
   productModalCode.textContent = ""
   productModalPrice.textContent = components.length
     ? "Preço: consulte os valores das subdivisões"
@@ -206,7 +243,7 @@ function renderCatalogGrids() {
 }
 
 async function loadCatalogData() {
-  const [productsResponse, componentsResponse] = await Promise.all([
+  const [productsResponse, componentsResponse, imagesResponse] = await Promise.all([
     supabaseClient
       .from("products")
       .select("*")
@@ -216,23 +253,36 @@ async function loadCatalogData() {
       .from("product_components")
       .select("id, product_code, name, unit_price, quantity, is_active")
       .eq("is_active", true)
-      .order("name")
+      .order("name"),
+    supabaseClient
+      .from("product_images")
+      .select("product_id, image_url, sort_order")
+      .order("sort_order", { ascending: true })
   ])
 
   const { data, error } = productsResponse
   const { data: componentsData, error: componentsError } = componentsResponse
+  const { data: imagesData, error: imagesError } = imagesResponse
 
-  if (error || componentsError) {
+  if (error || componentsError || imagesError) {
     availableProducts = []
     unavailableProducts = []
     catalogEl.innerHTML = "Erro ao carregar produtos"
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
-    console.log(error || componentsError)
+    console.log(error || componentsError || imagesError)
     return
   }
 
   componentsByProductCode = window.MarisUtils.groupByKey(componentsData || [], (c) => c.product_code)
+  imageUrlsByProductId = Object.create(null)
+  for (const row of imagesData || []) {
+    const productId = Number(row.product_id)
+    const imageUrl = String(row.image_url || "").trim()
+    if (!Number.isInteger(productId) || !imageUrl) continue
+    if (!Array.isArray(imageUrlsByProductId[productId])) imageUrlsByProductId[productId] = []
+    imageUrlsByProductId[productId].push(imageUrl)
+  }
 
   if (!data?.length) {
     availableProducts = []
@@ -292,6 +342,15 @@ productModal.addEventListener("click", (event) => {
 })
 
 productModalCloseBtn.addEventListener("click", closeProductModal)
+productModalPrevBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex - 1))
+productModalNextBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex + 1))
+productModalDots.addEventListener("click", (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return
+  const index = Number(target.dataset.index)
+  if (!Number.isInteger(index)) return
+  setModalImageIndex(index)
+})
 
 if (catalogSearchInput) {
   const scheduleRender = debounce(() => renderCatalogGrids(), 120)
