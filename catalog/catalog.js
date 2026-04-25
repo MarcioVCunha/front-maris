@@ -8,7 +8,6 @@ const catalogSortSelect = document.getElementById("catalog-sort")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
 const productModal = document.getElementById("product-modal")
-const productModalCloseBtn = document.getElementById("product-modal-close")
 const productModalPrevBtn = document.getElementById("product-modal-prev")
 const productModalNextBtn = document.getElementById("product-modal-next")
 const productModalImage = document.getElementById("product-modal-image")
@@ -341,7 +340,6 @@ productModal.addEventListener("click", (event) => {
   }
 })
 
-productModalCloseBtn.addEventListener("click", closeProductModal)
 productModalPrevBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex - 1))
 productModalNextBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex + 1))
 productModalDots.addEventListener("click", (event) => {

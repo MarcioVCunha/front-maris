@@ -250,18 +250,6 @@ header p{
   z-index:1;
 }
 
-.product-modal-close{
-  width:auto;
-  margin:0;
-  position:absolute;
-  top:10px;
-  right:10px;
-  padding:6px 10px;
-  border-radius:8px;
-  background:#f1dbe4;
-  color:#5a2a3a;
-}
-
 .product-modal-image{
   width:100%;
   aspect-ratio:1 / 1;
