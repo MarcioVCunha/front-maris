@@ -8,6 +8,7 @@ const catalogSortSelect = document.getElementById("catalog-sort")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
 const productModal = document.getElementById("product-modal")
+const productModalCarousel = document.querySelector(".product-modal-carousel")
 const productModalPrevBtn = document.getElementById("product-modal-prev")
 const productModalNextBtn = document.getElementById("product-modal-next")
 const productModalImage = document.getElementById("product-modal-image")
@@ -27,6 +28,8 @@ let availableProducts = []
 let unavailableProducts = []
 let modalImageUrls = []
 let modalImageIndex = 0
+let touchStartX = 0
+let touchStartY = 0
 
 function getSearchTerm() {
   return (catalogSearchInput?.value || "").trim().toLowerCase()
@@ -349,6 +352,27 @@ productModalDots.addEventListener("click", (event) => {
   if (!Number.isInteger(index)) return
   setModalImageIndex(index)
 })
+
+if (productModalCarousel) {
+  productModalCarousel.addEventListener("touchstart", (event) => {
+    if (!event.touches.length) return
+    touchStartX = event.touches[0].clientX
+    touchStartY = event.touches[0].clientY
+  }, { passive: true })
+
+  productModalCarousel.addEventListener("touchend", (event) => {
+    if (!event.changedTouches.length || modalImageUrls.length <= 1) return
+    const endX = event.changedTouches[0].clientX
+    const endY = event.changedTouches[0].clientY
+    const deltaX = endX - touchStartX
+    const deltaY = endY - touchStartY
+
+    // Ignore vertical scroll gestures and very short horizontal drags.
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return
+    if (deltaX < 0) setModalImageIndex(modalImageIndex + 1)
+    else setModalImageIndex(modalImageIndex - 1)
+  }, { passive: true })
+}
 
 if (catalogSearchInput) {
   const scheduleRender = debounce(() => renderCatalogGrids(), 120)
