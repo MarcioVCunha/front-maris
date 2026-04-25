@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar peça — Maris</title>
+    <link rel="stylesheet" href="add-product.css">
+  </head>
+
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <a class="back-link" href="../index.html">← Voltar ao painel</a>
+        <h1>Adicionar peça</h1>
+        <p class="lead">Cadastre uma peça única no catálogo sem precisar importar JSON em lote.</p>
+      </header>
+
+      <main class="card">
+        <form id="addProductForm" class="form" novalidate>
+          <label class="field">
+            <span>Código *</span>
+            <input id="codeInput" name="code" type="text" required placeholder="Ex.: BM1786-O">
+          </label>
+
+          <label class="field">
+            <span>Nome *</span>
+            <input id="nameInput" name="name" type="text" required placeholder="Nome da peça">
+          </label>
+
+          <label class="field">
+            <span>Preço unitário *</span>
+            <input id="priceInput" name="price" type="number" min="0" step="0.01" required placeholder="0.00">
+          </label>
+
+          <label class="field">
+            <span>Quantidade *</span>
+            <input id="quantityInput" name="quantity" type="number" min="0" step="1" required placeholder="0">
+          </label>
+
+          <label class="field">
+            <span>URL da imagem</span>
+            <input id="imageUrlInput" name="image_url" type="url" placeholder="https://...">
+          </label>
+
+          <button id="submitBtn" class="btn-primary" type="submit">Adicionar peça</button>
+        </form>
+
+        <section class="result-wrap" id="resultWrap" hidden>
+          <h2 class="result-title">Resposta do servidor</h2>
+          <pre id="result" class="result-body" role="status"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="../env.js"></script>
+    <script src="add-product.js"></script>
+  </body>
+</html>
