@@ -368,6 +368,15 @@ header p{
   font-size:13px;
 }
 
+.component-row.is-unavailable{
+  background:#fdfdfe;
+  border-color:#f2ecf0;
+}
+
+.component-status-unavailable{
+  color:#9c9398;
+}
+
 .component-col strong{
   display:block;
   font-size:14px;

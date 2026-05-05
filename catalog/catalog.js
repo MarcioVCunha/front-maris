@@ -126,6 +126,8 @@ function renderCatalogProduct(product) {
   if (components.length) {
     let minPrice = Infinity
     for (const c of components) {
+      const componentQty = Number(c.quantity) || 0
+      if (componentQty <= 0) continue
       const p = Number(c.unit_price) || 0
       if (p < minPrice) minPrice = p
     }
@@ -159,12 +161,14 @@ function renderModalComponentsRows(components) {
   }
 
   productModalComponentsList.innerHTML = components.map((component) => {
+    const componentQty = Number(component.quantity) || 0
+    const isAvailable = componentQty > 0
     return `
-      <div class="component-row">
+      <div class="component-row ${isAvailable ? "" : "is-unavailable"}">
         <div class="component-col">
           <strong>${component.name}</strong>
         </div>
-        <div class="component-col">Valor: ${formatMoneyBRL(component.unit_price)}</div>
+        <div class="component-col ${isAvailable ? "" : "component-status-unavailable"}">${isAvailable ? `Valor: ${formatMoneyBRL(component.unit_price)}` : "Indisponível"}</div>
       </div>
     `
   }).join("")
