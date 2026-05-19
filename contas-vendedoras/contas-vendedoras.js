@@ -258,11 +258,8 @@ function renderRows(rows) {
       const selectedClass = checked ? "sale-card--selected" : ""
 
       return `
-        <article class="sale-card ${selectedClass}" role="listitem" data-sale-id="${escapeHtml(id)}">
-          <label class="sale-card-check">
-            <input type="checkbox" class="row-select" data-sale-id="${escapeHtml(id)}" ${checked} aria-label="Selecionar venda">
-            <span>Selecionar</span>
-          </label>
+        <label class="sale-card ${selectedClass}" role="listitem" data-sale-id="${escapeHtml(id)}">
+          <input type="checkbox" class="row-select sale-card-checkbox" data-sale-id="${escapeHtml(id)}" ${checked} aria-label="Selecionar venda de ${escapeHtml(row.product_name || "produto")}">
           ${renderProductPhoto(row)}
           <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
           <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
@@ -276,7 +273,7 @@ function renderRows(rows) {
             <span class="badge ${badgeClass}">${badgeText}</span>
             <span class="sale-card-value">${formatMoneyBRL(row.total_value)}</span>
           </div>
-        </article>
+        </label>
       `
     })
     .join("")
