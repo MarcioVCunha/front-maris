@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administração — Maris Semijoias</title>
+  <link rel="stylesheet" href="../home.css">
+</head>
+<body>
+  <div class="dashboard">
+    <a class="hub-back" href="../index.html">← Voltar ao início</a>
+    <header class="dashboard-header" style="text-align: left; margin-bottom: 32px;">
+      <h1 class="hub-section-title">Administração</h1>
+      <p class="hub-section-lead">
+        Ferramentas para manter o catálogo atualizado: importação em lote, cadastro de peças e configuração dos tipos de cada produto.
+      </p>
+    </header>
+
+    <nav class="cards cards--sub" aria-label="Ferramentas de administração">
+      <a class="menu-card menu-card--sub menu-card--admin" href="../importJson/import.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v12M8 8l4-4 4 4" />
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+        </span>
+        <h2>Importar produtos</h2>
+        <p>Envie um arquivo JSON para criar ou atualizar vários itens de uma vez.</p>
+      </a>
+
+      <a class="menu-card menu-card--sub menu-card--admin" href="../addProduct/add-product.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+          </svg>
+        </span>
+        <h2>Adicionar peça</h2>
+        <p>Cadastre uma peça avulsa com código, nome, preço, imagem e quantidade.</p>
+      </a>
+
+      <a class="menu-card menu-card--sub menu-card--admin" href="../components/components.html">
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 7v2l8 4 8-4V7l-8-4z" />
+            <path d="M4 12v2l8 4 8-4v-2" />
+            <path d="M4 17v2l8 4 8-4v-2" />
+          </svg>
+        </span>
+        <h2>Tipos dos produtos</h2>
+        <p>Defina subdivisões e tipos (componentes) ligados a cada produto.</p>
+      </a>
+    </nav>
+  </div>
+</body>
+</html>

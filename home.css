@@ -1,0 +1,200 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: linear-gradient(165deg, #fff5f7 0%, #f4eef2 45%, #eef8f3 100%);
+  color: #3a2a32;
+}
+
+.dashboard {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: #5a2a3a;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-header p {
+  margin: 10px 0 0;
+  font-size: 1.1rem;
+  color: #7a5a68;
+}
+
+.hub-back {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  color: #7a5a68;
+  text-decoration: none;
+}
+
+.hub-back:hover {
+  color: #5a2a3a;
+  text-decoration: underline;
+}
+
+.cards {
+  display: grid;
+  gap: 24px;
+}
+
+.cards--main {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.cards--sub {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 28px 32px;
+  background: #fff;
+  border-radius: 20px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 8px 32px rgba(90, 42, 58, 0.08);
+  border: 1px solid rgba(241, 219, 228, 0.9);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card--sub {
+  padding: 28px 22px 24px;
+}
+
+.menu-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(90, 42, 58, 0.12);
+}
+
+.menu-card:focus-visible {
+  outline: 3px solid #3ecf8e;
+  outline-offset: 4px;
+}
+
+.menu-card-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.menu-card--sub .menu-card-icon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 18px;
+}
+
+.menu-card-icon svg {
+  width: 44px;
+  height: 44px;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.menu-card--sub .menu-card-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.menu-card h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #4a3038;
+  line-height: 1.35;
+}
+
+.menu-card--sub h2 {
+  font-size: 0.92rem;
+}
+
+.menu-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #6d5a62;
+  max-width: 300px;
+}
+
+.menu-card--admin .menu-card-icon {
+  background: linear-gradient(145deg, #f3e8ff 0%, #e4d4f7 100%);
+}
+
+.menu-card--admin .menu-card-icon svg {
+  stroke: #6b3fa0;
+}
+
+.menu-card--vendedoras .menu-card-icon {
+  background: linear-gradient(145deg, #e8f8ef 0%, #c8edd8 100%);
+}
+
+.menu-card--vendedoras .menu-card-icon svg {
+  stroke: #2d7a52;
+}
+
+.menu-card--catalogo .menu-card-icon {
+  background: linear-gradient(145deg, #fff4e0 0%, #ffe0b8 100%);
+}
+
+.menu-card--catalogo .menu-card-icon svg {
+  stroke: #b86a1a;
+}
+
+.hub-section-title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+  color: #5a2a3a;
+}
+
+.hub-section-lead {
+  margin: 0 0 28px;
+  color: #7a5a68;
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 24px 16px 40px;
+  }
+
+  .menu-card {
+    padding: 28px 20px 26px;
+  }
+
+  .menu-card-icon {
+    width: 76px;
+    height: 76px;
+  }
+
+  .menu-card-icon svg {
+    width: 38px;
+    height: 38px;
+  }
+}
