@@ -1,7 +1,7 @@
 const utils = window.MarisUtils
 if (!utils || typeof utils.createSupabaseClient !== "function") {
-  document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="9" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
+  document.getElementById("sales-grid").innerHTML =
+    `<p class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</p>`
   throw new Error("MarisUtils ausente")
 }
 
@@ -18,14 +18,14 @@ try {
   supabaseClient = createSupabaseClient()
 } catch (e) {
   console.error(e)
-  document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="9" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
+  document.getElementById("sales-grid").innerHTML =
+    `<p class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</p>`
   throw e
 }
 
 const filterPaidSelect = document.getElementById("filter-paid")
 const searchInput = document.getElementById("search-input")
-const salesTbody = document.getElementById("sales-tbody")
+const salesGrid = document.getElementById("sales-grid")
 const messageEl = document.getElementById("message")
 const toolbarSelectedEl = document.getElementById("toolbar-selected")
 const selectAllCheckbox = document.getElementById("select-all-visible")
@@ -116,9 +116,9 @@ function renderProductPhoto(row) {
   const url = getSaleImageUrl(row)
   const name = String(row.product_name || "Produto")
   if (!url) {
-    return `<div class="product-thumb product-thumb--empty" aria-hidden="true"><span>—</span></div>`
+    return `<div class="sale-card-photo sale-card-photo--empty" aria-hidden="true"><span>Sem foto</span></div>`
   }
-  return `<img class="product-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'product-thumb product-thumb--empty',innerHTML:'<span>—</span>'}))">`
+  return `<img class="sale-card-photo" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sale-card-photo sale-card-photo--empty',innerHTML:'<span>Sem foto</span>'}))">`
 }
 
 async function loadProductImagesForSales(sales) {
@@ -218,9 +218,9 @@ function syncSelectAllCheckbox(rows) {
 }
 
 function renderRows(rows) {
-  if (!salesTbody) return
+  if (!salesGrid) return
   if (!rows.length) {
-    salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
+    salesGrid.innerHTML = `<p class="empty-cell">Nenhuma venda neste filtro.</p>`
     if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
     syncSelectAllCheckbox([])
     return
@@ -233,7 +233,7 @@ function renderRows(rows) {
 
   if (toolbarSelectedEl) {
     if (selLines === 0) {
-      toolbarSelectedEl.innerHTML = `<span class="summary-line">Selecione linhas na tabela para ver <strong>peças</strong> e <strong>valor</strong>.</span>`
+      toolbarSelectedEl.innerHTML = `<span class="summary-line">Selecione vendas para ver <strong>peças</strong> e <strong>valor</strong>.</span>`
     } else {
       const lines = [
         `<span class="summary-line">Peças selecionadas: <strong>${selPieces}</strong> · Valor selecionado: <strong>${formatMoneyBRL(selSum)}</strong></span>`
@@ -247,7 +247,7 @@ function renderRows(rows) {
     }
   }
 
-  salesTbody.innerHTML = rows
+  salesGrid.innerHTML = rows
     .map((row) => {
       const paid = isPaidValue(row)
       const badgeClass = paid ? "badge-paid" : "badge-unpaid"
@@ -255,25 +255,28 @@ function renderRows(rows) {
       const type = String(row.sale_item_type || "product") === "component" ? "Componente" : "Produto"
       const id = saleIdKey(row)
       const checked = id && selectedSaleIds.has(id) ? "checked" : ""
-      const rowClass = checked ? "row-selected" : ""
+      const selectedClass = checked ? "sale-card--selected" : ""
 
       return `
-        <tr class="${rowClass}">
-          <td class="col-check">
-            <input type="checkbox" class="row-select" data-sale-id="${id}" ${checked} aria-label="Selecionar linha">
-          </td>
-          <td>${formatDate(row.created_at)}</td>
-          <td class="col-photo">${renderProductPhoto(row)}</td>
-          <td class="col-product">
-            <span class="product-name">${escapeHtml(row.product_name || "—")}</span>
-            <span class="code-muted">${type} · ${escapeHtml(row.product_code || "")}</span>
-          </td>
-          <td>${Number(row.quantity) || 0}</td>
-          <td>${String(row.seller_name || "—")}</td>
-          <td>${paymentLabel(row.payment_method)}</td>
-          <td class="num">${formatMoneyBRL(row.total_value)}</td>
-          <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-        </tr>
+        <article class="sale-card ${selectedClass}" role="listitem" data-sale-id="${escapeHtml(id)}">
+          <label class="sale-card-check">
+            <input type="checkbox" class="row-select" data-sale-id="${escapeHtml(id)}" ${checked} aria-label="Selecionar venda">
+            <span>Selecionar</span>
+          </label>
+          ${renderProductPhoto(row)}
+          <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
+          <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
+          <dl class="sale-card-meta">
+            <div><dt>Data</dt><dd>${formatDate(row.created_at)}</dd></div>
+            <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
+            <div><dt>Vendedora</dt><dd>${escapeHtml(row.seller_name || "—")}</dd></div>
+            <div><dt>Pagamento</dt><dd>${escapeHtml(paymentLabel(row.payment_method))}</dd></div>
+          </dl>
+          <div class="sale-card-footer">
+            <span class="badge ${badgeClass}">${badgeText}</span>
+            <span class="sale-card-value">${formatMoneyBRL(row.total_value)}</span>
+          </div>
+        </article>
       `
     })
     .join("")
@@ -348,10 +351,10 @@ function refreshDisplay() {
 }
 
 async function loadSales() {
-  if (!salesTbody || !filterPaidSelect) return
+  if (!salesGrid || !filterPaidSelect) return
 
   setMessage("")
-  salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Carregando…</td></tr>`
+  salesGrid.innerHTML = `<p class="empty-cell">Carregando…</p>`
   if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
 
   const mode = filterPaidSelect.value
@@ -383,7 +386,7 @@ async function loadSales() {
       console.error(error)
       const detail = error.message || error.code || String(error)
       setMessage(`Erro ao carregar vendas: ${detail}`, "error")
-      salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Erro ao carregar.</td></tr>`
+      salesGrid.innerHTML = `<p class="empty-cell">Erro ao carregar.</p>`
       loadedSales = []
       selectedSaleIds.clear()
       imageUrlByProductCode = Object.create(null)
@@ -397,7 +400,7 @@ async function loadSales() {
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
-    salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Erro ao carregar.</td></tr>`
+    salesGrid.innerHTML = `<p class="empty-cell">Erro ao carregar.</p>`
     loadedSales = []
     selectedSaleIds.clear()
     imageUrlByProductCode = Object.create(null)
@@ -422,8 +425,8 @@ if (selectAllCheckbox) {
   })
 }
 
-if (salesTbody) {
-  salesTbody.addEventListener("change", (event) => {
+if (salesGrid) {
+  salesGrid.addEventListener("change", (event) => {
     const target = event.target
     if (!(target instanceof HTMLInputElement) || !target.classList.contains("row-select")) return
     const id = target.dataset.saleId

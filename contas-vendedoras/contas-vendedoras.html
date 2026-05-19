@@ -31,6 +31,10 @@
         <input id="search-input" type="text" placeholder="Digite para filtrar a lista atual" autocomplete="off">
       </div>
       <label class="checkbox-line">
+        <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas visíveis" aria-label="Selecionar todas as vendas visíveis">
+        Selecionar todas as vendas visíveis
+      </label>
+      <label class="checkbox-line">
         <input type="checkbox" id="modo-repasse">
         Modo repasse (mostra 70% do valor selecionado para repassar ao titular)
       </label>
@@ -44,27 +48,8 @@
 
     <div id="message" class="message" role="status"></div>
 
-    <div class="table-wrap">
-      <table class="sales-table">
-        <thead>
-          <tr>
-            <th class="col-check" scope="col">
-              <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas as linhas visíveis" aria-label="Selecionar todas as linhas visíveis">
-            </th>
-            <th>Data</th>
-            <th class="col-photo">Foto</th>
-            <th>Produto</th>
-            <th>Qtd</th>
-            <th>Vendedora</th>
-            <th>Pagamento</th>
-            <th class="num">Valor</th>
-            <th>Situação</th>
-          </tr>
-        </thead>
-        <tbody id="sales-tbody">
-          <tr><td colspan="9" class="empty-cell">Carregando…</td></tr>
-        </tbody>
-      </table>
+    <div id="sales-grid" class="sales-grid" role="list" aria-live="polite">
+      <p class="empty-cell">Carregando…</p>
     </div>
   </main>
 

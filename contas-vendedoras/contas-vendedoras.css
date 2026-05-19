@@ -126,12 +126,6 @@ input {
   margin-top: 6px;
 }
 
-.col-check {
-  width: 40px;
-  text-align: center;
-  vertical-align: middle;
-}
-
 .select-all-checkbox,
 .row-select {
   width: 18px;
@@ -139,14 +133,7 @@ input {
   margin: 0;
   cursor: pointer;
   accent-color: #3ecf8e;
-}
-
-.sales-table tbody tr.row-selected {
-  background: #f0fdf4;
-}
-
-.sales-table tbody tr.row-selected:hover {
-  background: #dcfce7;
+  flex-shrink: 0;
 }
 
 .message {
@@ -194,47 +181,135 @@ input {
   cursor: not-allowed;
 }
 
-.table-wrap {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
-}
-
-.sales-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.sales-table th,
-.sales-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid #f1dbe4;
-  vertical-align: top;
-}
-
-.sales-table th {
-  background: #fff9fb;
-  color: #5a2a3a;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.sales-table th.num,
-.sales-table td.num {
-  text-align: right;
-}
-
-.sales-table tbody tr:hover {
-  background: #fff9fb;
+.sales-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 4px 0 8px;
 }
 
 .empty-cell {
+  grid-column: 1 / -1;
   text-align: center;
   color: #7a5a68;
-  padding: 24px;
+  padding: 32px 16px;
+  margin: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.sale-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sale-card--selected {
+  border-color: #3ecf8e;
+  background: #f0fdf4;
+  box-shadow: 0 4px 16px rgba(62, 207, 142, 0.2);
+}
+
+.sale-card-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a2a3a;
+  cursor: pointer;
+  margin: 0;
+}
+
+.sale-card-check span {
+  user-select: none;
+}
+
+.sale-card-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  background: #fff9fb;
+}
+
+.sale-card-photo--empty {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f0f3;
+  color: #b8a0aa;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px dashed #e1d6db;
+}
+
+.sale-card-title {
+  margin: 0;
+  font-size: 16px;
+  color: #5a2a3a;
+  line-height: 1.3;
+  min-height: 2.5em;
+}
+
+.sale-card-code {
+  margin: 0;
+  font-size: 13px;
+  color: #7a5a68;
+}
+
+.sale-card-meta {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.sale-card-meta > div {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.sale-card-meta dt {
+  margin: 0;
+  font-weight: 600;
+  color: #8b6a78;
+}
+
+.sale-card-meta dd {
+  margin: 0;
+  color: #3a2a32;
+  text-align: right;
+  word-break: break-word;
+}
+
+.sale-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #f1dbe4;
+}
+
+.sale-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e6b45;
 }
 
 .badge {
@@ -255,51 +330,26 @@ input {
   color: #8b4a12;
 }
 
-.col-photo {
-  width: 72px;
-  padding-right: 8px !important;
-  vertical-align: middle;
-}
-
-.product-thumb {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid #f1dbe4;
-  background: #fff9fb;
-  display: block;
-}
-
-.product-thumb--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #b8a0aa;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.col-product .product-name {
-  display: block;
-  font-weight: 600;
-  color: #3a2a32;
-}
-
-.code-muted {
-  display: block;
-  font-size: 12px;
-  color: #7a5a68;
-  margin-top: 2px;
-}
-
-@media (max-width: 720px) {
-  .sales-table {
-    font-size: 13px;
+@media (max-width: 480px) {
+  .container {
+    padding: 16px 12px;
   }
 
-  .sales-table th,
-  .sales-table td {
-    padding: 8px 10px;
+  .sales-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sale-card {
+    padding: 12px;
+  }
+
+  .sale-card-title {
+    font-size: 15px;
+    min-height: auto;
+  }
+
+  .sale-card-value {
+    font-size: 16px;
   }
 }
