@@ -1,7 +1,7 @@
 const utils = window.MarisUtils
 if (!utils || typeof utils.createSupabaseClient !== "function") {
   document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="8" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
+    `<tr><td colspan="9" class="empty-cell">Erro: utils.js não carregou. Abra pelo servidor (não use file://) ou verifique o caminho.</td></tr>`
   throw new Error("MarisUtils ausente")
 }
 
@@ -19,7 +19,7 @@ try {
 } catch (e) {
   console.error(e)
   document.getElementById("sales-tbody").innerHTML =
-    `<tr><td colspan="8" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
+    `<tr><td colspan="9" class="empty-cell">Erro ao conectar ao Supabase (CDN ou chave).</td></tr>`
   throw e
 }
 
@@ -47,6 +47,12 @@ const PAYMENT_LABELS = {
 
 /** @type {Array<Record<string, unknown>>} */
 let loadedSales = []
+
+/** @type {Record<string, string>} código do produto (uppercase) -> URL da capa */
+let imageUrlByProductCode = Object.create(null)
+
+const SALES_SELECT =
+  "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid"
 
 function setMessage(text, type = "") {
   if (!messageEl) return
@@ -80,6 +86,96 @@ function isPaidValue(row) {
 
 function saleIdKey(row) {
   return String(row.id ?? "")
+}
+
+function catalogCodeForSale(row) {
+  const parent = String(row.parent_product_code || "").trim()
+  if (String(row.sale_item_type || "") === "component" && parent) {
+    return parent.toUpperCase()
+  }
+  const code = String(row.product_code || "").trim()
+  if (!code || code.toUpperCase().startsWith("COMP-")) return ""
+  return code.toUpperCase()
+}
+
+function getSaleImageUrl(row) {
+  const code = catalogCodeForSale(row)
+  if (!code) return ""
+  return imageUrlByProductCode[code] || ""
+}
+
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+function renderProductPhoto(row) {
+  const url = getSaleImageUrl(row)
+  const name = String(row.product_name || "Produto")
+  if (!url) {
+    return `<div class="product-thumb product-thumb--empty" aria-hidden="true"><span>—</span></div>`
+  }
+  return `<img class="product-thumb" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'product-thumb product-thumb--empty',innerHTML:'<span>—</span>'}))">`
+}
+
+async function loadProductImagesForSales(sales) {
+  imageUrlByProductCode = Object.create(null)
+  const codes = new Set()
+  for (const row of sales) {
+    const code = catalogCodeForSale(row)
+    if (code) codes.add(code)
+  }
+  const codeList = [...codes]
+  if (!codeList.length) return
+
+  const { data: products, error: productsError } = await supabaseClient
+    .from("products")
+    .select("id, code, image_url")
+    .in("code", codeList)
+
+  if (productsError) {
+    console.warn("Imagens: erro ao carregar produtos", productsError)
+    return
+  }
+
+  const productIdByCode = Object.create(null)
+  for (const product of products || []) {
+    const code = String(product.code || "").trim().toUpperCase()
+    if (!code) continue
+    productIdByCode[code] = Number(product.id)
+    const fallback = String(product.image_url || "").trim()
+    if (fallback) imageUrlByProductCode[code] = fallback
+  }
+
+  const productIds = Object.values(productIdByCode).filter((id) => Number.isInteger(id) && id > 0)
+  if (!productIds.length) return
+
+  const { data: images, error: imagesError } = await supabaseClient
+    .from("product_images")
+    .select("product_id, image_url, sort_order")
+    .in("product_id", productIds)
+    .order("sort_order", { ascending: true })
+
+  if (imagesError) {
+    console.warn("Imagens: erro ao carregar galeria", imagesError)
+    return
+  }
+
+  const firstImageByProductId = Object.create(null)
+  for (const row of images || []) {
+    const productId = Number(row.product_id)
+    const imageUrl = String(row.image_url || "").trim()
+    if (!Number.isInteger(productId) || !imageUrl || firstImageByProductId[productId]) continue
+    firstImageByProductId[productId] = imageUrl
+  }
+
+  for (const [code, productId] of Object.entries(productIdByCode)) {
+    const fromGallery = firstImageByProductId[productId]
+    if (fromGallery) imageUrlByProductCode[code] = fromGallery
+  }
 }
 
 function applySearchFilter(rows) {
@@ -124,7 +220,7 @@ function syncSelectAllCheckbox(rows) {
 function renderRows(rows) {
   if (!salesTbody) return
   if (!rows.length) {
-    salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
+    salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Nenhuma venda neste filtro.</td></tr>`
     if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
     syncSelectAllCheckbox([])
     return
@@ -167,9 +263,10 @@ function renderRows(rows) {
             <input type="checkbox" class="row-select" data-sale-id="${id}" ${checked} aria-label="Selecionar linha">
           </td>
           <td>${formatDate(row.created_at)}</td>
-          <td>
-            <span>${String(row.product_name || "—")}</span>
-            <span class="code-muted">${type} · ${String(row.product_code || "")}</span>
+          <td class="col-photo">${renderProductPhoto(row)}</td>
+          <td class="col-product">
+            <span class="product-name">${escapeHtml(row.product_name || "—")}</span>
+            <span class="code-muted">${type} · ${escapeHtml(row.product_code || "")}</span>
           </td>
           <td>${Number(row.quantity) || 0}</td>
           <td>${String(row.seller_name || "—")}</td>
@@ -254,15 +351,13 @@ async function loadSales() {
   if (!salesTbody || !filterPaidSelect) return
 
   setMessage("")
-  salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Carregando…</td></tr>`
+  salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Carregando…</td></tr>`
   if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
 
   const mode = filterPaidSelect.value
 
   try {
-    let query = supabaseClient.from("sales").select(
-      "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
-    )
+    let query = supabaseClient.from("sales").select(SALES_SELECT)
 
     if (mode === "unpaid") {
       query = query.or("is_paid.eq.false,is_paid.is.null")
@@ -277,9 +372,7 @@ async function loadSales() {
     if (error && mode === "unpaid") {
       const retry = await supabaseClient
         .from("sales")
-        .select(
-          "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, is_paid"
-        )
+        .select(SALES_SELECT)
         .eq("is_paid", false)
         .order("created_at", { ascending: false })
       data = retry.data
@@ -290,21 +383,24 @@ async function loadSales() {
       console.error(error)
       const detail = error.message || error.code || String(error)
       setMessage(`Erro ao carregar vendas: ${detail}`, "error")
-      salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Erro ao carregar.</td></tr>`
+      salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Erro ao carregar.</td></tr>`
       loadedSales = []
       selectedSaleIds.clear()
+      imageUrlByProductCode = Object.create(null)
       return
     }
 
     selectedSaleIds.clear()
     loadedSales = data || []
+    await loadProductImagesForSales(loadedSales)
     refreshDisplay()
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
-    salesTbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Erro ao carregar.</td></tr>`
+    salesTbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Erro ao carregar.</td></tr>`
     loadedSales = []
     selectedSaleIds.clear()
+    imageUrlByProductCode = Object.create(null)
   }
 }
 

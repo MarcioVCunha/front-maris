@@ -255,6 +255,37 @@ input {
   color: #8b4a12;
 }
 
+.col-photo {
+  width: 72px;
+  padding-right: 8px !important;
+  vertical-align: middle;
+}
+
+.product-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #f1dbe4;
+  background: #fff9fb;
+  display: block;
+}
+
+.product-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b8a0aa;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.col-product .product-name {
+  display: block;
+  font-weight: 600;
+  color: #3a2a32;
+}
+
 .code-muted {
   display: block;
   font-size: 12px;
