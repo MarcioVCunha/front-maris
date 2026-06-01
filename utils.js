@@ -3,7 +3,17 @@
 
 window.MarisUtils = {
   createSupabaseClient() {
-    return window.supabase.createClient(window.ENV.SUPABASE_URL, window.ENV.SUPABASE_ANON_KEY)
+    return window.supabase.createClient(window.ENV.SUPABASE_URL, window.ENV.SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    })
+  },
+
+  onlyDigits(value) {
+    return String(value || "").replace(/\D/g, "")
   },
 
   // Ordena: produtos com estoque > 0 primeiro; sem estoque no final; e nome em pt-BR.

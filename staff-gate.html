@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acesso da equipe — Maris</title>
+  <link rel="stylesheet" href="home.css">
+  <style>
+    .gate-card { max-width: 400px; margin: 48px auto; padding: 28px; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .gate-card h1 { font-size: 1.35rem; margin: 0 0 8px; color: #4a3040; }
+    .gate-card p { color: #666; margin: 0 0 20px; font-size: 0.95rem; }
+    .gate-card label { display: block; margin-bottom: 6px; font-weight: 600; color: #4a3040; }
+    .gate-card input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; margin-bottom: 16px; }
+    .gate-card button { width: 100%; padding: 12px; background: #7a5a68; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+    .gate-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .gate-msg { margin-top: 12px; font-size: 0.9rem; min-height: 1.2em; }
+    .gate-msg.error { color: #b00020; }
+    .gate-catalog-link { display: block; margin-top: 20px; text-align: center; color: #7a5a68; }
+  </style>
+  <script src="env.js"></script>
+</head>
+<body>
+  <div class="gate-card">
+    <h1>Área da equipe</h1>
+    <p>Digite a senha para acessar administração e vendas.</p>
+    <form id="gate-form">
+      <label for="staff-password">Senha</label>
+      <input id="staff-password" type="password" autocomplete="current-password" required>
+      <button type="submit" id="gate-submit">Entrar</button>
+    </form>
+    <div id="gate-message" class="gate-msg"></div>
+    <a class="gate-catalog-link" href="catalog/catalog.html">Ir ao catálogo público</a>
+  </div>
+  <script>
+    const form = document.getElementById("gate-form")
+    const passwordInput = document.getElementById("staff-password")
+    const messageEl = document.getElementById("gate-message")
+    const submitBtn = document.getElementById("gate-submit")
+
+    const params = new URLSearchParams(window.location.search)
+    const nextUrl = params.get("next") ? decodeURIComponent(params.get("next")) : "index.html"
+
+    if (sessionStorage.getItem("maris_staff_token")) {
+      const part = sessionStorage.getItem("maris_staff_token").split(".")[1]
+      try {
+        const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")))
+        if (payload.exp > Math.floor(Date.now() / 1000)) {
+          window.location.replace(nextUrl.startsWith("/") ? nextUrl.slice(1) : nextUrl)
+        }
+      } catch (_) {}
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      messageEl.textContent = ""
+      messageEl.className = "gate-msg"
+      submitBtn.disabled = true
+
+      try {
+        const url = window.ENV.SUPABASE_STAFF_VERIFY_URL
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: passwordInput.value })
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          messageEl.textContent = data.error || "Senha incorreta."
+          messageEl.className = "gate-msg error"
+          return
+        }
+        sessionStorage.setItem("maris_staff_token", data.token)
+        window.location.replace(nextUrl.startsWith("/") ? nextUrl.slice(1) : nextUrl)
+      } catch {
+        messageEl.textContent = "Erro de conexão. Tente novamente."
+        messageEl.className = "gate-msg error"
+      } finally {
+        submitBtn.disabled = false
+      }
+    })
+  </script>
+</body>
+</html>

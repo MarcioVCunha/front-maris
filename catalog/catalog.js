@@ -19,6 +19,12 @@ const productModalPrice = document.getElementById("product-modal-price")
 const productModalStock = document.getElementById("product-modal-stock")
 const productModalStatus = document.getElementById("product-modal-status")
 const productModalComponentsList = document.getElementById("product-modal-components-list")
+const productModalActions = document.getElementById("product-modal-actions")
+const navAuthLink = document.getElementById("nav-auth-link")
+const navAccountLink = document.getElementById("nav-account-link")
+
+let allComponents = []
+let currentModalProduct = null
 
 let productsByCode = Object.create(null)
 let componentsByProductCode = Object.create(null)
@@ -149,7 +155,9 @@ function renderCatalogProduct(product) {
             ${showPrice ? `R$ ${unitPrice.toFixed(2)}` : "Em falta"}
           </div>
         `}
-      ${soldOut ? '<div class="backorder-note">Encomende com o vendedor</div>' : ""}
+      ${soldOut
+        ? '<button type="button" class="waitlist-card-btn" data-waitlist-code="' + product.code + '">Lista de espera</button>'
+        : '<button type="button" class="add-cart-card-btn" data-add-code="' + product.code + '">+ Carrinho</button>'}
     </div>
   `
 }
@@ -163,19 +171,64 @@ function renderModalComponentsRows(components) {
   productModalComponentsList.innerHTML = components.map((component) => {
     const componentQty = Number(component.quantity) || 0
     const isAvailable = componentQty > 0
+    const actionBtn = isAvailable
+      ? `<button type="button" class="modal-add-btn" data-add-component="${component.id}">+ Carrinho</button>`
+      : `<button type="button" class="modal-waitlist-btn" data-waitlist-component="${component.id}">Lista de espera</button>`
     return `
       <div class="component-row ${isAvailable ? "" : "is-unavailable"}">
         <div class="component-col">
           <strong>${component.name}</strong>
         </div>
         <div class="component-col ${isAvailable ? "" : "component-status-unavailable"}">${isAvailable ? `Valor: ${formatMoneyBRL(component.unit_price)}` : "Indisponível"}</div>
+        <div class="component-col component-actions">${actionBtn}</div>
       </div>
     `
   }).join("")
 }
 
+function renderModalActions(product, components, soldOut) {
+  if (!productModalActions) return
+  if (components.length) {
+    productModalActions.innerHTML = ""
+    return
+  }
+  if (soldOut) {
+    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-waitlist-btn" data-waitlist-code="${product.code}">Entrar na lista de espera</button>`
+  } else {
+    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-add-btn" data-add-code="${product.code}">Adicionar ao carrinho</button>`
+  }
+}
+
+async function joinWaitlist({ productCode = null, componentId = null }) {
+  const auth = window.MarisCustomerAuth
+  if (!(await auth.requireAuth({ redirectTo: "auth.html" }))) return
+
+  const row = {
+    user_id: (await auth.getUser()).id,
+    product_code: productCode,
+    component_id: componentId,
+    status: "waiting"
+  }
+
+  const { error } = await auth.supabase.from("waitlist_entries").insert(row)
+  if (error) {
+    alert(error.code === "23505" ? "Você já está na lista de espera para esta peça." : "Não foi possível entrar na lista de espera.")
+    return
+  }
+  alert("Você entrou na lista de espera. A vendedora entrará em contato quando a peça voltar.")
+}
+
+async function updateNavAuth() {
+  const auth = window.MarisCustomerAuth
+  const session = await auth.getSession()
+  const loggedIn = session?.user && auth.isEmailConfirmed(session.user)
+  if (navAuthLink) navAuthLink.hidden = loggedIn
+  if (navAccountLink) navAccountLink.hidden = !loggedIn
+}
+
 function openProductModal(product) {
   if (!product) return
+  currentModalProduct = product
 
   const components = getProductComponents(product.code)
   const available = isCatalogProductAvailable(product, components)
@@ -201,6 +254,7 @@ function openProductModal(product) {
   }
 
   renderModalComponentsRows(components)
+  renderModalActions(product, components, soldOut)
 
   productModal.hidden = false
 }
@@ -312,6 +366,13 @@ async function loadCatalogData() {
     else unavailableProducts.push(product)
   }
 
+  allComponents = componentsData || []
+  if (window.MarisCatalogCart) {
+    window.MarisCatalogCart.setCatalogData({ products: data, components: allComponents })
+    await window.MarisCatalogCart.init()
+  }
+  await updateNavAuth()
+
   renderCatalogGrids()
 }
 
@@ -326,23 +387,54 @@ function handleProductClick(target) {
   openProductModal(product)
 }
 
-catalogEl.addEventListener("click", (event) => {
+function handleCatalogGridClick(event) {
+  const waitlistBtn = event.target.closest("[data-waitlist-code]")
+  if (waitlistBtn) {
+    event.stopPropagation()
+    joinWaitlist({ productCode: waitlistBtn.getAttribute("data-waitlist-code") })
+    return
+  }
+  const addBtn = event.target.closest("[data-add-code]")
+  if (addBtn) {
+    event.stopPropagation()
+    window.MarisCatalogCart?.addProduct(addBtn.getAttribute("data-add-code"), 1)
+    return
+  }
   handleProductClick(event.target)
-})
+}
 
-unavailableProductsGrid.addEventListener("click", (event) => {
-  handleProductClick(event.target)
-})
+catalogEl.addEventListener("click", handleCatalogGridClick)
+unavailableProductsGrid.addEventListener("click", handleCatalogGridClick)
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !productModal.hidden) {
+productModal.addEventListener("click", async (event) => {
+  const addCode = event.target.closest("[data-add-code]")
+  if (addCode) {
+    await window.MarisCatalogCart?.addProduct(addCode.getAttribute("data-add-code"), 1)
+    return
+  }
+  const addComp = event.target.closest("[data-add-component]")
+  if (addComp) {
+    await window.MarisCatalogCart?.addComponent(Number(addComp.getAttribute("data-add-component")), 1)
+    return
+  }
+  const waitCode = event.target.closest("[data-waitlist-code]")
+  if (waitCode) {
+    joinWaitlist({ productCode: waitCode.getAttribute("data-waitlist-code") })
+    return
+  }
+  const waitComp = event.target.closest("[data-waitlist-component]")
+  if (waitComp) {
+    joinWaitlist({ componentId: Number(waitComp.getAttribute("data-waitlist-component")) })
+    return
+  }
+  const target = event.target
+  if (target instanceof HTMLElement && target.dataset.closeModal === "true") {
     closeProductModal()
   }
 })
 
-productModal.addEventListener("click", (event) => {
-  const target = event.target
-  if (target instanceof HTMLElement && target.dataset.closeModal === "true") {
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !productModal.hidden) {
     closeProductModal()
   }
 })

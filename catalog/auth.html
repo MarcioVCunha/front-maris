@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conta — Maris Semijoias</title>
+  <link rel="stylesheet" href="catalog.css">
+  <link rel="stylesheet" href="auth.css">
+  <script src="../env.js"></script>
+  <script src="../utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="customer-auth.js"></script>
+</head>
+<body class="auth-page">
+  <header class="catalog-header">
+    <a href="catalog.html">← Catálogo</a>
+    <h1>Minha conta</h1>
+  </header>
+  <main class="auth-main">
+    <div id="pending-box" class="auth-card" hidden>
+      <h2>Confirme seu e-mail</h2>
+      <p>Enviamos um link de confirmação. Depois de confirmar, volte aqui e faça login.</p>
+    </div>
+
+    <div id="auth-tabs" class="auth-card">
+      <div class="auth-tab-buttons">
+        <button type="button" id="tab-login" class="active">Entrar</button>
+        <button type="button" id="tab-signup">Criar conta</button>
+      </div>
+
+      <form id="login-form">
+        <label>E-mail</label>
+        <input type="email" id="login-email" required autocomplete="email">
+        <label>Senha</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+        <button type="submit">Entrar</button>
+      </form>
+
+      <form id="signup-form" hidden>
+        <label>Nome</label>
+        <input type="text" id="signup-name" required>
+        <label>WhatsApp (com DDD)</label>
+        <input type="tel" id="signup-whatsapp" required placeholder="5519999999999">
+        <label>E-mail</label>
+        <input type="email" id="signup-email" required autocomplete="email">
+        <label>Senha</label>
+        <input type="password" id="signup-password" required minlength="6" autocomplete="new-password">
+        <button type="submit">Criar conta</button>
+      </form>
+
+      <p id="auth-message" class="auth-message"></p>
+    </div>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>

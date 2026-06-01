@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrinhos de clientes — Maris</title>
+  <link rel="stylesheet" href="sales.css">
+  <link rel="stylesheet" href="customer-carts.css">
+  <script src="../staff-auth.js"></script>
+  <script src="../env.js"></script>
+  <script src="../utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <a class="back-link" href="../hubs/vendedoras.html">← Voltar às vendedoras</a>
+  <h1>Carrinhos de clientes</h1>
+  <p>Compartilhados com a vendedora selecionada</p>
+</header>
+<main class="container">
+  <section class="card">
+    <label for="seller-filter">Vendedora</label>
+    <select id="seller-filter"></select>
+    <button type="button" id="reload-carts" class="btn-reload">Atualizar lista</button>
+  </section>
+  <div id="carts-list" class="carts-list"></div>
+  <div id="cart-detail" class="cart-detail" hidden>
+    <h2>Detalhe do carrinho</h2>
+    <div id="buyer-info" class="buyer-info"></div>
+    <div id="cart-items-detail"></div>
+    <section class="card sale-from-cart">
+      <h3>Registrar venda</h3>
+      <label for="payment-method">Pagamento</label>
+      <select id="payment-method">
+        <option value="">Selecione</option>
+        <option value="pix">Pix</option>
+        <option value="cartao_credito">Cartão de crédito</option>
+        <option value="cartao_debito">Cartão de débito</option>
+        <option value="dinheiro">Dinheiro</option>
+        <option value="transferencia">Transferência</option>
+      </select>
+      <p class="summary-line">Total: <strong id="sale-total">R$ 0,00</strong></p>
+      <button type="button" id="submit-sale" class="btn-primary">Registrar venda dos itens marcados</button>
+      <p id="sale-message" class="message"></p>
+    </section>
+  </div>
+</main>
+<script src="customer-carts.js"></script>
+</body>
+</html>
