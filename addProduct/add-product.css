@@ -1,3 +1,6 @@
+@import url("../maris-theme.css");
+@import url("../maris-internal.css");
+
 *,
 *::before,
 *::after {
@@ -7,9 +10,6 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  background: linear-gradient(165deg, #fff5f7 0%, #f4eef2 45%, #eef8f3 100%);
-  color: #3a2a32;
 }
 
 .page {
@@ -23,31 +23,19 @@ body {
   text-align: center;
 }
 
-.back-link {
-  display: inline-block;
-  margin-bottom: 20px;
-  font-size: 0.95rem;
-  color: #8b6a78;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: #5a2a3a;
-  text-decoration: underline;
-}
-
 .page-header h1 {
   margin: 0;
+  font-family: var(--maris-font-display);
   font-size: clamp(1.5rem, 4vw, 1.9rem);
-  font-weight: 700;
-  color: #5a2a3a;
+  font-weight: 600;
+  color: var(--maris-black);
 }
 
 .lead {
   margin: 12px 0 0;
   font-size: 1rem;
   line-height: 1.55;
-  color: #7a5a68;
+  color: var(--maris-text-muted);
 }
 
 .card {

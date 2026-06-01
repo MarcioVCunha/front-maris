@@ -142,23 +142,25 @@ function renderCatalogProduct(product) {
     }
   }
 
+  const priceHtml = components.length
+    ? ""
+    : `<div class="price ${showPrice ? "" : "unavailable"}">${showPrice ? formatMoneyBRL(unitPrice) : "Em falta"}</div>`
+
+  const actionHtml = soldOut
+    ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${product.code}">Lista de espera</button>`
+    : `<button type="button" class="add-cart-card-btn" data-add-code="${product.code}">Adicionar à cesta</button>`
+
   return `
-    <div class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
-      <img src="${coverImage}" alt="${product.name}">
-      <h3>${product.name}</h3>
-      <div class="code">Código: ${product.code}</div>
-      ${splitInfo}
-      ${components.length
-        ? ""
-        : `
-          <div class="price ${showPrice ? "" : "unavailable"}">
-            ${showPrice ? `R$ ${unitPrice.toFixed(2)}` : "Em falta"}
-          </div>
-        `}
-      ${soldOut
-        ? '<button type="button" class="waitlist-card-btn" data-waitlist-code="' + product.code + '">Lista de espera</button>'
-        : '<button type="button" class="add-cart-card-btn" data-add-code="' + product.code + '">+ Carrinho</button>'}
-    </div>
+    <article class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
+      <img src="${coverImage}" alt="${product.name}" loading="lazy">
+      <div class="product-body">
+        <h3>${product.name}</h3>
+        <div class="code">${product.code}</div>
+        ${splitInfo}
+        ${priceHtml}
+        ${actionHtml}
+      </div>
+    </article>
   `
 }
 

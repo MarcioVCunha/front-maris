@@ -15,6 +15,8 @@
   const cartItemsEl = document.getElementById("cart-items-list")
   const cartSubtotalEl = document.getElementById("cart-subtotal")
   const cartCountEl = document.getElementById("cart-fab-count")
+  const headerCartBtn = document.getElementById("header-cart-btn")
+  const headerCartCount = document.getElementById("header-cart-count")
   const shareBtn = document.getElementById("cart-share-btn")
   const shareModal = document.getElementById("cart-share-modal")
   const shareStepStock = document.getElementById("share-step-stock")
@@ -35,7 +37,10 @@
   function updateFabCount() {
     const count = cartItems.reduce((s, i) => s + (Number(i.quantity) || 0), 0)
     if (cartCountEl) cartCountEl.textContent = String(count)
-    if (fab) fab.hidden = count <= 0
+    if (headerCartCount) headerCartCount.textContent = String(count)
+    const show = count > 0
+    if (fab) fab.hidden = !show
+    if (headerCartBtn) headerCartBtn.hidden = !show
   }
 
   function lineLabel(item) {
@@ -286,6 +291,7 @@
   })
 
   fab?.addEventListener("click", () => MarisCatalogCart.openPanel())
+  headerCartBtn?.addEventListener("click", () => MarisCatalogCart.openPanel())
   panelClose?.addEventListener("click", () => MarisCatalogCart.closePanel())
   panelBackdrop?.addEventListener("click", () => MarisCatalogCart.closePanel())
 

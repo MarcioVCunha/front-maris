@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catálogo de Semijoias</title>
+    <title>Catálogo — Maris Semijoias</title>
 
+    <link rel="stylesheet" href="../maris-theme.css">
     <link rel="stylesheet" href="catalog.css">
     <script src="../env.js"></script>
     <script src="../utils.js"></script>
@@ -12,20 +13,22 @@
   </head>
 
   <body>
-    <header>
-      <nav class="catalog-top-nav">
-        <a class="back-link" href="catalog.html">Maris Semijoias</a>
-        <div class="catalog-top-links">
-          <a href="auth.html" id="nav-auth-link">Entrar</a>
-          <a href="minha-conta.html" id="nav-account-link" hidden>Minha conta</a>
-        </div>
-      </nav>
-      <h1>Catálogo</h1>
-      <p class="catalog-subtitle">Monte seu carrinho e compartilhe com a vendedora</p>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="catalog.html" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav" aria-label="Conta">
+          <a href="auth.html" id="nav-auth-link" class="site-nav-link">Entrar</a>
+          <a href="minha-conta.html" id="nav-account-link" class="site-nav-link" hidden>Minha conta</a>
+          <button type="button" class="site-nav-cart" id="header-cart-btn" hidden>Minha cesta (<span id="header-cart-count">0</span>)</button>
+        </nav>
+      </div>
     </header>
 
-    <main>
-      <div class="catalog-controls">
+    <main class="catalog-main">
+      <div class="catalog-toolbar">
         <div class="product-search">
           <label for="catalog-search" class="catalog-search-label">Buscar no catálogo</label>
           <input
@@ -52,7 +55,7 @@
       <div id="catalog" class="catalog"></div>
 
       <section id="unavailable-products-section" class="unavailable-products">
-        <h2 class="unavailable-title">Produtos em falta</h2>
+        <h2 class="section-heading">Em falta — lista de espera</h2>
         <div id="unavailable-products-grid" class="catalog unavailable-catalog"></div>
       </section>
     </main>
@@ -82,15 +85,15 @@
       </div>
     </div>
 
-    <button type="button" id="cart-fab" class="cart-fab" hidden>
-      Carrinho <span id="cart-fab-count">0</span>
+    <button type="button" id="cart-fab" class="cart-fab" hidden aria-label="Abrir cesta">
+      Cesta <span id="cart-fab-count">0</span>
     </button>
 
     <div id="cart-panel" class="cart-panel" hidden>
       <div id="cart-panel-backdrop" class="cart-panel-backdrop"></div>
       <div class="cart-panel-sheet">
         <div class="cart-panel-header">
-          <h2>Seu carrinho</h2>
+          <h2>Minha cesta</h2>
           <button type="button" id="cart-panel-close" aria-label="Fechar">×</button>
         </div>
         <p class="cart-hint">Prévia da compra — sem pagamento aqui. Compartilhe com a vendedora para fechar.</p>

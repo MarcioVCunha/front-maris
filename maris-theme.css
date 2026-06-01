@@ -1,0 +1,22 @@
+/* Tema Maris — inspirado em vitrines de semijoias (fundo claro, tipografia elegante, detalhes dourados) */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap");
+
+:root {
+  --maris-bg: #faf9f7;
+  --maris-surface: #ffffff;
+  --maris-text: #1a1a1a;
+  --maris-text-muted: #6b6560;
+  --maris-border: #e8e4df;
+  --maris-border-soft: #f0ece6;
+  --maris-gold: #b8956b;
+  --maris-gold-dark: #9a7a52;
+  --maris-gold-light: #f5f0e8;
+  --maris-black: #141414;
+  --maris-radius: 4px;
+  --maris-radius-lg: 8px;
+  --maris-shadow: 0 2px 12px rgba(20, 20, 20, 0.06);
+  --maris-shadow-hover: 0 8px 24px rgba(20, 20, 20, 0.1);
+  --maris-font-display: "Cormorant Garamond", Georgia, serif;
+  --maris-font-body: "DM Sans", system-ui, sans-serif;
+  --maris-header-h: 72px;
+}

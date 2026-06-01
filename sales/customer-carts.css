@@ -1,11 +1,68 @@
-.carts-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-.cart-card { background: #fff; border-radius: 10px; padding: 16px; border: 1px solid #eee; cursor: pointer; }
-.cart-card:hover { border-color: #7a5a68; }
-.cart-card h3 { margin: 0 0 8px; font-size: 1rem; }
-.buyer-info { background: #f9f5f7; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
-.buyer-info a { color: #7a5a68; }
-.cart-item-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
-.cart-item-row input { margin-top: 4px; }
-.btn-reload { margin-top: 12px; padding: 8px 16px; cursor: pointer; }
-.btn-primary { padding: 12px; background: #7a5a68; color: #fff; border: none; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 12px; }
-.sale-from-cart { margin-top: 24px; }
+.carts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cart-card {
+  background: var(--maris-surface);
+  border-radius: var(--maris-radius-lg);
+  padding: 16px;
+  border: 1px solid var(--maris-border-soft);
+  box-shadow: var(--maris-shadow);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cart-card:hover {
+  border-color: var(--maris-gold);
+  box-shadow: var(--maris-shadow-hover);
+}
+
+.cart-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--maris-black);
+}
+
+.buyer-info {
+  background: var(--maris-gold-light);
+  padding: 12px;
+  border-radius: var(--maris-radius);
+  margin-bottom: 16px;
+  border: 1px solid var(--maris-border-soft);
+}
+
+.buyer-info a {
+  color: var(--maris-gold-dark);
+}
+
+.cart-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--maris-border-soft);
+}
+
+.cart-item-row input {
+  margin-top: 4px;
+  width: auto;
+}
+
+.btn-reload {
+  margin-top: 12px;
+  padding: 8px 16px;
+  width: auto;
+}
+
+.btn-primary {
+  padding: 12px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.sale-from-cart {
+  margin-top: 24px;
+}
