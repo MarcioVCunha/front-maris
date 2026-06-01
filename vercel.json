@@ -1,0 +1,51 @@
+{
+  "redirects": [
+    {
+      "source": "/catalog/catalog.html",
+      "destination": "/catalog",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/auth.html",
+      "destination": "/catalog/entrar",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/minha-conta.html",
+      "destination": "/catalog/minha-conta",
+      "permanent": true
+    },
+    {
+      "source": "/catalog/auth-callback.html",
+      "destination": "/catalog/auth-callback",
+      "permanent": true
+    },
+    {
+      "source": "/staff-gate.html",
+      "destination": "/equipe",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/catalog",
+      "destination": "/catalog/catalog.html"
+    },
+    {
+      "source": "/catalog/entrar",
+      "destination": "/catalog/auth.html"
+    },
+    {
+      "source": "/catalog/minha-conta",
+      "destination": "/catalog/minha-conta.html"
+    },
+    {
+      "source": "/catalog/auth-callback",
+      "destination": "/catalog/auth-callback.html"
+    },
+    {
+      "source": "/equipe",
+      "destination": "/staff-gate.html"
+    }
+  ]
+}

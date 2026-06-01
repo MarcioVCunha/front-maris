@@ -13,7 +13,7 @@
   <script>
     const client = window.MarisUtils.createSupabaseClient()
     client.auth.getSession().then(() => {
-      window.location.href = "auth.html?next=catalog.html"
+      window.location.href = "/catalog/entrar?next=%2Fcatalog"
     })
   </script>
 </body>

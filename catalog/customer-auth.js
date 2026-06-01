@@ -23,15 +23,15 @@
     },
 
     async requireAuth(options = {}) {
-      const { redirectTo = "auth.html" } = options
+      const { redirectTo = "/catalog/entrar" } = options
       const session = await this.getSession()
       if (!session?.user) {
-        const next = encodeURIComponent(window.location.pathname.split("/").pop() + window.location.search)
+        const next = encodeURIComponent(window.location.pathname + window.location.search)
         window.location.href = `${redirectTo}?next=${next}`
         return null
       }
       if (!this.isEmailConfirmed(session.user)) {
-        window.location.href = `auth.html?pending=1&next=${encodeURIComponent(window.location.pathname.split("/").pop())}`
+        window.location.href = `/catalog/entrar?pending=1&next=${encodeURIComponent(window.location.pathname)}`
         return null
       }
       return session

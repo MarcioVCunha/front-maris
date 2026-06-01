@@ -1,6 +1,6 @@
 const auth = window.MarisCustomerAuth
 const params = new URLSearchParams(window.location.search)
-const nextPage = params.get("next") || "catalog.html"
+const nextPage = params.get("next") || "/catalog"
 
 const pendingBox = document.getElementById("pending-box")
 const authTabs = document.getElementById("auth-tabs")

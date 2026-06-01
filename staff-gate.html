@@ -26,7 +26,7 @@
 </head>
 <body>
   <div class="gate-wrap">
-  <a href="catalog/catalog.html" class="gate-brand"><span>Maris</span><span>Semijoias</span></a>
+  <a href="/catalog" class="gate-brand"><span>Maris</span><span>Semijoias</span></a>
   <div class="gate-card">
     <h1>Área da equipe</h1>
     <p>Digite a senha para acessar administração e vendas.</p>
@@ -36,7 +36,7 @@
       <button type="submit" id="gate-submit">Entrar</button>
     </form>
     <div id="gate-message" class="gate-msg"></div>
-    <a class="gate-catalog-link" href="catalog/catalog.html">Ver catálogo público</a>
+    <a class="gate-catalog-link" href="/catalog">Ver catálogo público</a>
   </div>
   </div>
   <script>
@@ -46,14 +46,14 @@
     const submitBtn = document.getElementById("gate-submit")
 
     const params = new URLSearchParams(window.location.search)
-    const nextUrl = params.get("next") ? decodeURIComponent(params.get("next")) : "index.html"
+    const nextUrl = params.get("next") ? decodeURIComponent(params.get("next")) : "/"
 
     if (sessionStorage.getItem("maris_staff_token")) {
       const part = sessionStorage.getItem("maris_staff_token").split(".")[1]
       try {
         const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")))
         if (payload.exp > Math.floor(Date.now() / 1000)) {
-          window.location.replace(nextUrl.startsWith("/") ? nextUrl.slice(1) : nextUrl)
+          window.location.replace(nextUrl)
         }
       } catch (_) {}
     }
@@ -78,7 +78,7 @@
           return
         }
         sessionStorage.setItem("maris_staff_token", data.token)
-        window.location.replace(nextUrl.startsWith("/") ? nextUrl.slice(1) : nextUrl)
+        window.location.replace(nextUrl)
       } catch {
         messageEl.textContent = "Erro de conexão. Tente novamente."
         messageEl.className = "gate-msg error"

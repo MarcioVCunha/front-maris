@@ -1,19 +1,6 @@
 ;(function () {
   const STAFF_TOKEN_KEY = "maris_staff_token"
-  const GATE_PATH = "/staff-gate.html"
-
-  function getGateUrl() {
-    const path = window.location.pathname.replace(/\\/g, "/")
-    const idx = path.lastIndexOf("/")
-    const dir = idx >= 0 ? path.slice(0, idx + 1) : "/"
-    const depth = (dir.match(/\//g) || []).length - 1
-    if (path.includes("/catalog/")) return "../".repeat(Math.max(depth, 1)) + "staff-gate.html"
-    if (path.includes("/hubs/") || path.includes("/sales/") || path.includes("/contas-vendedoras/") ||
-        path.includes("/importJson/") || path.includes("/addProduct/") || path.includes("/components/")) {
-      return "../staff-gate.html"
-    }
-    return "staff-gate.html"
-  }
+  const GATE_PATH = "/equipe"
 
   function decodeJwtPayload(token) {
     try {
@@ -57,8 +44,7 @@
     requireStaffAccess() {
       if (this.isValid()) return true
       const next = encodeURIComponent(window.location.pathname + window.location.search)
-      const gate = getGateUrl()
-      window.location.replace(`${gate}?next=${next}`)
+      window.location.replace(`${GATE_PATH}?next=${next}`)
       return false
     },
 

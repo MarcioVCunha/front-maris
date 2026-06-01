@@ -63,11 +63,11 @@ document.getElementById("profile-form").addEventListener("submit", async (e) => 
 
 document.getElementById("logout-btn").addEventListener("click", async () => {
   await auth.signOut()
-  window.location.href = "catalog.html"
+  window.location.href = "/catalog"
 })
 
 ;(async () => {
-  const session = await auth.requireAuth({ redirectTo: "auth.html" })
+  const session = await auth.requireAuth({ redirectTo: "/catalog/entrar" })
   if (!session) return
 
   const user = session.user

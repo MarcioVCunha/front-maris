@@ -203,7 +203,7 @@ function renderModalActions(product, components, soldOut) {
 
 async function joinWaitlist({ productCode = null, componentId = null }) {
   const auth = window.MarisCustomerAuth
-  if (!(await auth.requireAuth({ redirectTo: "auth.html" }))) return
+  if (!(await auth.requireAuth({ redirectTo: "/catalog/entrar" }))) return
 
   const row = {
     user_id: (await auth.getUser()).id,
