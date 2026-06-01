@@ -1,6 +1,61 @@
 {
   "redirects": [
     {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/hubs/admin.html",
+      "destination": "/admin",
+      "permanent": true
+    },
+    {
+      "source": "/hubs/vendedoras.html",
+      "destination": "/vendedoras",
+      "permanent": true
+    },
+    {
+      "source": "/hubs/catalogo.html",
+      "destination": "/catalogo",
+      "permanent": true
+    },
+    {
+      "source": "/importJson/import.html",
+      "destination": "/importar",
+      "permanent": true
+    },
+    {
+      "source": "/addProduct/add-product.html",
+      "destination": "/adicionar-peca",
+      "permanent": true
+    },
+    {
+      "source": "/components/components.html",
+      "destination": "/tipos-produto",
+      "permanent": true
+    },
+    {
+      "source": "/contas-vendedoras/contas-vendedoras.html",
+      "destination": "/contas-vendedoras",
+      "permanent": true
+    },
+    {
+      "source": "/sales/sales.html",
+      "destination": "/vendas",
+      "permanent": true
+    },
+    {
+      "source": "/sales/customer-carts.html",
+      "destination": "/carrinhos-clientes",
+      "permanent": true
+    },
+    {
+      "source": "/sales/waitlist.html",
+      "destination": "/lista-espera",
+      "permanent": true
+    },
+    {
       "source": "/catalog/catalog.html",
       "destination": "/catalog",
       "permanent": true
@@ -27,6 +82,50 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/hubs/admin.html"
+    },
+    {
+      "source": "/vendedoras",
+      "destination": "/hubs/vendedoras.html"
+    },
+    {
+      "source": "/catalogo",
+      "destination": "/hubs/catalogo.html"
+    },
+    {
+      "source": "/importar",
+      "destination": "/importJson/import.html"
+    },
+    {
+      "source": "/adicionar-peca",
+      "destination": "/addProduct/add-product.html"
+    },
+    {
+      "source": "/tipos-produto",
+      "destination": "/components/components.html"
+    },
+    {
+      "source": "/contas-vendedoras",
+      "destination": "/contas-vendedoras/contas-vendedoras.html"
+    },
+    {
+      "source": "/vendas",
+      "destination": "/sales/sales.html"
+    },
+    {
+      "source": "/carrinhos-clientes",
+      "destination": "/sales/customer-carts.html"
+    },
+    {
+      "source": "/lista-espera",
+      "destination": "/sales/waitlist.html"
+    },
     {
       "source": "/catalog",
       "destination": "/catalog/catalog.html"
