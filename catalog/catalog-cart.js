@@ -7,6 +7,7 @@
   let cartItems = []
   let productsByCode = Object.create(null)
   let componentsById = Object.create(null)
+  let productImagesByCode = Object.create(null)
 
   function safeParseJson(value, fallback) {
     try {
@@ -51,14 +52,28 @@
     return item.component_id ? `c-${item.component_id}` : `p-${item.product_code}`
   }
 
+  function getAvailableQty({ productCode = null, componentId = null }) {
+    if (componentId) {
+      const component = componentsById[componentId]
+      return Math.max(0, Number(component?.quantity) || 0)
+    }
+    const product = productsByCode[productCode]
+    return Math.max(0, Number(product?.quantity) || 0)
+  }
+
   function upsertItem({ productCode = null, componentId = null, quantity = 1 }) {
     const delta = Number(quantity) || 0
-    if (!delta) return false
+    if (!delta) return { ok: false, reason: "invalid_quantity" }
+    const available = getAvailableQty({ productCode, componentId })
+    if (available <= 0) return { ok: false, reason: "out_of_stock", available: 0 }
+
     const target = cartItems.find((item) =>
       componentId ? item.component_id === componentId : item.product_code === productCode && !item.component_id
     )
+
     if (target) {
-      target.quantity = Math.max(0, (Number(target.quantity) || 0) + delta)
+      const requested = Math.max(0, (Number(target.quantity) || 0) + delta)
+      target.quantity = Math.min(available, requested)
       if (target.quantity <= 0) {
         cartItems = cartItems.filter((item) => item !== target)
       }
@@ -66,11 +81,23 @@
       cartItems.push({
         product_code: productCode,
         component_id: componentId,
-        quantity: delta
+        quantity: Math.min(available, delta)
       })
+    } else {
+      return { ok: false, reason: "negative_new_item" }
     }
     saveCart()
-    return true
+    const currentQty = target
+      ? Number(target.quantity) || 0
+      : Number(cartItems.find((item) =>
+          componentId ? item.component_id === componentId : item.product_code === productCode && !item.component_id
+        )?.quantity) || 0
+    return {
+      ok: true,
+      clamped: currentQty >= available && delta > 0,
+      available,
+      quantity: currentQty
+    }
   }
 
   function removeItem(key) {
@@ -79,15 +106,17 @@
   }
 
   function setQuantity(key, quantity) {
-    const next = Math.max(0, Number(quantity) || 0)
     const item = cartItems.find((line) => itemKey(line) === key)
-    if (!item) return
+    if (!item) return { ok: false, reason: "not_found" }
+    const available = getAvailableQty({ productCode: item.product_code, componentId: item.component_id })
+    const next = Math.max(0, Number(quantity) || 0)
     if (next <= 0) {
       removeItem(key)
-      return
+      return { ok: true, removed: true, available }
     }
-    item.quantity = next
+    item.quantity = Math.min(next, available)
     saveCart()
+    return { ok: true, clamped: next > available, available, quantity: item.quantity }
   }
 
   function clearCart() {
@@ -118,23 +147,40 @@
       return {
         name: component?.name || "Componente",
         code: component?.product_code || `COMP-${item.component_id}`,
-        unitPrice: Number(component?.unit_price) || 0
+        unitPrice: Number(component?.unit_price) || 0,
+        available: Math.max(0, Number(component?.quantity) || 0),
+        imageUrl: productImagesByCode[component?.product_code || ""] || ""
       }
     }
     const product = productsByCode[item.product_code]
     return {
       name: product?.name || item.product_code || "Produto",
       code: item.product_code || "",
-      unitPrice: Number(product?.unit_price) || 0
+      unitPrice: Number(product?.unit_price) || 0,
+      available: Math.max(0, Number(product?.quantity) || 0),
+      imageUrl: productImagesByCode[item.product_code || ""] || String(product?.image_url || "")
     }
   }
 
   window.MarisCatalogCart = {
-    setCatalogData({ products, components }) {
+    setCatalogData({ products, components, imagesByCode = null }) {
       productsByCode = Object.create(null)
       for (const p of products || []) productsByCode[p.code] = p
       componentsById = Object.create(null)
       for (const c of components || []) componentsById[c.id] = c
+      productImagesByCode = Object.create(null)
+      for (const product of products || []) {
+        const code = String(product?.code || "")
+        if (!code) continue
+        const fallback = String(product?.image_url || "").trim()
+        if (fallback) productImagesByCode[code] = fallback
+      }
+      if (imagesByCode && typeof imagesByCode === "object") {
+        for (const [code, imageUrl] of Object.entries(imagesByCode)) {
+          const value = String(imageUrl || "").trim()
+          if (code && value) productImagesByCode[code] = value
+        }
+      }
     },
 
     async init() {
@@ -158,7 +204,9 @@
           product_code: item.product_code,
           component_id: item.component_id,
           quantity: Number(item.quantity) || 0,
-          total: info.unitPrice * (Number(item.quantity) || 0)
+          total: info.unitPrice * (Number(item.quantity) || 0),
+          available: info.available,
+          image_url: info.imageUrl
         }
       })
     },
@@ -176,7 +224,7 @@
     },
 
     setQuantityByKey(key, quantity) {
-      setQuantity(key, quantity)
+      return setQuantity(key, quantity)
     },
 
     clear() {

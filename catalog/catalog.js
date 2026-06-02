@@ -43,6 +43,22 @@ function setCatalogFeedback(text, type = "") {
   catalogFeedbackEl.className = `catalog-feedback ${type}`.trim()
 }
 
+function notifyCartAdd(result, itemLabel = "Item") {
+  if (!result?.ok) {
+    if (result?.reason === "out_of_stock") {
+      setCatalogFeedback(`${itemLabel} indisponível no momento.`, "error")
+      return
+    }
+    setCatalogFeedback(`Não foi possível adicionar ${itemLabel.toLowerCase()} na cesta.`, "error")
+    return
+  }
+  if (result.clamped) {
+    setCatalogFeedback(`Estoque limitado: você tem ${result.available} unidade(s) desse item na cesta.`, "error")
+    return
+  }
+  setCatalogFeedback(`${itemLabel} adicionado na sua cesta.`, "success")
+}
+
 function getSearchTerm() {
   return (catalogSearchInput?.value || "").trim().toLowerCase()
 }
@@ -375,7 +391,14 @@ async function loadCatalogData() {
 
   allComponents = componentsData || []
   if (window.MarisCatalogCart) {
-    window.MarisCatalogCart.setCatalogData({ products: data, components: allComponents })
+    const imagesByCode = Object.create(null)
+    for (const product of data || []) {
+      const code = String(product?.code || "")
+      if (!code) continue
+      const urls = getProductImageUrls(product)
+      if (urls.length) imagesByCode[code] = urls[0]
+    }
+    window.MarisCatalogCart.setCatalogData({ products: data, components: allComponents, imagesByCode })
     try {
       await window.MarisCatalogCart.init()
     } catch (error) {
@@ -406,8 +429,8 @@ function handleCatalogGridClick(event) {
   const addBtn = event.target.closest("[data-add-code]")
   if (addBtn) {
     event.stopPropagation()
-    window.MarisCatalogCart?.addProduct(addBtn.getAttribute("data-add-code"), 1)
-    setCatalogFeedback("Produto adicionado na sua cesta.", "success")
+    const result = window.MarisCatalogCart?.addProduct(addBtn.getAttribute("data-add-code"), 1)
+    notifyCartAdd(result, "Produto")
     return
   }
   handleProductClick(event.target)
@@ -419,14 +442,14 @@ unavailableProductsGrid.addEventListener("click", handleCatalogGridClick)
 productModal.addEventListener("click", async (event) => {
   const addCode = event.target.closest("[data-add-code]")
   if (addCode) {
-    await window.MarisCatalogCart?.addProduct(addCode.getAttribute("data-add-code"), 1)
-    setCatalogFeedback("Produto adicionado na sua cesta.", "success")
+    const result = await window.MarisCatalogCart?.addProduct(addCode.getAttribute("data-add-code"), 1)
+    notifyCartAdd(result, "Produto")
     return
   }
   const addComp = event.target.closest("[data-add-component]")
   if (addComp) {
-    await window.MarisCatalogCart?.addComponent(Number(addComp.getAttribute("data-add-component")), 1)
-    setCatalogFeedback("Componente adicionado na sua cesta.", "success")
+    const result = await window.MarisCatalogCart?.addComponent(Number(addComp.getAttribute("data-add-component")), 1)
+    notifyCartAdd(result, "Componente")
     return
   }
   const waitCode = event.target.closest("[data-waitlist-code]")

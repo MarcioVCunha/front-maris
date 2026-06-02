@@ -12,11 +12,19 @@ const checkStockBtn = document.getElementById("check-stock-btn")
 const shareCartBtn = document.getElementById("share-cart-btn")
 const stockIssuesEl = document.getElementById("stock-issues")
 const messageEl = document.getElementById("cart-page-message")
+const stepEls = Array.from(document.querySelectorAll(".cart-step"))
 
 function setMessage(text, type = "") {
   messageEl.hidden = !text
   messageEl.textContent = text || ""
   messageEl.className = `cart-page-message ${type}`.trim()
+}
+
+function setActiveStep(stepNumber) {
+  stepEls.forEach((el, idx) => {
+    if (idx === stepNumber - 1) el.classList.add("cart-step--active")
+    else el.classList.remove("cart-step--active")
+  })
 }
 
 function getBuyerPayload() {
@@ -49,19 +57,26 @@ function renderCart() {
     cartTotalEl.textContent = formatMoneyBRL(0)
     shareCartBtn.disabled = true
     checkStockBtn.disabled = true
+    setActiveStep(1)
     return
   }
 
   shareCartBtn.disabled = false
   checkStockBtn.disabled = false
+  setActiveStep(2)
   let total = 0
   cartLinesEl.innerHTML = lines.map((line) => {
     total += line.total
+    const stockLabel = line.available > 0 ? `${line.available} em estoque` : "Sem estoque"
     return `
       <article class="cart-line" data-key="${line.key}">
-        <div>
-          <p class="cart-line-name">${line.name}</p>
-          <p class="cart-line-code">${line.code} · ${formatMoneyBRL(line.total)}</p>
+        <div class="cart-line-main">
+          <img class="cart-line-image" src="${line.image_url || ""}" alt="${line.name}">
+          <div>
+            <p class="cart-line-name">${line.name}</p>
+            <p class="cart-line-code">${line.code} · ${formatMoneyBRL(line.total)}</p>
+            <p class="cart-line-stock">${stockLabel}</p>
+          </div>
         </div>
         <div class="cart-line-actions">
           <button type="button" data-action="minus">-</button>
@@ -76,13 +91,27 @@ function renderCart() {
 }
 
 async function loadCatalogData() {
-  const [productsRes, componentsRes] = await Promise.all([
-    sbClient.from("products").select("code, name, unit_price"),
-    sbClient.from("product_components").select("id, product_code, name, unit_price").eq("is_active", true)
+  const [productsRes, componentsRes, imagesRes] = await Promise.all([
+    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url"),
+    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity").eq("is_active", true),
+    sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
+  const imagesByCode = Object.create(null)
+  const products = productsRes.data || []
+  const images = imagesRes.data || []
+  const codeById = Object.create(null)
+  for (const product of products) {
+    if (product?.id && product?.code) codeById[Number(product.id)] = String(product.code)
+  }
+  for (const row of images) {
+    const code = codeById[Number(row.product_id)]
+    const imageUrl = String(row.image_url || "").trim()
+    if (code && imageUrl && !imagesByCode[code]) imagesByCode[code] = imageUrl
+  }
   window.MarisCatalogCart.setCatalogData({
-    products: productsRes.data || [],
-    components: componentsRes.data || []
+    products,
+    components: componentsRes.data || [],
+    imagesByCode
   })
 }
 
@@ -137,6 +166,7 @@ async function checkStock() {
     stockIssuesEl.hidden = true
     stockIssuesEl.innerHTML = ""
     setMessage("Estoque validado. Você já pode compartilhar.", "success")
+    setActiveStep(3)
     return
   }
   stockIssuesEl.hidden = false
@@ -174,6 +204,7 @@ async function shareCart() {
     stockIssuesEl.hidden = true
     stockIssuesEl.innerHTML = ""
     setMessage("Carrinho compartilhado com sucesso. A vendedora entrará em contato.", "success")
+    setActiveStep(3)
   } finally {
     shareCartBtn.disabled = false
   }
@@ -187,7 +218,10 @@ cartLinesEl.addEventListener("click", (event) => {
   const line = window.MarisCatalogCart.getLineDetails().find((item) => item.key === key)
   if (!line) return
   if (action === "remove") window.MarisCatalogCart.removeByKey(key)
-  if (action === "plus") window.MarisCatalogCart.setQuantityByKey(key, line.quantity + 1)
+  if (action === "plus") {
+    const update = window.MarisCatalogCart.setQuantityByKey(key, line.quantity + 1)
+    if (update?.clamped) setMessage(`Limite de estoque para esse item: ${update.available}.`, "error")
+  }
   if (action === "minus") window.MarisCatalogCart.setQuantityByKey(key, line.quantity - 1)
   renderCart()
 })

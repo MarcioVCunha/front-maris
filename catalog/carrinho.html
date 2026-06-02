@@ -25,6 +25,12 @@
     </header>
 
     <main class="cart-page">
+      <section class="cart-steps" aria-label="Etapas da cesta">
+        <div class="cart-step cart-step--active"><span>1</span> Revise os itens</div>
+        <div class="cart-step"><span>2</span> Preencha seus dados</div>
+        <div class="cart-step"><span>3</span> Compartilhe com a vendedora</div>
+      </section>
+
       <section class="cart-card cart-card--items">
         <h1>Minha cesta</h1>
         <p class="cart-help">Confira os itens e ajuste as quantidades antes de compartilhar.</p>
@@ -36,7 +42,7 @@
       </section>
 
       <section class="cart-card cart-card--checkout">
-        <h2>Seus dados</h2>
+        <h2>Finalizar com a vendedora</h2>
         <form id="buyer-form" class="buyer-form">
           <label for="buyer-name">Nome completo</label>
           <input id="buyer-name" type="text" required>
