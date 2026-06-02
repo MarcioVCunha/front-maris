@@ -10,5 +10,5 @@ window.ENV = {
   SUPABASE_LIST_WAITLIST_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/list-waitlist",
   SUPABASE_MARK_WAITLIST_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/mark-waitlist-contacted",
   SUPABASE_MARK_CART_CONVERTED_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/mark-cart-converted",
-  CATALOG_AUTH_REDIRECT_URL: ""
+  CATALOG_AUTH_REDIRECT_URL: "https://front-maris.vercel.app/catalog/auth-callback"
 }

@@ -5,6 +5,17 @@
     return String(value || "").replace(/\D/g, "")
   }
 
+function getEmailRedirectUrl() {
+  const configured = String(window.ENV?.CATALOG_AUTH_REDIRECT_URL || "").trim()
+  if (configured) return configured
+
+  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  if (isLocal) return `${window.location.origin}/catalog/auth-callback`
+
+  // Safe default for production when env is not configured.
+  return "https://front-maris.vercel.app/catalog/auth-callback"
+}
+
   window.MarisCustomerAuth = {
     supabase: createSupabaseClient(),
 
@@ -58,7 +69,7 @@
             full_name: fullName.trim(),
             whatsapp: onlyDigits(whatsapp)
           },
-          emailRedirectTo: window.ENV.CATALOG_AUTH_REDIRECT_URL || window.location.origin + window.location.pathname.replace(/[^/]+$/, "auth-callback.html")
+          emailRedirectTo: getEmailRedirectUrl()
         }
       })
     },
