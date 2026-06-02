@@ -1,5 +1,5 @@
 const { createSupabaseClient, formatMoneyBRL, roundMoney } = window.MarisUtils
-const supabase = createSupabaseClient()
+const sbClient = createSupabaseClient()
 
 const sellerFilter = document.getElementById("seller-filter")
 const cartsListEl = document.getElementById("carts-list")
@@ -40,7 +40,7 @@ function updateSaleTotal() {
 }
 
 async function loadSellers() {
-  const { data } = await supabase.from("sellers").select("id, name").eq("is_active", true).order("name")
+  const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
   const saved = localStorage.getItem("maris_seller_filter")
   sellerFilter.innerHTML =
     '<option value="all">Todas as vendedoras</option>' +
