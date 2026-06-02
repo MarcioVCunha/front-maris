@@ -43,8 +43,8 @@ function renderItems() {
     .map((line, idx) => `
       <div class="cart-item-row">
         <input type="checkbox" data-idx="${idx}" ${line.checked ? "checked" : ""}>
-        ${line.image_url ? `<img src="${line.image_url}" alt="${line.product_name}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #eee;">` : ""}
-        <div>
+        ${line.image_url ? `<img src="${line.image_url}" alt="${line.product_name}" class="cart-item-thumb">` : '<div class="cart-item-thumb"></div>'}
+        <div class="cart-item-info">
           <strong>${line.product_name}</strong><br>
           <span>${line.display_code || line.product_code || ""} · x${line.quantity} · ${formatMoneyBRL(line.total_value)}</span>
         </div>
