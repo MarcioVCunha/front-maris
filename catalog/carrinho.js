@@ -13,8 +13,6 @@ const shareCartBtn = document.getElementById("share-cart-btn")
 const stockIssuesEl = document.getElementById("stock-issues")
 const messageEl = document.getElementById("cart-page-message")
 
-let sellers = []
-
 function setMessage(text, type = "") {
   messageEl.hidden = !text
   messageEl.textContent = text || ""
@@ -34,6 +32,14 @@ function saveBuyer() {
   if (!payload) return false
   window.MarisCatalogCart.saveBuyerProfile(payload)
   return true
+}
+
+function formatWhatsappMask(value) {
+  const digits = onlyDigits(value).slice(0, 11)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
 function renderCart() {
@@ -82,7 +88,7 @@ async function loadCatalogData() {
 
 async function loadSellers() {
   const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
-  sellers = data || []
+  const sellers = data || []
   sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + sellers.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")
 }
 
@@ -187,6 +193,9 @@ cartLinesEl.addEventListener("click", (event) => {
 })
 
 buyerNameEl.addEventListener("blur", saveBuyer)
+buyerWhatsappEl.addEventListener("input", () => {
+  buyerWhatsappEl.value = formatWhatsappMask(buyerWhatsappEl.value)
+})
 buyerWhatsappEl.addEventListener("blur", saveBuyer)
 buyerEmailEl.addEventListener("blur", saveBuyer)
 checkStockBtn.addEventListener("click", checkStock)
