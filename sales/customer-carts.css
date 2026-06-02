@@ -26,6 +26,12 @@
   color: var(--maris-black);
 }
 
+.cart-seller {
+  margin: 4px 0;
+  font-size: 0.88rem;
+  color: var(--maris-text-muted);
+}
+
 .buyer-info {
   background: var(--maris-gold-light);
   padding: 12px;
