@@ -1,4 +1,5 @@
-const { formatMoneyBRL, roundMoney } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, roundMoney } = window.MarisUtils
+const sbClient = createSupabaseClient()
 
 const cartMetaEl = document.getElementById("cart-meta")
 const buyerInfoEl = document.getElementById("buyer-info")
@@ -27,6 +28,11 @@ function setSaleMessage(text, type = "") {
 }
 
 function updateSaleTotal() {
+  const { total } = getSaleTotals()
+  saleTotalEl.textContent = formatMoneyBRL(total)
+}
+
+function getSaleTotals() {
   const payment = paymentMethodSelect.value
   let subtotal = 0
   for (const line of selectedLines) {
@@ -35,7 +41,50 @@ function updateSaleTotal() {
   }
   const rounded = roundMoney(subtotal)
   const discount = payment === "pix" ? roundMoney(rounded * 0.05) : 0
-  saleTotalEl.textContent = formatMoneyBRL(roundMoney(rounded - discount))
+  return { subtotal: rounded, discount, total: roundMoney(rounded - discount) }
+}
+
+function buildWhatsappSummary({ paymentMethod, sellerName, buyerName, lines, subtotal, discount, total }) {
+  const methodLabel = {
+    pix: "Pix",
+    cartao_credito: "Cartão de crédito",
+    cartao_debito: "Cartão de débito",
+    dinheiro: "Dinheiro",
+    transferencia: "Transferência"
+  }[paymentMethod] || paymentMethod
+
+  const linesText = lines
+    .map((line) => `- ${line.product_name} (${line.display_code || line.product_code || "-"}) x${line.quantity} = ${formatMoneyBRL(line.total_value)}`)
+    .join("\n")
+
+  return [
+    `Oi ${sellerName || "vendedora"}, venda registrada no carrinho.`,
+    "",
+    `Cliente: ${buyerName || "—"}`,
+    `Pagamento: ${methodLabel}`,
+    "",
+    "Itens:",
+    linesText,
+    "",
+    `Subtotal: ${formatMoneyBRL(subtotal)}`,
+    `Desconto: ${formatMoneyBRL(discount)}`,
+    `Total: ${formatMoneyBRL(total)}`
+  ].join("\n")
+}
+
+async function fetchSellerPhoneDigits(sellerId) {
+  const candidates = ["whatsapp", "phone", "phone_number", "mobile"]
+  for (const field of candidates) {
+    const { data, error } = await sbClient
+      .from("sellers")
+      .select(`id, ${field}`)
+      .eq("id", sellerId)
+      .maybeSingle()
+    if (error) continue
+    const digits = String(data?.[field] || "").replace(/\D/g, "")
+    if (digits.length >= 10) return digits
+  }
+  return ""
 }
 
 function renderItems() {
@@ -136,7 +185,25 @@ submitSaleBtn.addEventListener("click", async () => {
       body: JSON.stringify({ cart_id: activeCart.id })
     })
 
-    setSaleMessage("Venda registrada com sucesso!", "success")
+    const checkedLines = selectedLines.filter((line) => line.checked)
+    const totals = getSaleTotals()
+    const phoneDigits = await fetchSellerPhoneDigits(sellerId)
+    const whatsappText = buildWhatsappSummary({
+      paymentMethod: payment,
+      sellerName: activeCart?.seller?.name || "",
+      buyerName: activeCart?.buyer?.full_name || "",
+      lines: checkedLines,
+      subtotal: totals.subtotal,
+      discount: totals.discount,
+      total: totals.total
+    })
+    if (phoneDigits) {
+      const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(whatsappText)}`
+      window.open(waUrl, "_blank", "noopener")
+      setSaleMessage("Venda registrada e conversa do WhatsApp aberta!", "success")
+    } else {
+      setSaleMessage("Venda registrada com sucesso! Não encontrei o WhatsApp da vendedora para abrir conversa automática.", "success")
+    }
   } catch {
     setSaleMessage("Erro de conexão.", "error")
   } finally {
