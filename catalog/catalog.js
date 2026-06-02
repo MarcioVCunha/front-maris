@@ -371,7 +371,11 @@ async function loadCatalogData() {
   allComponents = componentsData || []
   if (window.MarisCatalogCart) {
     window.MarisCatalogCart.setCatalogData({ products: data, components: allComponents })
-    await window.MarisCatalogCart.init()
+    try {
+      await window.MarisCatalogCart.init()
+    } catch (error) {
+      console.warn("Falha ao inicializar carrinho sem bloquear catalogo", error)
+    }
   }
   await updateNavAuth()
 

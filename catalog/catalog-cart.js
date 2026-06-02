@@ -184,10 +184,28 @@
       const session = await auth.getSession()
       if (!session?.user) {
         if (fab) fab.hidden = true
+        if (headerCartBtn) headerCartBtn.hidden = true
         return
       }
-      await loadDraftItems()
-      await this.loadSellers()
+      try {
+        await loadDraftItems()
+        await this.loadSellers()
+      } catch (error) {
+        console.warn("Falha ao iniciar carrinho do catalogo", error)
+        const message = String(error?.message || "").toLowerCase()
+        const authRelated =
+          message.includes("jwt") ||
+          message.includes("token") ||
+          message.includes("not authenticated") ||
+          message.includes("invalid claim")
+        if (authRelated) {
+          await auth.signOut()
+        }
+        cartItems = []
+        draftCartId = null
+        if (fab) fab.hidden = true
+        if (headerCartBtn) headerCartBtn.hidden = true
+      }
     },
 
     async loadSellers() {
