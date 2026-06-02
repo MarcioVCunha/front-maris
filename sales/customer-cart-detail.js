@@ -44,7 +44,7 @@ function getSaleTotals() {
   return { subtotal: rounded, discount, total: roundMoney(rounded - discount) }
 }
 
-function buildWhatsappSummary({ paymentMethod, sellerName, buyerName, lines, subtotal, discount, total }) {
+function buildWhatsappSummary({ paymentMethod, buyerName, lines, subtotal, discount, total }) {
   const methodLabel = {
     pix: "Pix",
     cartao_credito: "Cartão de crédito",
@@ -58,33 +58,19 @@ function buildWhatsappSummary({ paymentMethod, sellerName, buyerName, lines, sub
     .join("\n")
 
   return [
-    `Oi ${sellerName || "vendedora"}, venda registrada no carrinho.`,
+    `Oi ${buyerName || "cliente"}! Sua compra foi finalizada com sucesso.`,
     "",
-    `Cliente: ${buyerName || "—"}`,
     `Pagamento: ${methodLabel}`,
     "",
-    "Itens:",
+    "Resumo dos itens:",
     linesText,
     "",
     `Subtotal: ${formatMoneyBRL(subtotal)}`,
     `Desconto: ${formatMoneyBRL(discount)}`,
-    `Total: ${formatMoneyBRL(total)}`
+    `Total: ${formatMoneyBRL(total)}`,
+    "",
+    "Obrigada por comprar com a Maris Semijoias!"
   ].join("\n")
-}
-
-async function fetchSellerPhoneDigits(sellerId) {
-  const candidates = ["whatsapp", "phone", "phone_number", "mobile"]
-  for (const field of candidates) {
-    const { data, error } = await sbClient
-      .from("sellers")
-      .select(`id, ${field}`)
-      .eq("id", sellerId)
-      .maybeSingle()
-    if (error) continue
-    const digits = String(data?.[field] || "").replace(/\D/g, "")
-    if (digits.length >= 10) return digits
-  }
-  return ""
 }
 
 function renderItems() {
@@ -187,10 +173,9 @@ submitSaleBtn.addEventListener("click", async () => {
 
     const checkedLines = selectedLines.filter((line) => line.checked)
     const totals = getSaleTotals()
-    const phoneDigits = await fetchSellerPhoneDigits(sellerId)
+    const phoneDigits = String(activeCart?.buyer?.whatsapp || "").replace(/\D/g, "")
     const whatsappText = buildWhatsappSummary({
       paymentMethod: payment,
-      sellerName: activeCart?.seller?.name || "",
       buyerName: activeCart?.buyer?.full_name || "",
       lines: checkedLines,
       subtotal: totals.subtotal,
@@ -200,9 +185,9 @@ submitSaleBtn.addEventListener("click", async () => {
     if (phoneDigits) {
       const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(whatsappText)}`
       window.open(waUrl, "_blank", "noopener")
-      setSaleMessage("Venda registrada e conversa do WhatsApp aberta!", "success")
+      setSaleMessage("Venda registrada e conversa com a cliente aberta no WhatsApp!", "success")
     } else {
-      setSaleMessage("Venda registrada com sucesso! Não encontrei o WhatsApp da vendedora para abrir conversa automática.", "success")
+      setSaleMessage("Venda registrada com sucesso! Não encontrei o WhatsApp da cliente para abrir conversa automática.", "success")
     }
   } catch {
     setSaleMessage("Erro de conexão.", "error")
