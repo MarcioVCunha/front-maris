@@ -61,6 +61,11 @@
       "permanent": true
     },
     {
+      "source": "/catalog/carrinho.html",
+      "destination": "/catalog/carrinho",
+      "permanent": true
+    },
+    {
       "source": "/catalog/auth.html",
       "destination": "/catalog",
       "permanent": true
@@ -144,6 +149,10 @@
     {
       "source": "/catalog",
       "destination": "/catalog/catalog.html"
+    },
+    {
+      "source": "/catalog/carrinho",
+      "destination": "/catalog/carrinho.html"
     },
     {
       "source": "/equipe",

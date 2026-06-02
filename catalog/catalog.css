@@ -149,6 +149,23 @@ body {
   min-width: 200px;
 }
 
+.catalog-feedback {
+  margin: 4px 24px 0;
+  padding: 10px 12px;
+  border-radius: var(--maris-radius);
+  font-size: 0.88rem;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+}
+
+.catalog-feedback.success {
+  color: #2f7a4a;
+}
+
+.catalog-feedback.error {
+  color: #a94442;
+}
+
 .product-search input::placeholder {
   color: #a39e98;
 }

@@ -20,6 +20,7 @@ const productModalStock = document.getElementById("product-modal-stock")
 const productModalStatus = document.getElementById("product-modal-status")
 const productModalComponentsList = document.getElementById("product-modal-components-list")
 const productModalActions = document.getElementById("product-modal-actions")
+const catalogFeedbackEl = document.getElementById("catalog-feedback")
 
 let allComponents = []
 let currentModalProduct = null
@@ -34,6 +35,13 @@ let modalImageUrls = []
 let modalImageIndex = 0
 let touchStartX = 0
 let touchStartY = 0
+
+function setCatalogFeedback(text, type = "") {
+  if (!catalogFeedbackEl) return
+  catalogFeedbackEl.hidden = !text
+  catalogFeedbackEl.textContent = text || ""
+  catalogFeedbackEl.className = `catalog-feedback ${type}`.trim()
+}
 
 function getSearchTerm() {
   return (catalogSearchInput?.value || "").trim().toLowerCase()
@@ -200,8 +208,11 @@ function renderModalActions(product, components, soldOut) {
 }
 
 async function joinWaitlist({ productCode = null, componentId = null }) {
-  const buyer = await window.MarisCatalogCart?.ensureBuyerProfile()
-  if (!buyer) return
+  const buyer = window.MarisCatalogCart?.getBuyerProfile?.()
+  if (!buyer) {
+    setCatalogFeedback("Preencha seus dados na página da cesta antes de entrar na lista de espera.", "error")
+    return
+  }
 
   const res = await fetch(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
     method: "POST",
@@ -216,10 +227,10 @@ async function joinWaitlist({ productCode = null, componentId = null }) {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    alert(data.error || "Não foi possível entrar na lista de espera.")
+    setCatalogFeedback(data.error || "Não foi possível entrar na lista de espera.", "error")
     return
   }
-  alert("Você entrou na lista de espera. A vendedora entrará em contato quando a peça voltar.")
+  setCatalogFeedback("Pronto! Você entrou na lista de espera.", "success")
 }
 
 function openProductModal(product) {
@@ -396,6 +407,7 @@ function handleCatalogGridClick(event) {
   if (addBtn) {
     event.stopPropagation()
     window.MarisCatalogCart?.addProduct(addBtn.getAttribute("data-add-code"), 1)
+    setCatalogFeedback("Produto adicionado na sua cesta.", "success")
     return
   }
   handleProductClick(event.target)
@@ -408,11 +420,13 @@ productModal.addEventListener("click", async (event) => {
   const addCode = event.target.closest("[data-add-code]")
   if (addCode) {
     await window.MarisCatalogCart?.addProduct(addCode.getAttribute("data-add-code"), 1)
+    setCatalogFeedback("Produto adicionado na sua cesta.", "success")
     return
   }
   const addComp = event.target.closest("[data-add-component]")
   if (addComp) {
     await window.MarisCatalogCart?.addComponent(Number(addComp.getAttribute("data-add-component")), 1)
+    setCatalogFeedback("Componente adicionado na sua cesta.", "success")
     return
   }
   const waitCode = event.target.closest("[data-waitlist-code]")

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha cesta — Maris Semijoias</title>
+    <link rel="stylesheet" href="/maris-theme.css">
+    <link rel="stylesheet" href="/catalog/catalog.css">
+    <link rel="stylesheet" href="/catalog/carrinho.css">
+    <script src="/env.js"></script>
+    <script src="/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav">
+          <a href="/catalog" class="site-nav-link">Voltar ao catálogo</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="cart-page">
+      <section class="cart-card">
+        <h1>Minha cesta</h1>
+        <p class="cart-help">Confira os itens e ajuste as quantidades antes de compartilhar.</p>
+        <div id="cart-lines" class="cart-lines"></div>
+        <div class="cart-summary">
+          <span>Total estimado</span>
+          <strong id="cart-total">R$ 0,00</strong>
+        </div>
+      </section>
+
+      <section class="cart-card">
+        <h2>Seus dados</h2>
+        <form id="buyer-form" class="buyer-form">
+          <label for="buyer-name">Nome completo</label>
+          <input id="buyer-name" type="text" required>
+          <label for="buyer-whatsapp">WhatsApp</label>
+          <input id="buyer-whatsapp" type="tel" required>
+          <label for="buyer-email">E-mail (opcional)</label>
+          <input id="buyer-email" type="email">
+        </form>
+
+        <label for="seller-select">Vendedora</label>
+        <select id="seller-select"></select>
+
+        <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque</button>
+        <ul id="stock-issues" class="stock-issues" hidden></ul>
+
+        <button id="share-cart-btn" type="button" class="btn-primary">Compartilhar carrinho</button>
+        <p id="cart-page-message" class="cart-page-message" hidden></p>
+      </section>
+    </main>
+
+    <script src="/catalog/catalog-cart.js"></script>
+    <script src="/catalog/carrinho.js"></script>
+  </body>
+</html>

@@ -20,7 +20,7 @@
           <span class="site-brand-sub">Semijoias</span>
         </a>
         <nav class="site-nav" aria-label="Cesta">
-          <button type="button" class="site-nav-cart" id="header-cart-btn" hidden>Minha cesta (<span id="header-cart-count">0</span>)</button>
+          <a href="/catalog/carrinho" class="site-nav-cart" id="header-cart-btn" hidden>Minha cesta (<span id="header-cart-count">0</span>)</a>
         </nav>
       </div>
     </header>
@@ -48,6 +48,7 @@
           </select>
         </div>
       </div>
+      <p id="catalog-feedback" class="catalog-feedback" hidden></p>
 
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog"></div>
@@ -80,50 +81,6 @@
         </section>
 
         <div id="product-modal-actions" class="modal-actions"></div>
-      </div>
-    </div>
-
-    <button type="button" id="cart-fab" class="cart-fab" hidden aria-label="Abrir cesta">
-      Cesta <span id="cart-fab-count">0</span>
-    </button>
-
-    <div id="cart-panel" class="cart-panel" hidden>
-      <div id="cart-panel-backdrop" class="cart-panel-backdrop"></div>
-      <div class="cart-panel-sheet">
-        <div class="cart-panel-header">
-          <h2>Minha cesta</h2>
-          <button type="button" id="cart-panel-close" aria-label="Fechar">×</button>
-        </div>
-        <p class="cart-hint">Prévia da compra — sem pagamento aqui. Compartilhe com a vendedora para fechar.</p>
-        <div id="cart-items-list" class="cart-items-list"></div>
-        <div class="cart-footer">
-          <div class="cart-subtotal-row">Total estimado: <strong id="cart-subtotal">R$ 0,00</strong></div>
-          <button type="button" id="cart-share-btn" class="btn-primary">Compartilhar com vendedora</button>
-          <p id="cart-share-message" class="cart-share-message"></p>
-        </div>
-      </div>
-    </div>
-
-    <div id="cart-share-modal" class="cart-share-modal" hidden>
-      <div class="cart-share-backdrop" data-close-share="true"></div>
-      <div class="cart-share-sheet">
-        <h3>Compartilhar carrinho</h3>
-        <div id="share-step-stock">
-          <div id="share-stock-warn" class="share-stock-warn">
-            <p><strong>Atenção:</strong> algumas peças podem estar com estoque limitado ou em falta:</p>
-            <ul id="share-stock-issues"></ul>
-          </div>
-          <button type="button" id="share-continue-btn" class="btn-primary">Continuar</button>
-        </div>
-        <div id="share-step-seller" hidden>
-          <label for="share-seller-select">Vendedora</label>
-          <select id="share-seller-select"></select>
-          <button type="button" id="share-confirm-btn" class="btn-primary">Compartilhar</button>
-        </div>
-        <div id="share-success" hidden>
-          <p>Carrinho enviado! A vendedora verá seus dados e entrará em contato.</p>
-        </div>
-        <button type="button" class="btn-secondary" data-close-share="true" style="margin-top:12px;">Fechar</button>
       </div>
     </div>
 
