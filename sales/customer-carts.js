@@ -42,21 +42,28 @@ function updateSaleTotal() {
 async function loadSellers() {
   const { data } = await supabase.from("sellers").select("id, name").eq("is_active", true).order("name")
   const saved = localStorage.getItem("maris_seller_filter")
-  sellerFilter.innerHTML = (data || [])
+  sellerFilter.innerHTML =
+    '<option value="all">Todas as vendedoras</option>' +
+    (data || [])
     .map((s) => `<option value="${s.id}" ${String(s.id) === saved ? "selected" : ""}>${s.name}</option>`)
     .join("")
-  if (!sellerFilter.value && data?.length) sellerFilter.value = String(data[0].id)
+  if (saved) {
+    const hasSaved = saved === "all" || (data || []).some((s) => String(s.id) === saved)
+    sellerFilter.value = hasSaved ? saved : "all"
+  } else {
+    sellerFilter.value = "all"
+  }
 }
 
 async function loadCarts() {
-  const sellerId = Number(sellerFilter.value)
-  if (!sellerId) return
-
-  localStorage.setItem("maris_seller_filter", String(sellerId))
+  const selected = sellerFilter.value || "all"
+  localStorage.setItem("maris_seller_filter", selected)
   cartsListEl.innerHTML = "Carregando…"
   cartDetailEl.hidden = true
 
-  const url = `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?seller_id=${sellerId}`
+  const url = selected === "all"
+    ? window.ENV.SUPABASE_LIST_SHARED_CARTS_URL
+    : `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?seller_id=${Number(selected)}`
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json()
 
