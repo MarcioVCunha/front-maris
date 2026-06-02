@@ -44,11 +44,15 @@ async function loadSellers() {
   const saved = localStorage.getItem("maris_seller_filter")
   sellerFilter.innerHTML =
     '<option value="all">Todas as vendedoras</option>' +
+    '<option value="none">Sem vendedora</option>' +
     (data || [])
     .map((s) => `<option value="${s.id}" ${String(s.id) === saved ? "selected" : ""}>${s.name}</option>`)
     .join("")
   if (saved) {
-    const hasSaved = saved === "all" || (data || []).some((s) => String(s.id) === saved)
+    const hasSaved =
+      saved === "all" ||
+      saved === "none" ||
+      (data || []).some((s) => String(s.id) === saved)
     sellerFilter.value = hasSaved ? saved : "all"
   } else {
     sellerFilter.value = "all"
@@ -63,7 +67,7 @@ async function loadCarts() {
 
   const url = selected === "all"
     ? window.ENV.SUPABASE_LIST_SHARED_CARTS_URL
-    : `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?seller_id=${Number(selected)}`
+    : `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?seller_id=${encodeURIComponent(selected)}`
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json()
 
@@ -143,7 +147,15 @@ cartsListEl.addEventListener("click", (e) => {
 
 submitSaleBtn.addEventListener("click", async () => {
   if (!activeCart) return
-  const sellerId = Number(sellerFilter.value)
+  const selectedSeller = sellerFilter.value
+  let sellerId = Number(selectedSeller)
+  if (!Number.isFinite(sellerId) || sellerId <= 0) {
+    sellerId = Number(activeCart.seller_id) || 0
+  }
+  if (sellerId <= 0) {
+    setSaleMessage("Selecione uma vendedora específica para registrar a venda.", "error")
+    return
+  }
   const payment = paymentMethodSelect.value
   if (!payment) {
     setSaleMessage("Selecione o pagamento.", "error")
