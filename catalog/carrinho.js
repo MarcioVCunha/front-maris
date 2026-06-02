@@ -1,5 +1,6 @@
+;(function () {
 const { createSupabaseClient, formatMoneyBRL, onlyDigits } = window.MarisUtils
-const supabase = createSupabaseClient()
+const sbClient = createSupabaseClient()
 
 const cartLinesEl = document.getElementById("cart-lines")
 const cartTotalEl = document.getElementById("cart-total")
@@ -70,8 +71,8 @@ function renderCart() {
 
 async function loadCatalogData() {
   const [productsRes, componentsRes] = await Promise.all([
-    supabase.from("products").select("code, name, unit_price"),
-    supabase.from("product_components").select("id, product_code, name, unit_price").eq("is_active", true)
+    sbClient.from("products").select("code, name, unit_price"),
+    sbClient.from("product_components").select("id, product_code, name, unit_price").eq("is_active", true)
   ])
   window.MarisCatalogCart.setCatalogData({
     products: productsRes.data || [],
@@ -80,7 +81,7 @@ async function loadCatalogData() {
 }
 
 async function loadSellers() {
-  const { data } = await supabase.from("sellers").select("id, name").eq("is_active", true).order("name")
+  const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
   sellers = data || []
   sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + sellers.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")
 }
@@ -204,4 +205,5 @@ window.addEventListener("maris-cart-updated", renderCart)
     buyerEmailEl.value = buyer.email || ""
   }
   renderCart()
+})()
 })()
