@@ -1,8 +1,9 @@
 ;(function () {
-  const { formatMoneyBRL, roundMoney, onlyDigits } = window.MarisUtils
-  const auth = window.MarisCustomerAuth
+  const { createSupabaseClient, formatMoneyBRL, roundMoney, onlyDigits } = window.MarisUtils
+  const supabase = createSupabaseClient()
+  const CART_STORAGE_KEY = "maris_catalog_cart_v2"
+  const BUYER_STORAGE_KEY = "maris_buyer_profile_v1"
 
-  let draftCartId = null
   let cartItems = []
   let productsByCode = Object.create(null)
   let componentsById = Object.create(null)
@@ -27,6 +28,72 @@
   const shareContinueBtn = document.getElementById("share-continue-btn")
   const shareSuccess = document.getElementById("share-success")
   const shareMessage = document.getElementById("cart-share-message")
+
+  function safeParseJson(value, fallback) {
+    try {
+      if (!value) return fallback
+      const parsed = JSON.parse(value)
+      return parsed ?? fallback
+    } catch {
+      return fallback
+    }
+  }
+
+  function saveCart() {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems))
+  }
+
+  function normalizeItem(raw) {
+    if (!raw || typeof raw !== "object") return null
+    const quantity = Number(raw.quantity) || 0
+    if (quantity <= 0) return null
+    const productCode = raw.product_code ? String(raw.product_code) : null
+    const componentId = Number(raw.component_id) || null
+    if (!productCode && !componentId) return null
+    if (productCode && componentId) return null
+    return { product_code: productCode, component_id: componentId, quantity }
+  }
+
+  function loadCartFromStorage() {
+    const rawList = safeParseJson(localStorage.getItem(CART_STORAGE_KEY), [])
+    if (!Array.isArray(rawList)) {
+      cartItems = []
+      saveCart()
+      return
+    }
+    cartItems = rawList.map(normalizeItem).filter(Boolean)
+    saveCart()
+  }
+
+  function getBuyerProfile() {
+    return safeParseJson(localStorage.getItem(BUYER_STORAGE_KEY), null)
+  }
+
+  function saveBuyerProfile(profile) {
+    localStorage.setItem(BUYER_STORAGE_KEY, JSON.stringify(profile))
+  }
+
+  function ask(promptText, initial = "") {
+    const value = window.prompt(promptText, initial)
+    if (value === null) return null
+    return value.trim()
+  }
+
+  function ensureBuyerProfile() {
+    const existing = getBuyerProfile() || {}
+    const name = ask("Seu nome completo:", String(existing.name || ""))
+    if (!name) return null
+    const whatsappInput = ask("Seu WhatsApp com DDD (somente números):", String(existing.whatsapp || ""))
+    const whatsapp = onlyDigits(whatsappInput || "")
+    if (whatsapp.length < 10) {
+      alert("Informe um WhatsApp válido com DDD.")
+      return null
+    }
+    const email = ask("Seu e-mail (opcional):", String(existing.email || "")) || ""
+    const profile = { name, whatsapp, email }
+    saveBuyerProfile(profile)
+    return profile
+  }
 
   function setShareMessage(text, type = "") {
     if (!shareMessage) return
@@ -96,80 +163,7 @@
 
     cartSubtotalEl.textContent = formatMoneyBRL(subtotal)
     updateFabCount()
-  }
-
-  async function getOrCreateDraftCart() {
-    const user = await auth.getUser()
-    if (!user) return null
-
-    if (draftCartId) return draftCartId
-
-    const { data: existing } = await auth.supabase
-      .from("customer_carts")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("status", "draft")
-      .maybeSingle()
-
-    if (existing?.id) {
-      draftCartId = existing.id
-      return draftCartId
-    }
-
-    const { data: created, error } = await auth.supabase
-      .from("customer_carts")
-      .insert({ user_id: user.id, status: "draft" })
-      .select("id")
-      .single()
-
-    if (error) throw error
-    draftCartId = created.id
-    return draftCartId
-  }
-
-  async function loadDraftItems() {
-    const cartId = await getOrCreateDraftCart()
-    if (!cartId) return
-
-    const { data, error } = await auth.supabase
-      .from("customer_cart_items")
-      .select("id, product_code, component_id, quantity")
-      .eq("cart_id", cartId)
-
-    if (error) throw error
-    cartItems = data || []
-    renderCartPanel()
-  }
-
-  async function persistItem(item) {
-    const cartId = await getOrCreateDraftCart()
-    if (!cartId) return
-
-    const row = {
-      cart_id: cartId,
-      product_code: item.product_code || null,
-      component_id: item.component_id || null,
-      quantity: item.quantity
-    }
-
-    if (item.id) {
-      await auth.supabase.from("customer_cart_items").update({ quantity: item.quantity }).eq("id", item.id)
-      return
-    }
-
-    const { data, error } = await auth.supabase
-      .from("customer_cart_items")
-      .insert(row)
-      .select("id")
-      .single()
-
-    if (error) throw error
-    item.id = data.id
-  }
-
-  async function removeItemFromDb(item) {
-    if (!item.id) return
-    await auth.supabase.from("customer_cart_items").delete().eq("id", item.id)
+    saveCart()
   }
 
   window.MarisCatalogCart = {
@@ -181,53 +175,22 @@
     },
 
     async init() {
-      const session = await auth.getSession()
-      if (!session?.user) {
-        if (fab) fab.hidden = true
-        if (headerCartBtn) headerCartBtn.hidden = true
-        return
-      }
-      try {
-        await loadDraftItems()
-        await this.loadSellers()
-      } catch (error) {
-        console.warn("Falha ao iniciar carrinho do catalogo", error)
-        const message = String(error?.message || "").toLowerCase()
-        const authRelated =
-          message.includes("jwt") ||
-          message.includes("token") ||
-          message.includes("not authenticated") ||
-          message.includes("invalid claim")
-        if (authRelated) {
-          await auth.signOut()
-        }
-        cartItems = []
-        draftCartId = null
-        if (fab) fab.hidden = true
-        if (headerCartBtn) headerCartBtn.hidden = true
-      }
+      loadCartFromStorage()
+      renderCartPanel()
+      await this.loadSellers()
     },
 
     async loadSellers() {
-      const { data } = await auth.supabase.from("sellers").select("id, name").eq("is_active", true).order("name")
+      const { data } = await supabase.from("sellers").select("id, name").eq("is_active", true).order("name")
       sellers = data || []
     },
 
-    async requireLoginForAction() {
-      const session = await auth.requireAuth()
-      return Boolean(session)
-    },
-
     async addProduct(productCode, quantity = 1) {
-      if (!(await this.requireLoginForAction())) return false
-
       const existing = cartItems.find((i) => i.product_code === productCode && !i.component_id)
       if (existing) {
         existing.quantity = (Number(existing.quantity) || 0) + quantity
-        await persistItem(existing)
       } else {
         const item = { product_code: productCode, component_id: null, quantity }
-        await persistItem(item)
         cartItems.push(item)
       }
       renderCartPanel()
@@ -235,20 +198,18 @@
     },
 
     async addComponent(componentId, quantity = 1) {
-      if (!(await this.requireLoginForAction())) return false
-
       const existing = cartItems.find((i) => i.component_id === componentId)
       if (existing) {
         existing.quantity = (Number(existing.quantity) || 0) + quantity
-        await persistItem(existing)
       } else {
         const item = { product_code: null, component_id: componentId, quantity }
-        await persistItem(item)
         cartItems.push(item)
       }
       renderCartPanel()
       return true
     },
+
+    ensureBuyerProfile,
 
     openPanel() {
       if (panel) {
@@ -283,7 +244,6 @@
     if (!item) return
 
     if (btn.classList.contains("cart-remove")) {
-      await removeItemFromDb(item)
       cartItems = cartItems.filter((i) => i !== item)
       renderCartPanel()
       return
@@ -291,7 +251,6 @@
 
     if (btn.classList.contains("cart-qty-plus")) {
       item.quantity = (Number(item.quantity) || 0) + 1
-      await persistItem(item)
       renderCartPanel()
       return
     }
@@ -299,10 +258,7 @@
     if (btn.classList.contains("cart-qty-minus")) {
       item.quantity = Math.max(0, (Number(item.quantity) || 0) - 1)
       if (item.quantity <= 0) {
-        await removeItemFromDb(item)
         cartItems = cartItems.filter((i) => i !== item)
-      } else {
-        await persistItem(item)
       }
       renderCartPanel()
     }
@@ -324,19 +280,31 @@
     shareSuccess.hidden = true
     shareModal.hidden = false
 
-    const session = await auth.getSession()
-    const token = session?.access_token
-    const cartId = await getOrCreateDraftCart()
+    const buyer = ensureBuyerProfile()
+    if (!buyer) return
+    const lines = cartItems.map((item) => ({
+      product_code: item.product_code || null,
+      component_id: item.component_id || null,
+      quantity: Number(item.quantity) || 0
+    }))
 
     const res = await fetch(window.ENV.SUPABASE_CART_SHARE_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ cart_id: cartId, seller_id: 0, dry_run: true })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyer_name: buyer.name,
+        buyer_whatsapp: buyer.whatsapp,
+        buyer_email: buyer.email,
+        lines,
+        seller_id: 0,
+        dry_run: true
+      })
     })
     const data = await res.json()
+    if (!res.ok) {
+      setShareMessage(data.error || "Não foi possível validar o carrinho.", "error")
+      return
+    }
     const issues = data.stock_issues || []
     if (issues.length) {
       shareStockIssues.innerHTML = issues
@@ -377,15 +345,23 @@
 
     shareConfirmBtn.disabled = true
     try {
-      const session = await auth.getSession()
-      const cartId = await getOrCreateDraftCart()
+      const buyer = ensureBuyerProfile()
+      if (!buyer) return
+      const lines = cartItems.map((item) => ({
+        product_code: item.product_code || null,
+        component_id: item.component_id || null,
+        quantity: Number(item.quantity) || 0
+      }))
       const res = await fetch(window.ENV.SUPABASE_CART_SHARE_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ cart_id: cartId, seller_id: sellerId })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer_name: buyer.name,
+          buyer_whatsapp: buyer.whatsapp,
+          buyer_email: buyer.email,
+          lines,
+          seller_id: sellerId
+        })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -396,7 +372,6 @@
       shareStepStock.hidden = true
       shareSuccess.hidden = false
       cartItems = []
-      draftCartId = null
       updateFabCount()
       renderCartPanel()
       MarisCatalogCart.closePanel()

@@ -20,8 +20,6 @@ const productModalStock = document.getElementById("product-modal-stock")
 const productModalStatus = document.getElementById("product-modal-status")
 const productModalComponentsList = document.getElementById("product-modal-components-list")
 const productModalActions = document.getElementById("product-modal-actions")
-const navAuthLink = document.getElementById("nav-auth-link")
-const navAccountLink = document.getElementById("nav-account-link")
 
 let allComponents = []
 let currentModalProduct = null
@@ -202,30 +200,26 @@ function renderModalActions(product, components, soldOut) {
 }
 
 async function joinWaitlist({ productCode = null, componentId = null }) {
-  const auth = window.MarisCustomerAuth
-  if (!(await auth.requireAuth({ redirectTo: "/catalog/entrar" }))) return
+  const buyer = await window.MarisCatalogCart?.ensureBuyerProfile()
+  if (!buyer) return
 
-  const row = {
-    user_id: (await auth.getUser()).id,
-    product_code: productCode,
-    component_id: componentId,
-    status: "waiting"
-  }
-
-  const { error } = await auth.supabase.from("waitlist_entries").insert(row)
-  if (error) {
-    alert(error.code === "23505" ? "Você já está na lista de espera para esta peça." : "Não foi possível entrar na lista de espera.")
+  const res = await fetch(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      buyer_name: buyer.name,
+      buyer_whatsapp: buyer.whatsapp,
+      buyer_email: buyer.email,
+      product_code: productCode,
+      component_id: componentId
+    })
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    alert(data.error || "Não foi possível entrar na lista de espera.")
     return
   }
   alert("Você entrou na lista de espera. A vendedora entrará em contato quando a peça voltar.")
-}
-
-async function updateNavAuth() {
-  const auth = window.MarisCustomerAuth
-  const session = await auth.getSession()
-  const loggedIn = session?.user && auth.isEmailConfirmed(session.user)
-  if (navAuthLink) navAuthLink.hidden = loggedIn
-  if (navAccountLink) navAccountLink.hidden = !loggedIn
 }
 
 function openProductModal(product) {
@@ -377,8 +371,6 @@ async function loadCatalogData() {
       console.warn("Falha ao inicializar carrinho sem bloquear catalogo", error)
     }
   }
-  await updateNavAuth()
-
   renderCatalogGrids()
 }
 
