@@ -52,7 +52,11 @@ let loadedSales = []
 let imageUrlByProductCode = Object.create(null)
 
 const SALES_SELECT =
-  "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid"
+  "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid, status"
+
+function isCancelledView() {
+  return (filterPaidSelect?.value || "") === "cancelled"
+}
 
 function setMessage(text, type = "") {
   if (!messageEl) return
@@ -249,30 +253,53 @@ function renderRows(rows) {
 
   salesGrid.innerHTML = rows
     .map((row) => {
+      const cancelled = String(row.status || "active") === "cancelled"
       const paid = isPaidValue(row)
-      const badgeClass = paid ? "badge-paid" : "badge-unpaid"
-      const badgeText = paid ? "Paga" : "A receber"
       const type = String(row.sale_item_type || "product") === "component" ? "Componente" : "Produto"
       const id = saleIdKey(row)
+
+      let badgeClass = paid ? "badge-paid" : "badge-unpaid"
+      let badgeText = paid ? "Paga" : "A receber"
+      if (cancelled) {
+        badgeClass = "badge-cancelled"
+        badgeText = "Cancelada"
+      }
+
+      const meta = `
+        ${renderProductPhoto(row)}
+        <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
+        <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
+        <dl class="sale-card-meta">
+          <div><dt>Data</dt><dd>${formatDate(row.created_at)}</dd></div>
+          <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
+          <div><dt>Vendedora</dt><dd>${escapeHtml(row.seller_name || "—")}</dd></div>
+          <div><dt>Pagamento</dt><dd>${escapeHtml(paymentLabel(row.payment_method))}</dd></div>
+        </dl>
+        <div class="sale-card-footer">
+          <span class="badge ${badgeClass}">${badgeText}</span>
+          <span class="sale-card-value">${formatMoneyBRL(row.total_value)}</span>
+        </div>
+      `
+
+      if (cancelled) {
+        return `
+          <div class="sale-card sale-card--cancelled" role="listitem" data-sale-id="${escapeHtml(id)}">
+            ${meta}
+          </div>
+        `
+      }
+
       const checked = id && selectedSaleIds.has(id) ? "checked" : ""
       const selectedClass = checked ? "sale-card--selected" : ""
+      const cancelBtn = paid
+        ? ""
+        : `<button type="button" class="btn-cancel-sale" data-cancel-sale-id="${escapeHtml(id)}">Cancelar venda</button>`
 
       return `
         <label class="sale-card ${selectedClass}" role="listitem" data-sale-id="${escapeHtml(id)}">
           <input type="checkbox" class="row-select sale-card-checkbox" data-sale-id="${escapeHtml(id)}" ${checked} aria-label="Selecionar venda de ${escapeHtml(row.product_name || "produto")}">
-          ${renderProductPhoto(row)}
-          <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
-          <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
-          <dl class="sale-card-meta">
-            <div><dt>Data</dt><dd>${formatDate(row.created_at)}</dd></div>
-            <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
-            <div><dt>Vendedora</dt><dd>${escapeHtml(row.seller_name || "—")}</dd></div>
-            <div><dt>Pagamento</dt><dd>${escapeHtml(paymentLabel(row.payment_method))}</dd></div>
-          </dl>
-          <div class="sale-card-footer">
-            <span class="badge ${badgeClass}">${badgeText}</span>
-            <span class="sale-card-value">${formatMoneyBRL(row.total_value)}</span>
-          </div>
+          ${meta}
+          ${cancelBtn ? `<div class="sale-card-actions">${cancelBtn}</div>` : ""}
         </label>
       `
     })
@@ -347,6 +374,49 @@ function refreshDisplay() {
   renderRows(filtered)
 }
 
+async function cancelarVenda(saleId, triggerBtn) {
+  const id = Number(saleId)
+  if (!Number.isInteger(id) || id <= 0) return
+
+  const ok = window.confirm(
+    "Cancelar esta venda e devolver o item ao catálogo? Esta ação não pode ser desfeita."
+  )
+  if (!ok) return
+
+  const url = window.ENV?.SUPABASE_CANCEL_SALE_URL
+  if (!url) {
+    setMessage("Configuração ausente: SUPABASE_CANCEL_SALE_URL.", "error")
+    return
+  }
+
+  if (triggerBtn) triggerBtn.disabled = true
+  setMessage("Cancelando venda…", "")
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sale_id: id })
+    })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok || !data.ok) {
+      const detail = data.error || `Erro ${res.status}`
+      setMessage(`Não foi possível cancelar: ${detail}`, "error")
+      if (triggerBtn) triggerBtn.disabled = false
+      return
+    }
+
+    selectedSaleIds.delete(String(id))
+    await loadSales()
+    setMessage("Venda cancelada e item devolvido ao catálogo.", "success")
+  } catch (e) {
+    console.error(e)
+    setMessage(`Erro inesperado: ${e?.message || e}`, "error")
+    if (triggerBtn) triggerBtn.disabled = false
+  }
+}
+
 async function loadSales() {
   if (!salesGrid || !filterPaidSelect) return
 
@@ -359,10 +429,15 @@ async function loadSales() {
   try {
     let query = supabaseClient.from("sales").select(SALES_SELECT)
 
-    if (mode === "unpaid") {
-      query = query.or("is_paid.eq.false,is_paid.is.null")
-    } else if (mode === "paid") {
-      query = query.eq("is_paid", true)
+    if (mode === "cancelled") {
+      query = query.eq("status", "cancelled")
+    } else {
+      query = query.eq("status", "active")
+      if (mode === "unpaid") {
+        query = query.or("is_paid.eq.false,is_paid.is.null")
+      } else if (mode === "paid") {
+        query = query.eq("is_paid", true)
+      }
     }
 
     query = query.order("created_at", { ascending: false })
@@ -373,6 +448,7 @@ async function loadSales() {
       const retry = await supabaseClient
         .from("sales")
         .select(SALES_SELECT)
+        .eq("status", "active")
         .eq("is_paid", false)
         .order("created_at", { ascending: false })
       data = retry.data
@@ -406,6 +482,10 @@ async function loadSales() {
 
 if (selectAllCheckbox) {
   selectAllCheckbox.addEventListener("change", () => {
+    if (isCancelledView()) {
+      selectAllCheckbox.checked = false
+      return
+    }
     const filtered = applySearchFilter(loadedSales)
     if (selectAllCheckbox.checked) {
       for (const row of filtered) {
@@ -431,6 +511,15 @@ if (salesGrid) {
     if (target.checked) selectedSaleIds.add(id)
     else selectedSaleIds.delete(id)
     refreshDisplay()
+  })
+
+  salesGrid.addEventListener("click", (event) => {
+    const btn = event.target instanceof Element ? event.target.closest(".btn-cancel-sale") : null
+    if (!btn) return
+    // Evita que o clique no botão alterne a seleção do card (label).
+    event.preventDefault()
+    event.stopPropagation()
+    cancelarVenda(btn.dataset.cancelSaleId, btn)
   })
 }
 

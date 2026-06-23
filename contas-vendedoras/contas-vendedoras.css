@@ -282,6 +282,48 @@ input {
   color: #8b4a12;
 }
 
+.badge-cancelled {
+  background: #f3d6dc;
+  color: #8b1d33;
+}
+
+.sale-card--cancelled {
+  cursor: default;
+  opacity: 0.85;
+  border-color: #f1dbe4;
+  background: #fdf6f8;
+}
+
+.sale-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.btn-cancel-sale {
+  appearance: none;
+  border: 1px solid #e2a9b6;
+  background: #fff;
+  color: #a3263f;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-cancel-sale:hover {
+  background: #a3263f;
+  border-color: #a3263f;
+  color: #fff;
+}
+
+.btn-cancel-sale:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 480px) {
   .container {
     padding: 16px 12px;
