@@ -67,6 +67,52 @@ body {
   padding: 12px 20px 60px;
 }
 
+.promo-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--promo-card);
+  border: 1px solid var(--promo-border);
+  border-radius: var(--promo-radius);
+  padding: 14px 16px;
+  margin: 4px 0 18px;
+}
+
+.promo-bulk-apply {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.promo-bulk-label {
+  font-weight: 600;
+}
+
+.promo-clear {
+  padding: 9px 16px;
+  border: 1px solid var(--promo-border);
+  border-radius: 8px;
+  background: #fff;
+  color: #9b2c2c;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.promo-clear:hover {
+  background: #fbe9e9;
+}
+
+.promo-clear:disabled,
+.promo-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .promo-feedback {
   margin: 10px 0 16px;
   padding: 12px 14px;

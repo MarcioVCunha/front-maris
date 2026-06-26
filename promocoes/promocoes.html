@@ -20,6 +20,18 @@
     </header>
 
     <main class="promo-main">
+      <section class="promo-bulk">
+        <div class="promo-bulk-apply">
+          <span class="promo-bulk-label">Colocar o site todo em promoção</span>
+          <span class="promo-pct">
+            <input id="bulk-percent" type="number" min="0" max="100" step="1" value="10">
+            % off
+          </span>
+          <button id="bulk-apply-btn" type="button" class="promo-save">Aplicar a todos</button>
+        </div>
+        <button id="bulk-clear-btn" type="button" class="promo-clear">Limpar todas as promoções</button>
+      </section>
+
       <div id="promo-feedback" class="promo-feedback" hidden></div>
       <div id="promo-list" class="promo-list"></div>
     </main>

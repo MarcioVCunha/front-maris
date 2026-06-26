@@ -5,6 +5,9 @@ const supabaseClient = createSupabaseClient()
 const listEl = document.getElementById("promo-list")
 const searchInput = document.getElementById("promo-search")
 const feedbackEl = document.getElementById("promo-feedback")
+const bulkPercentInput = document.getElementById("bulk-percent")
+const bulkApplyBtn = document.getElementById("bulk-apply-btn")
+const bulkClearBtn = document.getElementById("bulk-clear-btn")
 
 let products = []
 let componentsByProductCode = Object.create(null)
@@ -190,6 +193,57 @@ async function savePromotion(controlsEl) {
     saveBtn.textContent = "Salvar"
   }
 }
+
+async function applyAllPromotions(isOnSale, discountPercent) {
+  bulkApplyBtn.disabled = true
+  bulkClearBtn.disabled = true
+  const applyLabel = bulkApplyBtn.textContent
+  const clearLabel = bulkClearBtn.textContent
+  bulkApplyBtn.textContent = "Aplicando…"
+  if (!isOnSale) bulkClearBtn.textContent = "Limpando…"
+  try {
+    const res = await fetch(window.ENV.SUPABASE_SET_ALL_PROMOTIONS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_on_sale: isOnSale, discount_percent: discountPercent })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) {
+      setFeedback(data.error || "Não foi possível atualizar as promoções.", "error")
+      return
+    }
+    setFeedback(
+      isOnSale
+        ? `Tudo em promoção com ${data.discount_percent}% de desconto!`
+        : "Todas as promoções foram removidas.",
+      "success"
+    )
+    await loadData()
+  } catch {
+    setFeedback("Erro de conexão ao atualizar as promoções.", "error")
+  } finally {
+    bulkApplyBtn.disabled = false
+    bulkClearBtn.disabled = false
+    bulkApplyBtn.textContent = applyLabel
+    bulkClearBtn.textContent = clearLabel
+  }
+}
+
+bulkApplyBtn.addEventListener("click", () => {
+  const pct = Math.max(0, Math.min(100, Number(bulkPercentInput.value) || 0))
+  if (pct <= 0) {
+    setFeedback("Defina um percentual maior que 0 para aplicar a todos.", "error")
+    bulkPercentInput.focus()
+    return
+  }
+  if (!window.confirm(`Colocar TODOS os produtos e peças em promoção com ${pct}% de desconto?`)) return
+  applyAllPromotions(true, pct)
+})
+
+bulkClearBtn.addEventListener("click", () => {
+  if (!window.confirm("Remover a promoção de TODOS os produtos e peças?")) return
+  applyAllPromotions(false, 0)
+})
 
 listEl.addEventListener("change", (event) => {
   const checkbox = event.target.closest(".promo-on")
