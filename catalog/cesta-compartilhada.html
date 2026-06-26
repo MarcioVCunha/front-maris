@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cesta compartilhada — Maris Semijoias</title>
+    <link rel="stylesheet" href="/maris-theme.css">
+    <link rel="stylesheet" href="/catalog/catalog.css">
+    <link rel="stylesheet" href="/catalog/carrinho.css">
+    <script src="/env.js"></script>
+    <script src="/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav">
+          <a href="/catalog" class="site-nav-link">Ver catálogo</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="cart-page cart-page--single">
+      <section class="cart-card cart-card--items">
+        <h1>Cesta compartilhada</h1>
+        <p class="cart-help">Estas são as peças que escolheram para você. Marque as que quiser e adicione à sua cesta.</p>
+
+        <div class="shared-actions">
+          <button id="select-all-btn" type="button" class="btn-secondary">Selecionar todos</button>
+          <button id="clear-all-btn" type="button" class="btn-secondary">Limpar seleção</button>
+        </div>
+
+        <div id="basket-lines" class="cart-lines"></div>
+
+        <div class="cart-summary">
+          <span>Total selecionado</span>
+          <strong id="basket-total">R$ 0,00</strong>
+        </div>
+
+        <button id="add-selected-btn" type="button" class="btn-primary">Adicionar selecionados à minha cesta</button>
+        <p id="basket-message" class="cart-page-message" hidden></p>
+      </section>
+    </main>
+
+    <script src="/catalog/catalog-cart.js"></script>
+    <script src="/catalog/cesta-compartilhada.js"></script>
+  </body>
+</html>

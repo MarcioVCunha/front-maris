@@ -7,6 +7,7 @@ window.ENV = {
   SUPABASE_ADD_PRODUCT_FUNCTION_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/add-product",
   SUPABASE_STAFF_VERIFY_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/verify-staff-access",
   SUPABASE_CART_SHARE_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/customer-cart-share",
+  SUPABASE_CREATE_SHARED_BASKET_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/create-shared-basket",
   SUPABASE_WAITLIST_ADD_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/customer-waitlist-add",
   SUPABASE_LIST_SHARED_CARTS_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/list-shared-carts",
   SUPABASE_LIST_WAITLIST_URL: "https://epuvfjdyyzccsuafwopr.supabase.co/functions/v1/list-waitlist",

@@ -27,13 +27,13 @@
     <main class="cart-page">
       <section class="cart-steps" aria-label="Etapas da cesta">
         <div class="cart-step cart-step--active"><span>1</span> Revise os itens</div>
-        <div class="cart-step"><span>2</span> Preencha seus dados</div>
-        <div class="cart-step"><span>3</span> Compartilhe com a vendedora</div>
+        <div class="cart-step"><span>2</span> Gere o link</div>
+        <div class="cart-step"><span>3</span> Compartilhe com quem quiser</div>
       </section>
 
       <section class="cart-card cart-card--items">
         <h1>Minha cesta</h1>
-        <p class="cart-help">Confira os itens e ajuste as quantidades antes de compartilhar.</p>
+        <p class="cart-help">Confira os itens e ajuste as quantidades antes de gerar o link.</p>
         <div id="cart-lines" class="cart-lines"></div>
         <div class="cart-summary">
           <span>Total estimado</span>
@@ -42,23 +42,20 @@
       </section>
 
       <section class="cart-card cart-card--checkout">
-        <h2>Finalizar com a vendedora</h2>
-        <form id="buyer-form" class="buyer-form">
-          <label for="buyer-name">Nome completo</label>
-          <input id="buyer-name" type="text" required>
-          <label for="buyer-whatsapp">WhatsApp</label>
-          <input id="buyer-whatsapp" type="tel" required>
-          <label for="buyer-email">E-mail (opcional)</label>
-          <input id="buyer-email" type="email">
-        </form>
+        <h2>Compartilhar minha cesta</h2>
+        <p class="cart-help">Gere um link com os produtos escolhidos para enviar para quem você quiser. Quem abrir poderá escolher quais itens adicionar à própria cesta.</p>
 
-        <label for="seller-select">Vendedora</label>
-        <select id="seller-select"></select>
+        <button id="generate-link-btn" type="button" class="btn-primary">Gerar link para compartilhar</button>
 
-        <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque</button>
-        <ul id="stock-issues" class="stock-issues" hidden></ul>
+        <div id="share-result" class="share-result" hidden>
+          <label for="share-link-input">Seu link</label>
+          <div class="share-link-row">
+            <input id="share-link-input" type="text" readonly>
+            <button id="copy-link-btn" type="button" class="btn-secondary">Copiar</button>
+          </div>
+          <a id="share-whatsapp-btn" class="btn-whatsapp" target="_blank" rel="noopener">Enviar no WhatsApp</a>
+        </div>
 
-        <button id="share-cart-btn" type="button" class="btn-primary">Compartilhar carrinho</button>
         <p id="cart-page-message" class="cart-page-message" hidden></p>
       </section>
     </main>

@@ -1,16 +1,14 @@
 ;(function () {
-const { createSupabaseClient, formatMoneyBRL, onlyDigits } = window.MarisUtils
-const sbClient = createSupabaseClient()
+const { formatMoneyBRL } = window.MarisUtils
+const sbClient = window.MarisUtils.createSupabaseClient()
 
 const cartLinesEl = document.getElementById("cart-lines")
 const cartTotalEl = document.getElementById("cart-total")
-const buyerNameEl = document.getElementById("buyer-name")
-const buyerWhatsappEl = document.getElementById("buyer-whatsapp")
-const buyerEmailEl = document.getElementById("buyer-email")
-const sellerSelectEl = document.getElementById("seller-select")
-const checkStockBtn = document.getElementById("check-stock-btn")
-const shareCartBtn = document.getElementById("share-cart-btn")
-const stockIssuesEl = document.getElementById("stock-issues")
+const generateLinkBtn = document.getElementById("generate-link-btn")
+const shareResultEl = document.getElementById("share-result")
+const shareLinkInput = document.getElementById("share-link-input")
+const copyLinkBtn = document.getElementById("copy-link-btn")
+const shareWhatsappBtn = document.getElementById("share-whatsapp-btn")
 const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
 
@@ -27,42 +25,17 @@ function setActiveStep(stepNumber) {
   })
 }
 
-function getBuyerPayload() {
-  const name = String(buyerNameEl.value || "").trim()
-  const whatsapp = onlyDigits(buyerWhatsappEl.value || "")
-  const email = String(buyerEmailEl.value || "").trim()
-  if (!name || whatsapp.length < 10) return null
-  return { name, whatsapp, email }
-}
-
-function saveBuyer() {
-  const payload = getBuyerPayload()
-  if (!payload) return false
-  window.MarisCatalogCart.saveBuyerProfile(payload)
-  return true
-}
-
-function formatWhatsappMask(value) {
-  const digits = onlyDigits(value).slice(0, 11)
-  if (digits.length <= 2) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
-}
-
 function renderCart() {
   const lines = window.MarisCatalogCart.getLineDetails()
   if (!lines.length) {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta está vazia. Volte ao catálogo para adicionar produtos.</p>"
     cartTotalEl.textContent = formatMoneyBRL(0)
-    shareCartBtn.disabled = true
-    checkStockBtn.disabled = true
+    generateLinkBtn.disabled = true
     setActiveStep(1)
     return
   }
 
-  shareCartBtn.disabled = false
-  checkStockBtn.disabled = false
+  generateLinkBtn.disabled = false
   setActiveStep(2)
   let total = 0
   cartLinesEl.innerHTML = lines.map((line) => {
@@ -115,98 +88,65 @@ async function loadCatalogData() {
   })
 }
 
-async function loadSellers() {
-  const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
-  const sellers = data || []
-  sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + sellers.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")
+function hideShareResult() {
+  shareResultEl.hidden = true
+  shareLinkInput.value = ""
 }
 
-function getSharePayload() {
-  const buyer = getBuyerPayload()
-  if (!buyer) return { error: "Preencha nome e WhatsApp válidos." }
-  const sellerId = Number(sellerSelectEl.value)
-  if (!sellerId) return { error: "Selecione uma vendedora." }
-  const lines = window.MarisCatalogCart.getItems().map((line) => ({
+function showShareResult(url) {
+  shareLinkInput.value = url
+  shareResultEl.hidden = false
+  const text = `Olá! Separei algumas peças da Maris Semijoias, dá uma olhada: ${url}`
+  shareWhatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(text)}`
+}
+
+async function generateLink() {
+  setMessage("")
+  const items = window.MarisCatalogCart.getItems().map((line) => ({
     product_code: line.product_code || null,
     component_id: line.component_id || null,
     quantity: Number(line.quantity) || 0
   }))
-  if (!lines.length) return { error: "Sua cesta está vazia." }
-  return {
-    payload: {
-      buyer_name: buyer.name,
-      buyer_whatsapp: buyer.whatsapp,
-      buyer_email: buyer.email,
-      seller_id: sellerId,
-      lines
-    }
+  if (!items.length) {
+    setMessage("Sua cesta está vazia.", "error")
+    return
   }
-}
 
-async function checkStock() {
-  setMessage("")
-  const parsed = getSharePayload()
-  if (parsed.error) {
-    setMessage(parsed.error, "error")
-    return
-  }
-  saveBuyer()
-  const res = await fetch(window.ENV.SUPABASE_CART_SHARE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...parsed.payload, dry_run: true })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    setMessage(data.error || "Não foi possível validar o estoque.", "error")
-    return
-  }
-  const issues = data.stock_issues || []
-  if (!issues.length) {
-    stockIssuesEl.hidden = true
-    stockIssuesEl.innerHTML = ""
-    setMessage("Estoque validado. Você já pode compartilhar.", "success")
-    setActiveStep(3)
-    return
-  }
-  stockIssuesEl.hidden = false
-  stockIssuesEl.innerHTML = issues.map((issue) => {
-    if (issue.reason === "out_of_stock") {
-      return `<li><strong>${issue.product_name}</strong> (${issue.product_code}) — sem estoque</li>`
-    }
-    return `<li><strong>${issue.product_name}</strong> — pedido ${issue.requested}, disponível ${issue.available}</li>`
-  }).join("")
-  setMessage("Alguns itens têm estoque limitado. Você ainda pode compartilhar para a vendedora ajustar.", "error")
-}
-
-async function shareCart() {
-  setMessage("")
-  const parsed = getSharePayload()
-  if (parsed.error) {
-    setMessage(parsed.error, "error")
-    return
-  }
-  shareCartBtn.disabled = true
+  generateLinkBtn.disabled = true
+  generateLinkBtn.textContent = "Gerando…"
   try {
-    saveBuyer()
-    const res = await fetch(window.ENV.SUPABASE_CART_SHARE_URL, {
+    const res = await fetch(window.ENV.SUPABASE_CREATE_SHARED_BASKET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.payload)
+      body: JSON.stringify({ items })
     })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setMessage(data.error || "Não foi possível compartilhar o carrinho.", "error")
+    if (!res.ok || !data.id) {
+      setMessage(data.error || "Não foi possível gerar o link.", "error")
       return
     }
-    window.MarisCatalogCart.clear()
-    renderCart()
-    stockIssuesEl.hidden = true
-    stockIssuesEl.innerHTML = ""
-    setMessage("Carrinho compartilhado com sucesso. A vendedora entrará em contato.", "success")
+    const url = `${window.location.origin}/catalog/cesta?id=${encodeURIComponent(data.id)}`
+    showShareResult(url)
+    setMessage("Link gerado! Copie ou envie no WhatsApp.", "success")
     setActiveStep(3)
+  } catch {
+    setMessage("Erro de conexão ao gerar o link.", "error")
   } finally {
-    shareCartBtn.disabled = false
+    generateLinkBtn.disabled = false
+    generateLinkBtn.textContent = "Gerar link para compartilhar"
+  }
+}
+
+async function copyLink() {
+  const url = shareLinkInput.value
+  if (!url) return
+  try {
+    await navigator.clipboard.writeText(url)
+    setMessage("Link copiado!", "success")
+  } catch {
+    shareLinkInput.focus()
+    shareLinkInput.select()
+    setMessage("Selecione e copie o link manualmente.", "")
   }
 }
 
@@ -223,30 +163,18 @@ cartLinesEl.addEventListener("click", (event) => {
     if (update?.clamped) setMessage(`Limite de estoque para esse item: ${update.available}.`, "error")
   }
   if (action === "minus") window.MarisCatalogCart.setQuantityByKey(key, line.quantity - 1)
+  hideShareResult()
   renderCart()
 })
 
-buyerNameEl.addEventListener("blur", saveBuyer)
-buyerWhatsappEl.addEventListener("input", () => {
-  buyerWhatsappEl.value = formatWhatsappMask(buyerWhatsappEl.value)
-})
-buyerWhatsappEl.addEventListener("blur", saveBuyer)
-buyerEmailEl.addEventListener("blur", saveBuyer)
-checkStockBtn.addEventListener("click", checkStock)
-shareCartBtn.addEventListener("click", shareCart)
+generateLinkBtn.addEventListener("click", generateLink)
+copyLinkBtn.addEventListener("click", copyLink)
 
 window.addEventListener("maris-cart-updated", renderCart)
 
 ;(async () => {
   await window.MarisCatalogCart.init()
   await loadCatalogData()
-  await loadSellers()
-  const buyer = window.MarisCatalogCart.getBuyerProfile()
-  if (buyer) {
-    buyerNameEl.value = buyer.name || ""
-    buyerWhatsappEl.value = buyer.whatsapp || ""
-    buyerEmailEl.value = buyer.email || ""
-  }
   renderCart()
 })()
 })()

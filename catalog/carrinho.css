@@ -227,6 +227,98 @@
   line-height: 1.45;
 }
 
+.cart-page--single {
+  grid-template-columns: 1fr;
+  max-width: 720px;
+}
+
+.shared-actions {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.shared-actions .btn-secondary {
+  margin-top: 0;
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.72rem;
+}
+
+.shared-line {
+  grid-template-columns: auto 1fr;
+}
+
+.shared-line-select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shared-line-select input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--maris-gold-dark);
+  cursor: pointer;
+}
+
+.shared-line--out {
+  opacity: 0.55;
+}
+
+.share-result {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.share-link-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--maris-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  background: var(--maris-gold-light);
+  color: var(--maris-black);
+}
+
+.share-link-row .btn-secondary {
+  margin-top: 0;
+  width: auto;
+  white-space: nowrap;
+  padding: 12px 16px;
+}
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--maris-radius);
+  background: #25d366;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  font-size: 0.82rem;
+  transition: filter 0.15s ease;
+}
+
+.btn-whatsapp:hover {
+  filter: brightness(0.95);
+}
+
 .cart-page-message {
   margin-top: 12px;
   font-size: 0.9rem;

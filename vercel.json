@@ -71,6 +71,11 @@
       "permanent": true
     },
     {
+      "source": "/catalog/cesta-compartilhada.html",
+      "destination": "/catalog/cesta",
+      "permanent": true
+    },
+    {
       "source": "/catalog/auth.html",
       "destination": "/catalog",
       "permanent": true
@@ -162,6 +167,10 @@
     {
       "source": "/catalog/carrinho",
       "destination": "/catalog/carrinho.html"
+    },
+    {
+      "source": "/catalog/cesta",
+      "destination": "/catalog/cesta-compartilhada.html"
     },
     {
       "source": "/equipe",
