@@ -36,6 +36,11 @@
       "permanent": true
     },
     {
+      "source": "/promocoes/promocoes.html",
+      "destination": "/promocoes",
+      "permanent": true
+    },
+    {
       "source": "/contas-vendedoras/contas-vendedoras.html",
       "destination": "/contas-vendedoras",
       "permanent": true
@@ -139,6 +144,10 @@
     {
       "source": "/tipos-produto",
       "destination": "/components/components.html"
+    },
+    {
+      "source": "/promocoes",
+      "destination": "/promocoes/promocoes.html"
     },
     {
       "source": "/contas-vendedoras",

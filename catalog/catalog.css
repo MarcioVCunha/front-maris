@@ -209,6 +209,7 @@ body {
 }
 
 .product {
+  position: relative;
   background: var(--maris-surface);
   border: 1px solid var(--maris-border-soft);
   border-radius: var(--maris-radius-lg);
@@ -219,6 +220,21 @@ body {
   cursor: pointer;
   overflow: hidden;
   transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.product-sale-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: var(--maris-pink, #d98ba0);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .product:hover {
@@ -280,6 +296,24 @@ body {
 .product .price.unavailable {
   color: var(--maris-text-muted);
   font-weight: 500;
+}
+
+.product .price.on-sale {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.price-old {
+  text-decoration: line-through;
+  color: var(--maris-text-muted);
+  font-weight: 500;
+  font-size: 0.85em;
+}
+
+.price-now {
+  color: var(--maris-gold-dark);
+  font-weight: 700;
 }
 
 .add-cart-card-btn,

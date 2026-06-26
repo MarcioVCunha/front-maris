@@ -1,4 +1,4 @@
-const { createSupabaseClient, formatMoneyBRL, debounce } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, debounce, effectivePrice, hasPromo } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -146,7 +146,9 @@ function renderCatalogProduct(product) {
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
   const showPrice = !soldOut
-  const unitPrice = Number(product.unit_price) || 0
+  const basePrice = Number(product.unit_price) || 0
+  const finalPrice = effectivePrice(product)
+  const productOnSale = hasPromo(product)
   const imageUrls = getProductImageUrls(product)
   const coverImage = imageUrls[0] || ""
 
@@ -156,7 +158,7 @@ function renderCatalogProduct(product) {
     for (const c of components) {
       const componentQty = Number(c.quantity) || 0
       if (componentQty <= 0) continue
-      const p = Number(c.unit_price) || 0
+      const p = effectivePrice(c)
       if (p < minPrice) minPrice = p
     }
     if (minPrice !== Infinity) {
@@ -164,9 +166,20 @@ function renderCatalogProduct(product) {
     }
   }
 
-  const priceHtml = components.length
-    ? ""
-    : `<div class="price ${showPrice ? "" : "unavailable"}">${showPrice ? formatMoneyBRL(unitPrice) : "Em falta"}</div>`
+  let priceHtml = ""
+  if (!components.length) {
+    if (!showPrice) {
+      priceHtml = `<div class="price unavailable">Em falta</div>`
+    } else if (productOnSale) {
+      priceHtml = `<div class="price on-sale"><span class="price-old">${formatMoneyBRL(basePrice)}</span><span class="price-now">${formatMoneyBRL(finalPrice)}</span></div>`
+    } else {
+      priceHtml = `<div class="price">${formatMoneyBRL(basePrice)}</div>`
+    }
+  }
+
+  const saleBadge = productOnSale && !soldOut
+    ? `<span class="product-sale-badge">-${Number(product.discount_percent) || 0}%</span>`
+    : ""
 
   const actionHtml = soldOut
     ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${product.code}">Lista de espera</button>`
@@ -174,6 +187,7 @@ function renderCatalogProduct(product) {
 
   return `
     <article class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
+      ${saleBadge}
       <img src="${coverImage}" alt="${product.name}" loading="lazy">
       <div class="product-body">
         <h3>${product.name}</h3>
@@ -198,12 +212,16 @@ function renderModalComponentsRows(components) {
     const actionBtn = isAvailable
       ? `<button type="button" class="modal-add-btn" data-add-component="${component.id}">+ Carrinho</button>`
       : `<button type="button" class="modal-waitlist-btn" data-waitlist-component="${component.id}">Lista de espera</button>`
+    const componentOnSale = hasPromo(component)
+    const priceLabel = componentOnSale
+      ? `Valor: <span class="price-old">${formatMoneyBRL(component.unit_price)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(component))}</span>`
+      : `Valor: ${formatMoneyBRL(component.unit_price)}`
     return `
       <div class="component-row ${isAvailable ? "" : "is-unavailable"}">
         <div class="component-col">
           <strong>${component.name}</strong>
         </div>
-        <div class="component-col ${isAvailable ? "" : "component-status-unavailable"}">${isAvailable ? `Valor: ${formatMoneyBRL(component.unit_price)}` : "Indisponível"}</div>
+        <div class="component-col ${isAvailable ? "" : "component-status-unavailable"}">${isAvailable ? priceLabel : "Indisponível"}</div>
         <div class="component-col component-actions">${actionBtn}</div>
       </div>
     `
@@ -256,18 +274,24 @@ function openProductModal(product) {
   const components = getProductComponents(product.code)
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
-  const unitPrice = Number(product.unit_price) || 0
+  const basePrice = Number(product.unit_price) || 0
+  const finalPrice = effectivePrice(product)
+  const productOnSale = hasPromo(product)
   modalImageUrls = getProductImageUrls(product)
   modalImageIndex = 0
 
   productModalTitle.textContent = product.name || "Produto"
   setModalImageIndex(0)
   productModalCode.textContent = ""
-  productModalPrice.textContent = components.length
-    ? "Preço: consulte os valores das subdivisões"
-    : soldOut
-      ? "Preço: Em falta"
-      : `Preço: ${formatMoneyBRL(unitPrice)}`
+  if (components.length) {
+    productModalPrice.innerHTML = "Preço: consulte os valores das subdivisões"
+  } else if (soldOut) {
+    productModalPrice.innerHTML = "Preço: Em falta"
+  } else if (productOnSale) {
+    productModalPrice.innerHTML = `Preço: <span class="price-old">${formatMoneyBRL(basePrice)}</span> <span class="price-now">${formatMoneyBRL(finalPrice)}</span>`
+  } else {
+    productModalPrice.innerHTML = `Preço: ${formatMoneyBRL(basePrice)}`
+  }
   productModalStock.textContent = ""
   productModalStatus.textContent = ""
   if (!available) {
@@ -334,7 +358,7 @@ async function loadCatalogData() {
       .order("name"),
     supabaseClient
       .from("product_components")
-      .select("id, product_code, name, unit_price, quantity, is_active")
+      .select("id, product_code, name, unit_price, quantity, is_active, is_on_sale, discount_percent")
       .eq("is_active", true)
       .order("name"),
     supabaseClient

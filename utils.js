@@ -34,6 +34,20 @@ window.MarisUtils = {
     return Math.round(value * 100) / 100
   },
 
+  // Preço final considerando promoção. Aplica desconto somente quando
+  // is_on_sale = true E discount_percent > 0; caso contrário, preço cheio.
+  effectivePrice(row) {
+    const base = Number(row?.unit_price) || 0
+    const pct = row?.is_on_sale ? Number(row?.discount_percent) || 0 : 0
+    if (pct <= 0) return base
+    return Math.round(base * (1 - pct / 100) * 100) / 100
+  },
+
+  // True quando a linha tem promoção ativa com desconto efetivo.
+  hasPromo(row) {
+    return Boolean(row?.is_on_sale) && (Number(row?.discount_percent) || 0) > 0
+  },
+
   formatMoneyBRL(value) {
     return Number(value || 0).toLocaleString("pt-BR", {
       style: "currency",

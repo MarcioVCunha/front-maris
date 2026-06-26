@@ -1,5 +1,5 @@
 ;(function () {
-const { formatMoneyBRL } = window.MarisUtils
+const { formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
 const sbClient = window.MarisUtils.createSupabaseClient()
 
 const basketLinesEl = document.getElementById("basket-lines")
@@ -38,7 +38,9 @@ function resolveLine(item) {
     return {
       name: component?.name || `Componente ${item.component_id}`,
       code: parentCode ? `${parentCode} / ${component?.name || ""}` : `COMP-${item.component_id}`,
-      unitPrice: Number(component?.unit_price) || 0,
+      unitPrice: effectivePrice(component),
+      originalPrice: Number(component?.unit_price) || 0,
+      onSale: hasPromo(component),
       available: Math.max(0, Number(component?.quantity) || 0),
       imageUrl: productImagesByCode[parentCode] || ""
     }
@@ -47,7 +49,9 @@ function resolveLine(item) {
   return {
     name: product?.name || item.product_code || "Produto",
     code: item.product_code || "",
-    unitPrice: Number(product?.unit_price) || 0,
+    unitPrice: effectivePrice(product),
+    originalPrice: Number(product?.unit_price) || 0,
+    onSale: hasPromo(product),
     available: Math.max(0, Number(product?.quantity) || 0),
     imageUrl: productImagesByCode[item.product_code || ""] || String(product?.image_url || "")
   }
@@ -80,6 +84,9 @@ function renderBasket() {
     const soldOut = info.available <= 0
     const stockLabel = soldOut ? "Sem estoque" : `${info.available} em estoque`
     const lineTotal = info.unitPrice * item.quantity
+    const priceLabel = info.onSale
+      ? `<span class="price-old">${formatMoneyBRL(info.originalPrice * item.quantity)}</span> <span class="price-now">${formatMoneyBRL(lineTotal)}</span>`
+      : formatMoneyBRL(lineTotal)
     return `
       <article class="cart-line shared-line ${soldOut ? "shared-line--out" : ""}" data-key="${item.key}">
         <label class="shared-line-select">
@@ -89,7 +96,7 @@ function renderBasket() {
           <img class="cart-line-image" src="${info.imageUrl || ""}" alt="${info.name}">
           <div>
             <p class="cart-line-name">${info.name}</p>
-            <p class="cart-line-code">${info.code} · ${formatMoneyBRL(lineTotal)}</p>
+            <p class="cart-line-code">${info.code} · ${priceLabel}</p>
             <p class="cart-line-stock">Qtd: ${item.quantity} · ${stockLabel}</p>
           </div>
         </div>
@@ -100,8 +107,8 @@ function renderBasket() {
 
 async function loadCatalogData() {
   const [productsRes, componentsRes, imagesRes] = await Promise.all([
-    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url"),
-    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity").eq("is_active", true),
+    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url, is_on_sale, discount_percent"),
+    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity, is_on_sale, discount_percent").eq("is_active", true),
     sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
 

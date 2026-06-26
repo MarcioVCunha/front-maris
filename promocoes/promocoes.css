@@ -1,0 +1,271 @@
+:root {
+  --promo-bg: #faf7f4;
+  --promo-card: #ffffff;
+  --promo-border: #ecd9d2;
+  --promo-ink: #2b2320;
+  --promo-muted: #8a7a72;
+  --promo-gold: #b88a4a;
+  --promo-pink: #d98ba0;
+  --promo-radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--promo-bg);
+  color: var(--promo-ink);
+}
+
+.promo-header {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px 20px 8px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 14px;
+  color: var(--promo-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: var(--promo-ink);
+}
+
+.promo-header h1 {
+  margin: 0 0 6px;
+  font-size: 1.9rem;
+  letter-spacing: 0.01em;
+}
+
+.promo-header p {
+  margin: 0 0 16px;
+  color: var(--promo-muted);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+.promo-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px 14px;
+  border: 1px solid var(--promo-border);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.promo-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 12px 20px 60px;
+}
+
+.promo-feedback {
+  margin: 10px 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.promo-feedback.success {
+  background: #e9f6ec;
+  color: #256b35;
+}
+
+.promo-feedback.error {
+  background: #fbe9e9;
+  color: #9b2c2c;
+}
+
+.promo-list {
+  display: grid;
+  gap: 16px;
+}
+
+.promo-card {
+  background: var(--promo-card);
+  border: 1px solid var(--promo-border);
+  border-radius: var(--promo-radius);
+  padding: 16px;
+}
+
+.promo-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.promo-row + .promo-components {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--promo-border);
+}
+
+.promo-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--promo-bg);
+}
+
+.promo-info .promo-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.promo-info .promo-code {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--promo-muted);
+}
+
+.promo-prices {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.promo-prices .base {
+  color: var(--promo-muted);
+}
+
+.promo-prices .base.struck {
+  text-decoration: line-through;
+}
+
+.promo-prices .final {
+  color: var(--promo-gold);
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.promo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.promo-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--promo-muted);
+  cursor: pointer;
+}
+
+.promo-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--promo-pink);
+  cursor: pointer;
+}
+
+.promo-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--promo-muted);
+}
+
+.promo-pct input {
+  width: 80px;
+  padding: 8px 10px;
+  border: 1px solid var(--promo-border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.promo-pct input:disabled {
+  background: var(--promo-bg);
+  opacity: 0.6;
+}
+
+.promo-save {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--promo-gold);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.promo-save:hover {
+  filter: brightness(0.96);
+}
+
+.promo-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.promo-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--promo-pink);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+.promo-components-title {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--promo-muted);
+}
+
+.promo-comp-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.promo-comp-row + .promo-comp-row {
+  border-top: 1px solid var(--promo-bg);
+}
+
+.promo-comp-name {
+  font-size: 0.9rem;
+}
+
+.promo-empty {
+  text-align: center;
+  color: var(--promo-muted);
+  padding: 40px 0;
+}
+
+@media (max-width: 640px) {
+  .promo-row {
+    grid-template-columns: 48px 1fr;
+  }
+  .promo-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .promo-thumb {
+    width: 48px;
+    height: 48px;
+  }
+}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promoções — Maris Semijoias</title>
+    <link rel="stylesheet" href="/promocoes/promocoes.css">
+    <script src="/staff-auth.js"></script>
+    <script src="/env.js"></script>
+    <script src="/utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+
+  <body>
+    <header class="promo-header">
+      <a class="back-link" href="/admin">← Voltar à administração</a>
+      <h1>Promoções</h1>
+      <p>Ative a promoção de um produto ou de uma peça separada e defina o percentual de desconto. O preço base não é alterado.</p>
+      <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome ou código…">
+    </header>
+
+    <main class="promo-main">
+      <div id="promo-feedback" class="promo-feedback" hidden></div>
+      <div id="promo-list" class="promo-list"></div>
+    </main>
+
+    <script src="/promocoes/promocoes.js"></script>
+  </body>
+</html>

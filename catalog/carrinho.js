@@ -41,13 +41,16 @@ function renderCart() {
   cartLinesEl.innerHTML = lines.map((line) => {
     total += line.total
     const stockLabel = line.available > 0 ? `${line.available} em estoque` : "Sem estoque"
+    const priceLabel = line.onSale
+      ? `<span class="price-old">${formatMoneyBRL(line.originalPrice * line.quantity)}</span> <span class="price-now">${formatMoneyBRL(line.total)}</span>`
+      : formatMoneyBRL(line.total)
     return `
       <article class="cart-line" data-key="${line.key}">
         <div class="cart-line-main">
           <img class="cart-line-image" src="${line.image_url || ""}" alt="${line.name}">
           <div>
             <p class="cart-line-name">${line.name}</p>
-            <p class="cart-line-code">${line.code} · ${formatMoneyBRL(line.total)}</p>
+            <p class="cart-line-code">${line.code} · ${priceLabel}</p>
             <p class="cart-line-stock">${stockLabel}</p>
           </div>
         </div>
@@ -65,8 +68,8 @@ function renderCart() {
 
 async function loadCatalogData() {
   const [productsRes, componentsRes, imagesRes] = await Promise.all([
-    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url"),
-    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity").eq("is_active", true),
+    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url, is_on_sale, discount_percent"),
+    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity, is_on_sale, discount_percent").eq("is_active", true),
     sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
   const imagesByCode = Object.create(null)
