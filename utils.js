@@ -16,20 +16,6 @@ window.MarisUtils = {
     return String(value || "").replace(/\D/g, "")
   },
 
-  // Ordena: produtos com estoque > 0 primeiro; sem estoque no final; e nome em pt-BR.
-  sortProductsByStockAndName(products) {
-    return [...products].sort((a, b) => {
-      const stockA = Number(a.quantity) || 0
-      const stockB = Number(b.quantity) || 0
-
-      const outOfStockA = stockA <= 0 ? 1 : 0
-      const outOfStockB = stockB <= 0 ? 1 : 0
-
-      if (outOfStockA !== outOfStockB) return outOfStockA - outOfStockB
-      return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
-    })
-  },
-
   roundMoney(value) {
     return Math.round(value * 100) / 100
   },

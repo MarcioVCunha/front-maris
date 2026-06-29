@@ -241,30 +241,89 @@ function renderModalActions(product, components, soldOut) {
   }
 }
 
-async function joinWaitlist({ productCode = null, componentId = null }) {
+const waitlistModal = document.getElementById("waitlist-modal")
+const waitlistForm = document.getElementById("waitlist-form")
+const waitlistNameInput = document.getElementById("waitlist-name")
+const waitlistWhatsappInput = document.getElementById("waitlist-whatsapp")
+const waitlistEmailInput = document.getElementById("waitlist-email")
+const waitlistFeedbackEl = document.getElementById("waitlist-feedback")
+const waitlistSubmitBtn = document.getElementById("waitlist-submit")
+
+let pendingWaitlistItem = null
+
+function setWaitlistFeedback(text, type = "") {
+  if (!waitlistFeedbackEl) return
+  waitlistFeedbackEl.hidden = !text
+  waitlistFeedbackEl.textContent = text || ""
+  waitlistFeedbackEl.className = `waitlist-feedback ${type}`.trim()
+}
+
+function openWaitlistModal({ productCode = null, componentId = null }) {
+  pendingWaitlistItem = { productCode, componentId }
+  setWaitlistFeedback("")
   const buyer = window.MarisCatalogCart?.getBuyerProfile?.()
-  if (!buyer) {
-    setCatalogFeedback("Preencha seus dados na página da cesta antes de entrar na lista de espera.", "error")
+  if (buyer) {
+    waitlistNameInput.value = buyer.name || ""
+    waitlistWhatsappInput.value = buyer.whatsapp || ""
+    waitlistEmailInput.value = buyer.email || ""
+  }
+  waitlistModal.hidden = false
+  waitlistNameInput.focus()
+}
+
+function closeWaitlistModal() {
+  waitlistModal.hidden = true
+  pendingWaitlistItem = null
+}
+
+function joinWaitlist({ productCode = null, componentId = null }) {
+  openWaitlistModal({ productCode, componentId })
+}
+
+async function submitWaitlist() {
+  if (!pendingWaitlistItem) return
+  const name = waitlistNameInput.value.trim()
+  const whatsapp = window.MarisUtils.onlyDigits(waitlistWhatsappInput.value)
+  const email = waitlistEmailInput.value.trim()
+
+  if (!name) {
+    setWaitlistFeedback("Informe seu nome.", "error")
+    return
+  }
+  if (whatsapp.length < 10) {
+    setWaitlistFeedback("Informe um WhatsApp válido com DDD.", "error")
     return
   }
 
-  const res = await fetch(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      buyer_name: buyer.name,
-      buyer_whatsapp: buyer.whatsapp,
-      buyer_email: buyer.email,
-      product_code: productCode,
-      component_id: componentId
+  window.MarisCatalogCart?.saveBuyerProfile?.({ name, whatsapp, email })
+
+  waitlistSubmitBtn.disabled = true
+  waitlistSubmitBtn.textContent = "Enviando…"
+  try {
+    const res = await fetch(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyer_name: name,
+        buyer_whatsapp: whatsapp,
+        buyer_email: email,
+        product_code: pendingWaitlistItem.productCode,
+        component_id: pendingWaitlistItem.componentId
+      })
     })
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    setCatalogFeedback(data.error || "Não foi possível entrar na lista de espera.", "error")
-    return
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setWaitlistFeedback(data.error || "Não foi possível entrar na lista de espera.", "error")
+      return
+    }
+    closeWaitlistModal()
+    setCatalogFeedback("Pronto! Você entrou na lista de espera.", "success")
+  } catch {
+    setWaitlistFeedback("Erro de conexão. Tente novamente.", "error")
+  } finally {
+    waitlistSubmitBtn.disabled = false
+    waitlistSubmitBtn.textContent = "Entrar na lista"
   }
-  setCatalogFeedback("Pronto! Você entrou na lista de espera.", "success")
 }
 
 function openProductModal(product) {
@@ -537,5 +596,23 @@ if (catalogSearchInput) {
 if (catalogSortSelect) {
   catalogSortSelect.addEventListener("change", () => renderCatalogGrids())
 }
+
+waitlistForm.addEventListener("submit", (event) => {
+  event.preventDefault()
+  submitWaitlist()
+})
+
+waitlistModal.addEventListener("click", (event) => {
+  const target = event.target
+  if (target instanceof HTMLElement && target.dataset.closeWaitlist === "true") {
+    closeWaitlistModal()
+  }
+})
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !waitlistModal.hidden) {
+    closeWaitlistModal()
+  }
+})
 
 loadCatalogData()

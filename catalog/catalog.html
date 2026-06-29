@@ -84,6 +84,27 @@
       </div>
     </div>
 
+    <div id="waitlist-modal" class="product-modal" hidden>
+      <div class="product-modal-backdrop" data-close-waitlist="true"></div>
+      <div class="product-modal-content waitlist-modal-content" role="dialog" aria-modal="true" aria-labelledby="waitlist-modal-title">
+        <h3 id="waitlist-modal-title">Entrar na lista de espera</h3>
+        <p class="waitlist-modal-help">Deixe seus dados e avisamos quando a peça voltar.</p>
+        <form id="waitlist-form" class="waitlist-form">
+          <label for="waitlist-name">Nome</label>
+          <input id="waitlist-name" type="text" autocomplete="name" required>
+          <label for="waitlist-whatsapp">WhatsApp (com DDD)</label>
+          <input id="waitlist-whatsapp" type="tel" inputmode="numeric" autocomplete="tel" required>
+          <label for="waitlist-email">E-mail (opcional)</label>
+          <input id="waitlist-email" type="email" autocomplete="email">
+          <p id="waitlist-feedback" class="waitlist-feedback" hidden></p>
+          <div class="waitlist-actions">
+            <button type="button" class="btn-secondary" data-close-waitlist="true">Cancelar</button>
+            <button type="submit" id="waitlist-submit" class="btn-primary">Entrar na lista</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script src="/catalog/catalog-cart.js"></script>
     <script src="/catalog/catalog.js"></script>
   </body>

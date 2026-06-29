@@ -316,6 +316,66 @@ body {
   font-weight: 700;
 }
 
+.waitlist-modal-content {
+  max-width: 420px;
+}
+
+.waitlist-modal-help {
+  color: var(--maris-text-muted);
+  font-size: 0.9rem;
+  margin: 4px 0 16px;
+  line-height: 1.45;
+}
+
+.waitlist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.waitlist-form label {
+  font-size: 0.8rem;
+  color: var(--maris-text-muted);
+  margin-top: 8px;
+}
+
+.waitlist-form input {
+  border: 1px solid var(--maris-border-soft);
+  border-radius: var(--maris-radius);
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: var(--maris-surface);
+  color: var(--maris-black);
+}
+
+.waitlist-form input:focus {
+  outline: none;
+  border-color: var(--maris-gold-dark);
+}
+
+.waitlist-feedback {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.waitlist-feedback.error {
+  color: #9b2c2c;
+}
+
+.waitlist-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.waitlist-actions .btn-secondary,
+.waitlist-actions .btn-primary {
+  flex: 1;
+  margin-top: 0;
+}
+
 .add-cart-card-btn,
 .waitlist-card-btn {
   margin-top: 8px;
@@ -567,173 +627,6 @@ body {
 
 .modal-waitlist-btn {
   background: transparent;
-}
-
-/* —— Carrinho —— */
-.cart-fab {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 900;
-  padding: 14px 22px;
-  border-radius: var(--maris-radius);
-  background: var(--maris-black);
-  color: #fff;
-  border: none;
-  box-shadow: var(--maris-shadow-hover);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.cart-fab:hover {
-  background: var(--maris-gold-dark);
-}
-
-body.cart-panel-open {
-  overflow: hidden;
-}
-
-.cart-panel {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-}
-
-.cart-panel-backdrop,
-.cart-share-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(20, 20, 20, 0.45);
-}
-
-.cart-panel-sheet,
-.cart-share-sheet {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-height: 88vh;
-  background: var(--maris-surface);
-  border-radius: 12px 12px 0 0;
-  padding: 24px;
-  overflow-y: auto;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
-}
-
-.cart-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.cart-panel-header h2 {
-  font-family: var(--maris-font-display);
-  font-size: 1.5rem;
-  margin: 0;
-}
-
-.cart-panel-header button {
-  font-size: 1.75rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.cart-hint {
-  font-size: 0.85rem;
-  color: var(--maris-text-muted);
-  margin: 0 0 16px;
-}
-
-.cart-empty {
-  color: var(--maris-text-muted);
-  text-align: center;
-  padding: 24px;
-}
-
-.cart-line {
-  border-bottom: 1px solid var(--maris-border-soft);
-  padding: 14px 0;
-}
-
-.cart-line-code {
-  font-size: 0.8rem;
-  color: var(--maris-text-muted);
-}
-
-.cart-line-actions button {
-  border: 1px solid var(--maris-border);
-  background: var(--maris-surface);
-  border-radius: var(--maris-radius);
-  padding: 4px 10px;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.cart-remove {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.cart-footer {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--maris-border);
-}
-
-.cart-subtotal-row {
-  font-size: 1rem;
-  margin-bottom: 16px;
-}
-
-.cart-share-message.error {
-  color: #a94442;
-  font-size: 0.9rem;
-}
-
-.cart-share-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-}
-
-.cart-share-sheet {
-  max-width: 440px;
-  margin: 0 auto;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 15%;
-  border-radius: var(--maris-radius-lg);
-  border: 1px solid var(--maris-border);
-}
-
-.cart-share-sheet h3 {
-  font-family: var(--maris-font-display);
-  font-size: 1.35rem;
-  margin: 0 0 16px;
-}
-
-.share-stock-warn {
-  background: var(--maris-gold-light);
-  padding: 14px;
-  border-radius: var(--maris-radius);
-  margin-bottom: 16px;
-  font-size: 0.9rem;
-}
-
-#share-seller-select {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
-  border: 1px solid var(--maris-border);
-  font-family: inherit;
 }
 
 @media (max-width: 720px) {

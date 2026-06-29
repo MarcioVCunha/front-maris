@@ -119,11 +119,6 @@
     return { ok: true, clamped: next > available, available, quantity: item.quantity }
   }
 
-  function clearCart() {
-    cartItems = []
-    saveCart()
-  }
-
   function getBuyerProfile() {
     const profile = safeParseJson(localStorage.getItem(BUYER_STORAGE_KEY), null)
     if (!profile || typeof profile !== "object") return null
@@ -206,10 +201,6 @@
       return cartItems.map((item) => ({ ...item }))
     },
 
-    getCount() {
-      return cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
-    },
-
     getLineDetails() {
       return cartItems.map((item) => {
         const info = lineLabel(item)
@@ -240,10 +231,6 @@
 
     setQuantityByKey(key, quantity) {
       return setQuantity(key, quantity)
-    },
-
-    clear() {
-      clearCart()
     },
 
     getBuyerProfile,
