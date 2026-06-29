@@ -6,6 +6,19 @@
   margin: 0 auto;
 }
 
+.price-old {
+  text-decoration: line-through;
+  color: var(--maris-text-muted);
+  font-weight: 500;
+  font-size: 0.85em;
+  margin-right: 4px;
+}
+
+.price-now {
+  color: var(--maris-gold-dark);
+  font-weight: 700;
+}
+
 button {
   margin-top: 8px;
 }

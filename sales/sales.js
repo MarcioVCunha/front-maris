@@ -1,4 +1,4 @@
-const { createSupabaseClient, roundMoney, formatMoneyBRL, debounce, groupByKey } = window.MarisUtils
+const { createSupabaseClient, roundMoney, formatMoneyBRL, debounce, groupByKey, effectivePrice, hasPromo } = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -36,12 +36,12 @@ function updateSaleSummary() {
 
   const productsSubtotal = selectedItems.reduce((acc, item) => {
     const product = productsByCode[item.code]
-    const unitPrice = Number(product?.unit_price) || 0
+    const unitPrice = effectivePrice(product)
     return acc + unitPrice * item.quantity
   }, 0)
   const componentsSubtotal = selectedComponentItems.reduce((acc, item) => {
     const component = componentsById[item.component_id]
-    const unitPrice = Number(component?.unit_price) || 0
+    const unitPrice = effectivePrice(component)
     return acc + unitPrice * item.quantity
   }, 0)
   const subtotal = productsSubtotal + componentsSubtotal
@@ -129,7 +129,9 @@ function buildComponentControls(productCode) {
     }
 
     const qtyOptions = buildQtyOptions(stock, selectedQty)
-    const priceLabel = formatMoneyBRL(Number(component.unit_price) || 0)
+    const priceLabel = hasPromo(component)
+      ? `<span class="price-old">${formatMoneyBRL(Number(component.unit_price) || 0)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(component))}</span>`
+      : formatMoneyBRL(Number(component.unit_price) || 0)
 
     return `
       <div class="component-item ${soldOut ? "sold-out" : ""}">
@@ -202,7 +204,7 @@ function renderProductCards() {
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
         <div class="code">Código: ${code}</div>
-        ${hasComponents ? "" : `<div class="price">R$ ${Number(product.unit_price).toFixed(2)}</div>`}
+        ${hasComponents ? "" : `<div class="price">${hasPromo(product) ? `<span class="price-old">${formatMoneyBRL(Number(product.unit_price) || 0)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(product))}</span>` : formatMoneyBRL(Number(product.unit_price) || 0)}</div>`}
         ${hasComponents ? "" : `<div class="stock">Estoque: ${stockQuantity}</div>`}
         ${buildComponentControls(code)}
         ${hasComponents
@@ -226,10 +228,10 @@ async function loadProducts() {
   const [productsResponse, componentsResponse] = await Promise.all([
     supabaseClient
       .from("products")
-      .select("id, code, name, quantity, image_url, unit_price"),
+      .select("id, code, name, quantity, image_url, unit_price, is_on_sale, discount_percent"),
     supabaseClient
       .from("product_components")
-      .select("id, product_code, name, quantity, unit_price, is_active")
+      .select("id, product_code, name, quantity, unit_price, is_active, is_on_sale, discount_percent")
       .eq("is_active", true)
   ])
 
