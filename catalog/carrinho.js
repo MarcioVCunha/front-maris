@@ -13,9 +13,7 @@ const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
 
 function setMessage(text, type = "") {
-  messageEl.hidden = !text
-  messageEl.textContent = text || ""
-  messageEl.className = `cart-page-message ${type}`.trim()
+  window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
 }
 
 function setActiveStep(stepNumber) {
@@ -42,7 +40,7 @@ function renderCart() {
     total += line.total
     const stockLabel = line.available > 0 ? `${line.available} em estoque` : "Sem estoque"
     const priceLabel = line.onSale
-      ? `<span class="price-old">${formatMoneyBRL(line.originalPrice * line.quantity)}</span> <span class="price-now">${formatMoneyBRL(line.total)}</span>`
+      ? window.MarisUI.renderPricePair(line.originalPrice * line.quantity, line.total)
       : formatMoneyBRL(line.total)
     return `
       <article class="cart-line" data-key="${line.key}">
@@ -72,6 +70,10 @@ async function loadCatalogData() {
     sbClient.from("product_components").select("id, product_code, name, unit_price, quantity, is_on_sale, discount_percent").eq("is_active", true),
     sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
+  if (productsRes.error || componentsRes.error || imagesRes.error) {
+    console.error(productsRes.error || componentsRes.error || imagesRes.error)
+    throw new Error("Falha ao carregar o catálogo.")
+  }
   const imagesByCode = Object.create(null)
   const products = productsRes.data || []
   const images = imagesRes.data || []
@@ -118,13 +120,10 @@ async function generateLink() {
   generateLinkBtn.disabled = true
   generateLinkBtn.textContent = "Gerando…"
   try {
-    const res = await fetch(window.ENV.SUPABASE_CREATE_SHARED_BASKET_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items })
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_CREATE_SHARED_BASKET_URL, {
+      body: { items }
     })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok || !data.id) {
+    if (!ok || !data.id) {
       setMessage(data.error || "Não foi possível gerar o link.", "error")
       return
     }
@@ -176,8 +175,14 @@ copyLinkBtn.addEventListener("click", copyLink)
 window.addEventListener("maris-cart-updated", renderCart)
 
 ;(async () => {
-  await window.MarisCatalogCart.init()
-  await loadCatalogData()
-  renderCart()
+  try {
+    await window.MarisCatalogCart.init()
+    await loadCatalogData()
+    renderCart()
+  } catch (error) {
+    console.error(error)
+    renderCart()
+    setMessage("Não foi possível carregar a cesta. Atualize a página.", "error")
+  }
 })()
 })()

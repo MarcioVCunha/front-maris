@@ -1,5 +1,5 @@
 ;(function () {
-const { formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
+const { formatMoneyBRL } = window.MarisUtils
 const sbClient = window.MarisUtils.createSupabaseClient()
 
 const basketLinesEl = document.getElementById("basket-lines")
@@ -22,39 +22,19 @@ let basketItems = []
 const selectedKeys = new Set()
 
 function setMessage(text, type = "") {
-  messageEl.hidden = !text
-  messageEl.textContent = text || ""
-  messageEl.className = `cart-page-message ${type}`.trim()
+  window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
 }
 
 function itemKey(item) {
-  return item.component_id ? `c-${item.component_id}` : `p-${item.product_code}`
+  return window.MarisCart.itemKey(item)
 }
 
 function resolveLine(item) {
-  if (item.component_id) {
-    const component = componentsById[item.component_id]
-    const parentCode = component?.product_code || ""
-    return {
-      name: component?.name || `Componente ${item.component_id}`,
-      code: parentCode ? `${parentCode} / ${component?.name || ""}` : `COMP-${item.component_id}`,
-      unitPrice: effectivePrice(component),
-      originalPrice: Number(component?.unit_price) || 0,
-      onSale: hasPromo(component),
-      available: Math.max(0, Number(component?.quantity) || 0),
-      imageUrl: productImagesByCode[parentCode] || ""
-    }
-  }
-  const product = productsByCode[item.product_code]
-  return {
-    name: product?.name || item.product_code || "Produto",
-    code: item.product_code || "",
-    unitPrice: effectivePrice(product),
-    originalPrice: Number(product?.unit_price) || 0,
-    onSale: hasPromo(product),
-    available: Math.max(0, Number(product?.quantity) || 0),
-    imageUrl: productImagesByCode[item.product_code || ""] || String(product?.image_url || "")
-  }
+  return window.MarisCart.resolveLine(
+    item,
+    { productsByCode, componentsById, productImagesByCode },
+    "shared"
+  )
 }
 
 function updateTotal() {
@@ -85,7 +65,7 @@ function renderBasket() {
     const stockLabel = soldOut ? "Sem estoque" : `${info.available} em estoque`
     const lineTotal = info.unitPrice * item.quantity
     const priceLabel = info.onSale
-      ? `<span class="price-old">${formatMoneyBRL(info.originalPrice * item.quantity)}</span> <span class="price-now">${formatMoneyBRL(lineTotal)}</span>`
+      ? window.MarisUI.renderPricePair(info.originalPrice * item.quantity, lineTotal)
       : formatMoneyBRL(lineTotal)
     return `
       <article class="cart-line shared-line ${soldOut ? "shared-line--out" : ""}" data-key="${item.key}">
@@ -111,6 +91,11 @@ async function loadCatalogData() {
     sbClient.from("product_components").select("id, product_code, name, unit_price, quantity, is_on_sale, discount_percent").eq("is_active", true),
     sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
+
+  if (productsRes.error || componentsRes.error || imagesRes.error) {
+    console.error(productsRes.error || componentsRes.error || imagesRes.error)
+    throw new Error("Falha ao carregar o catálogo.")
+  }
 
   const products = productsRes.data || []
   const components = componentsRes.data || []
@@ -228,10 +213,17 @@ addSelectedBtn.addEventListener("click", async () => {
 })
 
 ;(async () => {
-  await window.MarisCatalogCart.init()
-  await loadCatalogData()
-  await loadBasket()
-  renderBasket()
-  updateTotal()
+  try {
+    await window.MarisCatalogCart.init()
+    await loadCatalogData()
+    await loadBasket()
+    renderBasket()
+    updateTotal()
+  } catch (error) {
+    console.error(error)
+    basketItems = []
+    renderBasket()
+    setMessage("Não foi possível carregar a cesta. Tente novamente.", "error")
+  }
 })()
 })()

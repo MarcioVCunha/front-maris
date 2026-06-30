@@ -37,10 +37,7 @@ let touchStartX = 0
 let touchStartY = 0
 
 function setCatalogFeedback(text, type = "") {
-  if (!catalogFeedbackEl) return
-  catalogFeedbackEl.hidden = !text
-  catalogFeedbackEl.textContent = text || ""
-  catalogFeedbackEl.className = `catalog-feedback ${type}`.trim()
+  window.MarisUI.setFeedback(catalogFeedbackEl, text, type, { baseClass: "catalog-feedback" })
 }
 
 function notifyCartAdd(result, itemLabel = "Item") {
@@ -171,7 +168,7 @@ function renderCatalogProduct(product) {
     if (!showPrice) {
       priceHtml = `<div class="price unavailable">Em falta</div>`
     } else if (productOnSale) {
-      priceHtml = `<div class="price on-sale"><span class="price-old">${formatMoneyBRL(basePrice)}</span><span class="price-now">${formatMoneyBRL(finalPrice)}</span></div>`
+      priceHtml = `<div class="price on-sale">${window.MarisUI.renderPricePair(basePrice, finalPrice, "")}</div>`
     } else {
       priceHtml = `<div class="price">${formatMoneyBRL(basePrice)}</div>`
     }
@@ -214,7 +211,7 @@ function renderModalComponentsRows(components) {
       : `<button type="button" class="modal-waitlist-btn" data-waitlist-component="${component.id}">Lista de espera</button>`
     const componentOnSale = hasPromo(component)
     const priceLabel = componentOnSale
-      ? `Valor: <span class="price-old">${formatMoneyBRL(component.unit_price)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(component))}</span>`
+      ? `Valor: ${window.MarisUI.renderPricePair(component.unit_price, effectivePrice(component))}`
       : `Valor: ${formatMoneyBRL(component.unit_price)}`
     return `
       <div class="component-row ${isAvailable ? "" : "is-unavailable"}">
@@ -252,10 +249,7 @@ const waitlistSubmitBtn = document.getElementById("waitlist-submit")
 let pendingWaitlistItem = null
 
 function setWaitlistFeedback(text, type = "") {
-  if (!waitlistFeedbackEl) return
-  waitlistFeedbackEl.hidden = !text
-  waitlistFeedbackEl.textContent = text || ""
-  waitlistFeedbackEl.className = `waitlist-feedback ${type}`.trim()
+  window.MarisUI.setFeedback(waitlistFeedbackEl, text, type, { baseClass: "waitlist-feedback" })
 }
 
 function openWaitlistModal({ productCode = null, componentId = null }) {
@@ -300,19 +294,16 @@ async function submitWaitlist() {
   waitlistSubmitBtn.disabled = true
   waitlistSubmitBtn.textContent = "Enviando…"
   try {
-    const res = await fetch(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
+      body: {
         buyer_name: name,
         buyer_whatsapp: whatsapp,
         buyer_email: email,
         product_code: pendingWaitlistItem.productCode,
         component_id: pendingWaitlistItem.componentId
-      })
+      }
     })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
+    if (!ok) {
       setWaitlistFeedback(data.error || "Não foi possível entrar na lista de espera.", "error")
       return
     }
@@ -347,7 +338,7 @@ function openProductModal(product) {
   } else if (soldOut) {
     productModalPrice.innerHTML = "Preço: Em falta"
   } else if (productOnSale) {
-    productModalPrice.innerHTML = `Preço: <span class="price-old">${formatMoneyBRL(basePrice)}</span> <span class="price-now">${formatMoneyBRL(finalPrice)}</span>`
+    productModalPrice.innerHTML = `Preço: ${window.MarisUI.renderPricePair(basePrice, finalPrice)}`
   } else {
     productModalPrice.innerHTML = `Preço: ${formatMoneyBRL(basePrice)}`
   }

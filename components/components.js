@@ -22,8 +22,7 @@ let componentsByProductCode = Object.create(null)
 let currentProductCode = ""
 
 function setMessage(text, type = "") {
-  messageEl.textContent = text
-  messageEl.className = `message ${type}`.trim()
+  window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
 function createComponentRow(component = null) {

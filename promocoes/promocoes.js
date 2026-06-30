@@ -13,9 +13,7 @@ let products = []
 let componentsByProductCode = Object.create(null)
 
 function setFeedback(text, type = "") {
-  feedbackEl.hidden = !text
-  feedbackEl.textContent = text || ""
-  feedbackEl.className = `promo-feedback ${type}`.trim()
+  window.MarisUI.setFeedback(feedbackEl, text, type, { baseClass: "promo-feedback" })
 }
 
 function priceBlock(row) {
@@ -162,19 +160,16 @@ async function savePromotion(controlsEl) {
   saveBtn.disabled = true
   saveBtn.textContent = "Salvando…"
   try {
-    const res = await fetch(window.ENV.SUPABASE_SET_PRODUCT_PROMOTION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SET_PRODUCT_PROMOTION_URL, {
+      body: {
         target,
         code: target === "product" ? code : undefined,
         component_id: target === "component" ? Number(componentId) : undefined,
         is_on_sale: isOnSale,
         discount_percent: discountPercent
-      })
+      }
     })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok || !data.ok) {
+    if (!ok || !data.ok) {
       setFeedback(data.error || "Não foi possível salvar a promoção.", "error")
       return
     }
@@ -202,13 +197,10 @@ async function applyAllPromotions(isOnSale, discountPercent) {
   bulkApplyBtn.textContent = "Aplicando…"
   if (!isOnSale) bulkClearBtn.textContent = "Limpando…"
   try {
-    const res = await fetch(window.ENV.SUPABASE_SET_ALL_PROMOTIONS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_on_sale: isOnSale, discount_percent: discountPercent })
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SET_ALL_PROMOTIONS_URL, {
+      body: { is_on_sale: isOnSale, discount_percent: discountPercent }
     })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok || !data.ok) {
+    if (!ok || !data.ok) {
       setFeedback(data.error || "Não foi possível atualizar as promoções.", "error")
       return
     }

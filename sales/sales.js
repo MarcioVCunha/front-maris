@@ -25,8 +25,7 @@ let selectedQuantitiesByCode = Object.create(null)
 let selectedComponentQuantitiesById = Object.create(null)
 
 function setMessage(text, type = "") {
-  messageEl.textContent = text
-  messageEl.className = `message ${type}`.trim()
+  window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
 function updateSaleSummary() {
@@ -130,7 +129,7 @@ function buildComponentControls(productCode) {
 
     const qtyOptions = buildQtyOptions(stock, selectedQty)
     const priceLabel = hasPromo(component)
-      ? `<span class="price-old">${formatMoneyBRL(Number(component.unit_price) || 0)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(component))}</span>`
+      ? window.MarisUI.renderPricePair(Number(component.unit_price) || 0, effectivePrice(component))
       : formatMoneyBRL(Number(component.unit_price) || 0)
 
     return `
@@ -204,7 +203,7 @@ function renderProductCards() {
         <img src="${product.image_url}" alt="${product.name}">
         <h3>${product.name}</h3>
         <div class="code">Código: ${code}</div>
-        ${hasComponents ? "" : `<div class="price">${hasPromo(product) ? `<span class="price-old">${formatMoneyBRL(Number(product.unit_price) || 0)}</span> <span class="price-now">${formatMoneyBRL(effectivePrice(product))}</span>` : formatMoneyBRL(Number(product.unit_price) || 0)}</div>`}
+        ${hasComponents ? "" : `<div class="price">${hasPromo(product) ? window.MarisUI.renderPricePair(Number(product.unit_price) || 0, effectivePrice(product)) : formatMoneyBRL(Number(product.unit_price) || 0)}</div>`}
         ${hasComponents ? "" : `<div class="stock">Estoque: ${stockQuantity}</div>`}
         ${buildComponentControls(code)}
         ${hasComponents
@@ -362,22 +361,16 @@ form.addEventListener("submit", async (event) => {
 
   submitBtn.disabled = true
   try {
-    const response = await fetch(window.ENV.SUPABASE_SALES_FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
+    const { ok, data: result } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SALES_FUNCTION_URL, {
+      body: {
         seller_id: sellerId,
         payment_method: paymentMethod,
         items: selectedItems,
         component_items: selectedComponentItems
-      })
+      }
     })
 
-    const result = await response.json()
-
-    if (!response.ok) {
+    if (!ok) {
       setMessage(result?.error || "Erro ao registrar venda.", "error")
       submitBtn.disabled = false
       return

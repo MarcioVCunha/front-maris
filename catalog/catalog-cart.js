@@ -49,7 +49,7 @@
   }
 
   function itemKey(item) {
-    return item.component_id ? `c-${item.component_id}` : `p-${item.product_code}`
+    return window.MarisCart.itemKey(item)
   }
 
   function getAvailableQty({ productCode = null, componentId = null }) {
@@ -136,40 +136,12 @@
     localStorage.setItem(BUYER_STORAGE_KEY, JSON.stringify({ name, whatsapp, email }))
   }
 
-  function effectivePrice(row) {
-    if (window.MarisUtils?.effectivePrice) return window.MarisUtils.effectivePrice(row)
-    const base = Number(row?.unit_price) || 0
-    const pct = row?.is_on_sale ? Number(row?.discount_percent) || 0 : 0
-    return pct > 0 ? Math.round(base * (1 - pct / 100) * 100) / 100 : base
-  }
-
   function lineLabel(item) {
-    if (item.component_id) {
-      const component = componentsById[item.component_id]
-      const original = Number(component?.unit_price) || 0
-      const final = effectivePrice(component)
-      return {
-        name: component?.name || "Componente",
-        code: component?.product_code || `COMP-${item.component_id}`,
-        unitPrice: final,
-        originalPrice: original,
-        onSale: final < original,
-        available: Math.max(0, Number(component?.quantity) || 0),
-        imageUrl: productImagesByCode[component?.product_code || ""] || ""
-      }
-    }
-    const product = productsByCode[item.product_code]
-    const original = Number(product?.unit_price) || 0
-    const final = effectivePrice(product)
-    return {
-      name: product?.name || item.product_code || "Produto",
-      code: item.product_code || "",
-      unitPrice: final,
-      originalPrice: original,
-      onSale: final < original,
-      available: Math.max(0, Number(product?.quantity) || 0),
-      imageUrl: productImagesByCode[item.product_code || ""] || String(product?.image_url || "")
-    }
+    return window.MarisCart.resolveLine(
+      item,
+      { productsByCode, componentsById, productImagesByCode },
+      "cart"
+    )
   }
 
   window.MarisCatalogCart = {

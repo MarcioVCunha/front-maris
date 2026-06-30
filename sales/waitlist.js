@@ -1,22 +1,21 @@
 const statusFilter = document.getElementById("status-filter")
 const wrap = document.getElementById("waitlist-table-wrap")
 
-function staffHeaders() {
-  return {
-    "Content-Type": "application/json",
-    ...window.MarisStaffAuth.authHeaders()
-  }
-}
-
 async function loadWaitlist() {
   const status = statusFilter.value
   wrap.innerHTML = "Carregando…"
 
   const url = `${window.ENV.SUPABASE_LIST_WAITLIST_URL}?status=${encodeURIComponent(status)}`
-  const res = await fetch(url, { headers: staffHeaders() })
-  const data = await res.json()
+  let result
+  try {
+    result = await window.MarisApi.callFunction(url, { method: "GET", auth: "staff" })
+  } catch {
+    wrap.innerHTML = `<p class="message error">Erro de conexão. Tente novamente.</p>`
+    return
+  }
 
-  if (!res.ok) {
+  const { ok, data } = result
+  if (!ok) {
     wrap.innerHTML = `<p class="message error">${data.error || "Erro."}</p>`
     return
   }
@@ -71,13 +70,16 @@ wrap.addEventListener("click", async (e) => {
   if (!btn) return
   const entryId = Number(btn.getAttribute("data-mark"))
   btn.disabled = true
-  const res = await fetch(window.ENV.SUPABASE_MARK_WAITLIST_URL, {
-    method: "POST",
-    headers: staffHeaders(),
-    body: JSON.stringify({ entry_id: entryId })
-  })
-  if (res.ok) loadWaitlist()
-  else btn.disabled = false
+  try {
+    const { ok } = await window.MarisApi.callFunction(window.ENV.SUPABASE_MARK_WAITLIST_URL, {
+      body: { entry_id: entryId },
+      auth: "staff"
+    })
+    if (ok) loadWaitlist()
+    else btn.disabled = false
+  } catch {
+    btn.disabled = false
+  }
 })
 
 document.getElementById("reload-waitlist").addEventListener("click", loadWaitlist)

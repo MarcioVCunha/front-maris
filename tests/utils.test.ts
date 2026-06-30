@@ -63,3 +63,21 @@ Deno.test("debounce executa apenas uma vez após o intervalo", async () => {
   await new Promise((r) => setTimeout(r, 50))
   assertEquals(count, 1)
 })
+
+Deno.test("createSupabaseClient memoiza o cliente (singleton)", () => {
+  // deno-lint-ignore no-explicit-any
+  const w = (globalThis as any).window
+  let createCount = 0
+  w.ENV = { SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon" }
+  w.supabase = {
+    createClient: (url: string, key: string) => {
+      createCount++
+      return { url, key }
+    }
+  }
+  const first = U.createSupabaseClient()
+  const second = U.createSupabaseClient()
+  assertEquals(createCount, 1)
+  assert(first === second)
+  assertEquals(first.url, "https://x.supabase.co")
+})

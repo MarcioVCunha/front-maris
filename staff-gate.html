@@ -23,6 +23,8 @@
     .gate-catalog-link:hover { color: var(--maris-gold-dark); }
   </style>
   <script src="env.js"></script>
+  <script src="staff-auth.js"></script>
+  <script src="api.js"></script>
 </head>
 <body>
   <div class="gate-wrap">
@@ -48,14 +50,8 @@
     const params = new URLSearchParams(window.location.search)
     const nextUrl = params.get("next") ? decodeURIComponent(params.get("next")) : "/"
 
-    if (sessionStorage.getItem("maris_staff_token")) {
-      const part = sessionStorage.getItem("maris_staff_token").split(".")[1]
-      try {
-        const payload = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/")))
-        if (payload.exp > Math.floor(Date.now() / 1000)) {
-          window.location.replace(nextUrl)
-        }
-      } catch (_) {}
+    if (window.MarisStaffAuth.isValid()) {
+      window.location.replace(nextUrl)
     }
 
     form.addEventListener("submit", async (e) => {
@@ -65,19 +61,15 @@
       submitBtn.disabled = true
 
       try {
-        const url = window.ENV.SUPABASE_STAFF_VERIFY_URL
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: passwordInput.value })
+        const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_STAFF_VERIFY_URL, {
+          body: { password: passwordInput.value }
         })
-        const data = await res.json()
-        if (!res.ok) {
+        if (!ok) {
           messageEl.textContent = data.error || "Senha incorreta."
           messageEl.className = "gate-msg error"
           return
         }
-        sessionStorage.setItem("maris_staff_token", data.token)
+        window.MarisStaffAuth.setToken(data.token)
         window.location.replace(nextUrl)
       } catch {
         messageEl.textContent = "Erro de conexão. Tente novamente."

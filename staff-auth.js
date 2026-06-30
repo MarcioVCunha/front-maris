@@ -54,7 +54,9 @@
     }
   }
 
-  if (!window.MarisStaffAuth.requireStaffAccess()) {
+  // Na própria página do gate não fazemos o auto-redirect (evita loop): lá o
+  // MarisStaffAuth é usado apenas para checar/gravar o token.
+  if (window.location.pathname !== GATE_PATH && !window.MarisStaffAuth.requireStaffAccess()) {
     throw new Error("staff-auth-redirect")
   }
 })()

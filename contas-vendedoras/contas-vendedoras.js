@@ -59,9 +59,7 @@ function isCancelledView() {
 }
 
 function setMessage(text, type = "") {
-  if (!messageEl) return
-  messageEl.textContent = text
-  messageEl.className = `message ${type}`.trim()
+  window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
 function paymentLabel(method) {
@@ -109,11 +107,7 @@ function getSaleImageUrl(row) {
 }
 
 function escapeHtml(text) {
-  return String(text ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+  return window.MarisUI.escapeHtml(text)
 }
 
 function renderProductPhoto(row) {
@@ -393,15 +387,12 @@ async function cancelarVenda(saleId, triggerBtn) {
   setMessage("Cancelando venda…", "")
 
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sale_id: id })
+    const { ok, status, data } = await window.MarisApi.callFunction(url, {
+      body: { sale_id: id }
     })
-    const data = await res.json().catch(() => ({}))
 
-    if (!res.ok || !data.ok) {
-      const detail = data.error || `Erro ${res.status}`
+    if (!ok || !data.ok) {
+      const detail = data.error || `Erro ${status}`
       setMessage(`Não foi possível cancelar: ${detail}`, "error")
       if (triggerBtn) triggerBtn.disabled = false
       return

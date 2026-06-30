@@ -9,7 +9,6 @@ const quantityInput = document.getElementById("quantityInput")
 const imageUrlsInput = document.getElementById("imageUrlsInput")
 
 const FUNCTION_URL = window.ENV.SUPABASE_ADD_PRODUCT_FUNCTION_URL
-const SUPABASE_ANON_KEY = window.ENV.SUPABASE_ANON_KEY
 
 function setResult(text, kind) {
   resultEl.textContent = text
@@ -63,19 +62,14 @@ formEl.addEventListener("submit", async (event) => {
   submitBtn.disabled = true
 
   try {
-    const response = await fetch(FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify(payload)
+    const { ok, status, data } = await window.MarisApi.callFunction(FUNCTION_URL, {
+      body: payload,
+      auth: "anon"
     })
 
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) {
+    if (!ok) {
       setResult(
-        JSON.stringify({ error: data?.error || `Erro HTTP ${response.status}` }, null, 2),
+        JSON.stringify({ error: data?.error || `Erro HTTP ${status}` }, null, 2),
         "error"
       )
       return

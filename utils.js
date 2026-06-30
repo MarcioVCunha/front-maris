@@ -1,15 +1,21 @@
 // Utilidades globais usadas pelas telas da pasta `front/`.
 // Mantemos em arquivo único para reduzir duplicidade entre `sales.js` e `catalog.js`.
 
+let supabaseClientSingleton = null
+
 window.MarisUtils = {
+  // Cliente Supabase memoizado: evita abrir múltiplas conexões/realtime quando
+  // a mesma página chama createSupabaseClient mais de uma vez.
   createSupabaseClient() {
-    return window.supabase.createClient(window.ENV.SUPABASE_URL, window.ENV.SUPABASE_ANON_KEY, {
+    if (supabaseClientSingleton) return supabaseClientSingleton
+    supabaseClientSingleton = window.supabase.createClient(window.ENV.SUPABASE_URL, window.ENV.SUPABASE_ANON_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true
       }
     })
+    return supabaseClientSingleton
   },
 
   onlyDigits(value) {

@@ -5,7 +5,6 @@ const resultWrap = document.getElementById("resultWrap")
 const fileNameEl = document.getElementById("fileName")
 
 const FUNCTION_URL = window.ENV.SUPABASE_FUNCTION_URL
-const SUPABASE_ANON_KEY = window.ENV.SUPABASE_ANON_KEY
 
 function setResult(text, kind) {
   resultEl.textContent = text
@@ -48,20 +47,15 @@ uploadBtn.addEventListener("click", async () => {
   uploadBtn.disabled = true
 
   try {
-    const response = await fetch(FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify(json)
+    const { ok, status, data } = await window.MarisApi.callFunction(FUNCTION_URL, {
+      body: json,
+      auth: "anon"
     })
 
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) {
+    if (!ok) {
       setResult(
         JSON.stringify(
-          { error: data?.error || `Erro HTTP ${response.status}` },
+          { error: data?.error || `Erro HTTP ${status}` },
           null,
           2
         ),
