@@ -18,19 +18,23 @@ window.MarisCart = {
     const { productsByCode, componentsById, productImagesByCode } = maps
     const effectivePrice = window.MarisUtils.effectivePrice
     const hasPromo = window.MarisUtils.hasPromo
+    const locked = Number(item?.unit_price)
+    const hasLockedPrice = Number.isFinite(locked) && locked > 0
 
     if (item.component_id) {
       const component = componentsById[item.component_id]
       const parentCode = component?.product_code || ""
-      const final = effectivePrice(component)
       const original = Number(component?.unit_price) || 0
+      const final = hasLockedPrice ? locked : effectivePrice(component)
       const name = variant === "shared"
         ? component?.name || `Componente ${item.component_id}`
         : component?.name || "Componente"
       const code = variant === "shared"
         ? parentCode ? `${parentCode} / ${component?.name || ""}` : `COMP-${item.component_id}`
         : component?.product_code || `COMP-${item.component_id}`
-      const onSale = variant === "shared" ? hasPromo(component) : final < original
+      const onSale = variant === "shared"
+        ? hasPromo(component) && final < original
+        : final < original
       return {
         name,
         code,
@@ -43,9 +47,11 @@ window.MarisCart = {
     }
 
     const product = productsByCode[item.product_code]
-    const final = effectivePrice(product)
     const original = Number(product?.unit_price) || 0
-    const onSale = variant === "shared" ? hasPromo(product) : final < original
+    const final = hasLockedPrice ? locked : effectivePrice(product)
+    const onSale = variant === "shared"
+      ? hasPromo(product) && final < original
+      : final < original
     return {
       name: product?.name || item.product_code || "Produto",
       code: item.product_code || "",

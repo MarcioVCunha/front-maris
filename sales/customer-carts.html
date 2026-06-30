@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrinhos de clientes — Maris</title>
+  <link rel="stylesheet" href="/sales/sales.css">
+  <link rel="stylesheet" href="/sales/customer-carts.css">
+  <script src="/staff-auth.js"></script>
+  <script src="/env.js"></script>
+  <script src="/utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <a class="back-link" href="/vendedoras">← Voltar às vendedoras</a>
+  <h1>Carrinhos de clientes</h1>
+  <p>Compartilhados com a vendedora selecionada</p>
+</header>
+<main class="container">
+  <section class="card">
+    <label for="seller-filter">Vendedora</label>
+    <select id="seller-filter"></select>
+    <button type="button" id="reload-carts" class="btn-reload">Atualizar lista</button>
+  </section>
+  <div id="carts-list" class="carts-list"></div>
+</main>
+<script src="/sales/customer-carts.js"></script>
+</body>
+</html>

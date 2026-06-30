@@ -51,6 +51,16 @@
       "permanent": true
     },
     {
+      "source": "/sales/customer-carts.html",
+      "destination": "/carrinhos-clientes",
+      "permanent": true
+    },
+    {
+      "source": "/sales/customer-cart-detail.html",
+      "destination": "/carrinho-cliente",
+      "permanent": true
+    },
+    {
       "source": "/sales/waitlist.html",
       "destination": "/lista-espera",
       "permanent": true
@@ -116,6 +126,14 @@
     {
       "source": "/vendas",
       "destination": "/sales/sales.html"
+    },
+    {
+      "source": "/carrinhos-clientes",
+      "destination": "/sales/customer-carts.html"
+    },
+    {
+      "source": "/carrinho-cliente",
+      "destination": "/sales/customer-cart-detail.html"
     },
     {
       "source": "/lista-espera",

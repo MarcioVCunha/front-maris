@@ -78,6 +78,16 @@ Deno.test("resolveLine produto desconhecido cai nos defaults", () => {
   assertEquals(line.imageUrl, "")
 })
 
+Deno.test("resolveLine usa preço travado do item", () => {
+  const line = Cart.resolveLine(
+    { product_code: "PROMO", component_id: null, unit_price: 100 },
+    maps,
+    "cart"
+  )
+  assertEquals(line.unitPrice, 100)
+  assertEquals(line.onSale, true)
+})
+
 Deno.test("resolveLine componente variant cart usa fallbacks quando faltam nome e código", () => {
   const mapsFallback = {
     productsByCode: {},

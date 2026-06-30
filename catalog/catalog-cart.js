@@ -27,7 +27,10 @@
     const componentId = Number(raw.component_id) || null
     if (!productCode && !componentId) return null
     if (productCode && componentId) return null
-    return { product_code: productCode, component_id: componentId, quantity }
+    const unitPrice = Number(raw.unit_price)
+    const item = { product_code: productCode, component_id: componentId, quantity }
+    if (Number.isFinite(unitPrice) && unitPrice > 0) item.unit_price = unitPrice
+    return item
   }
 
   function emitUpdate() {
@@ -61,6 +64,12 @@
     return Math.max(0, Number(product?.quantity) || 0)
   }
 
+  function lockedUnitPrice({ productCode = null, componentId = null }) {
+    const effectivePrice = window.MarisUtils.effectivePrice
+    if (componentId) return effectivePrice(componentsById[componentId])
+    return effectivePrice(productsByCode[productCode])
+  }
+
   function upsertItem({ productCode = null, componentId = null, quantity = 1 }) {
     const delta = Number(quantity) || 0
     if (!delta) return { ok: false, reason: "invalid_quantity" }
@@ -81,7 +90,8 @@
       cartItems.push({
         product_code: productCode,
         component_id: componentId,
-        quantity: Math.min(available, delta)
+        quantity: Math.min(available, delta),
+        unit_price: lockedUnitPrice({ productCode, componentId })
       })
     } else {
       return { ok: false, reason: "negative_new_item" }
@@ -197,12 +207,31 @@
       return upsertItem({ componentId, quantity })
     },
 
+    addItemWithPrice(item) {
+      const normalized = normalizeItem(item)
+      if (!normalized) return { ok: false, reason: "invalid_item" }
+      const existing = cartItems.find((line) => itemKey(line) === itemKey(normalized))
+      if (existing) {
+        existing.quantity = normalized.quantity
+        if (normalized.unit_price) existing.unit_price = normalized.unit_price
+      } else {
+        cartItems.push(normalized)
+      }
+      saveCart()
+      return { ok: true }
+    },
+
     removeByKey(key) {
       removeItem(key)
     },
 
     setQuantityByKey(key, quantity) {
       return setQuantity(key, quantity)
+    },
+
+    clear() {
+      cartItems = []
+      saveCart()
     },
 
     getBuyerProfile,

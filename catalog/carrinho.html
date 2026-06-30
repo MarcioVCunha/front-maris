@@ -45,7 +45,25 @@
       </section>
 
       <section class="cart-card cart-card--checkout">
-        <h2>Compartilhar minha cesta</h2>
+        <h2>Finalizar com a vendedora</h2>
+        <p class="cart-help">Preencha seus dados, escolha a vendedora e compartilhe o carrinho. O preço de cada item é o vigente no momento em que você o adicionou à cesta.</p>
+        <form id="buyer-form" class="buyer-form">
+          <label for="buyer-name">Nome completo</label>
+          <input id="buyer-name" type="text" required>
+          <label for="buyer-whatsapp">WhatsApp</label>
+          <input id="buyer-whatsapp" type="tel" required>
+          <label for="buyer-email">E-mail (opcional)</label>
+          <input id="buyer-email" type="email">
+        </form>
+        <label for="seller-select">Vendedora</label>
+        <select id="seller-select"></select>
+        <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque</button>
+        <ul id="stock-issues" class="stock-issues" hidden></ul>
+        <button id="share-cart-btn" type="button" class="btn-primary">Compartilhar com a vendedora</button>
+      </section>
+
+      <section class="cart-card cart-card--checkout">
+        <h2>Ou gere um link público</h2>
         <p class="cart-help">Gere um link com os produtos escolhidos para enviar para quem você quiser. Quem abrir poderá escolher quais itens adicionar à própria cesta.</p>
 
         <button id="generate-link-btn" type="button" class="btn-primary">Gerar link para compartilhar</button>

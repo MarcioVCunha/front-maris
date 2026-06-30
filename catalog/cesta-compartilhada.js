@@ -145,7 +145,13 @@ async function loadBasket() {
       const componentId = Number(raw?.component_id) || null
       if (quantity <= 0) return null
       if (!productCode && !componentId) return null
-      const item = { product_code: componentId ? null : productCode, component_id: componentId, quantity }
+      const item = {
+        product_code: componentId ? null : productCode,
+        component_id: componentId,
+        quantity,
+      }
+      const locked = Number(raw?.unit_price)
+      if (Number.isFinite(locked) && locked > 0) item.unit_price = locked
       return { ...item, key: itemKey(item) }
     })
     .filter(Boolean)
@@ -191,9 +197,17 @@ addSelectedBtn.addEventListener("click", async () => {
   let clamped = false
   for (const item of basketItems) {
     if (!selectedKeys.has(item.key)) continue
-    const result = item.component_id
-      ? window.MarisCatalogCart.addComponent(item.component_id, item.quantity)
-      : window.MarisCatalogCart.addProduct(item.product_code, item.quantity)
+    const payload = {
+      product_code: item.product_code,
+      component_id: item.component_id,
+      quantity: item.quantity,
+      unit_price: item.unit_price
+    }
+    const result = window.MarisCatalogCart.addItemWithPrice
+      ? window.MarisCatalogCart.addItemWithPrice(payload)
+      : item.component_id
+        ? window.MarisCatalogCart.addComponent(item.component_id, item.quantity)
+        : window.MarisCatalogCart.addProduct(item.product_code, item.quantity)
     if (result?.ok) {
       added += 1
       if (result.clamped) clamped = true
