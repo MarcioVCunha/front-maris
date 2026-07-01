@@ -36,7 +36,7 @@ async function loadCarts() {
   localStorage.setItem("maris_seller_filter", selected)
   cartsListEl.innerHTML = "Carregando…"
 
-  const url = buildCartsListUrl(window.ENV.SUPABASE_LIST_SHARED_CARTS_URL, selected)
+  const url = buildCartsListUrl(window.ENV.fn("list-shared-carts"), selected)
 
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json().catch(() => ({}))

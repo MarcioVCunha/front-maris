@@ -1,5 +1,13 @@
 // Utilidades globais usadas pelas telas da pasta `front/`.
-// Mantemos em arquivo único para reduzir duplicidade entre `sales.js` e `catalog.js`.
+// Config pública do Supabase (anon key é exposta no browser por design — proteção via RLS).
+window.ENV = {
+  SUPABASE_URL: "https://epuvfjdyyzccsuafwopr.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwdXZmamR5eXpjY3N1YWZ3b3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NTgwMzUsImV4cCI6MjA4OTIzNDAzNX0.DOpM6CRRH54_oLMTghCnGMLq_1aH_5YRGSXNKn_LdB4",
+  fn(name) {
+    const base = String(this.SUPABASE_URL || "").replace(/\/$/, "")
+    return `${base}/functions/v1/${name}`
+  },
+}
 
 let supabaseClientSingleton = null
 

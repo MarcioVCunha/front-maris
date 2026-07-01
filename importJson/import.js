@@ -6,7 +6,7 @@ const resultEl = document.getElementById("result")
 const resultWrap = document.getElementById("resultWrap")
 const fileNameEl = document.getElementById("fileName")
 
-const FUNCTION_URL = window.ENV.SUPABASE_FUNCTION_URL
+const FUNCTION_URL = window.ENV.fn("import-products")
 
 function setResult(text, kind) {
   resultEl.textContent = text

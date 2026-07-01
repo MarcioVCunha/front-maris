@@ -154,7 +154,7 @@ async function savePromotion(controlsEl) {
   saveBtn.disabled = true
   saveBtn.textContent = "Salvando…"
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SET_PRODUCT_PROMOTION_URL, {
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("set-product-promotion"), {
       body: {
         target,
         code: target === "product" ? code : undefined,
@@ -191,7 +191,7 @@ async function applyAllPromotions(isOnSale, discountPercent) {
   bulkApplyBtn.textContent = "Aplicando…"
   if (!isOnSale) bulkClearBtn.textContent = "Limpando…"
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SET_ALL_PROMOTIONS_URL, {
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("set-all-promotions"), {
       body: { is_on_sale: isOnSale, discount_percent: discountPercent }
     })
     if (!ok || !data.ok) {

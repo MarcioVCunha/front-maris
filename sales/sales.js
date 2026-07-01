@@ -317,7 +317,7 @@ form.addEventListener("submit", async (event) => {
 
   submitBtn.disabled = true
   try {
-    const { ok, data: result } = await window.MarisApi.callFunction(window.ENV.SUPABASE_SALES_FUNCTION_URL, {
+    const { ok, data: result } = await window.MarisApi.callFunction(window.ENV.fn("register-sale"), {
       body: {
         seller_id: sellerId,
         payment_method: paymentMethod,

@@ -377,9 +377,9 @@ async function cancelarVenda(saleId, triggerBtn) {
   )
   if (!ok) return
 
-  const url = window.ENV?.SUPABASE_CANCEL_SALE_URL
+  const url = window.ENV?.fn?.("cancel-sale")
   if (!url) {
-    setMessage("Configuração ausente: SUPABASE_CANCEL_SALE_URL.", "error")
+    setMessage("Configuração ausente para cancelar venda.", "error")
     return
   }
 

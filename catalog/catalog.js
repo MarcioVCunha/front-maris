@@ -273,7 +273,7 @@ async function submitWaitlist() {
   waitlistSubmitBtn.disabled = true
   waitlistSubmitBtn.textContent = "Enviando…"
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_WAITLIST_ADD_URL, {
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-waitlist-add"), {
       body: {
         buyer_name: name,
         buyer_whatsapp: whatsapp,

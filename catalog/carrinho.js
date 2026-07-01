@@ -164,7 +164,7 @@ async function checkStock() {
     return
   }
   saveBuyer()
-  const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_CART_SHARE_URL, {
+  const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-cart-share"), {
     body: { ...parsed.payload, dry_run: true }
   })
   if (!ok) {
@@ -199,7 +199,7 @@ async function shareCart() {
   shareCartBtn.disabled = true
   try {
     saveBuyer()
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_CART_SHARE_URL, {
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-cart-share"), {
       body: parsed.payload
     })
     if (!ok) {
@@ -247,7 +247,7 @@ async function generateLink() {
   generateLinkBtn.disabled = true
   generateLinkBtn.textContent = "Gerando…"
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_CREATE_SHARED_BASKET_URL, {
+    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("create-shared-basket"), {
       body: { items }
     })
     if (!ok || !data.id) {

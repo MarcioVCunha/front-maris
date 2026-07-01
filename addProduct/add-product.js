@@ -13,7 +13,7 @@ const priceInput = document.getElementById("priceInput")
 const quantityInput = document.getElementById("quantityInput")
 const imageUrlsInput = document.getElementById("imageUrlsInput")
 
-const FUNCTION_URL = window.ENV.SUPABASE_ADD_PRODUCT_FUNCTION_URL
+const FUNCTION_URL = window.ENV.fn("add-product")
 
 function setResult(text, kind) {
   resultEl.textContent = text
@@ -38,7 +38,7 @@ formEl.addEventListener("submit", async (event) => {
   event.preventDefault()
 
   if (!FUNCTION_URL) {
-    setResult("URL da função add-product não encontrada no env.js.", "error")
+    setResult("URL da função add-product não encontrada.", "error")
     return
   }
 

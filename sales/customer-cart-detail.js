@@ -57,7 +57,7 @@ async function loadCartDetail() {
     cartMetaEl.textContent = "Carrinho inválido."
     return
   }
-  const url = `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?cart_id=${encodeURIComponent(cartId)}`
+  const url = `${window.ENV.fn("list-shared-carts")}?cart_id=${encodeURIComponent(cartId)}`
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.carts?.length) {
@@ -129,7 +129,7 @@ submitSaleBtn.addEventListener("click", async () => {
   submitSaleBtn.disabled = true
   setSaleMessage("Registrando…")
   try {
-    const saleRes = await fetch(window.ENV.SUPABASE_SALES_FUNCTION_URL, {
+    const saleRes = await fetch(window.ENV.fn("register-sale"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seller_id: sellerId, payment_method: payment, items, component_items })
@@ -140,7 +140,7 @@ submitSaleBtn.addEventListener("click", async () => {
       return
     }
 
-    await fetch(window.ENV.SUPABASE_MARK_CART_CONVERTED_URL, {
+    await fetch(window.ENV.fn("mark-cart-converted"), {
       method: "POST",
       headers: staffHeaders(),
       body: JSON.stringify({ cart_id: activeCart.id })

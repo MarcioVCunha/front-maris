@@ -22,9 +22,9 @@
     .gate-catalog-link { display: block; margin-top: 24px; text-align: center; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--maris-text-muted); text-decoration: none; }
     .gate-catalog-link:hover { color: var(--maris-gold-dark); }
   </style>
-  <script src="env.js"></script>
-  <script src="staff-auth.js"></script>
-  <script src="api.js"></script>
+  <script src="/shared/utils.js"></script>
+  <script src="/shared/staff-auth.js"></script>
+  <script src="/shared/api.js"></script>
 </head>
 <body>
   <div class="gate-wrap">
@@ -61,7 +61,7 @@
       submitBtn.disabled = true
 
       try {
-        const { ok, data } = await window.MarisApi.callFunction(window.ENV.SUPABASE_STAFF_VERIFY_URL, {
+        const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("verify-staff-access"), {
           body: { password: passwordInput.value }
         })
         if (!ok) {

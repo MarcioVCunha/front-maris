@@ -5,7 +5,7 @@ async function loadWaitlist() {
   const status = statusFilter.value
   wrap.innerHTML = "Carregando…"
 
-  const url = `${window.ENV.SUPABASE_LIST_WAITLIST_URL}?status=${encodeURIComponent(status)}`
+  const url = `${window.ENV.fn("list-waitlist")}?status=${encodeURIComponent(status)}`
   let result
   try {
     result = await window.MarisApi.callFunction(url, { method: "GET", auth: "staff" })
@@ -71,7 +71,7 @@ wrap.addEventListener("click", async (e) => {
   const entryId = Number(btn.getAttribute("data-mark"))
   btn.disabled = true
   try {
-    const { ok } = await window.MarisApi.callFunction(window.ENV.SUPABASE_MARK_WAITLIST_URL, {
+    const { ok } = await window.MarisApi.callFunction(window.ENV.fn("mark-waitlist-contacted"), {
       body: { entry_id: entryId },
       auth: "staff"
     })
