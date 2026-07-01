@@ -169,11 +169,33 @@
   gap: 8px;
 }
 
+.components-list-header {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr 0.8fr auto;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--maris-text-muted);
+  padding: 0 2px;
+}
+
 .component-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 2fr 0.8fr 1fr 0.8fr auto;
   gap: 8px;
   align-items: center;
+}
+
+.component-price-preview {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--maris-black);
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--maris-gold-light);
+  border-radius: var(--maris-radius);
 }
 
 .component-remove-btn {
@@ -189,8 +211,18 @@
     grid-template-columns: 1fr;
   }
 
+  .components-list-header {
+    display: none;
+  }
+
   .component-row {
     grid-template-columns: 1fr;
+  }
+
+  .component-price-preview::before {
+    content: "Valor calculado: ";
+    font-weight: 500;
+    color: var(--maris-text-muted);
   }
 
   .component-remove-btn {

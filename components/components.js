@@ -1,4 +1,11 @@
-const { createSupabaseClient, formatMoneyBRL, groupByKey } = window.MarisUtils
+const {
+  createSupabaseClient,
+  formatMoneyBRL,
+  groupByKey,
+  computeComponentPrice,
+  percentFromSavedPrice,
+  parseComponentRows
+} = window.MarisUtils
 
 const supabaseClient = createSupabaseClient()
 
@@ -20,21 +27,47 @@ const messageEl = document.getElementById("components-message")
 let products = []
 let componentsByProductCode = Object.create(null)
 let currentProductCode = ""
+let currentProductUnitPrice = 0
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
-function createComponentRow(component = null) {
+function resolvePercentForRow(component, parentPrice) {
+  if (component?.price_percent != null && Number.isFinite(Number(component.price_percent))) {
+    return String(component.price_percent)
+  }
+  if (component?.unit_price != null && Number(parentPrice) > 0) {
+    const derived = percentFromSavedPrice(parentPrice, component.unit_price)
+    if (derived.ok) return String(derived.value)
+  }
+  return ""
+}
+
+function updateRowPricePreview(row) {
+  if (!row) return
+  const previewEl = row.querySelector('[data-field="price_preview"]')
+  const percentInput = row.querySelector('input[data-field="price_percent"]')
+  if (!previewEl || !percentInput) return
+
+  const result = computeComponentPrice(currentProductUnitPrice, percentInput.value)
+  previewEl.textContent = result.ok ? formatMoneyBRL(result.value) : "—"
+}
+
+function createComponentRow(component = null, parentPrice = 0) {
   const id = component?.id ? String(component.id) : ""
   const name = component?.name || ""
-  const price = component?.unit_price != null ? String(component.unit_price) : ""
+  const percent = component ? resolvePercentForRow(component, parentPrice) : ""
   const quantity = component?.quantity != null ? String(component.quantity) : "0"
+
+  const result = percent ? computeComponentPrice(parentPrice, percent) : { ok: false }
+  const previewText = result.ok ? formatMoneyBRL(result.value) : "—"
 
   return `
     <div class="component-row" data-component-id="${id}">
       <input data-field="name" type="text" placeholder="Nome (ex.: Brinco)" value="${name}">
-      <input data-field="unit_price" type="number" min="0" step="0.01" placeholder="Valor" value="${price}">
+      <input data-field="price_percent" type="number" min="0" step="0.01" placeholder="%" value="${percent}" aria-label="Percentual do preço">
+      <span class="component-price-preview" data-field="price_preview">${previewText}</span>
       <input data-field="quantity" type="number" min="0" step="1" placeholder="Estoque" value="${quantity}">
       <button type="button" class="component-remove-btn">Remover</button>
     </div>
@@ -62,18 +95,24 @@ function renderProductCard(product) {
 }
 
 function renderComponentRows(productCode) {
+  const product = products.find((item) => item.code === productCode)
+  const parentPrice = Number(product?.unit_price) || currentProductUnitPrice || 0
   const components = componentsByProductCode[productCode] || []
+
   if (!components.length) {
-    componentsList.innerHTML = createComponentRow()
+    componentsList.innerHTML = createComponentRow(null, parentPrice)
     return
   }
-  componentsList.innerHTML = components.map((component) => createComponentRow(component)).join("")
+
+  componentsList.innerHTML = components
+    .map((component) => createComponentRow(component, parentPrice))
+    .join("")
 }
 
 async function loadComponents() {
   const { data, error } = await supabaseClient
     .from("product_components")
-    .select("id, product_code, name, unit_price, quantity, is_active")
+    .select("id, product_code, name, unit_price, price_percent, quantity, is_active")
     .order("name")
 
   if (error) {
@@ -87,6 +126,7 @@ async function loadComponents() {
 function openProductModal(product) {
   if (!product) return
   currentProductCode = product.code
+  currentProductUnitPrice = Number(product.unit_price) || 0
   setMessage("")
   productModalImage.src = product.image_url || ""
   productModalImage.alt = product.name || "Produto"
@@ -101,6 +141,7 @@ function openProductModal(product) {
 function closeProductModal() {
   productModal.hidden = true
   currentProductCode = ""
+  currentProductUnitPrice = 0
 }
 
 function handleProductCardClick(target) {
@@ -149,37 +190,27 @@ async function saveCurrentProductComponents() {
   }
 
   const rows = Array.from(componentsList.querySelectorAll(".component-row"))
-  const parsedRows = []
-
-  for (const row of rows) {
+  const rawRows = rows.map((row) => {
     const idAttr = row.getAttribute("data-component-id")
-    const parsedId =
-      idAttr && String(idAttr).trim() !== ""
-        ? Number(idAttr)
-        : null
-    const id =
-      Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null
-
-    const name = String(row.querySelector('input[data-field="name"]')?.value || "").trim()
-    const unitPrice = Number(row.querySelector('input[data-field="unit_price"]')?.value)
-    const quantity = Number(row.querySelector('input[data-field="quantity"]')?.value)
-
-    if (!name) continue
-
-    if (!Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isInteger(quantity) || quantity < 0) {
-      setMessage("Preencha valor e estoque corretamente (estoque inteiro e >= 0).", "error")
-      return
+    const parsedId = idAttr && String(idAttr).trim() !== "" ? Number(idAttr) : null
+    return {
+      id: Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null,
+      name: row.querySelector('input[data-field="name"]')?.value,
+      price_percent: row.querySelector('input[data-field="price_percent"]')?.value,
+      quantity: row.querySelector('input[data-field="quantity"]')?.value
     }
+  })
 
-    parsedRows.push({
-      id,
-      product_code: productCode,
-      name,
-      unit_price: unitPrice,
-      quantity,
-      is_active: true
-    })
+  const parsed = parseComponentRows(rawRows, currentProductUnitPrice)
+  if (!parsed.ok) {
+    setMessage(parsed.error, "error")
+    return
   }
+
+  const parsedRows = parsed.rows.map((row) => ({
+    ...row,
+    product_code: productCode
+  }))
 
   const { data: existingRows, error: existingError } = await supabaseClient
     .from("product_components")
@@ -217,15 +248,18 @@ async function saveCurrentProductComponents() {
   }
 
   for (const row of parsedRows) {
+    const payload = {
+      name: row.name,
+      price_percent: row.price_percent,
+      unit_price: row.unit_price,
+      quantity: row.quantity,
+      is_active: true
+    }
+
     if (row.id) {
       const { error: updateError } = await supabaseClient
         .from("product_components")
-        .update({
-          name: row.name,
-          unit_price: row.unit_price,
-          quantity: row.quantity,
-          is_active: true
-        })
+        .update(payload)
         .eq("id", row.id)
         .eq("product_code", productCode)
 
@@ -238,10 +272,7 @@ async function saveCurrentProductComponents() {
         .from("product_components")
         .insert({
           product_code: row.product_code,
-          name: row.name,
-          unit_price: row.unit_price,
-          quantity: row.quantity,
-          is_active: true
+          ...payload
         })
 
       if (insertError) {
@@ -266,12 +297,20 @@ componentsList.addEventListener("click", (event) => {
   if (row) row.remove()
 
   if (!componentsList.querySelector(".component-row")) {
-    componentsList.innerHTML = createComponentRow()
+    componentsList.innerHTML = createComponentRow(null, currentProductUnitPrice)
   }
 })
 
+componentsList.addEventListener("input", (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLInputElement)) return
+  if (target.dataset.field !== "price_percent") return
+  const row = target.closest(".component-row")
+  updateRowPricePreview(row)
+})
+
 addComponentBtn.addEventListener("click", () => {
-  componentsList.insertAdjacentHTML("beforeend", createComponentRow())
+  componentsList.insertAdjacentHTML("beforeend", createComponentRow(null, currentProductUnitPrice))
 })
 
 saveComponentsBtn.addEventListener("click", () => {

@@ -44,7 +44,14 @@
 
         <section class="modal-components">
           <h4>Separar em tipos</h4>
-          <p class="modal-components-help">Defina nome, valor e estoque para cada tipo (ex.: brinco, colar).</p>
+          <p class="modal-components-help">Defina nome, <strong>% do preço do produto</strong> e estoque para cada tipo (ex.: brinco, colar). O valor em reais é calculado automaticamente.</p>
+          <div class="components-list-header" aria-hidden="true">
+            <span>Nome</span>
+            <span>%</span>
+            <span>Valor</span>
+            <span>Estoque</span>
+            <span></span>
+          </div>
           <div id="components-list" class="components-list"></div>
           <button id="add-component-btn" type="button" class="secondary-btn">Adicionar tipo</button>
           <button id="save-components-btn" type="button">Salvar tipos</button>

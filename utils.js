@@ -47,6 +47,69 @@ window.MarisUtils = {
     })
   },
 
+  // Preço do componente: % do preço cheio do produto pai, arredondado para cima (reais inteiros).
+  computeComponentPrice(parentPrice, percent) {
+    const base = Number(parentPrice)
+    const pct = Number(percent)
+
+    if (!Number.isFinite(base) || base <= 0) {
+      return { ok: false, error: "Produto sem preço válido para calcular o tipo." }
+    }
+    if (percent === "" || percent == null || !Number.isFinite(pct)) {
+      return { ok: false, error: "Informe a % do preço." }
+    }
+    if (pct <= 0) {
+      return { ok: false, error: "A % deve ser maior que zero." }
+    }
+    return { ok: true, value: Math.ceil((base * pct) / 100) }
+  },
+
+  // Fallback para linhas antigas sem price_percent (só preenchimento do input ao editar).
+  percentFromSavedPrice(parentPrice, unitPrice) {
+    const base = Number(parentPrice)
+    const saved = Number(unitPrice)
+    if (!Number.isFinite(base) || base <= 0) {
+      return { ok: false, error: "Produto sem preço válido para calcular o tipo." }
+    }
+    if (!Number.isFinite(saved) || saved < 0) {
+      return { ok: false, error: "Valor salvo inválido." }
+    }
+    const pct = (saved / base) * 100
+    return { ok: true, value: Math.round(pct * 100) / 100 }
+  },
+
+  // Parse linhas do formulário de tipos (testável sem DOM).
+  parseComponentRows(rawRows, parentPrice) {
+    const parsedRows = []
+
+    for (const raw of rawRows || []) {
+      const name = String(raw?.name || "").trim()
+      if (!name) continue
+
+      const quantity = Number(raw?.quantity)
+      if (!Number.isInteger(quantity) || quantity < 0) {
+        return { ok: false, error: "Preencha o estoque corretamente (inteiro e >= 0)." }
+      }
+
+      const priceResult = window.MarisUtils.computeComponentPrice(parentPrice, raw?.price_percent)
+      if (!priceResult.ok) {
+        return { ok: false, error: `${name}: ${priceResult.error}` }
+      }
+
+      const id = Number(raw?.id)
+      parsedRows.push({
+        id: Number.isInteger(id) && id > 0 ? id : null,
+        name,
+        price_percent: Number(raw.price_percent),
+        unit_price: priceResult.value,
+        quantity,
+        is_active: true
+      })
+    }
+
+    return { ok: true, rows: parsedRows }
+  },
+
   // Agrupa linhas por uma chave string (ex.: product_code) sem lodash.
   groupByKey(rows, keyFn) {
     const out = Object.create(null)
