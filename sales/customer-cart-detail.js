@@ -1,4 +1,5 @@
 const { createSupabaseClient, formatMoneyBRL, roundMoney } = window.MarisUtils
+const { computeCartSaleTotals, buildWhatsappSummary } = window.MarisCartDetailLogic
 const sbClient = createSupabaseClient()
 
 const cartMetaEl = document.getElementById("cart-meta")
@@ -27,50 +28,13 @@ function setSaleMessage(text, type = "") {
   saleMessageEl.className = `message ${type}`.trim()
 }
 
+function getSaleTotals() {
+  return computeCartSaleTotals(selectedLines, paymentMethodSelect.value, roundMoney)
+}
+
 function updateSaleTotal() {
   const { total } = getSaleTotals()
   saleTotalEl.textContent = formatMoneyBRL(total)
-}
-
-function getSaleTotals() {
-  const payment = paymentMethodSelect.value
-  let subtotal = 0
-  for (const line of selectedLines) {
-    if (!line.checked) continue
-    subtotal += line.total_value
-  }
-  const rounded = roundMoney(subtotal)
-  const discount = payment === "pix" ? roundMoney(rounded * 0.05) : 0
-  return { subtotal: rounded, discount, total: roundMoney(rounded - discount) }
-}
-
-function buildWhatsappSummary({ paymentMethod, buyerName, lines, subtotal, discount, total }) {
-  const methodLabel = {
-    pix: "Pix",
-    cartao_credito: "Cartão de crédito",
-    cartao_debito: "Cartão de débito",
-    dinheiro: "Dinheiro",
-    transferencia: "Transferência"
-  }[paymentMethod] || paymentMethod
-
-  const linesText = lines
-    .map((line) => `- ${line.product_name} (${line.display_code || line.product_code || "-"}) x${line.quantity} = ${formatMoneyBRL(line.total_value)}`)
-    .join("\n")
-
-  return [
-    `Oi ${buyerName || "cliente"}! Sua compra foi finalizada com sucesso.`,
-    "",
-    `Pagamento: ${methodLabel}`,
-    "",
-    "Resumo dos itens:",
-    linesText,
-    "",
-    `Subtotal: ${formatMoneyBRL(subtotal)}`,
-    `Desconto: ${formatMoneyBRL(discount)}`,
-    `Total: ${formatMoneyBRL(total)}`,
-    "",
-    "Obrigada por comprar com a Maris Semijoias!"
-  ].join("\n")
 }
 
 function renderItems() {
@@ -191,7 +155,8 @@ submitSaleBtn.addEventListener("click", async () => {
       lines: checkedLines,
       subtotal: totals.subtotal,
       discount: totals.discount,
-      total: totals.total
+      total: totals.total,
+      formatMoneyBRL,
     })
     if (phoneDigits) {
       const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(whatsappText)}`

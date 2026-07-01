@@ -6,6 +6,7 @@ const {
   percentFromSavedPrice,
   parseComponentRows
 } = window.MarisUtils
+const { resolvePercentForRow } = window.MarisComponentsLogic
 
 const supabaseClient = createSupabaseClient()
 
@@ -33,15 +34,8 @@ function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
-function resolvePercentForRow(component, parentPrice) {
-  if (component?.price_percent != null && Number.isFinite(Number(component.price_percent))) {
-    return String(component.price_percent)
-  }
-  if (component?.unit_price != null && Number(parentPrice) > 0) {
-    const derived = percentFromSavedPrice(parentPrice, component.unit_price)
-    if (derived.ok) return String(derived.value)
-  }
-  return ""
+function resolvePercentForComponentRow(component, parentPrice) {
+  return resolvePercentForRow(component, parentPrice, percentFromSavedPrice)
 }
 
 function updateRowPricePreview(row) {
@@ -57,7 +51,7 @@ function updateRowPricePreview(row) {
 function createComponentRow(component = null, parentPrice = 0) {
   const id = component?.id ? String(component.id) : ""
   const name = component?.name || ""
-  const percent = component ? resolvePercentForRow(component, parentPrice) : ""
+  const percent = component ? resolvePercentForComponentRow(component, parentPrice) : ""
   const quantity = component?.quantity != null ? String(component.quantity) : "0"
 
   const result = percent ? computeComponentPrice(parentPrice, percent) : { ok: false }

@@ -5,7 +5,7 @@ import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1"
 
 // deno-lint-ignore no-explicit-any
 ;(globalThis as any).window = {}
-await import("../utils.js")
+await import("./utils.js")
 // deno-lint-ignore no-explicit-any
 const U = (globalThis as any).window.MarisUtils as any
 

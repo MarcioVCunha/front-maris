@@ -1,3 +1,5 @@
+const { parseImportJsonText } = window.MarisImportLogic
+
 const uploadBtn = document.getElementById("uploadBtn")
 const fileInput = document.getElementById("fileInput")
 const resultEl = document.getElementById("result")
@@ -37,7 +39,7 @@ uploadBtn.addEventListener("click", async () => {
   let json
   try {
     const text = await file.text()
-    json = JSON.parse(text)
+    json = parseImportJsonText(text)
   } catch {
     setResult("Não foi possível ler o arquivo ou o JSON está inválido.", "error")
     return

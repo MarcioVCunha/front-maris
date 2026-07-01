@@ -1,3 +1,8 @@
+const {
+  buildAddProductPayload,
+  validateAddProductPayload,
+} = window.MarisAddProductLogic
+
 const formEl = document.getElementById("addProductForm")
 const submitBtn = document.getElementById("submitBtn")
 const resultEl = document.getElementById("result")
@@ -20,27 +25,13 @@ function setResult(text, kind) {
 }
 
 function getPayload() {
-  const imageUrls = String(imageUrlsInput.value || "")
-    .split(/\r?\n|,/)
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0)
-
-  return {
-    code: String(codeInput.value || "").trim(),
-    name: String(nameInput.value || "").trim(),
-    unit_price: Number(priceInput.value),
-    quantity: Number(quantityInput.value),
-    image_url: imageUrls[0] || "",
-    image_urls: imageUrls
-  }
-}
-
-function validatePayload(payload) {
-  if (!payload.code) return "Informe o código da peça."
-  if (!payload.name) return "Informe o nome da peça."
-  if (!Number.isFinite(payload.unit_price) || payload.unit_price < 0) return "Informe um preço válido."
-  if (!Number.isInteger(payload.quantity) || payload.quantity < 0) return "Informe uma quantidade inteira válida."
-  return ""
+  return buildAddProductPayload({
+    code: codeInput.value,
+    name: nameInput.value,
+    unitPrice: priceInput.value,
+    quantity: quantityInput.value,
+    imageUrlsRaw: imageUrlsInput.value,
+  })
 }
 
 formEl.addEventListener("submit", async (event) => {
@@ -52,7 +43,7 @@ formEl.addEventListener("submit", async (event) => {
   }
 
   const payload = getPayload()
-  const validationError = validatePayload(payload)
+  const validationError = validateAddProductPayload(payload)
   if (validationError) {
     setResult(validationError, "error")
     return

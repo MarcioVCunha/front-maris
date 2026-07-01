@@ -1,4 +1,5 @@
 const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo, groupByKey, debounce } = window.MarisUtils
+const { filterProductsForPromo } = window.MarisPromocoesLogic
 
 const supabaseClient = createSupabaseClient()
 
@@ -86,14 +87,7 @@ function renderProductCard(product) {
 }
 
 function getFilteredProducts() {
-  const term = (searchInput.value || "").trim().toLowerCase()
-  if (!term) return products
-  return products.filter((product) => {
-    if (String(product.name || "").toLowerCase().includes(term)) return true
-    if (String(product.code || "").toLowerCase().includes(term)) return true
-    const components = componentsByProductCode[product.code] || []
-    return components.some((c) => String(c.name || "").toLowerCase().includes(term))
-  })
+  return filterProductsForPromo(products, componentsByProductCode, searchInput.value)
 }
 
 function render() {

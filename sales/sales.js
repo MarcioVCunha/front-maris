@@ -1,4 +1,12 @@
 const { createSupabaseClient, roundMoney, formatMoneyBRL, debounce, groupByKey, effectivePrice, hasPromo } = window.MarisUtils
+const {
+  doesProductMatchSearch,
+  getClampedSelectedQuantity,
+  buildQtyOptions,
+  isSalesProductShowable,
+  sortSalesProductsByName,
+  computeSaleTotals,
+} = window.MarisSalesLogic
 
 const supabaseClient = createSupabaseClient()
 
@@ -32,22 +40,15 @@ function updateSaleSummary() {
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
   const selectedComponentItems = getSelectedComponentItems()
-
-  const productsSubtotal = selectedItems.reduce((acc, item) => {
-    const product = productsByCode[item.code]
-    const unitPrice = effectivePrice(product)
-    return acc + unitPrice * item.quantity
-  }, 0)
-  const componentsSubtotal = selectedComponentItems.reduce((acc, item) => {
-    const component = componentsById[item.component_id]
-    const unitPrice = effectivePrice(component)
-    return acc + unitPrice * item.quantity
-  }, 0)
-  const subtotal = productsSubtotal + componentsSubtotal
-
-  const roundedSubtotal = roundMoney(subtotal)
-  const discount = paymentMethod === "pix" ? roundMoney(roundedSubtotal * 0.05) : 0
-  const total = roundMoney(roundedSubtotal - discount)
+  const { subtotal: roundedSubtotal, discount, total } = computeSaleTotals({
+    selectedItems,
+    selectedComponentItems,
+    productsByCode,
+    componentsById,
+    paymentMethod,
+    effectivePrice,
+    roundMoney,
+  })
 
   summarySubtotalEl.textContent = formatMoneyBRL(roundedSubtotal)
   summaryDiscountEl.textContent = formatMoneyBRL(discount)
@@ -58,58 +59,13 @@ function getSearchTerm() {
   return (productSearchInput?.value || "").trim().toLowerCase()
 }
 
-function doesProductMatchSearch(product, term) {
-  if (!term) return true
-  const name = String(product?.name || "").toLowerCase()
-  const code = String(product?.code || "").toLowerCase()
-  return name.includes(term) || code.includes(term)
-}
-
-function getClampedSelectedQuantity(code, stockQuantity) {
-  // Quantidade selecionada pode ficar “stale” se o usuário buscou e o card sumiu.
-  // Então sempre clampa usando o estoque atual do produto.
-  const raw = selectedQuantitiesByCode[code]
-  let selectedQty = Number(raw)
-  if (!Number.isFinite(selectedQty) || selectedQty < 0) selectedQty = 0
-  if (!Number.isInteger(selectedQty)) selectedQty = 0
-
-  const stock = Number(stockQuantity) || 0
-  if (stock <= 0) selectedQty = 0
-  selectedQty = Math.min(selectedQty, stock)
-
-  return selectedQty
-}
-
-function buildQtyOptions(stockQuantity, selectedQty) {
-  const quantity = Math.max(Number(stockQuantity) || 0, 0)
-  const options = Array.from({ length: quantity + 1 }, (_, i) => i)
-  return options
-    .map((q) => {
-      const label = q === 0 ? "0" : String(q)
-      const isSelected = q === selectedQty
-      return `<option value="${q}" ${isSelected ? "selected" : ""}>${label}</option>`
-    })
-    .join("")
-}
-
 function getComponentsForProduct(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
 // Com subdivisões: ignora estoque do pai; mostra na lista se algum componente tiver quantidade > 0.
-// Sem subdivisões: só entra se `product.quantity` > 0.
-function isSalesProductShowable(product) {
-  const components = getComponentsForProduct(product.code)
-  if (components.length > 0) {
-    return components.some((c) => (Number(c.quantity) || 0) > 0)
-  }
-  return (Number(product.quantity) || 0) > 0
-}
-
-function sortSalesProductsByName(products) {
-  return [...products].sort((a, b) =>
-    String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
-  )
+function isProductShowable(product) {
+  return isSalesProductShowable(product, getComponentsForProduct(product.code))
 }
 
 function buildComponentControls(productCode) {
@@ -164,7 +120,7 @@ function renderProductCards() {
   const term = getSearchTerm()
 
   // Em vendas, listamos só o que pode ser vendido: pai com estoque ou, com subdivisões, algum componente com estoque.
-  const availableProducts = products.filter((product) => isSalesProductShowable(product))
+  const availableProducts = products.filter((product) => isProductShowable(product))
 
   if (!availableProducts.length) {
     productsGrid.innerHTML = "Nenhum produto disponível para venda"
@@ -189,7 +145,7 @@ function renderProductCards() {
     const components = getComponentsForProduct(code)
     const hasComponents = components.length > 0
 
-    const selectedQty = hasComponents ? 0 : getClampedSelectedQuantity(code, stockQuantity)
+    const selectedQty = hasComponents ? 0 : getClampedSelectedQuantity(selectedQuantitiesByCode[code], stockQuantity)
     if (selectedQty > 0 && !hasComponents) {
       selectedQuantitiesByCode[code] = selectedQty
     } else {
@@ -301,7 +257,7 @@ function getSelectedItems() {
 
     const product = productsByCode[code]
     const stockQuantity = Number(product?.quantity) || 0
-    const selectedQty = getClampedSelectedQuantity(code, stockQuantity)
+    const selectedQty = getClampedSelectedQuantity(selectedQuantitiesByCode[code], stockQuantity)
 
     if (Number.isInteger(selectedQty) && selectedQty > 0) {
       selected.push({ code, quantity: selectedQty })

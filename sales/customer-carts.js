@@ -1,4 +1,5 @@
 const { createSupabaseClient, formatMoneyBRL } = window.MarisUtils
+const { sellerLabel, buildCartsListUrl } = window.MarisCustomerCartsLogic
 const sbClient = createSupabaseClient()
 
 const sellerFilter = document.getElementById("seller-filter")
@@ -30,20 +31,12 @@ async function loadSellers() {
   }
 }
 
-function sellerLabel(cart) {
-  if (cart?.seller?.name) return cart.seller.name
-  if (Number(cart?.seller_id) > 0) return `Vendedora #${cart.seller_id}`
-  return "Sem vendedora"
-}
-
 async function loadCarts() {
   const selected = sellerFilter.value || "all"
   localStorage.setItem("maris_seller_filter", selected)
   cartsListEl.innerHTML = "Carregando…"
 
-  const url = selected === "all"
-    ? window.ENV.SUPABASE_LIST_SHARED_CARTS_URL
-    : `${window.ENV.SUPABASE_LIST_SHARED_CARTS_URL}?seller_id=${encodeURIComponent(selected)}`
+  const url = buildCartsListUrl(window.ENV.SUPABASE_LIST_SHARED_CARTS_URL, selected)
 
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json().catch(() => ({}))

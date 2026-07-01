@@ -4,8 +4,8 @@ import { assertEquals } from "jsr:@std/assert@1"
 
 // deno-lint-ignore no-explicit-any
 ;(globalThis as any).window = {}
-await import("../utils.js")
-await import("../cart-resolver.js")
+await import("./utils.js")
+await import("./cart-resolver.js")
 // deno-lint-ignore no-explicit-any
 const Cart = (globalThis as any).window.MarisCart as any
 

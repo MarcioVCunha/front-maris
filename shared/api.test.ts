@@ -10,7 +10,7 @@ const win: any = {
 }
 // deno-lint-ignore no-explicit-any
 ;(globalThis as any).window = win
-await import("../api.js")
+await import("./api.js")
 const API = win.MarisApi as {
   callFunction: (
     url: string,
