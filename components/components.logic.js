@@ -9,6 +9,13 @@ export function resolvePercentForRow(component, parentPrice, percentFromSavedPri
   return ""
 }
 
+export function doesProductMatchSearch(product, term) {
+  if (!term) return true
+  const name = String(product?.name || "").toLowerCase()
+  const code = String(product?.code || "").toLowerCase()
+  return name.includes(term) || code.includes(term)
+}
+
 if (typeof globalThis.window !== "undefined") {
-  globalThis.window.MarisComponentsLogic = { resolvePercentForRow }
+  globalThis.window.MarisComponentsLogic = { resolvePercentForRow, doesProductMatchSearch }
 }

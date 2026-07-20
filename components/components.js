@@ -4,12 +4,14 @@ const {
   groupByKey,
   computeComponentPrice,
   percentFromSavedPrice,
-  parseComponentRows
+  parseComponentRows,
+  debounce
 } = window.MarisUtils
-const { resolvePercentForRow } = window.MarisComponentsLogic
+const { resolvePercentForRow, doesProductMatchSearch } = window.MarisComponentsLogic
 
 const supabaseClient = createSupabaseClient()
 
+const productSearchInput = document.getElementById("product-search")
 const productsGrid = document.getElementById("products-grid")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
@@ -29,6 +31,10 @@ let products = []
 let componentsByProductCode = Object.create(null)
 let currentProductCode = ""
 let currentProductUnitPrice = 0
+
+function getSearchTerm() {
+  return (productSearchInput?.value || "").trim().toLowerCase()
+}
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
@@ -159,21 +165,34 @@ async function loadCatalogProducts() {
   }
 
   products = data || []
+  renderProductGrids()
+}
+
+function renderProductGrids() {
+  const term = getSearchTerm()
   const available = products.filter((product) => (Number(product.quantity) || 0) > 0)
   const unavailable = products.filter((product) => (Number(product.quantity) || 0) <= 0)
+  const availableFiltered = available.filter((product) => doesProductMatchSearch(product, term))
+  const unavailableFiltered = unavailable.filter((product) => doesProductMatchSearch(product, term))
 
-  productsGrid.innerHTML = available.length
-    ? available.map((product) => renderProductCard(product)).join("")
-    : "Nenhum produto disponível."
+  if (!available.length) {
+    productsGrid.innerHTML = "Nenhum produto disponível."
+  } else if (!availableFiltered.length) {
+    productsGrid.innerHTML = term
+      ? "Nenhum produto disponível encontrado para a busca"
+      : "Nenhum produto disponível."
+  } else {
+    productsGrid.innerHTML = availableFiltered.map((product) => renderProductCard(product)).join("")
+  }
 
-  if (!unavailable.length) {
+  if (!unavailable.length || !unavailableFiltered.length) {
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
     return
   }
 
   unavailableProductsSection.hidden = false
-  unavailableProductsGrid.innerHTML = unavailable.map((product) => renderProductCard(product)).join("")
+  unavailableProductsGrid.innerHTML = unavailableFiltered.map((product) => renderProductCard(product)).join("")
 }
 
 async function saveCurrentProductComponents() {
@@ -333,5 +352,10 @@ productModal.addEventListener("click", (event) => {
 })
 
 productModalCloseBtn.addEventListener("click", closeProductModal)
+
+if (productSearchInput) {
+  const scheduleRender = debounce(() => renderProductGrids(), 120)
+  productSearchInput.addEventListener("input", scheduleRender)
+}
 
 Promise.all([loadComponents(), loadCatalogProducts()])
