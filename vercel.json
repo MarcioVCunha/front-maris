@@ -1,5 +1,6 @@
 {
   "buildCommand": "node scripts/generate-env.js",
+  "outputDirectory": ".",
   "redirects": [
     {
       "source": "/index.html",
