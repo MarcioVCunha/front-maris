@@ -36,7 +36,7 @@
   function emitUpdate() {
     const count = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
     if (cartCountEl) cartCountEl.textContent = String(count)
-    if (headerCartBtn) headerCartBtn.hidden = count <= 0
+    if (headerCartBtn) headerCartBtn.hidden = false
     window.dispatchEvent(new CustomEvent("maris-cart-updated", { detail: { count } }))
   }
 
@@ -207,18 +207,43 @@
       return upsertItem({ componentId, quantity })
     },
 
+    // Soma à quantidade já existente e limita ao estoque (nunca sobrescreve sem clamp).
     addItemWithPrice(item) {
       const normalized = normalizeItem(item)
       if (!normalized) return { ok: false, reason: "invalid_item" }
+
+      const available = getAvailableQty({
+        productCode: normalized.product_code,
+        componentId: normalized.component_id
+      })
+      if (available <= 0) return { ok: false, reason: "out_of_stock", available: 0 }
+
       const existing = cartItems.find((line) => itemKey(line) === itemKey(normalized))
+      const existingQty = existing ? Number(existing.quantity) || 0 : 0
+      const requested = existingQty + (Number(normalized.quantity) || 0)
+      const nextQty = Math.min(available, requested)
+      if (nextQty <= 0) return { ok: false, reason: "out_of_stock", available: 0 }
+
       if (existing) {
-        existing.quantity = normalized.quantity
+        existing.quantity = nextQty
         if (normalized.unit_price) existing.unit_price = normalized.unit_price
       } else {
-        cartItems.push(normalized)
+        cartItems.push({
+          ...normalized,
+          quantity: nextQty,
+          unit_price: normalized.unit_price || lockedUnitPrice({
+            productCode: normalized.product_code,
+            componentId: normalized.component_id
+          })
+        })
       }
       saveCart()
-      return { ok: true }
+      return {
+        ok: true,
+        clamped: requested > available,
+        available,
+        quantity: nextQty
+      }
     },
 
     removeByKey(key) {

@@ -188,9 +188,9 @@ body {
 .result-body {
   margin: 0;
   padding: 16px 18px;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   line-height: 1.5;
-  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+  font-family: inherit;
   white-space: pre-wrap;
   word-break: break-word;
   border-radius: 12px;
@@ -198,6 +198,22 @@ body {
   background: #faf7f8;
   color: #4a3540;
   max-height: 320px;
+  overflow: auto;
+}
+
+.result-details {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 10px;
+  border: 1px solid rgba(220, 200, 208, 0.6);
+  background: #f5f2f3;
+  color: #6a5560;
+  max-height: 200px;
   overflow: auto;
 }
 

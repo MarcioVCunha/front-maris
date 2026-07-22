@@ -20,6 +20,17 @@ Deno.test("doesProductMatchSearch: nome e código", () => {
   assertEquals(doesProductMatchSearch({ name: "Anel", code: "A1" }, "b1"), false)
 })
 
+Deno.test("doesProductMatchSearch: nome de tipo/componente", () => {
+  assertEquals(
+    doesProductMatchSearch({ name: "Conjunto", code: "C1" }, "brinco", [{ name: "Brinco ouro" }]),
+    true
+  )
+  assertEquals(
+    doesProductMatchSearch({ name: "Conjunto", code: "C1" }, "colar", [{ name: "Brinco ouro" }]),
+    false
+  )
+})
+
 Deno.test("getClampedSelectedQuantity: respeita estoque", () => {
   assertEquals(getClampedSelectedQuantity(5, 2), 2)
   assertEquals(getClampedSelectedQuantity(1, 0), 0)

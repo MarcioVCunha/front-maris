@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importar produtos — Maris</title>
+    <title>Importar produtos — Maris Semijoias</title>
     <link rel="stylesheet" href="/importJson/import.css">
   </head>
 
@@ -13,7 +13,7 @@
         <a class="back-link" href="/admin">← Voltar à administração</a>
         <h1>Importar produtos</h1>
         <p class="lead">
-          Escolha um arquivo JSON exportado do catálogo ou do pedido e envie para atualizar os dados.
+          Envie um arquivo JSON com a lista de produtos para criar ou atualizar vários itens de uma vez.
         </p>
       </header>
 
@@ -40,13 +40,15 @@
         </div>
 
         <section class="result-wrap" id="resultWrap" hidden>
-          <h2 class="result-title">Resposta do servidor</h2>
-          <pre id="result" class="result-body" role="status"></pre>
+          <h2 class="result-title" id="resultTitle">Resultado</h2>
+          <p id="result" class="result-body" role="status"></p>
+          <pre id="resultDetails" class="result-details" hidden></pre>
         </section>
       </main>
     </div>
 
     <script src="/shared/staff-auth.js"></script>
+    <script src="/env.js"></script>
     <script src="/shared/utils.js"></script>
     <script src="/shared/api.js"></script>
     <script type="module" src="/importJson/import.logic.js"></script>

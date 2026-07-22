@@ -1,8 +1,16 @@
 // Utilidades globais usadas pelas telas da pasta `front/`.
 // Config pública do Supabase (anon key é exposta no browser por design — proteção via RLS).
+// Preferir window.__MARIS_ENV__ (env.js gerado no build); fallback = prod para local/dev.
+const FALLBACK_SUPABASE_URL = "https://epuvfjdyyzccsuafwopr.supabase.co"
+const FALLBACK_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwdXZmamR5eXpjY3N1YWZ3b3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NTgwMzUsImV4cCI6MjA4OTIzNDAzNX0.DOpM6CRRH54_oLMTghCnGMLq_1aH_5YRGSXNKn_LdB4"
+
 window.ENV = {
-  SUPABASE_URL: "https://epuvfjdyyzccsuafwopr.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwdXZmamR5eXpjY3N1YWZ3b3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2NTgwMzUsImV4cCI6MjA4OTIzNDAzNX0.DOpM6CRRH54_oLMTghCnGMLq_1aH_5YRGSXNKn_LdB4",
+  ...(window.__MARIS_ENV__ || {}),
+  SUPABASE_URL: (window.__MARIS_ENV__ && window.__MARIS_ENV__.SUPABASE_URL) || FALLBACK_SUPABASE_URL,
+  SUPABASE_ANON_KEY:
+    (window.__MARIS_ENV__ && window.__MARIS_ENV__.SUPABASE_ANON_KEY) || FALLBACK_SUPABASE_ANON_KEY,
+  APP_ENV: (window.__MARIS_ENV__ && window.__MARIS_ENV__.APP_ENV) || "production",
   fn(name) {
     const base = String(this.SUPABASE_URL || "").replace(/\/$/, "")
     return `${base}/functions/v1/${name}`

@@ -1,5 +1,6 @@
-const { createSupabaseClient, formatMoneyBRL, debounce, effectivePrice, hasPromo } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
 const { doesProductMatchSearch, sortProductsForCatalog } = window.MarisCatalogLogic
+const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
 const supabaseClient = createSupabaseClient()
 
@@ -12,6 +13,7 @@ const productModal = document.getElementById("product-modal")
 const productModalCarousel = document.querySelector(".product-modal-carousel")
 const productModalPrevBtn = document.getElementById("product-modal-prev")
 const productModalNextBtn = document.getElementById("product-modal-next")
+const productModalCloseBtn = document.getElementById("product-modal-close")
 const productModalImage = document.getElementById("product-modal-image")
 const productModalDots = document.getElementById("product-modal-dots")
 const productModalTitle = document.getElementById("product-modal-title")
@@ -97,8 +99,8 @@ function setModalImageIndex(index) {
     .join("")
 }
 
-// Com subdivisões: ignora estoque do pai; disponível se algum componente tiver quantidade > 0.
-// Sem subdivisões: usa apenas `product.quantity`.
+// Com tipos: ignora estoque do pai; disponível se algum tipo tiver quantidade > 0.
+// Sem tipos: usa apenas `product.quantity`.
 // `components` opcional evita segundo lookup no mesmo render.
 function isCatalogProductAvailable(product, components = null) {
   const list = components ?? getProductComponents(product.code)
@@ -157,17 +159,20 @@ function renderCatalogProduct(product) {
     ? `<span class="product-sale-badge">-${Number(product.discount_percent) || 0}%</span>`
     : ""
 
+  // Com tipos: só abre o modal (estoque/venda são por tipo, não pelo pai).
   const actionHtml = soldOut
-    ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${product.code}">Lista de espera</button>`
-    : `<button type="button" class="add-cart-card-btn" data-add-code="${product.code}">Adicionar à cesta</button>`
+    ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+    : components.length
+      ? `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
+      : `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
 
   return `
-    <article class="product ${soldOut ? "sold-out" : ""}" data-product-code="${product.code}" role="button" tabindex="0">
+    <article class="product ${soldOut ? "sold-out" : ""}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
       ${saleBadge}
-      <img src="${coverImage}" alt="${product.name}" loading="lazy">
+      <img src="${escapeHtml(coverImage)}" alt="${escapeHtml(product.name)}" loading="lazy">
       <div class="product-body">
-        <h3>${product.name}</h3>
-        <div class="code">${product.code}</div>
+        <h3>${escapeHtml(product.name)}</h3>
+        <div class="code">${escapeHtml(product.code)}</div>
         ${splitInfo}
         ${priceHtml}
         ${actionHtml}
@@ -178,7 +183,7 @@ function renderCatalogProduct(product) {
 
 function renderModalComponentsRows(components) {
   if (!components.length) {
-    productModalComponentsList.innerHTML = '<div class="component-col">Este produto não tem divisão cadastrada.</div>'
+    productModalComponentsList.innerHTML = '<div class="component-col">Este produto não tem tipos cadastrados.</div>'
     return
   }
 
@@ -186,8 +191,8 @@ function renderModalComponentsRows(components) {
     const componentQty = Number(component.quantity) || 0
     const isAvailable = componentQty > 0
     const actionBtn = isAvailable
-      ? `<button type="button" class="modal-add-btn" data-add-component="${component.id}">+ Carrinho</button>`
-      : `<button type="button" class="modal-waitlist-btn" data-waitlist-component="${component.id}">Lista de espera</button>`
+      ? `<button type="button" class="modal-add-btn" data-add-component="${escapeHtml(component.id)}">+ Cesta</button>`
+      : `<button type="button" class="modal-waitlist-btn" data-waitlist-component="${escapeHtml(component.id)}">Lista de espera</button>`
     const componentOnSale = hasPromo(component)
     const priceLabel = componentOnSale
       ? `Valor: ${window.MarisUI.renderPricePair(component.unit_price, effectivePrice(component))}`
@@ -195,7 +200,7 @@ function renderModalComponentsRows(components) {
     return `
       <div class="component-row ${isAvailable ? "" : "is-unavailable"}">
         <div class="component-col">
-          <strong>${component.name}</strong>
+          <strong>${escapeHtml(component.name)}</strong>
         </div>
         <div class="component-col ${isAvailable ? "" : "component-status-unavailable"}">${isAvailable ? priceLabel : "Indisponível"}</div>
         <div class="component-col component-actions">${actionBtn}</div>
@@ -211,9 +216,9 @@ function renderModalActions(product, components, soldOut) {
     return
   }
   if (soldOut) {
-    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-waitlist-btn" data-waitlist-code="${product.code}">Entrar na lista de espera</button>`
+    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-waitlist-btn" data-waitlist-code="${escapeHtml(product.code)}">Entrar na lista de espera</button>`
   } else {
-    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-add-btn" data-add-code="${product.code}">Adicionar ao carrinho</button>`
+    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-add-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
   }
 }
 
@@ -313,7 +318,7 @@ function openProductModal(product) {
   setModalImageIndex(0)
   productModalCode.textContent = ""
   if (components.length) {
-    productModalPrice.innerHTML = "Preço: consulte os valores das subdivisões"
+    productModalPrice.innerHTML = "Preço: consulte os valores dos tipos"
   } else if (soldOut) {
     productModalPrice.innerHTML = "Preço: Em falta"
   } else if (productOnSale) {
@@ -479,10 +484,23 @@ function handleCatalogGridClick(event) {
     joinWaitlist({ productCode: waitlistBtn.getAttribute("data-waitlist-code") })
     return
   }
+  const viewTypesBtn = event.target.closest("[data-view-code]")
+  if (viewTypesBtn) {
+    event.stopPropagation()
+    const product = productsByCode[viewTypesBtn.getAttribute("data-view-code")]
+    openProductModal(product)
+    return
+  }
   const addBtn = event.target.closest("[data-add-code]")
   if (addBtn) {
     event.stopPropagation()
-    const result = window.MarisCatalogCart?.addProduct(addBtn.getAttribute("data-add-code"), 1)
+    const code = addBtn.getAttribute("data-add-code")
+    // Produtos com tipos não devem ir para a cesta pelo pai.
+    if (getProductComponents(code).length) {
+      openProductModal(productsByCode[code])
+      return
+    }
+    const result = window.MarisCatalogCart?.addProduct(code, 1)
     notifyCartAdd(result, "Produto")
     return
   }
@@ -502,7 +520,7 @@ productModal.addEventListener("click", async (event) => {
   const addComp = event.target.closest("[data-add-component]")
   if (addComp) {
     const result = await window.MarisCatalogCart?.addComponent(Number(addComp.getAttribute("data-add-component")), 1)
-    notifyCartAdd(result, "Componente")
+    notifyCartAdd(result, "Tipo")
     return
   }
   const waitCode = event.target.closest("[data-waitlist-code]")
@@ -513,6 +531,11 @@ productModal.addEventListener("click", async (event) => {
   const waitComp = event.target.closest("[data-waitlist-component]")
   if (waitComp) {
     joinWaitlist({ componentId: Number(waitComp.getAttribute("data-waitlist-component")) })
+    return
+  }
+  const closeBtn = event.target.closest("#product-modal-close")
+  if (closeBtn) {
+    closeProductModal()
     return
   }
   const target = event.target
@@ -527,6 +550,9 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
+if (productModalCloseBtn) {
+  productModalCloseBtn.addEventListener("click", closeProductModal)
+}
 productModalPrevBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex - 1))
 productModalNextBtn.addEventListener("click", () => setModalImageIndex(modalImageIndex + 1))
 productModalDots.addEventListener("click", (event) => {
@@ -559,8 +585,7 @@ if (productModalCarousel) {
 }
 
 if (catalogSearchInput) {
-  const scheduleRender = debounce(() => renderCatalogGrids(), 120)
-  catalogSearchInput.addEventListener("input", scheduleRender)
+  window.MarisUI.bindDebouncedSearch(catalogSearchInput, () => renderCatalogGrids(), { debounceMs: 120 })
 }
 
 if (catalogSortSelect) {
@@ -584,5 +609,10 @@ document.addEventListener("keydown", (event) => {
     closeWaitlistModal()
   }
 })
+
+const staffBackPanel = document.getElementById("staff-back-panel")
+if (staffBackPanel && window.MarisStaffAuth?.isValid?.()) {
+  staffBackPanel.hidden = false
+}
 
 loadCatalogData()

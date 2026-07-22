@@ -1,11 +1,15 @@
 const { createSupabaseClient, formatMoneyBRL, roundMoney } = window.MarisUtils
 const { computeCartSaleTotals, buildWhatsappSummary } = window.MarisCartDetailLogic
 const sbClient = createSupabaseClient()
+const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
 const cartMetaEl = document.getElementById("cart-meta")
 const buyerInfoEl = document.getElementById("buyer-info")
 const cartItemsDetailEl = document.getElementById("cart-items-detail")
 const paymentMethodSelect = document.getElementById("payment-method")
+const saleSubtotalEl = document.getElementById("sale-subtotal")
+const saleDiscountRowEl = document.getElementById("sale-discount-row")
+const saleDiscountEl = document.getElementById("sale-discount")
 const saleTotalEl = document.getElementById("sale-total")
 const submitSaleBtn = document.getElementById("submit-sale")
 const saleMessageEl = document.getElementById("sale-message")
@@ -15,6 +19,7 @@ const cartId = String(params.get("cart_id") || "").trim()
 
 let activeCart = null
 let selectedLines = []
+let saleCompleted = false
 
 function staffHeaders() {
   return {
@@ -33,7 +38,13 @@ function getSaleTotals() {
 }
 
 function updateSaleTotal() {
-  const { total } = getSaleTotals()
+  const { subtotal, discount, total } = getSaleTotals()
+  if (saleSubtotalEl) saleSubtotalEl.textContent = formatMoneyBRL(subtotal)
+  if (saleDiscountEl) saleDiscountEl.textContent = formatMoneyBRL(discount)
+  if (saleDiscountRowEl) {
+    const isPix = paymentMethodSelect.value === "pix"
+    saleDiscountRowEl.hidden = !isPix
+  }
   saleTotalEl.textContent = formatMoneyBRL(total)
 }
 
@@ -41,20 +52,28 @@ function renderItems() {
   cartItemsDetailEl.innerHTML = selectedLines
     .map((line, idx) => `
       <div class="cart-item-row">
-        <input type="checkbox" data-idx="${idx}" ${line.checked ? "checked" : ""}>
-        ${line.image_url ? `<img src="${line.image_url}" alt="${line.product_name}" class="cart-item-thumb">` : '<div class="cart-item-thumb"></div>'}
+        <input type="checkbox" data-idx="${idx}" ${line.checked ? "checked" : ""} ${saleCompleted ? "disabled" : ""}>
+        ${line.image_url ? `<img src="${escapeHtml(line.image_url)}" alt="${escapeHtml(line.product_name)}" class="cart-item-thumb">` : '<div class="cart-item-thumb"></div>'}
         <div class="cart-item-info">
-          <strong>${line.product_name}</strong><br>
-          <span>${line.display_code || line.product_code || ""} · x${line.quantity} · ${formatMoneyBRL(line.total_value)}</span>
+          <strong>${escapeHtml(line.product_name)}</strong><br>
+          <span>${escapeHtml(line.display_code || line.product_code || "")} · x${escapeHtml(line.quantity)} · ${formatMoneyBRL(line.total_value)}</span>
         </div>
       </div>
     `)
     .join("")
 }
 
+function lockSaleUi() {
+  saleCompleted = true
+  submitSaleBtn.disabled = true
+  paymentMethodSelect.disabled = true
+  renderItems()
+}
+
 async function loadCartDetail() {
   if (!cartId) {
     cartMetaEl.textContent = "Carrinho inválido."
+    submitSaleBtn.disabled = true
     return
   }
   const url = `${window.ENV.fn("list-shared-carts")}?cart_id=${encodeURIComponent(cartId)}`
@@ -62,6 +81,7 @@ async function loadCartDetail() {
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.carts?.length) {
     cartMetaEl.textContent = data.error || "Carrinho não encontrado."
+    submitSaleBtn.disabled = true
     return
   }
 
@@ -70,9 +90,9 @@ async function loadCartDetail() {
   const b = activeCart.buyer || {}
   const wa = b.whatsapp ? String(b.whatsapp).replace(/\D/g, "") : ""
   buyerInfoEl.innerHTML = `
-    <p><strong>${b.full_name || "—"}</strong></p>
-    <p>E-mail: ${b.email || "—"}</p>
-    <p>WhatsApp: ${wa ? `<a href="https://wa.me/${wa}" target="_blank" rel="noopener">${b.whatsapp}</a>` : "—"}</p>
+    <p><strong>${escapeHtml(b.full_name || "—")}</strong></p>
+    <p>E-mail: ${escapeHtml(b.email || "—")}</p>
+    <p>WhatsApp: ${wa ? `<a href="https://wa.me/${escapeHtml(wa)}" target="_blank" rel="noopener">${escapeHtml(b.whatsapp)}</a>` : "—"}</p>
   `
   selectedLines = (activeCart.items || []).map((item) => ({ ...item, checked: true }))
   renderItems()
@@ -80,6 +100,7 @@ async function loadCartDetail() {
 }
 
 cartItemsDetailEl.addEventListener("change", (event) => {
+  if (saleCompleted) return
   const input = event.target.closest('input[type="checkbox"]')
   if (!input) return
   const idx = Number(input.dataset.idx)
@@ -91,7 +112,7 @@ cartItemsDetailEl.addEventListener("change", (event) => {
 paymentMethodSelect.addEventListener("change", updateSaleTotal)
 
 submitSaleBtn.addEventListener("click", async () => {
-  if (!activeCart) return
+  if (!activeCart || saleCompleted) return
   const sellerId = Number(activeCart.seller_id) || 0
   if (sellerId <= 0) {
     setSaleMessage("Carrinho sem vendedora definida.", "error")
@@ -105,8 +126,12 @@ submitSaleBtn.addEventListener("click", async () => {
 
   const items = []
   const component_items = []
+  let uncheckedCount = 0
   for (const line of selectedLines) {
-    if (!line.checked) continue
+    if (!line.checked) {
+      uncheckedCount += 1
+      continue
+    }
     if (line.component_id) {
       component_items.push({
         component_id: line.component_id,
@@ -126,6 +151,24 @@ submitSaleBtn.addEventListener("click", async () => {
     return
   }
 
+  const totals = getSaleTotals()
+  const soldCount = items.length + component_items.length
+  const pixNote = payment === "pix" ? `\nDesconto Pix: ${formatMoneyBRL(totals.discount)}` : ""
+  let confirmMsg =
+    `Registrar venda de ${soldCount} item(ns)?\n` +
+    `Subtotal: ${formatMoneyBRL(totals.subtotal)}${pixNote}\n` +
+    `Total: ${formatMoneyBRL(totals.total)}`
+
+  if (uncheckedCount > 0) {
+    confirmMsg +=
+      `\n\n${uncheckedCount} item(ns) desmarcado(s) NÃO serão vendidos agora ` +
+      `e o carrinho permanecerá na lista para esses itens.`
+  } else {
+    confirmMsg += "\n\nO carrinho sairá da lista de compartilhados."
+  }
+
+  if (!window.confirm(confirmMsg)) return
+
   submitSaleBtn.disabled = true
   setSaleMessage("Registrando…")
   try {
@@ -137,17 +180,32 @@ submitSaleBtn.addEventListener("click", async () => {
     const saleData = await saleRes.json().catch(() => ({}))
     if (!saleRes.ok) {
       setSaleMessage(saleData.error || "Erro ao registrar venda.", "error")
+      submitSaleBtn.disabled = false
       return
     }
 
-    await fetch(window.ENV.fn("mark-cart-converted"), {
-      method: "POST",
-      headers: staffHeaders(),
-      body: JSON.stringify({ cart_id: activeCart.id })
-    })
+    // Só marca o carrinho inteiro como convertido quando todos os itens foram vendidos.
+    if (uncheckedCount === 0) {
+      const markRes = await fetch(window.ENV.fn("mark-cart-converted"), {
+        method: "POST",
+        headers: staffHeaders(),
+        body: JSON.stringify({ cart_id: activeCart.id })
+      })
+      if (!markRes.ok) {
+        const markData = await markRes.json().catch(() => ({}))
+        setSaleMessage(
+          markData.error ||
+            "Venda registrada, mas o carrinho não saiu da lista. Atualize e confira.",
+          "error"
+        )
+        lockSaleUi()
+        return
+      }
+    }
+
+    lockSaleUi()
 
     const checkedLines = selectedLines.filter((line) => line.checked)
-    const totals = getSaleTotals()
     const phoneDigits = String(activeCart?.buyer?.whatsapp || "").replace(/\D/g, "")
     const whatsappText = buildWhatsappSummary({
       paymentMethod: payment,
@@ -161,13 +219,22 @@ submitSaleBtn.addEventListener("click", async () => {
     if (phoneDigits) {
       const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(whatsappText)}`
       window.open(waUrl, "_blank", "noopener")
-      setSaleMessage("Venda registrada e conversa com a cliente aberta no WhatsApp!", "success")
+      setSaleMessage(
+        uncheckedCount > 0
+          ? "Venda parcial registrada. Carrinho permanece na lista com os itens restantes. WhatsApp aberto."
+          : "Venda registrada e conversa com a cliente aberta no WhatsApp!",
+        "success"
+      )
     } else {
-      setSaleMessage("Venda registrada com sucesso! Não encontrei o WhatsApp da cliente para abrir conversa automática.", "success")
+      setSaleMessage(
+        uncheckedCount > 0
+          ? "Venda parcial registrada. Carrinho permanece na lista com os itens restantes."
+          : "Venda registrada com sucesso! Não encontrei o WhatsApp da cliente para abrir conversa automática.",
+        "success"
+      )
     }
   } catch {
     setSaleMessage("Erro de conexão.", "error")
-  } finally {
     submitSaleBtn.disabled = false
   }
 })

@@ -6,6 +6,7 @@
     <title>Promoções — Maris Semijoias</title>
     <link rel="stylesheet" href="/promocoes/promocoes.css">
     <script src="/shared/staff-auth.js"></script>
+    <script src="/env.js"></script>
     <script src="/shared/utils.js"></script>
     <script src="/shared/api.js"></script>
     <script src="/shared/ui.js"></script>
@@ -16,8 +17,9 @@
     <header class="promo-header">
       <a class="back-link" href="/admin">← Voltar à administração</a>
       <h1>Promoções</h1>
-      <p>Ative a promoção de um produto ou de uma peça separada e defina o percentual de desconto. O preço base não é alterado.</p>
-      <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome ou código…">
+      <p>Ative a promoção de um produto ou de um tipo e defina o percentual de desconto. O preço base não é alterado. Produtos com tipos só vendem pelos tipos — promova cada tipo abaixo.</p>
+      <label for="promo-search" class="visually-hidden">Buscar produtos</label>
+      <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome, código ou tipo…" autocomplete="off" enterkeyhint="search">
     </header>
 
     <main class="promo-main">

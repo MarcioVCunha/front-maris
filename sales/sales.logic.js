@@ -1,8 +1,9 @@
-export function doesProductMatchSearch(product, term) {
+export function doesProductMatchSearch(product, term, components = []) {
   if (!term) return true
   const name = String(product?.name || "").toLowerCase()
   const code = String(product?.code || "").toLowerCase()
-  return name.includes(term) || code.includes(term)
+  if (name.includes(term) || code.includes(term)) return true
+  return (components || []).some((c) => String(c?.name || "").toLowerCase().includes(term))
 }
 
 export function getClampedSelectedQuantity(raw, stockQuantity) {

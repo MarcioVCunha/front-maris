@@ -54,9 +54,14 @@
     }
   }
 
+  // Páginas públicas podem carregar este script com data-optional para usar
+  // MarisStaffAuth.isValid() sem redirecionar (ex.: “Voltar ao painel” no catálogo).
+  const scriptEl = document.currentScript
+  const optional = scriptEl?.hasAttribute("data-optional")
+
   // Na própria página do gate não fazemos o auto-redirect (evita loop): lá o
   // MarisStaffAuth é usado apenas para checar/gravar o token.
-  if (window.location.pathname !== GATE_PATH && !window.MarisStaffAuth.requireStaffAccess()) {
+  if (!optional && window.location.pathname !== GATE_PATH && !window.MarisStaffAuth.requireStaffAccess()) {
     throw new Error("staff-auth-redirect")
   }
 })()

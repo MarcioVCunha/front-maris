@@ -25,8 +25,10 @@ function setMessage(text, type = "") {
 
 function setActiveStep(stepNumber) {
   stepEls.forEach((el, idx) => {
-    if (idx === stepNumber - 1) el.classList.add("cart-step--active")
-    else el.classList.remove("cart-step--active")
+    const active = idx === stepNumber - 1
+    el.classList.toggle("cart-step--active", active)
+    if (active) el.setAttribute("aria-current", "step")
+    else el.removeAttribute("aria-current")
   })
 }
 
@@ -56,7 +58,7 @@ function formatWhatsappMask(value) {
 function renderCart() {
   const lines = window.MarisCatalogCart.getLineDetails()
   if (!lines.length) {
-    cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta está vazia. Volte ao catálogo para adicionar produtos.</p>"
+    cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
     cartTotalEl.textContent = formatMoneyBRL(0)
     if (generateLinkBtn) generateLinkBtn.disabled = true
     if (shareCartBtn) shareCartBtn.disabled = true
@@ -79,10 +81,10 @@ function renderCart() {
     return `
       <article class="cart-line" data-key="${line.key}">
         <div class="cart-line-main">
-          <img class="cart-line-image" src="${line.image_url || ""}" alt="${line.name}">
+          <img class="cart-line-image" src="${window.MarisUI.escapeHtml(line.image_url || "")}" alt="${window.MarisUI.escapeHtml(line.name)}">
           <div>
-            <p class="cart-line-name">${line.name}</p>
-            <p class="cart-line-code">${line.code} · ${priceLabel}</p>
+            <p class="cart-line-name">${window.MarisUI.escapeHtml(line.name)}</p>
+            <p class="cart-line-code">${window.MarisUI.escapeHtml(line.code)} \u2014 ${priceLabel}</p>
             <p class="cart-line-stock">${stockLabel}</p>
           </div>
         </div>
@@ -106,7 +108,7 @@ async function loadCatalogData() {
   ])
   if (productsRes.error || componentsRes.error || imagesRes.error) {
     console.error(productsRes.error || componentsRes.error || imagesRes.error)
-    throw new Error("Falha ao carregar o catálogo.")
+    throw new Error("Falha ao carregar o cat\u00e1logo.")
   }
   const imagesByCode = Object.create(null)
   const products = productsRes.data || []
@@ -130,12 +132,12 @@ async function loadCatalogData() {
 async function loadSellers() {
   if (!sellerSelectEl) return
   const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
-  sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + (data || []).map((s) => `<option value="${s.id}">${s.name}</option>`).join("")
+  sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + (data || []).map((s) => `<option value="${window.MarisUI.escapeHtml(s.id)}">${window.MarisUI.escapeHtml(s.name)}</option>`).join("")
 }
 
 function getSharePayload() {
   const buyer = getBuyerPayload()
-  if (!buyer) return { error: "Preencha nome e WhatsApp válidos." }
+  if (!buyer) return { error: "Preencha nome e WhatsApp v\u00e1lidos." }
   const sellerId = Number(sellerSelectEl?.value)
   if (!sellerId) return { error: "Selecione uma vendedora." }
   const lines = window.MarisCatalogCart.getItems().map((line) => ({
@@ -144,7 +146,7 @@ function getSharePayload() {
     quantity: Number(line.quantity) || 0,
     unit_price: Number(line.unit_price) || undefined
   }))
-  if (!lines.length) return { error: "Sua cesta está vazia." }
+  if (!lines.length) return { error: "Sua cesta est\u00e1 vazia." }
   return {
     payload: {
       buyer_name: buyer.name,
@@ -168,25 +170,25 @@ async function checkStock() {
     body: { ...parsed.payload, dry_run: true }
   })
   if (!ok) {
-    setMessage(data.error || "Não foi possível validar o estoque.", "error")
+    setMessage(data.error || "N\u00e3o foi poss\u00edvel validar o estoque.", "error")
     return
   }
   const issues = data.stock_issues || []
   if (!issues.length) {
     stockIssuesEl.hidden = true
     stockIssuesEl.innerHTML = ""
-    setMessage("Estoque validado. Você já pode compartilhar.", "success")
+    setMessage("Estoque validado. Voc\u00ea j\u00e1 pode compartilhar.", "success")
     setActiveStep(3)
     return
   }
   stockIssuesEl.hidden = false
   stockIssuesEl.innerHTML = issues.map((issue) => {
     if (issue.reason === "out_of_stock") {
-      return `<li><strong>${issue.product_name}</strong> (${issue.product_code}) — sem estoque</li>`
+      return `<li><strong>${issue.product_name}</strong> (${issue.product_code}) \u2014 sem estoque</li>`
     }
-    return `<li><strong>${issue.product_name}</strong> — pedido ${issue.requested}, disponível ${issue.available}</li>`
+    return `<li><strong>${issue.product_name}</strong> \u2014 pedido ${issue.requested}, dispon\u00edvel ${issue.available}</li>`
   }).join("")
-  setMessage("Alguns itens têm estoque limitado. Você ainda pode compartilhar para a vendedora ajustar.", "error")
+  setMessage("Alguns itens t\u00eam estoque limitado. Voc\u00ea ainda pode compartilhar para a vendedora ajustar.", "error")
 }
 
 async function shareCart() {
@@ -203,7 +205,7 @@ async function shareCart() {
       body: parsed.payload
     })
     if (!ok) {
-      setMessage(data.error || "Não foi possível compartilhar o carrinho.", "error")
+      setMessage(data.error || "N\u00e3o foi poss\u00edvel enviar a cesta.", "error")
       return
     }
     window.MarisCatalogCart.clear()
@@ -211,7 +213,7 @@ async function shareCart() {
     stockIssuesEl.hidden = true
     stockIssuesEl.innerHTML = ""
     hideShareResult()
-    setMessage("Carrinho compartilhado com sucesso. A vendedora entrará em contato.", "success")
+    setMessage("Cesta enviada \u00e0 vendedora. Ela entrar\u00e1 em contato pelo WhatsApp.", "success")
     setActiveStep(3)
   } finally {
     shareCartBtn.disabled = false
@@ -227,7 +229,7 @@ function hideShareResult() {
 function showShareResult(url) {
   shareLinkInput.value = url
   shareResultEl.hidden = false
-  const text = `Olá! Separei algumas peças da Maris Semijoias, dá uma olhada: ${url}`
+  const text = `Ol\u00e1! Separei algumas pe\u00e7as da Maris Semijoias, d\u00ea uma olhada: ${url}`
   shareWhatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(text)}`
 }
 
@@ -240,18 +242,18 @@ async function generateLink() {
     unit_price: Number(line.unit_price) || undefined
   }))
   if (!items.length) {
-    setMessage("Sua cesta está vazia.", "error")
+    setMessage("Sua cesta est\u00e1 vazia.", "error")
     return
   }
 
   generateLinkBtn.disabled = true
-  generateLinkBtn.textContent = "Gerando…"
+  generateLinkBtn.textContent = "Gerando\u2026"
   try {
     const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("create-shared-basket"), {
       body: { items }
     })
     if (!ok || !data.id) {
-      setMessage(data.error || "Não foi possível gerar o link.", "error")
+      setMessage(data.error || "N\u00e3o foi poss\u00edvel gerar o link.", "error")
       return
     }
     const url = `${window.location.origin}/catalog/cesta?id=${encodeURIComponent(data.id)}`
@@ -259,7 +261,7 @@ async function generateLink() {
     setMessage("Link gerado! Copie ou envie no WhatsApp.", "success")
     setActiveStep(3)
   } catch {
-    setMessage("Erro de conexão ao gerar o link.", "error")
+    setMessage("Erro de conex\u00e3o ao gerar o link.", "error")
   } finally {
     generateLinkBtn.disabled = false
     generateLinkBtn.textContent = "Gerar link para compartilhar"
@@ -319,14 +321,14 @@ window.addEventListener("maris-cart-updated", renderCart)
     const buyer = window.MarisCatalogCart.getBuyerProfile()
     if (buyer && buyerNameEl) {
       buyerNameEl.value = buyer.name || ""
-      buyerWhatsappEl.value = buyer.whatsapp || ""
+      buyerWhatsappEl.value = formatWhatsappMask(buyer.whatsapp || "")
       buyerEmailEl.value = buyer.email || ""
     }
     renderCart()
   } catch (error) {
     console.error(error)
     renderCart()
-    setMessage("Não foi possível carregar a cesta. Atualize a página.", "error")
+    setMessage("N\u00e3o foi poss\u00edvel carregar a cesta. Atualize a p\u00e1gina.", "error")
   }
 })()
 })()

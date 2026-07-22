@@ -1,12 +1,15 @@
 const {
   buildAddProductPayload,
   validateAddProductPayload,
+  formatAddProductSuccessMessage,
+  formatAddProductErrorMessage,
 } = window.MarisAddProductLogic
 
 const formEl = document.getElementById("addProductForm")
 const submitBtn = document.getElementById("submitBtn")
 const resultEl = document.getElementById("result")
 const resultWrap = document.getElementById("resultWrap")
+const resultTitleEl = document.getElementById("resultTitle")
 const codeInput = document.getElementById("codeInput")
 const nameInput = document.getElementById("nameInput")
 const priceInput = document.getElementById("priceInput")
@@ -18,9 +21,16 @@ const FUNCTION_URL = window.ENV.fn("add-product")
 function setResult(text, kind) {
   resultEl.textContent = text
   resultEl.classList.remove("is-loading", "is-error", "is-success")
-  if (kind === "loading") resultEl.classList.add("is-loading")
-  else if (kind === "error") resultEl.classList.add("is-error")
-  else if (kind === "success") resultEl.classList.add("is-success")
+  if (kind === "loading") {
+    resultEl.classList.add("is-loading")
+    if (resultTitleEl) resultTitleEl.textContent = "Enviando…"
+  } else if (kind === "error") {
+    resultEl.classList.add("is-error")
+    if (resultTitleEl) resultTitleEl.textContent = "Não foi possível cadastrar"
+  } else if (kind === "success") {
+    resultEl.classList.add("is-success")
+    if (resultTitleEl) resultTitleEl.textContent = "Produto cadastrado"
+  }
   resultWrap.hidden = false
 }
 
@@ -49,7 +59,7 @@ formEl.addEventListener("submit", async (event) => {
     return
   }
 
-  setResult("Enviando peça...", "loading")
+  setResult("Enviando…", "loading")
   submitBtn.disabled = true
 
   try {
@@ -59,14 +69,11 @@ formEl.addEventListener("submit", async (event) => {
     })
 
     if (!ok) {
-      setResult(
-        JSON.stringify({ error: data?.error || `Erro HTTP ${status}` }, null, 2),
-        "error"
-      )
+      setResult(formatAddProductErrorMessage(data, status), "error")
       return
     }
 
-    setResult(JSON.stringify(data, null, 2), "success")
+    setResult(formatAddProductSuccessMessage(payload, data), "success")
     formEl.reset()
   } catch {
     setResult("Não foi possível conectar. Verifique a internet e tente de novo.", "error")

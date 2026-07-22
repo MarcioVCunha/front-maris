@@ -20,6 +20,8 @@ let productImagesByCode = Object.create(null)
 let basketItems = []
 /** @type {Set<string>} */
 const selectedKeys = new Set()
+/** @type {"loading"|"ready"|"missing_id"|"not_found"|"empty"|"error"} */
+let basketState = "loading"
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -37,6 +39,13 @@ function resolveLine(item) {
   )
 }
 
+function emptyStateHtml(message) {
+  return `
+    <p class="cart-help">${message}</p>
+    <p class="cart-help"><a href="/catalog">Voltar ao catálogo</a></p>
+  `
+}
+
 function updateTotal() {
   let total = 0
   for (const item of basketItems) {
@@ -45,16 +54,45 @@ function updateTotal() {
     total += info.unitPrice * item.quantity
   }
   basketTotalEl.textContent = formatMoneyBRL(total)
-  addSelectedBtn.disabled = selectedKeys.size === 0
+  addSelectedBtn.disabled = selectedKeys.size === 0 || basketState !== "ready"
 }
 
 function renderBasket() {
-  if (!basketItems.length) {
-    basketLinesEl.innerHTML = "<p class=\"cart-help\">Esta cesta compartilhada está vazia ou não está mais disponível.</p>"
+  selectAllBtn.disabled = basketState !== "ready" || !basketItems.length
+  clearAllBtn.disabled = basketState !== "ready" || !basketItems.length
+
+  if (basketState === "loading") {
+    basketLinesEl.innerHTML = "<p class=\"cart-help\">Carregando cesta…</p>"
     basketTotalEl.textContent = formatMoneyBRL(0)
     addSelectedBtn.disabled = true
-    selectAllBtn.disabled = true
-    clearAllBtn.disabled = true
+    return
+  }
+
+  if (basketState === "missing_id") {
+    basketLinesEl.innerHTML = emptyStateHtml("Link inválido: falta o identificador da cesta.")
+    basketTotalEl.textContent = formatMoneyBRL(0)
+    addSelectedBtn.disabled = true
+    return
+  }
+
+  if (basketState === "not_found") {
+    basketLinesEl.innerHTML = emptyStateHtml("Esta cesta não foi encontrada. Peça um novo link.")
+    basketTotalEl.textContent = formatMoneyBRL(0)
+    addSelectedBtn.disabled = true
+    return
+  }
+
+  if (basketState === "error") {
+    basketLinesEl.innerHTML = emptyStateHtml("Não foi possível carregar a cesta. Tente novamente.")
+    basketTotalEl.textContent = formatMoneyBRL(0)
+    addSelectedBtn.disabled = true
+    return
+  }
+
+  if (basketState === "empty" || !basketItems.length) {
+    basketLinesEl.innerHTML = emptyStateHtml("Esta cesta compartilhada está vazia.")
+    basketTotalEl.textContent = formatMoneyBRL(0)
+    addSelectedBtn.disabled = true
     return
   }
 
@@ -73,10 +111,10 @@ function renderBasket() {
           <input type="checkbox" class="shared-checkbox" data-key="${item.key}" ${checked} ${soldOut ? "disabled" : ""}>
         </label>
         <div class="cart-line-main">
-          <img class="cart-line-image" src="${info.imageUrl || ""}" alt="${info.name}">
+          <img class="cart-line-image" src="${window.MarisUI.escapeHtml(info.imageUrl || "")}" alt="${window.MarisUI.escapeHtml(info.name)}">
           <div>
-            <p class="cart-line-name">${info.name}</p>
-            <p class="cart-line-code">${info.code} · ${priceLabel}</p>
+            <p class="cart-line-name">${window.MarisUI.escapeHtml(info.name)}</p>
+            <p class="cart-line-code">${window.MarisUI.escapeHtml(info.code)} · ${priceLabel}</p>
             <p class="cart-line-stock">Qtd: ${item.quantity} · ${stockLabel}</p>
           </div>
         </div>
@@ -125,6 +163,7 @@ async function loadCatalogData() {
 async function loadBasket() {
   if (!basketId) {
     basketItems = []
+    basketState = "missing_id"
     return
   }
   const { data, error } = await sbClient
@@ -133,8 +172,21 @@ async function loadBasket() {
     .eq("id", basketId)
     .maybeSingle()
 
-  if (error || !data || !Array.isArray(data.items)) {
+  if (error) {
     basketItems = []
+    basketState = "error"
+    return
+  }
+
+  if (!data) {
+    basketItems = []
+    basketState = "not_found"
+    return
+  }
+
+  if (!Array.isArray(data.items) || !data.items.length) {
+    basketItems = []
+    basketState = "empty"
     return
   }
 
@@ -156,6 +208,12 @@ async function loadBasket() {
     })
     .filter(Boolean)
 
+  if (!basketItems.length) {
+    basketState = "empty"
+    return
+  }
+
+  basketState = "ready"
   // Pré-seleciona todos os itens que têm estoque.
   selectedKeys.clear()
   for (const item of basketItems) {
@@ -190,7 +248,7 @@ clearAllBtn.addEventListener("click", () => {
 })
 
 addSelectedBtn.addEventListener("click", async () => {
-  if (!selectedKeys.size) return
+  if (!selectedKeys.size || basketState !== "ready") return
   await window.MarisCatalogCart.init()
 
   let added = 0
@@ -203,11 +261,7 @@ addSelectedBtn.addEventListener("click", async () => {
       quantity: item.quantity,
       unit_price: item.unit_price
     }
-    const result = window.MarisCatalogCart.addItemWithPrice
-      ? window.MarisCatalogCart.addItemWithPrice(payload)
-      : item.component_id
-        ? window.MarisCatalogCart.addComponent(item.component_id, item.quantity)
-        : window.MarisCatalogCart.addProduct(item.product_code, item.quantity)
+    const result = window.MarisCatalogCart.addItemWithPrice(payload)
     if (result?.ok) {
       added += 1
       if (result.clamped) clamped = true
@@ -227,6 +281,7 @@ addSelectedBtn.addEventListener("click", async () => {
 })
 
 ;(async () => {
+  renderBasket()
   try {
     await window.MarisCatalogCart.init()
     await loadCatalogData()
@@ -236,6 +291,7 @@ addSelectedBtn.addEventListener("click", async () => {
   } catch (error) {
     console.error(error)
     basketItems = []
+    basketState = "error"
     renderBasket()
     setMessage("Não foi possível carregar a cesta. Tente novamente.", "error")
   }

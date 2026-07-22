@@ -6,12 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel — Maris Semijoias</title>
   <link rel="stylesheet" href="/home.css">
+  <script src="/env.js"></script>
   <script src="/shared/staff-auth.js"></script>
 </head>
 
 <body>
   <div class="dashboard">
     <header class="dashboard-header">
+      <span id="homolog-badge" class="homolog-badge" hidden>HOMOLOG</span>
       <h1>Maris Semijoias</h1>
       <p>Escolha a área que você precisa usar agora</p>
     </header>
@@ -39,10 +41,10 @@
           </svg>
         </span>
         <h2>Vendedoras</h2>
-        <p>Contas das vendedoras, repasses e registro de vendas com baixa automática no estoque.</p>
+        <p>Registrar vendas, carrinhos compartilhados, lista de espera e contas com repasse.</p>
       </a>
 
-      <a class="menu-card menu-card--catalogo" href="/catalogo">
+      <a class="menu-card menu-card--catalogo" href="/catalog">
         <span class="menu-card-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -56,7 +58,29 @@
       </a>
 
     </nav>
+
+    <div class="dashboard-session">
+      <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+    </div>
   </div>
+
+  <script>
+    ;(function () {
+      const appEnv =
+        (window.ENV && window.ENV.APP_ENV) ||
+        (window.__MARIS_ENV__ && window.__MARIS_ENV__.APP_ENV) ||
+        "production"
+      if (appEnv === "staging") {
+        const badge = document.getElementById("homolog-badge")
+        if (badge) badge.hidden = false
+      }
+    })()
+
+    document.getElementById("staff-logout-btn")?.addEventListener("click", () => {
+      window.MarisStaffAuth.clearToken()
+      window.location.href = "/equipe"
+    })
+  </script>
 </body>
 
 </html>

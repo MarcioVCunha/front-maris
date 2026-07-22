@@ -1,6 +1,7 @@
 const { createSupabaseClient, formatMoneyBRL } = window.MarisUtils
 const { sellerLabel, buildCartsListUrl } = window.MarisCustomerCartsLogic
 const sbClient = createSupabaseClient()
+const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
 const sellerFilter = document.getElementById("seller-filter")
 const cartsListEl = document.getElementById("carts-list")
@@ -18,7 +19,7 @@ async function loadSellers() {
   sellerFilter.innerHTML =
     '<option value="all">Todas as vendedoras</option>' +
     '<option value="none">Sem vendedora</option>' +
-    (data || []).map((s) => `<option value="${s.id}">${s.name}</option>`).join("")
+    (data || []).map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
 
   if (saved) {
     const valid =
@@ -41,7 +42,7 @@ async function loadCarts() {
   const res = await fetch(url, { headers: staffHeaders() })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    cartsListEl.innerHTML = `<p class="message error">${data.error || "Erro ao carregar."}</p>`
+    cartsListEl.innerHTML = `<p class="message error">${escapeHtml(data.error || "Erro ao carregar.")}</p>`
     return
   }
 
@@ -53,11 +54,11 @@ async function loadCarts() {
 
   cartsListEl.innerHTML = carts
     .map((cart) => `
-      <article class="cart-card" data-cart-id="${cart.id}">
-        <h3>${cart.buyer.full_name || "Cliente"}</h3>
-        <p>${cart.piece_count} peça(s) · ${formatMoneyBRL(cart.estimated_total)}</p>
-        <p class="cart-seller">Vendedora: <strong>${sellerLabel(cart)}</strong></p>
-        <p class="cart-date">${new Date(cart.shared_at).toLocaleString("pt-BR")}</p>
+      <article class="cart-card" data-cart-id="${escapeHtml(cart.id)}">
+        <h3>${escapeHtml(cart.buyer.full_name || "Cliente")}</h3>
+        <p>${escapeHtml(cart.piece_count)} peça(s) · ${formatMoneyBRL(cart.estimated_total)}</p>
+        <p class="cart-seller">Vendedora: <strong>${escapeHtml(sellerLabel(cart))}</strong></p>
+        <p class="cart-date">${escapeHtml(new Date(cart.shared_at).toLocaleString("pt-BR"))}</p>
       </article>
     `)
     .join("")

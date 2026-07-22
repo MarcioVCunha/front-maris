@@ -6,12 +6,6 @@ if (!utils || typeof utils.createSupabaseClient !== "function") {
 }
 
 const { createSupabaseClient, formatMoneyBRL, roundMoney } = utils
-const debounce =
-  typeof utils.debounce === "function"
-    ? utils.debounce
-    : (fn, _ms) => {
-        return (...args) => fn(...args)
-      }
 
 let supabaseClient
 try {
@@ -249,7 +243,7 @@ function renderRows(rows) {
     .map((row) => {
       const cancelled = String(row.status || "active") === "cancelled"
       const paid = isPaidValue(row)
-      const type = String(row.sale_item_type || "product") === "component" ? "Componente" : "Produto"
+      const type = String(row.sale_item_type || "product") === "component" ? "Tipo" : "Produto"
       const id = saleIdKey(row)
 
       let badgeClass = paid ? "badge-paid" : "badge-unpaid"
@@ -328,6 +322,18 @@ async function marcarSelecionadasComoPagas() {
     setMessage("Selecione ao menos uma venda na lista.", "error")
     return
   }
+
+  const { lines, pieces, sum } = selectionTotals(filtered)
+  const repasseVal =
+    typeof roundMoney === "function" ? roundMoney(sum * REPASSE_PERCENT) : Math.round(sum * REPASSE_PERCENT * 100) / 100
+  const repasseOn = Boolean(modoRepasseCheckbox?.checked)
+  const confirmMsg = repasseOn
+    ? `Marcar ${lines} venda(s) como paga(s)?\n` +
+      `Peças: ${pieces} · Valor: ${formatMoneyBRL(sum)}\n` +
+      `Repasse ao titular (70%): ${formatMoneyBRL(repasseVal)}`
+    : `Marcar ${lines} venda(s) como paga(s)?\n` +
+      `Peças: ${pieces} · Valor: ${formatMoneyBRL(sum)}`
+  if (!window.confirm(confirmMsg)) return
 
   if (btnMarcarRepasse) {
     btnMarcarRepasse.dataset.loading = "1"
@@ -521,10 +527,7 @@ if (filterPaidSelect) {
 }
 
 if (searchInput) {
-  searchInput.addEventListener(
-    "input",
-    debounce(() => refreshDisplay(), 150)
-  )
+  window.MarisUI.bindDebouncedSearch(searchInput, () => refreshDisplay(), { debounceMs: 150 })
 }
 
 if (modoRepasseCheckbox) {

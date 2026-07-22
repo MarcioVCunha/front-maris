@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acesso da equipe — Maris</title>
-  <link rel="stylesheet" href="home.css">
+  <title>Acesso da equipe — Maris Semijoias</title>
+  <link rel="stylesheet" href="/home.css">
   <style>
     .gate-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
     .gate-brand { text-align: center; margin-bottom: 28px; text-decoration: none; color: inherit; }
@@ -22,6 +22,7 @@
     .gate-catalog-link { display: block; margin-top: 24px; text-align: center; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--maris-text-muted); text-decoration: none; }
     .gate-catalog-link:hover { color: var(--maris-gold-dark); }
   </style>
+  <script src="/env.js"></script>
   <script src="/shared/utils.js"></script>
   <script src="/shared/staff-auth.js"></script>
   <script src="/shared/api.js"></script>
@@ -34,10 +35,10 @@
     <p>Digite a senha para acessar administração e vendas.</p>
     <form id="gate-form">
       <label for="staff-password">Senha</label>
-      <input id="staff-password" type="password" autocomplete="current-password" required>
+      <input id="staff-password" type="password" autocomplete="current-password" required autofocus>
       <button type="submit" id="gate-submit">Entrar</button>
     </form>
-    <div id="gate-message" class="gate-msg"></div>
+    <div id="gate-message" class="gate-msg" role="status" aria-live="polite"></div>
     <a class="gate-catalog-link" href="/catalog">Ver catálogo público</a>
   </div>
   </div>
@@ -47,8 +48,23 @@
     const messageEl = document.getElementById("gate-message")
     const submitBtn = document.getElementById("gate-submit")
 
+    // Aceita só caminhos relativos same-origin (evita open redirect).
+    function safeNextPath(raw) {
+      if (!raw) return "/"
+      let decoded = raw
+      try {
+        decoded = decodeURIComponent(String(raw))
+      } catch {
+        return "/"
+      }
+      if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("://")) {
+        return "/"
+      }
+      return decoded
+    }
+
     const params = new URLSearchParams(window.location.search)
-    const nextUrl = params.get("next") ? decodeURIComponent(params.get("next")) : "/"
+    const nextUrl = safeNextPath(params.get("next"))
 
     if (window.MarisStaffAuth.isValid()) {
       window.location.replace(nextUrl)

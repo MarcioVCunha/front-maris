@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/maris-theme.css">
     <link rel="stylesheet" href="/catalog/catalog.css">
     <link rel="stylesheet" href="/catalog/carrinho.css">
+    <script src="/env.js"></script>
     <script src="/shared/utils.js"></script>
     <script src="/shared/api.js"></script>
     <script src="/shared/ui.js"></script>
@@ -28,14 +29,16 @@
 
     <main class="cart-page">
       <section class="cart-steps" aria-label="Etapas da cesta">
-        <div class="cart-step cart-step--active"><span>1</span> Revise os itens</div>
-        <div class="cart-step"><span>2</span> Gere o link</div>
-        <div class="cart-step"><span>3</span> Compartilhe com quem quiser</div>
+        <div class="cart-step cart-step--active" data-step="1"><span>1</span> Revise os itens</div>
+        <div class="cart-step" data-step="2"><span>2</span> Escolha como enviar</div>
+        <div class="cart-step" data-step="3"><span>3</span> Pronto</div>
       </section>
+
+      <p id="cart-page-message" class="cart-page-message" hidden></p>
 
       <section class="cart-card cart-card--items">
         <h1>Minha cesta</h1>
-        <p class="cart-help">Confira os itens e ajuste as quantidades antes de gerar o link.</p>
+        <p class="cart-help">Confira os itens e ajuste as quantidades antes de enviar.</p>
         <div id="cart-lines" class="cart-lines"></div>
         <div class="cart-summary">
           <span>Total estimado</span>
@@ -43,41 +46,41 @@
         </div>
       </section>
 
-      <section class="cart-card cart-card--checkout">
-        <h2>Finalizar com a vendedora</h2>
-        <p class="cart-help">Preencha seus dados, escolha a vendedora e compartilhe o carrinho. O preço de cada item é o vigente no momento em que você o adicionou à cesta.</p>
-        <form id="buyer-form" class="buyer-form">
-          <label for="buyer-name">Nome completo</label>
-          <input id="buyer-name" type="text" required>
-          <label for="buyer-whatsapp">WhatsApp</label>
-          <input id="buyer-whatsapp" type="tel" required>
-          <label for="buyer-email">E-mail (opcional)</label>
-          <input id="buyer-email" type="email">
-        </form>
-        <label for="seller-select">Vendedora</label>
-        <select id="seller-select"></select>
-        <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque</button>
-        <ul id="stock-issues" class="stock-issues" hidden></ul>
-        <button id="share-cart-btn" type="button" class="btn-primary">Compartilhar com a vendedora</button>
-      </section>
+      <div class="cart-checkout-column">
+        <section class="cart-card cart-card--checkout cart-card--primary-path">
+          <h2>Enviar à vendedora</h2>
+          <p class="cart-help">Caminho recomendado: preencha seus dados, escolha a vendedora e envie a cesta. O preço de cada item é o vigente no momento em que você o adicionou.</p>
+          <form id="buyer-form" class="buyer-form">
+            <label for="buyer-name">Nome completo</label>
+            <input id="buyer-name" type="text" required>
+            <label for="buyer-whatsapp">WhatsApp</label>
+            <input id="buyer-whatsapp" type="tel" required>
+            <label for="buyer-email">E-mail (opcional)</label>
+            <input id="buyer-email" type="email">
+          </form>
+          <label for="seller-select">Vendedora</label>
+          <select id="seller-select"></select>
+          <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque (opcional)</button>
+          <ul id="stock-issues" class="stock-issues" hidden></ul>
+          <button id="share-cart-btn" type="button" class="btn-primary">Enviar à vendedora</button>
+        </section>
 
-      <section class="cart-card cart-card--checkout">
-        <h2>Ou gere um link público</h2>
-        <p class="cart-help">Gere um link com os produtos escolhidos para enviar para quem você quiser. Quem abrir poderá escolher quais itens adicionar à própria cesta.</p>
+        <section class="cart-card cart-card--checkout cart-card--secondary-path">
+          <h2>Ou compartilhe um link público</h2>
+          <p class="cart-help">Gere um link com os produtos escolhidos para enviar a quem quiser. Quem abrir poderá escolher quais itens adicionar à própria cesta. Isso não envia a cesta à vendedora.</p>
 
-        <button id="generate-link-btn" type="button" class="btn-primary">Gerar link para compartilhar</button>
+          <button id="generate-link-btn" type="button" class="btn-secondary">Gerar link para compartilhar</button>
 
-        <div id="share-result" class="share-result" hidden>
-          <label for="share-link-input">Seu link</label>
-          <div class="share-link-row">
-            <input id="share-link-input" type="text" readonly>
-            <button id="copy-link-btn" type="button" class="btn-secondary">Copiar</button>
+          <div id="share-result" class="share-result" hidden>
+            <label for="share-link-input">Seu link</label>
+            <div class="share-link-row">
+              <input id="share-link-input" type="text" readonly>
+              <button id="copy-link-btn" type="button" class="btn-secondary">Copiar</button>
+            </div>
+            <a id="share-whatsapp-btn" class="btn-whatsapp" target="_blank" rel="noopener">Enviar no WhatsApp</a>
           </div>
-          <a id="share-whatsapp-btn" class="btn-whatsapp" target="_blank" rel="noopener">Enviar no WhatsApp</a>
-        </div>
-
-        <p id="cart-page-message" class="cart-page-message" hidden></p>
-      </section>
+        </section>
+      </div>
     </main>
 
     <script src="/catalog/catalog-cart.js"></script>

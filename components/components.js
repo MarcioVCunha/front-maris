@@ -4,8 +4,7 @@ const {
   groupByKey,
   computeComponentPrice,
   percentFromSavedPrice,
-  parseComponentRows,
-  debounce
+  parseComponentRows
 } = window.MarisUtils
 const { resolvePercentForRow, doesProductMatchSearch } = window.MarisComponentsLogic
 
@@ -55,6 +54,7 @@ function updateRowPricePreview(row) {
 }
 
 function createComponentRow(component = null, parentPrice = 0) {
+  const escapeHtml = window.MarisUI.escapeHtml
   const id = component?.id ? String(component.id) : ""
   const name = component?.name || ""
   const percent = component ? resolvePercentForComponentRow(component, parentPrice) : ""
@@ -64,32 +64,40 @@ function createComponentRow(component = null, parentPrice = 0) {
   const previewText = result.ok ? formatMoneyBRL(result.value) : "—"
 
   return `
-    <div class="component-row" data-component-id="${id}">
-      <input data-field="name" type="text" placeholder="Nome (ex.: Brinco)" value="${name}">
-      <input data-field="price_percent" type="number" min="0" step="0.01" placeholder="%" value="${percent}" aria-label="Percentual do preço">
+    <div class="component-row" data-component-id="${escapeHtml(id)}">
+      <input data-field="name" type="text" placeholder="Nome (ex.: Brinco)" value="${escapeHtml(name)}">
+      <input data-field="price_percent" type="number" min="0" step="0.01" placeholder="%" value="${escapeHtml(percent)}" aria-label="Percentual do preço">
       <span class="component-price-preview" data-field="price_preview">${previewText}</span>
-      <input data-field="quantity" type="number" min="0" step="1" placeholder="Estoque" value="${quantity}">
+      <input data-field="quantity" type="number" min="0" step="1" placeholder="Estoque" value="${escapeHtml(quantity)}">
       <button type="button" class="component-remove-btn">Remover</button>
     </div>
   `
 }
 
 function renderProductCard(product) {
-  const quantity = Number(product.quantity) || 0
-  const soldOut = quantity <= 0
+  const escapeHtml = window.MarisUI.escapeHtml
   const components = componentsByProductCode[product.code] || []
-  const splitInfo = components.length
+  const hasTypes = components.length > 0
+  const availableViaTypes = hasTypes && components.some((c) => (Number(c.quantity) || 0) > 0)
+  const parentQty = Number(product.quantity) || 0
+  const soldOut = hasTypes ? !availableViaTypes : parentQty <= 0
+  const stockLabel = hasTypes
+    ? (availableViaTypes
+      ? `Tipos com estoque: ${components.filter((c) => (Number(c.quantity) || 0) > 0).length}/${components.length}`
+      : "Tipos sem estoque")
+    : `Estoque: ${parentQty}`
+  const splitInfo = hasTypes
     ? `<div class="split-info">Tipos cadastrados: ${components.length}</div>`
     : '<div class="split-info">Sem tipos cadastrados</div>'
 
   return `
-    <div class="product" data-product-code="${product.code}" role="button" tabindex="0">
-      <img src="${product.image_url}" alt="${product.name}">
-      <h3>${product.name}</h3>
-      <div class="code">Código: ${product.code}</div>
+    <div class="product" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
+      <img src="${escapeHtml(product.image_url || "")}" alt="${escapeHtml(product.name)}" loading="lazy">
+      <h3>${escapeHtml(product.name)}</h3>
+      <div class="code">Código: ${escapeHtml(product.code)}</div>
       ${splitInfo}
       <div class="price">${soldOut ? "Em falta" : formatMoneyBRL(product.unit_price)}</div>
-      <div class="stock ${soldOut ? "zero" : ""}">Estoque: ${quantity}</div>
+      <div class="stock ${soldOut ? "zero" : ""}">${stockLabel}</div>
     </div>
   `
 }
@@ -168,10 +176,18 @@ async function loadCatalogProducts() {
   renderProductGrids()
 }
 
+function isProductAvailableForTypes(product) {
+  const components = componentsByProductCode[product.code] || []
+  if (components.length > 0) {
+    return components.some((c) => (Number(c.quantity) || 0) > 0)
+  }
+  return (Number(product.quantity) || 0) > 0
+}
+
 function renderProductGrids() {
   const term = getSearchTerm()
-  const available = products.filter((product) => (Number(product.quantity) || 0) > 0)
-  const unavailable = products.filter((product) => (Number(product.quantity) || 0) <= 0)
+  const available = products.filter((product) => isProductAvailableForTypes(product))
+  const unavailable = products.filter((product) => !isProductAvailableForTypes(product))
   const availableFiltered = available.filter((product) => doesProductMatchSearch(product, term))
   const unavailableFiltered = unavailable.filter((product) => doesProductMatchSearch(product, term))
 
@@ -231,16 +247,27 @@ async function saveCurrentProductComponents() {
     .eq("product_code", productCode)
 
   if (existingError) {
-    setMessage("Erro ao ler subdivisões atuais.", "error")
+    setMessage("Erro ao ler tipos atuais.", "error")
     return
   }
 
   const existingIds = new Set((existingRows || []).map((r) => r.id))
   const keptIds = new Set(parsedRows.filter((r) => r.id).map((r) => r.id))
+  const willWipeAllExisting =
+    existingIds.size > 0 && [...existingIds].every((id) => !keptIds.has(id))
+
+  if (willWipeAllExisting) {
+    const ok = window.confirm(
+      parsedRows.length === 0
+        ? "Isso remove todos os tipos deste produto. Deseja continuar?"
+        : "Isso remove todos os tipos atuais deste produto e salva apenas o que está na tela. Deseja continuar?"
+    )
+    if (!ok) return
+  }
 
   for (const row of parsedRows) {
     if (row.id && !existingIds.has(row.id)) {
-      setMessage("Subdivisão inválida: atualize a página e tente de novo.", "error")
+      setMessage("Tipo inválido: atualize a página e tente de novo.", "error")
       return
     }
   }
@@ -254,7 +281,7 @@ async function saveCurrentProductComponents() {
         .eq("product_code", productCode)
 
       if (deleteOneError) {
-        setMessage("Erro ao remover subdivisão retirada.", "error")
+        setMessage("Erro ao remover tipo retirado.", "error")
         return
       }
     }
@@ -277,7 +304,7 @@ async function saveCurrentProductComponents() {
         .eq("product_code", productCode)
 
       if (updateError) {
-        setMessage("Erro ao atualizar subdivisão.", "error")
+        setMessage("Erro ao atualizar tipo.", "error")
         return
       }
     } else {
@@ -289,7 +316,7 @@ async function saveCurrentProductComponents() {
         })
 
       if (insertError) {
-        setMessage("Erro ao criar subdivisão.", "error")
+        setMessage("Erro ao criar tipo.", "error")
         return
       }
     }
@@ -354,8 +381,7 @@ productModal.addEventListener("click", (event) => {
 productModalCloseBtn.addEventListener("click", closeProductModal)
 
 if (productSearchInput) {
-  const scheduleRender = debounce(() => renderProductGrids(), 120)
-  productSearchInput.addEventListener("input", scheduleRender)
+  window.MarisUI.bindDebouncedSearch(productSearchInput, () => renderProductGrids(), { debounceMs: 120 })
 }
 
 Promise.all([loadComponents(), loadCatalogProducts()])

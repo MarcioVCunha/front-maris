@@ -1,12 +1,14 @@
+@import url("../maris-theme.css");
+
 :root {
-  --promo-bg: #faf7f4;
-  --promo-card: #ffffff;
-  --promo-border: #ecd9d2;
-  --promo-ink: #2b2320;
-  --promo-muted: #8a7a72;
-  --promo-gold: #b88a4a;
-  --promo-pink: #d98ba0;
-  --promo-radius: 14px;
+  --promo-bg: var(--maris-bg);
+  --promo-card: var(--maris-surface);
+  --promo-border: var(--maris-border);
+  --promo-ink: var(--maris-text);
+  --promo-muted: var(--maris-text-muted);
+  --promo-gold: var(--maris-gold-dark);
+  --promo-pink: var(--maris-gold);
+  --promo-radius: var(--maris-radius-lg);
 }
 
 * {
@@ -15,9 +17,21 @@
 
 body {
   margin: 0;
-  font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--maris-font-body);
   background: var(--promo-bg);
   color: var(--promo-ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .promo-header {
@@ -300,6 +314,25 @@ body {
   text-align: center;
   color: var(--promo-muted);
   padding: 40px 0;
+}
+
+
+.promo-type-hint {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--promo-muted);
+}
+
+.promo-type-note {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--promo-muted);
+}
+
+.promo-controls--hint {
+  align-items: flex-start;
 }
 
 @media (max-width: 640px) {

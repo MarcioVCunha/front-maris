@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detalhe do carrinho — Maris</title>
+  <title>Detalhe do carrinho — Maris Semijoias</title>
   <link rel="stylesheet" href="/sales/sales.css">
   <link rel="stylesheet" href="/sales/customer-carts.css">
   <script src="/shared/staff-auth.js"></script>
+  <script src="/env.js"></script>
   <script src="/shared/utils.js"></script>
+  <script src="/shared/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -40,6 +42,8 @@
       <option value="dinheiro">Dinheiro</option>
       <option value="transferencia">Transferência</option>
     </select>
+    <p class="summary-line">Subtotal: <strong id="sale-subtotal">R$ 0,00</strong></p>
+    <p class="summary-line" id="sale-discount-row" hidden>Desconto Pix (5%): <strong id="sale-discount">R$ 0,00</strong></p>
     <p class="summary-line">Total: <strong id="sale-total">R$ 0,00</strong></p>
     <button type="button" id="submit-sale" class="btn-primary">Registrar venda dos itens marcados</button>
     <p id="sale-message" class="message"></p>

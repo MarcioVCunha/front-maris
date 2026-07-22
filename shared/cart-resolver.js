@@ -27,8 +27,8 @@ window.MarisCart = {
       const original = Number(component?.unit_price) || 0
       const final = hasLockedPrice ? locked : effectivePrice(component)
       const name = variant === "shared"
-        ? component?.name || `Componente ${item.component_id}`
-        : component?.name || "Componente"
+        ? component?.name || `Tipo ${item.component_id}`
+        : component?.name || "Tipo"
       const code = variant === "shared"
         ? parentCode ? `${parentCode} / ${component?.name || ""}` : `COMP-${item.component_id}`
         : component?.product_code || `COMP-${item.component_id}`

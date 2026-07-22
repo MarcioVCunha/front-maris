@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contas vendedoras</title>
+  <title>Contas vendedoras — Maris Semijoias</title>
   <link rel="stylesheet" href="/contas-vendedoras/contas-vendedoras.css">
   <script src="/shared/staff-auth.js"></script>
+  <script src="/env.js"></script>
   <script src="/shared/utils.js"></script>
   <script src="/shared/api.js"></script>
   <script src="/shared/ui.js"></script>
@@ -31,7 +32,7 @@
       </div>
       <div class="toolbar-row">
         <label for="search-input">Buscar (produto, código, vendedora)</label>
-        <input id="search-input" type="text" placeholder="Digite para filtrar a lista atual" autocomplete="off">
+        <input id="search-input" type="search" placeholder="Digite para filtrar a lista atual" autocomplete="off" enterkeyhint="search">
       </div>
       <label class="checkbox-line">
         <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas visíveis" aria-label="Selecionar todas as vendas visíveis">

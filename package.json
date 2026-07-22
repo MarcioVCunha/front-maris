@@ -1,0 +1,8 @@
+{
+  "name": "front-maris",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-env.js",
+    "generate-env": "node scripts/generate-env.js"
+  }
+}

@@ -1,4 +1,4 @@
-const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo, groupByKey, debounce } = window.MarisUtils
+const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo, groupByKey } = window.MarisUtils
 const { filterProductsForPromo } = window.MarisPromocoesLogic
 
 const supabaseClient = createSupabaseClient()
@@ -51,16 +51,18 @@ function controlsBlock({ target, code, componentId, row }) {
 }
 
 function renderProductCard(product) {
+  const escapeHtml = window.MarisUI.escapeHtml
   const components = componentsByProductCode[product.code] || []
+  const hasTypes = components.length > 0
   const onSale = hasPromo(product)
-  const componentsHtml = components.length
+  const componentsHtml = hasTypes
     ? `
       <div class="promo-components">
-        <p class="promo-components-title">Peças separadas</p>
+        <p class="promo-components-title">Tipos deste produto</p>
         ${components.map((component) => `
           <div class="promo-comp-row">
             <div>
-              <div class="promo-comp-name">${component.name} ${hasPromo(component) ? '<span class="promo-badge">Promo</span>' : ""}</div>
+              <div class="promo-comp-name">${escapeHtml(component.name)} ${hasPromo(component) ? '<span class="promo-badge">Promo</span>' : ""}</div>
               ${priceBlock(component)}
             </div>
             ${controlsBlock({ target: "component", componentId: component.id, row: component })}
@@ -70,16 +72,24 @@ function renderProductCard(product) {
     `
     : ""
 
+  const productControls = hasTypes
+    ? `
+      <div class="promo-controls promo-controls--hint">
+        <p class="promo-type-hint">Este produto só vende por tipos. Promova os tipos abaixo — a promoção do produto pai não altera o preço na loja.</p>
+      </div>
+    `
+    : controlsBlock({ target: "product", code: product.code, row: product })
+
   return `
-    <article class="promo-card" data-product-code="${product.code}">
+    <article class="promo-card" data-product-code="${escapeHtml(product.code)}">
       <div class="promo-row">
-        <img class="promo-thumb" src="${product.image_url || ""}" alt="${product.name}" loading="lazy">
+        <img class="promo-thumb" src="${escapeHtml(product.image_url || "")}" alt="${escapeHtml(product.name)}" loading="lazy">
         <div class="promo-info">
-          <p class="promo-name">${product.name} ${onSale ? '<span class="promo-badge">Promo</span>' : ""}</p>
-          <p class="promo-code">${product.code}</p>
-          ${priceBlock(product)}
+          <p class="promo-name">${escapeHtml(product.name)} ${onSale && !hasTypes ? '<span class="promo-badge">Promo</span>' : ""}</p>
+          <p class="promo-code">${escapeHtml(product.code)}</p>
+          ${hasTypes ? '<p class="promo-type-note">Venda por tipos</p>' : priceBlock(product)}
         </div>
-        ${controlsBlock({ target: "product", code: product.code, row: product })}
+        ${productControls}
       </div>
       ${componentsHtml}
     </article>
@@ -222,12 +232,12 @@ bulkApplyBtn.addEventListener("click", () => {
     bulkPercentInput.focus()
     return
   }
-  if (!window.confirm(`Colocar TODOS os produtos e peças em promoção com ${pct}% de desconto?`)) return
+  if (!window.confirm(`Colocar TODOS os produtos e tipos em promoção com ${pct}% de desconto?`)) return
   applyAllPromotions(true, pct)
 })
 
 bulkClearBtn.addEventListener("click", () => {
-  if (!window.confirm("Remover a promoção de TODOS os produtos e peças?")) return
+  if (!window.confirm("Remover a promoção de TODOS os produtos e tipos?")) return
   applyAllPromotions(false, 0)
 })
 
@@ -247,6 +257,6 @@ listEl.addEventListener("click", (event) => {
   if (controlsEl) savePromotion(controlsEl)
 })
 
-searchInput.addEventListener("input", debounce(() => render(), 120))
+searchInput && window.MarisUI.bindDebouncedSearch(searchInput, () => render(), { debounceMs: 120 })
 
 loadData()

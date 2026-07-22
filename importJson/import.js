@@ -1,19 +1,41 @@
-const { parseImportJsonText } = window.MarisImportLogic
+const {
+  parseImportJsonText,
+  formatImportSuccessMessage,
+  formatImportErrorMessage,
+} = window.MarisImportLogic
 
 const uploadBtn = document.getElementById("uploadBtn")
 const fileInput = document.getElementById("fileInput")
 const resultEl = document.getElementById("result")
 const resultWrap = document.getElementById("resultWrap")
+const resultTitleEl = document.getElementById("resultTitle")
+const detailsEl = document.getElementById("resultDetails")
 const fileNameEl = document.getElementById("fileName")
 
 const FUNCTION_URL = window.ENV.fn("import-products")
 
-function setResult(text, kind) {
+function setResult(text, kind, detailsText = "") {
   resultEl.textContent = text
   resultEl.classList.remove("is-loading", "is-error", "is-success")
-  if (kind === "loading") resultEl.classList.add("is-loading")
-  else if (kind === "error") resultEl.classList.add("is-error")
-  else if (kind === "success") resultEl.classList.add("is-success")
+  if (kind === "loading") {
+    resultEl.classList.add("is-loading")
+    if (resultTitleEl) resultTitleEl.textContent = "Enviando…"
+  } else if (kind === "error") {
+    resultEl.classList.add("is-error")
+    if (resultTitleEl) resultTitleEl.textContent = "Não foi possível importar"
+  } else if (kind === "success") {
+    resultEl.classList.add("is-success")
+    if (resultTitleEl) resultTitleEl.textContent = "Importação concluída"
+  }
+  if (detailsEl) {
+    if (detailsText) {
+      detailsEl.hidden = false
+      detailsEl.textContent = detailsText
+    } else {
+      detailsEl.hidden = true
+      detailsEl.textContent = ""
+    }
+  }
   resultWrap.hidden = false
 }
 
@@ -32,7 +54,12 @@ uploadBtn.addEventListener("click", async () => {
   const file = fileInput.files?.[0]
 
   if (!file) {
-    alert("Selecione um arquivo JSON.")
+    setResult("Selecione um arquivo JSON para continuar.", "error")
+    return
+  }
+
+  if (!FUNCTION_URL) {
+    setResult("URL da função de importação não encontrada.", "error")
     return
   }
 
@@ -42,6 +69,11 @@ uploadBtn.addEventListener("click", async () => {
     json = parseImportJsonText(text)
   } catch {
     setResult("Não foi possível ler o arquivo ou o JSON está inválido.", "error")
+    return
+  }
+
+  if (!Array.isArray(json) || !json.length) {
+    setResult("O arquivo precisa ser uma lista de produtos (array JSON não vazio).", "error")
     return
   }
 
@@ -55,17 +87,10 @@ uploadBtn.addEventListener("click", async () => {
     })
 
     if (!ok) {
-      setResult(
-        JSON.stringify(
-          { error: data?.error || `Erro HTTP ${status}` },
-          null,
-          2
-        ),
-        "error"
-      )
+      setResult(formatImportErrorMessage(data, status), "error")
       return
     }
-    setResult(JSON.stringify(data, null, 2), "success")
+    setResult(formatImportSuccessMessage(data), "success")
   } catch {
     setResult("Não foi possível conectar. Verifique a internet e tente de novo.", "error")
   } finally {

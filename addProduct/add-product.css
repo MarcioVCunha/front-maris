@@ -130,9 +130,9 @@ body {
 .result-body {
   margin: 0;
   padding: 16px 18px;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   line-height: 1.5;
-  font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+  font-family: inherit;
   white-space: pre-wrap;
   word-break: break-word;
   border-radius: 12px;

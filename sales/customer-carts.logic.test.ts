@@ -9,4 +9,5 @@ Deno.test("sellerLabel: prioriza nome da vendedora", () => {
 Deno.test("buildCartsListUrl: filtro por vendedora", () => {
   assertEquals(buildCartsListUrl("https://fn/carts", "all"), "https://fn/carts")
   assertEquals(buildCartsListUrl("https://fn/carts", "3"), "https://fn/carts?seller_id=3")
+  assertEquals(buildCartsListUrl("https://fn/carts", "none"), "https://fn/carts?seller_id=none")
 })

@@ -1,0 +1,17 @@
+# Cole estes valores no Vercel → Project → Settings → Environment Variables
+# (mesmo projeto do front-maris — NÃO criar projeto novo)
+
+## Production (environment: Production only)
+
+SUPABASE_URL=https://epuvfjdyyzccsuafwopr.supabase.co
+SUPABASE_ANON_KEY=<anon key de prod — Settings → API do projeto epuvfjdyyzccsuafwopr>
+APP_ENV=production
+
+## Preview (environment: Preview only)
+
+SUPABASE_URL=https://mebwwllktoqeycfaufkx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lYnd3bGxrdG9xZXljZmF1Zmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NTk5ODMsImV4cCI6MjEwMDEzNTk4M30.F3iOT-wftzoKN64FhI0mO1wyfbKP7MqATzhWnU3lFeE
+APP_ENV=staging
+
+# Depois: push na branch staging → usar o Preview URL do Vercel para testar.
+# Detalhes: HOMOLOG.md

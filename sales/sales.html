@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registrar Venda</title>
+<title>Registrar venda — Maris Semijoias</title>
 
 <link rel="stylesheet" href="/sales/sales.css">
 
 <script src="/shared/staff-auth.js"></script>
+<script src="/env.js"></script>
 <script src="/shared/utils.js"></script>
 <script src="/shared/api.js"></script>
 <script src="/shared/ui.js"></script>
@@ -23,39 +24,42 @@
 </header>
 
 <main class="container">
-  <form id="sale-form" class="sale-form">
-    <section class="card">
-      <h2>Nova venda</h2>
+  <div class="sale-form">
+    <form id="sale-form">
+      <section class="card">
+        <h2>Nova venda</h2>
 
-      <label for="seller-select">Vendedora</label>
-      <select id="seller-select" required>
-        <option value="">Carregando vendedoras...</option>
-      </select>
+        <label for="seller-select">Vendedora</label>
+        <select id="seller-select" required>
+          <option value="">Carregando vendedoras...</option>
+        </select>
 
-      <label for="payment-method">Método de pagamento</label>
-      <select id="payment-method" required>
-        <option value="">Selecione</option>
-        <option value="pix">Pix</option>
-        <option value="cartao_credito">Cartão de crédito</option>
-        <option value="cartao_debito">Cartão de débito</option>
-        <option value="dinheiro">Dinheiro</option>
-        <option value="transferencia">Transferência</option>
-      </select>
-
-    </section>
+        <label for="payment-method">Método de pagamento</label>
+        <select id="payment-method" required>
+          <option value="">Selecione</option>
+          <option value="pix">Pix</option>
+          <option value="cartao_credito">Cartão de crédito</option>
+          <option value="cartao_debito">Cartão de débito</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="transferencia">Transferência</option>
+        </select>
+      </section>
+    </form>
 
     <section>
       <h2 class="catalog-title">Selecione os produtos vendidos</h2>
-      <!-- Busca em tempo real por nome ou código -->
+      <!-- Fora do form: Enter na busca não submete a venda -->
       <div class="product-search">
-        <input id="product-search" type="text" placeholder="Buscar por nome ou código" autocomplete="off">
+        <label for="product-search" class="visually-hidden">Buscar produtos</label>
+        <input id="product-search" type="search" placeholder="Buscar por nome ou código" autocomplete="off">
       </div>
       <div class="sale-summary">
+        <div id="selection-strip" class="selection-strip" hidden></div>
         <div class="summary-row">
           <span>Subtotal</span>
           <strong id="summary-subtotal">R$ 0,00</strong>
         </div>
-        <div class="summary-row">
+        <div class="summary-row" id="summary-discount-row">
           <span>Desconto Pix (5%)</span>
           <strong id="summary-discount">R$ 0,00</strong>
         </div>
@@ -65,13 +69,13 @@
         </div>
 
         <div class="sale-submit">
-          <button id="submit-btn" type="submit">Registrar venda</button>
+          <button id="submit-btn" type="submit" form="sale-form">Registrar venda</button>
           <div id="message" class="message"></div>
         </div>
       </div>
       <div id="products-grid" class="catalog"></div>
     </section>
-  </form>
+  </div>
 </main>
 
 <script type="module" src="/sales/sales.logic.js"></script>

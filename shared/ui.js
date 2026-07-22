@@ -46,5 +46,21 @@ window.MarisUI = {
 
   closeModal(el) {
     if (el) el.hidden = true
+  },
+
+  /**
+   * Primitivo de busca compartilhado: garante type=search e debounce no callback.
+   * @param {HTMLInputElement|null} input
+   * @param {(value: string) => void} onChange
+   * @param {{ debounceMs?: number }} [options]
+   * @returns {(() => void)|null} Handler debounced (útil para testes) ou null.
+   */
+  bindDebouncedSearch(input, onChange, options = {}) {
+    if (!input || typeof onChange !== "function") return null
+    if (input.type !== "search") input.type = "search"
+    const ms = Number.isFinite(options.debounceMs) ? options.debounceMs : 120
+    const run = window.MarisUtils.debounce(() => onChange(input.value), ms)
+    input.addEventListener("input", run)
+    return run
   }
 }

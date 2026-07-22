@@ -1,4 +1,5 @@
-const { createSupabaseClient, roundMoney, formatMoneyBRL, debounce, groupByKey, effectivePrice, hasPromo } = window.MarisUtils
+const { createSupabaseClient, roundMoney, formatMoneyBRL, groupByKey, effectivePrice, hasPromo } = window.MarisUtils
+const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 const {
   doesProductMatchSearch,
   getClampedSelectedQuantity,
@@ -16,8 +17,10 @@ const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
 const productSearchInput = document.getElementById("product-search")
 const summarySubtotalEl = document.getElementById("summary-subtotal")
+const summaryDiscountRowEl = document.getElementById("summary-discount-row")
 const summaryDiscountEl = document.getElementById("summary-discount")
 const summaryTotalEl = document.getElementById("summary-total")
+const selectionStripEl = document.getElementById("selection-strip")
 const submitBtn = document.getElementById("submit-btn")
 const messageEl = document.getElementById("message")
 
@@ -36,6 +39,31 @@ function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "message", toggleHidden: false })
 }
 
+function buildSelectionStrip(selectedItems, selectedComponentItems) {
+  if (!selectionStripEl) return
+  const chips = []
+
+  for (const item of selectedItems) {
+    const product = productsByCode[item.code]
+    const name = product?.name || item.code
+    chips.push(`<span class="selection-chip">${escapeHtml(name)} ×${item.quantity}</span>`)
+  }
+  for (const item of selectedComponentItems) {
+    const component = componentsById[item.component_id]
+    const name = component?.name || `Tipo #${item.component_id}`
+    chips.push(`<span class="selection-chip">${escapeHtml(name)} ×${item.quantity}</span>`)
+  }
+
+  if (!chips.length) {
+    selectionStripEl.hidden = true
+    selectionStripEl.innerHTML = ""
+    return
+  }
+
+  selectionStripEl.hidden = false
+  selectionStripEl.innerHTML = `<div class="selection-strip-label">Selecionados</div><div class="selection-strip-chips">${chips.join("")}</div>`
+}
+
 function updateSaleSummary() {
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
@@ -52,7 +80,11 @@ function updateSaleSummary() {
 
   summarySubtotalEl.textContent = formatMoneyBRL(roundedSubtotal)
   summaryDiscountEl.textContent = formatMoneyBRL(discount)
+  if (summaryDiscountRowEl) {
+    summaryDiscountRowEl.hidden = paymentMethod !== "pix"
+  }
   summaryTotalEl.textContent = formatMoneyBRL(total)
+  buildSelectionStrip(selectedItems, selectedComponentItems)
 }
 
 function getSearchTerm() {
@@ -63,7 +95,7 @@ function getComponentsForProduct(productCode) {
   return componentsByProductCode[productCode] || []
 }
 
-// Com subdivisões: ignora estoque do pai; mostra na lista se algum componente tiver quantidade > 0.
+// Com tipos: ignora estoque do pai; mostra na lista se algum tipo tiver quantidade > 0.
 function isProductShowable(product) {
   return isSalesProductShowable(product, getComponentsForProduct(product.code))
 }
@@ -91,11 +123,11 @@ function buildComponentControls(productCode) {
     return `
       <div class="component-item ${soldOut ? "sold-out" : ""}">
         <div class="component-header">
-          <strong>${component.name}</strong>
+          <strong>${escapeHtml(component.name)}</strong>
           <span>${soldOut ? "Em falta" : priceLabel}</span>
         </div>
         <div class="component-stock">${soldOut ? "Vendido/sem estoque" : `Estoque: ${stock}`}</div>
-        <select class="qty-select component-qty-select" data-component-id="${component.id}" ${soldOut ? "disabled" : ""}>
+        <select class="qty-select component-qty-select" data-component-id="${escapeHtml(component.id)}" ${soldOut ? "disabled" : ""}>
           ${qtyOptions}
         </select>
       </div>
@@ -104,7 +136,7 @@ function buildComponentControls(productCode) {
 
   return `
     <div class="component-block">
-      <div class="component-title">Este item pode ser dividido:</div>
+      <div class="component-title">Tipos deste produto:</div>
       ${rows}
     </div>
   `
@@ -119,7 +151,7 @@ function renderProductCards() {
 
   const term = getSearchTerm()
 
-  // Em vendas, listamos só o que pode ser vendido: pai com estoque ou, com subdivisões, algum componente com estoque.
+  // Em vendas, listamos só o que pode ser vendido: pai com estoque ou, com tipos, algum tipo com estoque.
   const availableProducts = products.filter((product) => isProductShowable(product))
 
   if (!availableProducts.length) {
@@ -129,7 +161,9 @@ function renderProductCards() {
   }
 
   const sortedAvailable = sortSalesProductsByName(availableProducts)
-  const filteredAvailable = sortedAvailable.filter((product) => doesProductMatchSearch(product, term))
+  const filteredAvailable = sortedAvailable.filter((product) =>
+    doesProductMatchSearch(product, term, getComponentsForProduct(product.code))
+  )
 
   if (!filteredAvailable.length && availableProducts.length) {
     productsGrid.innerHTML = term
@@ -156,9 +190,9 @@ function renderProductCards() {
 
     return `
       <div class="product">
-        <img src="${product.image_url}" alt="${product.name}">
-        <h3>${product.name}</h3>
-        <div class="code">Código: ${code}</div>
+        <img src="${escapeHtml(product.image_url || "")}" alt="${escapeHtml(product.name)}" loading="lazy">
+        <h3>${escapeHtml(product.name)}</h3>
+        <div class="code">Código: ${escapeHtml(code)}</div>
         ${hasComponents ? "" : `<div class="price">${hasPromo(product) ? window.MarisUI.renderPricePair(Number(product.unit_price) || 0, effectivePrice(product)) : formatMoneyBRL(Number(product.unit_price) || 0)}</div>`}
         ${hasComponents ? "" : `<div class="stock">Estoque: ${stockQuantity}</div>`}
         ${buildComponentControls(code)}
@@ -167,7 +201,7 @@ function renderProductCards() {
           : `
             <div class="sale-controls">
               <label class="select-line">Quantidade</label>
-              <select class="qty-select" data-code="${code}">
+              <select class="qty-select" data-code="${escapeHtml(code)}">
                 ${qtyOptions}
               </select>
             </div>
@@ -214,6 +248,8 @@ async function loadProducts() {
   renderProductCards()
 }
 
+const LAST_SELLER_KEY = "maris_last_seller_id"
+
 function renderSellerOptions() {
   if (!sellers.length) {
     sellerSelect.innerHTML = '<option value="">Nenhuma vendedora cadastrada</option>'
@@ -221,10 +257,14 @@ function renderSellerOptions() {
     return
   }
 
+  const savedSellerId = localStorage.getItem(LAST_SELLER_KEY) || ""
+  const hasSaved = sellers.some((s) => String(s.id) === String(savedSellerId))
+
   sellerSelect.innerHTML = `
     <option value="">Selecione a vendedora</option>
-    ${sellers.map((seller) => `<option value="${seller.id}">${seller.name}</option>`).join("")}
+    ${sellers.map((seller) => `<option value="${escapeHtml(seller.id)}">${escapeHtml(seller.name)}</option>`).join("")}
   `
+  if (hasSaved) sellerSelect.value = String(savedSellerId)
 }
 
 async function loadSellers() {
@@ -306,7 +346,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   if (!selectedItems.length && !selectedComponentItems.length) {
-    setMessage("Selecione pelo menos um produto ou componente.", "error")
+    setMessage("Selecione pelo menos um produto ou tipo.", "error")
     return
   }
 
@@ -314,6 +354,26 @@ form.addEventListener("submit", async (event) => {
     setMessage("Selecione um método de pagamento.", "error")
     return
   }
+
+  const totals = computeSaleTotals({
+    selectedItems,
+    selectedComponentItems,
+    productsByCode,
+    componentsById,
+    paymentMethod,
+    effectivePrice,
+    roundMoney,
+  })
+  const itemCount = selectedItems.length + selectedComponentItems.length
+  const pixNote = paymentMethod === "pix"
+    ? `\nDesconto Pix: ${formatMoneyBRL(totals.discount)}`
+    : ""
+  const confirmed = window.confirm(
+    `Registrar venda de ${itemCount} item(ns)?\n` +
+      `Subtotal: ${formatMoneyBRL(totals.subtotal)}${pixNote}\n` +
+      `Total: ${formatMoneyBRL(totals.total)}`
+  )
+  if (!confirmed) return
 
   submitBtn.disabled = true
   try {
@@ -336,7 +396,11 @@ form.addEventListener("submit", async (event) => {
     selectedComponentQuantitiesById = Object.create(null)
     await loadProducts()
     paymentMethodSelect.value = ""
-    sellerSelect.value = ""
+    try {
+      localStorage.setItem(LAST_SELLER_KEY, String(sellerId))
+    } catch { /* ignore */ }
+    // Mantém a última vendedora selecionada para a próxima venda.
+    sellerSelect.value = String(sellerId)
     updateSaleSummary()
     setMessage("Venda registrada com sucesso!", "success")
     submitBtn.disabled = false
@@ -349,9 +413,16 @@ form.addEventListener("submit", async (event) => {
 
 paymentMethodSelect.addEventListener("change", updateSaleSummary)
 
+sellerSelect.addEventListener("change", () => {
+  const value = sellerSelect.value
+  if (!value) return
+  try {
+    localStorage.setItem(LAST_SELLER_KEY, String(value))
+  } catch { /* ignore */ }
+})
+
 if (productSearchInput) {
-  const scheduleRenderCards = debounce(() => renderProductCards(), 120)
-  productSearchInput.addEventListener("input", scheduleRenderCards)
+  window.MarisUI.bindDebouncedSearch(productSearchInput, () => renderProductCards(), { debounceMs: 120 })
 }
 
 // Atualiza o estado da venda quando o usuário altera a quantidade.
