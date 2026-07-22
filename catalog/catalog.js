@@ -610,9 +610,4 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
-const staffBackPanel = document.getElementById("staff-back-panel")
-if (staffBackPanel && window.MarisStaffAuth?.isValid?.()) {
-  staffBackPanel.hidden = false
-}
-
 loadCatalogData()
