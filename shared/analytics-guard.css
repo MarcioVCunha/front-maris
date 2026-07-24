@@ -1,0 +1,121 @@
+.maris-consent-banner {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10000;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 18px 20px;
+  background: var(--maris-surface, #fff);
+  border: 1px solid var(--maris-border, #ecdbe4);
+  border-radius: var(--maris-radius-lg, 8px);
+  box-shadow: var(--maris-shadow-hover, 0 8px 24px rgba(98, 52, 76, 0.14));
+  font-family: var(--maris-font-body, system-ui, sans-serif);
+  color: var(--maris-text, #2f1f2a);
+  animation: maris-consent-in 0.25s ease-out;
+}
+
+@keyframes maris-consent-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.maris-consent-banner__title {
+  margin: 0 0 6px;
+  font-family: var(--maris-font-display, Georgia, serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.maris-consent-banner__text {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--maris-text-muted, #7b5f70);
+}
+
+.maris-consent-banner__help {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: var(--maris-text-muted, #7b5f70);
+}
+
+.maris-consent-banner__help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--maris-black, #432838);
+}
+
+.maris-consent-banner__help ol {
+  margin: 10px 0 0;
+  padding-left: 1.2rem;
+  line-height: 1.5;
+}
+
+.maris-consent-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.maris-consent-banner__btn {
+  padding: 10px 14px;
+  border-radius: var(--maris-radius, 4px);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--maris-border, #ecdbe4);
+  background: var(--maris-surface, #fff);
+  color: var(--maris-black, #432838);
+}
+
+.maris-consent-banner__btn:hover {
+  border-color: var(--maris-gold, #c792a8);
+}
+
+.maris-consent-banner__btn--primary {
+  background: var(--maris-black, #432838);
+  border-color: var(--maris-black, #432838);
+  color: #fff;
+}
+
+.maris-consent-banner__btn--primary:hover {
+  opacity: 0.92;
+}
+
+.maris-consent-banner__btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: var(--maris-text-muted, #7b5f70);
+}
+
+@media (max-width: 480px) {
+  .maris-consent-banner {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 16px;
+  }
+
+  .maris-consent-banner__actions {
+    flex-direction: column;
+  }
+
+  .maris-consent-banner__btn {
+    width: 100%;
+    text-align: center;
+  }
+}
