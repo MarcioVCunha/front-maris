@@ -94,6 +94,7 @@
     { "source": "/ui.js", "destination": "/shared/ui.js" },
     { "source": "/cart-resolver.js", "destination": "/shared/cart-resolver.js" },
     { "source": "/staff-auth.js", "destination": "/shared/staff-auth.js" },
+    { "source": "/analytics.js", "destination": "/shared/analytics.js" },
     {
       "source": "/",
       "destination": "/index.html"
