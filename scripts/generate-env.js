@@ -25,8 +25,7 @@ const contents = `// Gerado por scripts/generate-env.js — sobrescrito no build
 window.__MARIS_ENV__ = {
   SUPABASE_URL: ${JSON.stringify(url)},
   SUPABASE_ANON_KEY: ${JSON.stringify(anonKey)},
-  APP_ENV: ${JSON.stringify(appEnv)},
-  VERCEL_ANALYTICS: ${JSON.stringify(appEnv === "staging")}
+  APP_ENV: ${JSON.stringify(appEnv)}
 };
 `
 
