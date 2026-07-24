@@ -93,21 +93,23 @@
     banner.setAttribute("aria-labelledby", "maris-analytics-notice-title")
     banner.setAttribute("aria-live", "polite")
     banner.innerHTML =
-      '<p id="maris-analytics-notice-title" class="maris-consent-banner__title">Estatísticas do site</p>' +
-      '<p class="maris-consent-banner__text">Usamos medição anônima para melhorar o catálogo. Um bloqueador de anúncios impediu o carregamento — libere este site para continuarmos medindo o uso.</p>' +
+      '<p id="maris-analytics-notice-title" class="maris-consent-banner__title">Pode nos ajudar com um favor?</p>' +
+      '<p class="maris-consent-banner__text">Contamos visitas de forma anônima para melhorar o catálogo — sem anúncios e sem coletar seus dados pessoais. Parece que uma extensão do navegador bloqueou isso por engano.</p>' +
+      '<p class="maris-consent-banner__reassurance">Você pode continuar usando o site normalmente. Se puder liberar, ajuda muito a equipe Maris.</p>' +
       '<details class="maris-consent-banner__help">' +
-      "<summary>Como permitir neste site</summary>" +
+      "<summary>Como liberar este site (passo a passo)</summary>" +
       "<ol>" +
-      "<li>Clique no ícone do bloqueador (uBlock, AdBlock, etc.) na barra do navegador.</li>" +
-      "<li>Escolha <strong>desativar neste site</strong> ou adicione <code>" +
+      "<li>Procure o ícone de um <strong>escudo</strong> ou <strong>bloqueador</strong> na barra de endereço do navegador (canto superior).</li>" +
+      "<li>Clique nele e escolha <strong>desativar neste site</strong> ou <strong>permitir</strong> para <em>" +
       host +
-      "</code> à lista de permissões.</li>" +
-      "<li>Volte aqui e clique em <strong>Já permiti</strong> para recarregar.</li>" +
+      "</em>.</li>" +
+      "<li>Volte para esta página e toque em <strong>Pronto, já liberei</strong> para atualizar.</li>" +
       "</ol>" +
+      '<p class="maris-consent-banner__help-tip">Não encontrou? Pode ser uBlock, AdBlock ou similar — o nome varia, mas a opção costuma ser “desativar neste site”.</p>' +
       "</details>" +
       '<div class="maris-consent-banner__actions">' +
-      '<button type="button" class="maris-consent-banner__btn maris-consent-banner__btn--primary" data-action="retry">Já permiti — recarregar</button>' +
-      '<button type="button" class="maris-consent-banner__btn maris-consent-banner__btn--ghost" data-action="dismiss">Agora não</button>' +
+      '<button type="button" class="maris-consent-banner__btn maris-consent-banner__btn--primary" data-action="retry">Pronto, já liberei</button>' +
+      '<button type="button" class="maris-consent-banner__btn maris-consent-banner__btn--ghost" data-action="dismiss">Continuar assim mesmo</button>' +
       "</div>"
 
     banner.addEventListener("click", function (event) {
