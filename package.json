@@ -4,5 +4,8 @@
   "scripts": {
     "build": "node scripts/generate-env.js",
     "generate-env": "node scripts/generate-env.js"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }
