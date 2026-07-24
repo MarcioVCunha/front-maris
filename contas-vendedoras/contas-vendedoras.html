@@ -21,31 +21,35 @@
 
   <main class="container">
     <section class="toolbar card">
-      <div class="toolbar-row">
-        <label for="filter-paid">Situação do pagamento</label>
-        <select id="filter-paid">
-          <option value="unpaid" selected>A receber (não pagas)</option>
-          <option value="paid">Pagas</option>
-          <option value="all">Todas</option>
-          <option value="cancelled">Canceladas</option>
-        </select>
+      <div class="toolbar-filters">
+        <div class="toolbar-row">
+          <label for="filter-paid">Situação do pagamento</label>
+          <select id="filter-paid">
+            <option value="unpaid" selected>A receber (não pagas)</option>
+            <option value="paid">Pagas</option>
+            <option value="all">Todas</option>
+            <option value="cancelled">Canceladas</option>
+          </select>
+        </div>
+        <div class="toolbar-row">
+          <label for="search-input">Buscar (produto, código, vendedora)</label>
+          <input id="search-input" type="search" placeholder="Digite para filtrar a lista atual" autocomplete="off" enterkeyhint="search">
+        </div>
       </div>
-      <div class="toolbar-row">
-        <label for="search-input">Buscar (produto, código, vendedora)</label>
-        <input id="search-input" type="search" placeholder="Digite para filtrar a lista atual" autocomplete="off" enterkeyhint="search">
+      <div class="toolbar-options">
+        <label class="checkbox-line">
+          <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas visíveis" aria-label="Selecionar todas as vendas visíveis">
+          Selecionar todas visíveis
+        </label>
+        <label class="checkbox-line">
+          <input type="checkbox" id="modo-repasse">
+          Modo repasse (70% ao titular)
+        </label>
       </div>
-      <label class="checkbox-line">
-        <input type="checkbox" id="select-all-visible" class="select-all-checkbox" title="Selecionar todas visíveis" aria-label="Selecionar todas as vendas visíveis">
-        Selecionar todas as vendas visíveis
-      </label>
-      <label class="checkbox-line">
-        <input type="checkbox" id="modo-repasse">
-        Modo repasse (mostra 70% do valor selecionado para repassar ao titular)
-      </label>
-      <p id="toolbar-selected" class="toolbar-selected" aria-live="polite"></p>
-      <div class="repasse-actions">
+      <div class="selection-bar">
+        <p id="toolbar-selected" class="toolbar-selected" aria-live="polite"></p>
         <button type="button" id="btn-marcar-repasse" class="btn-repasse" disabled>
-          Marcar selecionadas como pagas (repasse feito)
+          Marcar selecionadas como pagas
         </button>
       </div>
     </section>

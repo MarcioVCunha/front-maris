@@ -16,17 +16,31 @@
   margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: var(--maris-surface, #fff);
+  gap: 12px;
+}
+
+.toolbar-filters {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .toolbar-filters {
+    grid-template-columns: minmax(180px, 240px) 1fr;
+    align-items: end;
+  }
 }
 
 .toolbar-row {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.toolbar-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
 }
 
 label {
@@ -47,11 +61,12 @@ input {
 .checkbox-line {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 600;
   color: var(--maris-black);
   cursor: pointer;
   margin: 0;
+  font-size: 14px;
 }
 
 .checkbox-line input[type="checkbox"] {
@@ -61,12 +76,27 @@ input {
   flex-shrink: 0;
 }
 
-.toolbar-selected {
-  margin: 0;
+.selection-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding-top: 12px;
   border-top: 1px solid #f1dbe4;
+}
+
+@media (min-width: 720px) {
+  .selection-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.toolbar-selected {
+  margin: 0;
   color: #3a1f2a;
-  font-size: 16px;
+  font-size: 15px;
+  flex: 1 1 auto;
 }
 
 .toolbar-selected strong {
@@ -87,7 +117,7 @@ input {
 }
 
 .summary-line + .summary-line {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .select-all-checkbox,
@@ -117,23 +147,24 @@ input {
   color: #1e6b45;
 }
 
-.repasse-actions {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid #f1dbe4;
-}
-
 .btn-repasse {
   font-size: 15px;
-  padding: 12px 16px;
+  padding: 11px 16px;
   border-radius: 8px;
   width: 100%;
-  max-width: 420px;
   border: none;
   background: #3ecf8e;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (min-width: 720px) {
+  .btn-repasse {
+    width: auto;
+    min-width: 220px;
+  }
 }
 
 .btn-repasse:hover:not(:disabled) {
@@ -331,6 +362,14 @@ input {
 @media (max-width: 480px) {
   .container {
     padding: 16px 12px;
+  }
+
+  header {
+    padding: 20px 16px;
+  }
+
+  .toolbar.card {
+    padding: 14px;
   }
 
   .sales-grid {
