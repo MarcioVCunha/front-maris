@@ -25,6 +25,7 @@ const toolbarSelectedEl = document.getElementById("toolbar-selected")
 const selectAllCheckbox = document.getElementById("select-all-visible")
 const modoRepasseCheckbox = document.getElementById("modo-repasse")
 const btnMarcarRepasse = document.getElementById("btn-marcar-repasse")
+const btnDevolverSelecionadas = document.getElementById("btn-devolver-selecionadas")
 
 const REPASSE_PERCENT = 0.7
 
@@ -78,6 +79,34 @@ function isPaidValue(row) {
   if (row.is_paid === true) return true
   if (row.is_paid === false) return false
   return false
+}
+
+function isActiveRow(row) {
+  return String(row.status || "active") !== "cancelled"
+}
+
+function selectedAreAllPaidActive(rows) {
+  let any = false
+  for (const row of rows) {
+    const id = saleIdKey(row)
+    if (!id || !selectedSaleIds.has(id)) continue
+    any = true
+    if (!isActiveRow(row) || !isPaidValue(row)) return false
+  }
+  return any
+}
+
+function selectedHasUnpaidActive(rows) {
+  for (const row of rows) {
+    const id = saleIdKey(row)
+    if (!id || !selectedSaleIds.has(id)) continue
+    if (isActiveRow(row) && !isPaidValue(row)) return true
+  }
+  return false
+}
+
+function currentFilterMode() {
+  return filterPaidSelect?.value || "unpaid"
 }
 
 function saleIdKey(row) {
@@ -280,7 +309,7 @@ function renderRows(rows) {
       const checked = id && selectedSaleIds.has(id) ? "checked" : ""
       const selectedClass = checked ? "sale-card--selected" : ""
       const cancelBtn = paid
-        ? ""
+        ? `<button type="button" class="btn-return-sale" data-return-sale-id="${escapeHtml(id)}">Devolver venda</button>`
         : `<button type="button" class="btn-cancel-sale" data-cancel-sale-id="${escapeHtml(id)}">Cancelar venda</button>`
 
       return `
@@ -294,14 +323,32 @@ function renderRows(rows) {
     .join("")
 
   syncSelectAllCheckbox(rows)
-  syncRepasseButton(rows)
+  syncActionButtons(rows)
 }
 
-function syncRepasseButton(rows) {
-  if (!btnMarcarRepasse) return
-  if (btnMarcarRepasse.dataset.loading === "1") return
-  const { lines } = selectionTotals(rows)
-  btnMarcarRepasse.disabled = lines === 0
+function syncActionButtons(rows) {
+  const mode = currentFilterMode()
+  const cancelledView = isCancelledView()
+  const canMarkPaid = !cancelledView && mode !== "paid"
+  const canReturn = !cancelledView && mode !== "unpaid"
+
+  if (btnMarcarRepasse) {
+    btnMarcarRepasse.hidden = !canMarkPaid
+    if (btnMarcarRepasse.dataset.loading === "1") {
+      btnMarcarRepasse.disabled = true
+    } else {
+      btnMarcarRepasse.disabled = !canMarkPaid || !selectedHasUnpaidActive(rows)
+    }
+  }
+
+  if (btnDevolverSelecionadas) {
+    btnDevolverSelecionadas.hidden = !canReturn
+    if (btnDevolverSelecionadas.dataset.loading === "1") {
+      btnDevolverSelecionadas.disabled = true
+    } else {
+      btnDevolverSelecionadas.disabled = !canReturn || !selectedAreAllPaidActive(rows)
+    }
+  }
 }
 
 function selectedIdsInView(rows) {
@@ -372,6 +419,81 @@ async function marcarSelecionadasComoPagas() {
 function refreshDisplay() {
   const filtered = applySearchFilter(loadedSales)
   renderRows(filtered)
+}
+
+async function devolverVendas(saleIds, triggerBtn) {
+  const ids = [...new Set(saleIds.map((id) => Number(id)).filter((n) => Number.isInteger(n) && n > 0))]
+  if (!ids.length) return
+
+  const url = window.ENV?.fn?.("return-sale")
+  if (!url) {
+    setMessage("Configuração ausente para devolver venda.", "error")
+    return
+  }
+
+  if (triggerBtn) triggerBtn.disabled = true
+  if (btnDevolverSelecionadas) {
+    btnDevolverSelecionadas.dataset.loading = "1"
+    btnDevolverSelecionadas.disabled = true
+  }
+  setMessage(ids.length === 1 ? "Devolvendo venda…" : "Devolvendo vendas…", "")
+
+  try {
+    const { ok, status, data } = await window.MarisApi.callFunction(url, {
+      body: { sale_ids: ids }
+    })
+
+    if (!ok || !data.ok) {
+      const detail = data.error || `Erro ${status}`
+      setMessage(`Não foi possível devolver: ${detail}`, "error")
+      if (triggerBtn) triggerBtn.disabled = false
+      refreshDisplay()
+      return
+    }
+
+    for (const id of ids) selectedSaleIds.delete(String(id))
+    await loadSales()
+
+    const count = Number(data.count) || ids.length
+    const partial =
+      Array.isArray(data.errors) && data.errors.length
+        ? ` (${data.errors.length} não processada(s))`
+        : ""
+    setMessage(
+      count === 1
+        ? "Venda devolvida e item reposto no catálogo."
+        : `${count} venda(s) devolvida(s) e itens repostos no catálogo.${partial}`,
+      "success"
+    )
+  } catch (e) {
+    console.error(e)
+    setMessage(`Erro inesperado: ${e?.message || e}`, "error")
+    if (triggerBtn) triggerBtn.disabled = false
+  } finally {
+    if (btnDevolverSelecionadas) {
+      delete btnDevolverSelecionadas.dataset.loading
+    }
+    refreshDisplay()
+  }
+}
+
+async function devolverSelecionadas() {
+  const filtered = applySearchFilter(loadedSales)
+  if (!selectedAreAllPaidActive(filtered)) {
+    setMessage("Selecione apenas vendas pagas e ativas para devolver.", "error")
+    return
+  }
+
+  const ids = selectedIdsInView(filtered)
+  const { lines, pieces, sum } = selectionTotals(filtered)
+  const ok = window.confirm(
+    `Devolver ${lines} venda(s) pagas ao catálogo?\n` +
+      `Peças: ${pieces} · Valor: ${formatMoneyBRL(sum)}\n\n` +
+      "O estoque será reposto e a venda ficará como cancelada. Esta ação não pode ser desfeita."
+  )
+  if (!ok) return
+
+  await devolverVendas(ids)
 }
 
 async function cancelarVenda(saleId, triggerBtn) {
@@ -511,12 +633,27 @@ if (salesGrid) {
   })
 
   salesGrid.addEventListener("click", (event) => {
-    const btn = event.target instanceof Element ? event.target.closest(".btn-cancel-sale") : null
-    if (!btn) return
-    // Evita que o clique no botão alterne a seleção do card (label).
+    const cancelBtn = event.target instanceof Element ? event.target.closest(".btn-cancel-sale") : null
+    if (cancelBtn) {
+      event.preventDefault()
+      event.stopPropagation()
+      cancelarVenda(cancelBtn.dataset.cancelSaleId, cancelBtn)
+      return
+    }
+
+    const returnBtn = event.target instanceof Element ? event.target.closest(".btn-return-sale") : null
+    if (!returnBtn) return
     event.preventDefault()
     event.stopPropagation()
-    cancelarVenda(btn.dataset.cancelSaleId, btn)
+
+    const id = Number(returnBtn.dataset.returnSaleId)
+    if (!Number.isInteger(id) || id <= 0) return
+
+    const ok = window.confirm(
+      "Devolver esta venda paga e repor o item no catálogo? Esta ação não pode ser desfeita."
+    )
+    if (!ok) return
+    devolverVendas([id], returnBtn)
   })
 }
 
@@ -537,6 +674,12 @@ if (modoRepasseCheckbox) {
 if (btnMarcarRepasse) {
   btnMarcarRepasse.addEventListener("click", () => {
     marcarSelecionadasComoPagas()
+  })
+}
+
+if (btnDevolverSelecionadas) {
+  btnDevolverSelecionadas.addEventListener("click", () => {
+    devolverSelecionadas()
   })
 }
 

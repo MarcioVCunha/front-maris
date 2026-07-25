@@ -147,24 +147,43 @@ input {
   color: #1e6b45;
 }
 
-.btn-repasse {
+.selection-bar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 720px) {
+  .selection-bar-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+.btn-repasse,
+.btn-devolver {
   font-size: 15px;
   padding: 11px 16px;
   border-radius: 8px;
   width: 100%;
   border: none;
-  background: #3ecf8e;
-  color: #fff;
   font-weight: 700;
   cursor: pointer;
-  flex-shrink: 0;
 }
 
 @media (min-width: 720px) {
-  .btn-repasse {
+  .btn-repasse,
+  .btn-devolver {
     width: auto;
-    min-width: 220px;
+    min-width: 200px;
   }
+}
+
+.btn-repasse {
+  background: #3ecf8e;
+  color: #fff;
 }
 
 .btn-repasse:hover:not(:disabled) {
@@ -174,6 +193,29 @@ input {
 .btn-repasse:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.btn-devolver {
+  background: #fff;
+  color: #8b2020;
+  border: 1px solid #e8b4b4;
+}
+
+.btn-devolver:hover:not(:disabled) {
+  background: #fff5f5;
+}
+
+.btn-devolver:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-devolver[hidden] {
+  display: none;
+}
+
+.btn-repasse[hidden] {
+  display: none;
 }
 
 .sales-grid {
@@ -355,6 +397,30 @@ input {
 }
 
 .btn-cancel-sale:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-return-sale {
+  appearance: none;
+  border: 1px solid #c792a8;
+  background: #fff;
+  color: #6b3a4a;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-return-sale:hover {
+  background: #6b3a4a;
+  border-color: #6b3a4a;
+  color: #fff;
+}
+
+.btn-return-sale:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
