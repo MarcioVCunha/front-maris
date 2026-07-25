@@ -224,6 +224,60 @@ function selectionTotals(rows) {
   return { lines, pieces, sum }
 }
 
+function rowsForSaleIds(ids) {
+  const idSet = new Set(ids.map((id) => String(id)))
+  return loadedSales.filter((row) => idSet.has(saleIdKey(row)))
+}
+
+function successfulReturnIds(requestedIds, errors) {
+  if (!Array.isArray(errors) || !errors.length) return requestedIds
+  const failed = new Set(errors.map((entry) => Number(entry.sale_id)))
+  return requestedIds.filter((id) => !failed.has(id))
+}
+
+function showReturnCreditAlert(rows) {
+  if (!rows.length) return
+
+  let total = 0
+  for (const row of rows) {
+    total += Number(row.total_value) || 0
+  }
+  const totalRounded =
+    typeof roundMoney === "function" ? roundMoney(total) : Math.round(total * 100) / 100
+
+  const lines = [
+    "Devolução concluída.",
+    "",
+    "Anote como crédito para quem devolveu:",
+    `Total pago: ${formatMoneyBRL(totalRounded)}`,
+    ""
+  ]
+
+  const bySeller = Object.create(null)
+  for (const row of rows) {
+    const seller = String(row.seller_name || "Sem vendedora").trim() || "Sem vendedora"
+    if (!bySeller[seller]) bySeller[seller] = []
+    bySeller[seller].push(row)
+  }
+
+  for (const [seller, sellerRows] of Object.entries(bySeller)) {
+    let sellerSum = 0
+    for (const row of sellerRows) sellerSum += Number(row.total_value) || 0
+    const sellerRounded =
+      typeof roundMoney === "function" ? roundMoney(sellerSum) : Math.round(sellerSum * 100) / 100
+    lines.push(`${seller} — ${formatMoneyBRL(sellerRounded)}`)
+    for (const row of sellerRows) {
+      const name = String(row.product_name || "Produto").trim()
+      const code = String(row.product_code || "").trim()
+      const label = code ? `${name} (${code})` : name
+      lines.push(`  · ${label}: ${formatMoneyBRL(row.total_value)}`)
+    }
+    lines.push("")
+  }
+
+  window.alert(lines.join("\n").trim())
+}
+
 function syncSelectAllCheckbox(rows) {
   if (!selectAllCheckbox || !rows.length) {
     if (selectAllCheckbox) {
@@ -421,9 +475,11 @@ function refreshDisplay() {
   renderRows(filtered)
 }
 
-async function devolverVendas(saleIds, triggerBtn) {
+async function devolverVendas(saleIds, triggerBtn, creditSnapshot) {
   const ids = [...new Set(saleIds.map((id) => Number(id)).filter((n) => Number.isInteger(n) && n > 0))]
   if (!ids.length) return
+
+  const creditRows = creditSnapshot || rowsForSaleIds(ids)
 
   const url = window.ENV?.fn?.("return-sale")
   if (!url) {
@@ -459,6 +515,12 @@ async function devolverVendas(saleIds, triggerBtn) {
       Array.isArray(data.errors) && data.errors.length
         ? ` (${data.errors.length} não processada(s))`
         : ""
+    const returnedIds = successfulReturnIds(ids, data.errors)
+    const creditedRows = creditRows.filter((row) =>
+      returnedIds.includes(Number(saleIdKey(row)))
+    )
+    if (creditedRows.length) showReturnCreditAlert(creditedRows)
+
     setMessage(
       count === 1
         ? "Venda devolvida e item reposto no catálogo."
@@ -485,6 +547,7 @@ async function devolverSelecionadas() {
   }
 
   const ids = selectedIdsInView(filtered)
+  const creditSnapshot = rowsForSaleIds(ids)
   const { lines, pieces, sum } = selectionTotals(filtered)
   const ok = window.confirm(
     `Devolver ${lines} venda(s) pagas ao catálogo?\n` +
@@ -493,7 +556,7 @@ async function devolverSelecionadas() {
   )
   if (!ok) return
 
-  await devolverVendas(ids)
+  await devolverVendas(ids, null, creditSnapshot)
 }
 
 async function cancelarVenda(saleId, triggerBtn) {
@@ -649,11 +712,15 @@ if (salesGrid) {
     const id = Number(returnBtn.dataset.returnSaleId)
     if (!Number.isInteger(id) || id <= 0) return
 
+    const row = loadedSales.find((sale) => saleIdKey(sale) === String(id))
+    const valueLabel = row ? formatMoneyBRL(row.total_value) : ""
     const ok = window.confirm(
-      "Devolver esta venda paga e repor o item no catálogo? Esta ação não pode ser desfeita."
+      valueLabel
+        ? `Devolver esta venda paga (${valueLabel}) e repor o item no catálogo? Esta ação não pode ser desfeita.`
+        : "Devolver esta venda paga e repor o item no catálogo? Esta ação não pode ser desfeita."
     )
     if (!ok) return
-    devolverVendas([id], returnBtn)
+    devolverVendas([id], returnBtn, row ? [row] : [])
   })
 }
 
