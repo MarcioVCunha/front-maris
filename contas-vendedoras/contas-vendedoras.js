@@ -47,7 +47,7 @@ let loadedSales = []
 let imageUrlByProductCode = Object.create(null)
 
 const SALES_SELECT =
-  "id, created_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid, status"
+  "id, created_at, paid_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid, status"
 
 function isCancelledView() {
   return (filterPaidSelect?.value || "") === "cancelled"
@@ -328,6 +328,8 @@ function renderRows(rows) {
       const paid = isPaidValue(row)
       const type = String(row.sale_item_type || "product") === "component" ? "Tipo" : "Produto"
       const id = saleIdKey(row)
+      const dateLabel = paid && row.paid_at ? "Paga em" : "Data"
+      const dateValue = paid && row.paid_at ? row.paid_at : row.created_at
 
       let badgeClass = paid ? "badge-paid" : "badge-unpaid"
       let badgeText = paid ? "Paga" : "A receber"
@@ -341,7 +343,7 @@ function renderRows(rows) {
         <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
         <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
         <dl class="sale-card-meta">
-          <div><dt>Data</dt><dd>${formatDate(row.created_at)}</dd></div>
+          <div><dt>${dateLabel}</dt><dd>${formatDate(dateValue)}</dd></div>
           <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
           <div><dt>Vendedora</dt><dd>${escapeHtml(row.seller_name || "—")}</dd></div>
           <div><dt>Pagamento</dt><dd>${escapeHtml(paymentLabel(row.payment_method))}</dd></div>
@@ -622,7 +624,11 @@ async function loadSales() {
       }
     }
 
-    query = query.order("created_at", { ascending: false })
+    if (mode === "paid") {
+      query = query.order("paid_at", { ascending: false, nullsFirst: false })
+    } else {
+      query = query.order("created_at", { ascending: false })
+    }
 
     let { data, error } = await query
 
