@@ -55,16 +55,56 @@ async function loadCarts() {
   cartsListEl.innerHTML = carts
     .map((cart) => `
       <article class="cart-card" data-cart-id="${escapeHtml(cart.id)}">
-        <h3>${escapeHtml(cart.buyer.full_name || "Cliente")}</h3>
-        <p>${escapeHtml(cart.piece_count)} peça(s) · ${formatMoneyBRL(cart.estimated_total)}</p>
-        <p class="cart-seller">Vendedora: <strong>${escapeHtml(sellerLabel(cart))}</strong></p>
-        <p class="cart-date">${escapeHtml(new Date(cart.shared_at).toLocaleString("pt-BR"))}</p>
+        <div class="cart-card-body">
+          <h3>${escapeHtml(cart.buyer.full_name || "Cliente")}</h3>
+          <p>${escapeHtml(cart.piece_count)} peça(s) · ${formatMoneyBRL(cart.estimated_total)}</p>
+          <p class="cart-seller">Vendedora: <strong>${escapeHtml(sellerLabel(cart))}</strong></p>
+          <p class="cart-date">${escapeHtml(new Date(cart.shared_at).toLocaleString("pt-BR"))}</p>
+        </div>
+        <div class="cart-card-actions">
+          <button type="button" class="btn-discard-cart" data-discard-cart-id="${escapeHtml(cart.id)}">Excluir</button>
+        </div>
       </article>
     `)
     .join("")
 }
 
+async function discardCart(cartId, triggerBtn) {
+  if (!cartId) return
+  const ok = window.confirm("Excluir este carrinho da lista? Essa ação não pode ser desfeita.")
+  if (!ok) return
+
+  if (triggerBtn) triggerBtn.disabled = true
+  try {
+    const res = await fetch(window.ENV.fn("discard-shared-cart"), {
+      method: "POST",
+      headers: staffHeaders(),
+      body: JSON.stringify({ cart_id: cartId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      window.alert(data.error || "Não foi possível excluir o carrinho.")
+      return
+    }
+    await loadCarts()
+  } catch {
+    window.alert("Não foi possível excluir o carrinho.")
+  } finally {
+    if (triggerBtn) triggerBtn.disabled = false
+  }
+}
+
 cartsListEl.addEventListener("click", (event) => {
+  const discardBtn = event.target instanceof Element
+    ? event.target.closest(".btn-discard-cart")
+    : null
+  if (discardBtn) {
+    event.preventDefault()
+    event.stopPropagation()
+    discardCart(discardBtn.getAttribute("data-discard-cart-id"), discardBtn)
+    return
+  }
+
   const card = event.target.closest("[data-cart-id]")
   if (!card) return
   const cartId = card.getAttribute("data-cart-id")
