@@ -1,166 +1,51 @@
 {
   "buildCommand": "node scripts/generate-env.js",
-  "outputDirectory": ".",
+  "outputDirectory": "public",
   "redirects": [
-    {
-      "source": "/index.html",
-      "destination": "/",
-      "permanent": true
-    },
-    {
-      "source": "/hubs/admin.html",
-      "destination": "/admin",
-      "permanent": true
-    },
-    {
-      "source": "/hubs/vendedoras.html",
-      "destination": "/vendedoras",
-      "permanent": true
-    },
-    {
-      "source": "/hubs/catalogo.html",
-      "destination": "/catalogo",
-      "permanent": true
-    },
-    {
-      "source": "/importJson/import.html",
-      "destination": "/importar",
-      "permanent": true
-    },
-    {
-      "source": "/addProduct/add-product.html",
-      "destination": "/adicionar-peca",
-      "permanent": true
-    },
-    {
-      "source": "/components/components.html",
-      "destination": "/tipos-produto",
-      "permanent": true
-    },
-    {
-      "source": "/promocoes/promocoes.html",
-      "destination": "/promocoes",
-      "permanent": true
-    },
-    {
-      "source": "/contas-vendedoras/contas-vendedoras.html",
-      "destination": "/contas-vendedoras",
-      "permanent": true
-    },
-    {
-      "source": "/sales/sales.html",
-      "destination": "/vendas",
-      "permanent": true
-    },
-    {
-      "source": "/sales/customer-carts.html",
-      "destination": "/carrinhos-clientes",
-      "permanent": true
-    },
-    {
-      "source": "/sales/customer-cart-detail.html",
-      "destination": "/carrinho-cliente",
-      "permanent": true
-    },
-    {
-      "source": "/sales/waitlist.html",
-      "destination": "/lista-espera",
-      "permanent": true
-    },
-    {
-      "source": "/catalog/catalog.html",
-      "destination": "/catalog",
-      "permanent": true
-    },
-    {
-      "source": "/catalog/carrinho.html",
-      "destination": "/catalog/carrinho",
-      "permanent": true
-    },
-    {
-      "source": "/catalog/cesta-compartilhada.html",
-      "destination": "/catalog/cesta",
-      "permanent": true
-    },
-    {
-      "source": "/staff-gate.html",
-      "destination": "/equipe",
-      "permanent": true
-    }
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/hubs/admin.html", "destination": "/admin", "permanent": true },
+    { "source": "/hubs/vendedoras.html", "destination": "/vendedoras", "permanent": true },
+    { "source": "/hubs/catalogo.html", "destination": "/catalogo", "permanent": true },
+    { "source": "/importJson/import.html", "destination": "/importar", "permanent": true },
+    { "source": "/addProduct/add-product.html", "destination": "/adicionar-peca", "permanent": true },
+    { "source": "/components/components.html", "destination": "/tipos-produto", "permanent": true },
+    { "source": "/promocoes/promocoes.html", "destination": "/promocoes", "permanent": true },
+    { "source": "/contas-vendedoras/contas-vendedoras.html", "destination": "/contas-vendedoras", "permanent": true },
+    { "source": "/sales/sales.html", "destination": "/vendas", "permanent": true },
+    { "source": "/sales/customer-carts.html", "destination": "/carrinhos-clientes", "permanent": true },
+    { "source": "/sales/customer-cart-detail.html", "destination": "/carrinho-cliente", "permanent": true },
+    { "source": "/sales/waitlist.html", "destination": "/lista-espera", "permanent": true },
+    { "source": "/catalog/catalog.html", "destination": "/catalog", "permanent": true },
+    { "source": "/catalog/carrinho.html", "destination": "/catalog/carrinho", "permanent": true },
+    { "source": "/catalog/cesta-compartilhada.html", "destination": "/catalog/cesta", "permanent": true },
+    { "source": "/staff-gate.html", "destination": "/equipe", "permanent": true },
+    { "source": "/home.css", "destination": "/assets/home.css", "permanent": true },
+    { "source": "/maris-theme.css", "destination": "/assets/maris-theme.css", "permanent": true },
+    { "source": "/maris-internal.css", "destination": "/assets/maris-internal.css", "permanent": true },
+    { "source": "/shared/:path*", "destination": "/compartilhado/:path*", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/utils.js", "destination": "/shared/utils.js" },
-    { "source": "/api.js", "destination": "/shared/api.js" },
-    { "source": "/ui.js", "destination": "/shared/ui.js" },
-    { "source": "/cart-resolver.js", "destination": "/shared/cart-resolver.js" },
-    { "source": "/staff-auth.js", "destination": "/shared/staff-auth.js" },
-    {
-      "source": "/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/hubs/admin.html"
-    },
-    {
-      "source": "/vendedoras",
-      "destination": "/hubs/vendedoras.html"
-    },
-    {
-      "source": "/catalogo",
-      "destination": "/hubs/catalogo.html"
-    },
-    {
-      "source": "/importar",
-      "destination": "/importJson/import.html"
-    },
-    {
-      "source": "/adicionar-peca",
-      "destination": "/addProduct/add-product.html"
-    },
-    {
-      "source": "/tipos-produto",
-      "destination": "/components/components.html"
-    },
-    {
-      "source": "/promocoes",
-      "destination": "/promocoes/promocoes.html"
-    },
-    {
-      "source": "/contas-vendedoras",
-      "destination": "/contas-vendedoras/contas-vendedoras.html"
-    },
-    {
-      "source": "/vendas",
-      "destination": "/sales/sales.html"
-    },
-    {
-      "source": "/carrinhos-clientes",
-      "destination": "/sales/customer-carts.html"
-    },
-    {
-      "source": "/carrinho-cliente",
-      "destination": "/sales/customer-cart-detail.html"
-    },
-    {
-      "source": "/lista-espera",
-      "destination": "/sales/waitlist.html"
-    },
-    {
-      "source": "/catalog",
-      "destination": "/catalog/catalog.html"
-    },
-    {
-      "source": "/catalog/carrinho",
-      "destination": "/catalog/carrinho.html"
-    },
-    {
-      "source": "/catalog/cesta",
-      "destination": "/catalog/cesta-compartilhada.html"
-    },
-    {
-      "source": "/equipe",
-      "destination": "/staff-gate.html"
-    }
+    { "source": "/utils.js", "destination": "/compartilhado/utils.js" },
+    { "source": "/api.js", "destination": "/compartilhado/api.js" },
+    { "source": "/ui.js", "destination": "/compartilhado/ui.js" },
+    { "source": "/cart-resolver.js", "destination": "/compartilhado/cart-resolver.js" },
+    { "source": "/staff-auth.js", "destination": "/compartilhado/staff-auth.js" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/paginas/admin/admin.html" },
+    { "source": "/vendedoras", "destination": "/paginas/admin/vendedoras.html" },
+    { "source": "/catalogo", "destination": "/paginas/admin/catalogo.html" },
+    { "source": "/importar", "destination": "/paginas/estoque/importar/importar.html" },
+    { "source": "/adicionar-peca", "destination": "/paginas/estoque/adicionar-peca/adicionar-peca.html" },
+    { "source": "/tipos-produto", "destination": "/paginas/estoque/tipos-produto/tipos-produto.html" },
+    { "source": "/promocoes", "destination": "/paginas/estoque/promocoes/promocoes.html" },
+    { "source": "/contas-vendedoras", "destination": "/paginas/vendedoras/contas.html" },
+    { "source": "/vendas", "destination": "/paginas/vendas/vendas.html" },
+    { "source": "/carrinhos-clientes", "destination": "/paginas/vendas/carrinhos-clientes.html" },
+    { "source": "/carrinho-cliente", "destination": "/paginas/vendas/carrinho-cliente.html" },
+    { "source": "/lista-espera", "destination": "/paginas/vendas/lista-espera.html" },
+    { "source": "/catalog", "destination": "/paginas/catalogo/catalogo.html" },
+    { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
+    { "source": "/catalog/cesta", "destination": "/paginas/catalogo/cesta-compartilhada.html" },
+    { "source": "/equipe", "destination": "/paginas/admin/equipe.html" }
   ]
 }

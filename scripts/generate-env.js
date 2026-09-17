@@ -1,5 +1,5 @@
 /**
- * Gera /env.js a partir de process.env (Vercel build).
+ * Gera public/env.js a partir de process.env (Vercel build).
  * Sem deps. Se as vars faltarem, usa fallbacks de produção (mesmo do utils.js).
  *
  * Uso: node scripts/generate-env.js
@@ -19,7 +19,7 @@ if (!["production", "staging"].includes(appEnv)) {
   console.warn(`[generate-env] APP_ENV="${appEnv}" — esperado production|staging`)
 }
 
-const outPath = path.join(__dirname, "..", "env.js")
+const outPath = path.join(__dirname, "..", "public", "env.js")
 const contents = `// Gerado por scripts/generate-env.js — sobrescrito no build Vercel.
 // Local: valores de produção por padrão (anon key é pública por design).
 window.__MARIS_ENV__ = {

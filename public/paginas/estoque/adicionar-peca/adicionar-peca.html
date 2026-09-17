@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar peça — Maris Semijoias</title>
+    <link rel="stylesheet" href="/paginas/estoque/adicionar-peca/adicionar-peca.css">
+  </head>
+
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <a class="back-link" href="/admin">← Voltar à administração</a>
+        <h1>Adicionar peça</h1>
+        <p class="lead">Cria um produto no catálogo. Para subdividir em tipos (ex.: brinco/colar), use Tipos dos produtos depois.</p>
+      </header>
+
+      <main class="card">
+        <form id="addProductForm" class="form" novalidate>
+          <label class="field">
+            <span>Código *</span>
+            <input id="codeInput" name="code" type="text" required placeholder="Ex.: BM1786-O">
+          </label>
+
+          <label class="field">
+            <span>Nome *</span>
+            <input id="nameInput" name="name" type="text" required placeholder="Nome do produto">
+          </label>
+
+          <label class="field">
+            <span>Preço unitário *</span>
+            <input id="priceInput" name="price" type="text" inputmode="decimal" required placeholder="Ex.: 89,90">
+          </label>
+
+          <label class="field">
+            <span>Quantidade *</span>
+            <input id="quantityInput" name="quantity" type="number" min="0" step="1" required placeholder="0">
+          </label>
+
+          <label class="field">
+            <span>URLs das imagens</span>
+            <textarea id="imageUrlsInput" name="image_urls" rows="4" placeholder="Uma URL por linha (a primeira é a foto principal)"></textarea>
+          </label>
+
+          <button id="submitBtn" class="btn-primary" type="submit">Adicionar peça</button>
+        </form>
+
+        <section class="result-wrap" id="resultWrap" hidden>
+          <h2 class="result-title" id="resultTitle">Resultado</h2>
+          <p id="result" class="result-body" role="status"></p>
+        </section>
+      </main>
+    </div>
+
+    <script src="/compartilhado/staff-auth.js"></script>
+    <script src="/env.js"></script>
+    <script src="/compartilhado/utils.js"></script>
+    <script src="/compartilhado/api.js"></script>
+    <script type="module" src="/paginas/estoque/adicionar-peca/adicionar-peca.logic.js"></script>
+    <script defer src="/paginas/estoque/adicionar-peca/adicionar-peca.js"></script>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+  </body>
+</html>

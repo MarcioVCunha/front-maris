@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalhe do carrinho — Maris Semijoias</title>
+  <link rel="stylesheet" href="/paginas/vendas/vendas.css">
+  <link rel="stylesheet" href="/paginas/vendas/carrinhos-clientes.css">
+  <script src="/compartilhado/staff-auth.js"></script>
+  <script src="/env.js"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/ui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <a class="back-link" href="/carrinhos-clientes">← Voltar para carrinhos</a>
+  <h1>Detalhe do carrinho</h1>
+  <p id="cart-meta">Carregando…</p>
+</header>
+<main class="container">
+  <section class="detail-sections">
+    <section class="card">
+      <h2>Dados da cliente</h2>
+      <div id="buyer-info" class="buyer-info"></div>
+    </section>
+
+    <section class="card">
+      <h2>Itens do carrinho</h2>
+      <div id="cart-items-detail"></div>
+    </section>
+  </section>
+
+  <section class="card sale-from-cart">
+    <h2>Registrar venda</h2>
+    <label for="payment-method">Pagamento</label>
+    <select id="payment-method">
+      <option value="">Selecione</option>
+      <option value="pix">Pix</option>
+      <option value="cartao_credito">Cartão de crédito</option>
+      <option value="cartao_debito">Cartão de débito</option>
+      <option value="dinheiro">Dinheiro</option>
+      <option value="transferencia">Transferência</option>
+    </select>
+    <p class="summary-line">Subtotal: <strong id="sale-subtotal">R$ 0,00</strong></p>
+    <p class="summary-line" id="sale-discount-row" hidden>Desconto Pix (5%): <strong id="sale-discount">R$ 0,00</strong></p>
+    <p class="summary-line">Total: <strong id="sale-total">R$ 0,00</strong></p>
+    <button type="button" id="submit-sale" class="btn-primary">Registrar venda dos itens marcados</button>
+    <p id="sale-message" class="message"></p>
+  </section>
+</main>
+<script type="module" src="/paginas/vendas/carrinho-cliente.logic.js"></script>
+<script defer src="/paginas/vendas/carrinho-cliente.js"></script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>

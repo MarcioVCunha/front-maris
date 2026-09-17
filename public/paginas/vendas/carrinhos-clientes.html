@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrinhos de clientes — Maris Semijoias</title>
+  <link rel="stylesheet" href="/paginas/vendas/vendas.css">
+  <link rel="stylesheet" href="/paginas/vendas/carrinhos-clientes.css">
+  <script src="/compartilhado/staff-auth.js"></script>
+  <script src="/env.js"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/ui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <a class="back-link" href="/vendedoras">← Voltar às vendedoras</a>
+  <h1>Carrinhos de clientes</h1>
+  <p>Compartilhados com a vendedora selecionada</p>
+</header>
+<main class="container">
+  <section class="card">
+    <label for="seller-filter">Vendedora</label>
+    <select id="seller-filter"></select>
+    <button type="button" id="reload-carts" class="btn-reload">Atualizar lista</button>
+  </section>
+  <div id="carts-list" class="carts-list"></div>
+</main>
+<script type="module" src="/paginas/vendas/carrinhos-clientes.logic.js"></script>
+<script defer src="/paginas/vendas/carrinhos-clientes.js"></script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>
