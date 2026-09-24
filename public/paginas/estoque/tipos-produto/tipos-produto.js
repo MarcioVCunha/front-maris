@@ -120,7 +120,7 @@ function renderComponentRows(productCode) {
 async function loadComponents() {
   const { data, error } = await supabaseClient
     .from("product_components")
-    .select("id, product_code, name, unit_price, price_percent, quantity, is_active")
+    .select("id, product_code, name, price_percent, quantity, is_active")
     .order("name")
 
   if (error) {
@@ -291,7 +291,6 @@ async function saveCurrentProductComponents() {
     const payload = {
       name: row.name,
       price_percent: row.price_percent,
-      unit_price: row.unit_price,
       quantity: row.quantity,
       is_active: true
     }

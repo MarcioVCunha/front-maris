@@ -103,7 +103,7 @@ function renderCart() {
 async function loadCatalogData() {
   const [productsRes, componentsRes, imagesRes] = await Promise.all([
     sbClient.from("products").select("id, code, name, unit_price, quantity, image_url, is_on_sale, discount_percent"),
-    sbClient.from("product_components").select("id, product_code, name, unit_price, quantity, is_on_sale, discount_percent").eq("is_active", true),
+    sbClient.from("product_components_priced").select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent").eq("is_active", true),
     sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
   ])
   if (productsRes.error || componentsRes.error || imagesRes.error) {
@@ -124,7 +124,7 @@ async function loadCatalogData() {
   }
   window.MarisCatalogCart.setCatalogData({
     products,
-    components: componentsRes.data || [],
+    components: window.MarisUtils.mapPricedComponents(componentsRes.data || []),
     imagesByCode
   })
 }

@@ -6,8 +6,8 @@ await import("./utils.js")
 // deno-lint-ignore no-explicit-any
 const U = (globalThis as any).window.MarisUtils as any
 
-Deno.test("computeComponentPrice: arredonda para cima", () => {
-  assertEquals(U.computeComponentPrice(90, 25), { ok: true, value: 23 })
+Deno.test("computeComponentPrice: round 2 casas", () => {
+  assertEquals(U.computeComponentPrice(90, 25), { ok: true, value: 22.5 })
 })
 
 Deno.test("computeComponentPrice: valor exato inteiro", () => {
@@ -15,11 +15,11 @@ Deno.test("computeComponentPrice: valor exato inteiro", () => {
 })
 
 Deno.test("computeComponentPrice: centavos no pai", () => {
-  assertEquals(U.computeComponentPrice(89.9, 25), { ok: true, value: 23 })
+  assertEquals(U.computeComponentPrice(89.9, 25), { ok: true, value: 22.48 })
 })
 
 Deno.test("computeComponentPrice: percentual decimal", () => {
-  assertEquals(U.computeComponentPrice(90, 25.5), { ok: true, value: 23 })
+  assertEquals(U.computeComponentPrice(90, 25.5), { ok: true, value: 22.95 })
 })
 
 Deno.test("computeComponentPrice: acima de 100%", () => {
@@ -27,7 +27,13 @@ Deno.test("computeComponentPrice: acima de 100%", () => {
 })
 
 Deno.test("computeComponentPrice: minimo valido", () => {
-  assertEquals(U.computeComponentPrice(90, 0.01), { ok: true, value: 1 })
+  assertEquals(U.computeComponentPrice(90, 0.01), { ok: true, value: 0.01 })
+})
+
+Deno.test("computeComponentPrice: BM1733-O 25/35/45% de 190.9", () => {
+  assertEquals(U.computeComponentPrice(190.9, 25), { ok: true, value: 47.73 })
+  assertEquals(U.computeComponentPrice(190.9, 35), { ok: true, value: 66.82 })
+  assertEquals(U.computeComponentPrice(190.9, 45), { ok: true, value: 85.91 })
 })
 
 Deno.test("computeComponentPrice: % zero", () => {
@@ -100,7 +106,7 @@ Deno.test("parseComponentRows: estoque invalido", () => {
   assertEquals(r.ok, false)
 })
 
-Deno.test("parseComponentRows: duas linhas validas", () => {
+Deno.test("parseComponentRows: duas linhas validas sem unit_price", () => {
   const r = U.parseComponentRows(
     [
       { name: "Brinco", price_percent: 25, quantity: 2 },
@@ -110,6 +116,24 @@ Deno.test("parseComponentRows: duas linhas validas", () => {
   )
   assertEquals(r.ok, true)
   assertEquals(r.rows.length, 2)
-  assertEquals(r.rows[0].unit_price, 23)
-  assertEquals(r.rows[1].unit_price, 45)
+  assertEquals(r.rows[0].price_percent, 25)
+  assertEquals(r.rows[0].unit_price, undefined)
+  assertEquals(r.rows[1].price_percent, 50)
+})
+
+Deno.test("normalizePricedComponent + effectivePrice: BM1733 com promo pai", () => {
+  const c = U.normalizePricedComponent({
+    id: 15,
+    product_code: "BM1733-O",
+    name: "Pequeno",
+    quantity: 1,
+    is_active: true,
+    price_percent: 25,
+    computed_unit_price: 47.73,
+    parent_unit_price: 190.9,
+    parent_is_on_sale: true,
+    parent_discount_percent: 25
+  })
+  assertEquals(c.unit_price, 47.73)
+  assertEquals(U.effectivePrice(c), 35.79)
 })

@@ -29,14 +29,11 @@ function priceBlock(row) {
   `
 }
 
-function controlsBlock({ target, code, componentId, row }) {
+function controlsBlock({ code, row }) {
   const onSale = Boolean(row?.is_on_sale)
   const pct = Number(row?.discount_percent) || 0
-  const dataAttrs = target === "product"
-    ? `data-target="product" data-code="${code}"`
-    : `data-target="component" data-component-id="${componentId}"`
   return `
-    <div class="promo-controls" ${dataAttrs}>
+    <div class="promo-controls" data-target="product" data-code="${code}">
       <label class="promo-toggle">
         <input type="checkbox" class="promo-on" ${onSale ? "checked" : ""}>
         Em promoção
@@ -58,38 +55,30 @@ function renderProductCard(product) {
   const componentsHtml = hasTypes
     ? `
       <div class="promo-components">
-        <p class="promo-components-title">Tipos deste produto</p>
+        <p class="promo-components-title">Tipos (preço = % do pai · promo herdada)</p>
         ${components.map((component) => `
           <div class="promo-comp-row">
             <div>
-              <div class="promo-comp-name">${escapeHtml(component.name)} ${hasPromo(component) ? '<span class="promo-badge">Promo</span>' : ""}</div>
+              <div class="promo-comp-name">${escapeHtml(component.name)}${onSale ? ' <span class="promo-badge">Promo</span>' : ""}</div>
               ${priceBlock(component)}
             </div>
-            ${controlsBlock({ target: "component", componentId: component.id, row: component })}
           </div>
         `).join("")}
       </div>
     `
     : ""
 
-  const productControls = hasTypes
-    ? `
-      <div class="promo-controls promo-controls--hint">
-        <p class="promo-type-hint">Este produto só vende por tipos. Promova os tipos abaixo — a promoção do produto pai não altera o preço na loja.</p>
-      </div>
-    `
-    : controlsBlock({ target: "product", code: product.code, row: product })
-
   return `
     <article class="promo-card" data-product-code="${escapeHtml(product.code)}">
       <div class="promo-row">
         <img class="promo-thumb" src="${escapeHtml(product.image_url || "")}" alt="${escapeHtml(product.name)}" loading="lazy">
         <div class="promo-info">
-          <p class="promo-name">${escapeHtml(product.name)} ${onSale && !hasTypes ? '<span class="promo-badge">Promo</span>' : ""}</p>
+          <p class="promo-name">${escapeHtml(product.name)} ${onSale ? '<span class="promo-badge">Promo</span>' : ""}</p>
           <p class="promo-code">${escapeHtml(product.code)}</p>
-          ${hasTypes ? '<p class="promo-type-note">Venda por tipos</p>' : priceBlock(product)}
+          ${hasTypes ? '<p class="promo-type-note">Venda por tipos — promo do pai vale para todos</p>' : ""}
+          ${priceBlock(product)}
         </div>
-        ${productControls}
+        ${controlsBlock({ code: product.code, row: product })}
       </div>
       ${componentsHtml}
     </article>
@@ -120,8 +109,8 @@ async function loadData() {
       .select("code, name, unit_price, image_url, is_on_sale, discount_percent")
       .order("name"),
     supabaseClient
-      .from("product_components")
-      .select("id, product_code, name, unit_price, is_on_sale, discount_percent, is_active")
+      .from("product_components_priced")
+      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
       .eq("is_active", true)
       .order("name")
   ])
@@ -132,23 +121,19 @@ async function loadData() {
   }
 
   products = productsRes.data || []
-  componentsByProductCode = groupByKey(componentsRes.data || [], (c) => c.product_code)
+  componentsByProductCode = groupByKey(
+    window.MarisUtils.mapPricedComponents(componentsRes.data || []),
+    (c) => c.product_code
+  )
   render()
 }
 
-function findRow({ target, code, componentId }) {
-  if (target === "product") return products.find((p) => p.code === code)
-  for (const list of Object.values(componentsByProductCode)) {
-    const found = list.find((c) => Number(c.id) === Number(componentId))
-    if (found) return found
-  }
-  return null
+function findProduct(code) {
+  return products.find((p) => p.code === code)
 }
 
 async function savePromotion(controlsEl) {
-  const target = controlsEl.dataset.target
   const code = controlsEl.dataset.code
-  const componentId = controlsEl.dataset.componentId
   const checkbox = controlsEl.querySelector(".promo-on")
   const percentInput = controlsEl.querySelector(".promo-percent")
   const saveBtn = controlsEl.querySelector(".promo-save")
@@ -166,9 +151,8 @@ async function savePromotion(controlsEl) {
   try {
     const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("set-product-promotion"), {
       body: {
-        target,
-        code: target === "product" ? code : undefined,
-        component_id: target === "component" ? Number(componentId) : undefined,
+        target: "product",
+        code,
         is_on_sale: isOnSale,
         discount_percent: discountPercent
       }
@@ -178,13 +162,13 @@ async function savePromotion(controlsEl) {
       return
     }
 
-    const row = findRow({ target, code, componentId })
+    const row = findProduct(code)
     if (row) {
       row.is_on_sale = data.is_on_sale
       row.discount_percent = data.discount_percent
     }
     setFeedback("Promoção atualizada!", "success")
-    render()
+    await loadData()
   } catch {
     setFeedback("Erro de conexão ao salvar.", "error")
   } finally {
@@ -210,7 +194,7 @@ async function applyAllPromotions(isOnSale, discountPercent) {
     }
     setFeedback(
       isOnSale
-        ? `Tudo em promoção com ${data.discount_percent}% de desconto!`
+        ? `Todos os produtos em promoção com ${data.discount_percent}% de desconto!`
         : "Todas as promoções foram removidas.",
       "success"
     )
@@ -232,12 +216,12 @@ bulkApplyBtn.addEventListener("click", () => {
     bulkPercentInput.focus()
     return
   }
-  if (!window.confirm(`Colocar TODOS os produtos e tipos em promoção com ${pct}% de desconto?`)) return
+  if (!window.confirm(`Colocar TODOS os produtos em promoção com ${pct}% de desconto?`)) return
   applyAllPromotions(true, pct)
 })
 
 bulkClearBtn.addEventListener("click", () => {
-  if (!window.confirm("Remover a promoção de TODOS os produtos e tipos?")) return
+  if (!window.confirm("Remover a promoção de TODOS os produtos?")) return
   applyAllPromotions(false, 0)
 })
 

@@ -391,8 +391,8 @@ async function loadCatalogData() {
       .order("quantity", { ascending: false })
       .order("name"),
     supabaseClient
-      .from("product_components")
-      .select("id, product_code, name, unit_price, quantity, is_active, is_on_sale, discount_percent")
+      .from("product_components_priced")
+      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
       .eq("is_active", true)
       .order("name"),
     supabaseClient
@@ -415,7 +415,10 @@ async function loadCatalogData() {
     return
   }
 
-  componentsByProductCode = window.MarisUtils.groupByKey(componentsData || [], (c) => c.product_code)
+  componentsByProductCode = window.MarisUtils.groupByKey(
+    window.MarisUtils.mapPricedComponents(componentsData || []),
+    (c) => c.product_code
+  )
   imageUrlsByProductId = Object.create(null)
   for (const row of imagesData || []) {
     const productId = Number(row.product_id)

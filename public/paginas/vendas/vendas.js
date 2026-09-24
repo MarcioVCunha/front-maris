@@ -219,8 +219,8 @@ async function loadProducts() {
       .from("products")
       .select("id, code, name, quantity, image_url, unit_price, is_on_sale, discount_percent"),
     supabaseClient
-      .from("product_components")
-      .select("id, product_code, name, quantity, unit_price, is_active, is_on_sale, discount_percent")
+      .from("product_components_priced")
+      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
       .eq("is_active", true)
   ])
 
@@ -238,7 +238,7 @@ async function loadProducts() {
   for (const p of products) {
     productsByCode[p.code] = p
   }
-  productComponents = componentsData || []
+  productComponents = window.MarisUtils.mapPricedComponents(componentsData || [])
   componentsById = Object.create(null)
   for (const component of productComponents) {
     componentsById[component.id] = component
