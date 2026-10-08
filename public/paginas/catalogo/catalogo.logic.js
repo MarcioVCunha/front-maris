@@ -1,3 +1,59 @@
+export const STORE_WHATSAPP_NUMBER = "5519992732874"
+export const CATALOG_WHATSAPP_MESSAGE = "Oi, vi o catálogo e queria tirar uma dúvida"
+
+export const CATEGORY_ORDER = ["Brinco", "Colar", "Pulseira", "Choker", "Anel", "Pingente", "Conjunto", "Outros"]
+
+const CATEGORY_BY_WORD = {
+  brinco: "Brinco",
+  brincos: "Brinco",
+  colar: "Colar",
+  colares: "Colar",
+  pulseira: "Pulseira",
+  pulseiras: "Pulseira",
+  choker: "Choker",
+  chokers: "Choker",
+  anel: "Anel",
+  aneis: "Anel",
+  pingente: "Pingente",
+  pingentes: "Pingente",
+  conjunto: "Conjunto",
+  conjuntos: "Conjunto",
+}
+
+function foldText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+}
+
+export function productCategory(name) {
+  const first = foldText(name).split(/[^a-z0-9]+/).find(Boolean) || ""
+  return CATEGORY_BY_WORD[first] || "Outros"
+}
+
+export function visibleCategories(products) {
+  const seen = new Set()
+  for (const product of products || []) {
+    seen.add(productCategory(product?.name))
+  }
+  return CATEGORY_ORDER.filter((name) => seen.has(name))
+}
+
+export function productMatchesCategory(product, category) {
+  if (!category || category === "Todos") return true
+  return productCategory(product?.name) === category
+}
+
+export function productWhatsappMessage(productName) {
+  const name = String(productName || "").trim() || "peça"
+  return `Oi, vi o ${name} no catálogo e queria tirar uma dúvida`
+}
+
+export function whatsappLink(message) {
+  return `https://wa.me/${STORE_WHATSAPP_NUMBER}?text=${encodeURIComponent(String(message || ""))}`
+}
+
 export function doesProductMatchSearch(product, term) {
   if (!term) return true
   const name = String(product?.name || "").toLowerCase()
@@ -21,5 +77,16 @@ export function sortProductsForCatalog(products, mode) {
 }
 
 if (typeof globalThis.window !== "undefined") {
-  globalThis.window.MarisCatalogLogic = { doesProductMatchSearch, sortProductsForCatalog }
+  globalThis.window.MarisCatalogLogic = {
+    STORE_WHATSAPP_NUMBER,
+    CATALOG_WHATSAPP_MESSAGE,
+    CATEGORY_ORDER,
+    productCategory,
+    visibleCategories,
+    productMatchesCategory,
+    productWhatsappMessage,
+    whatsappLink,
+    doesProductMatchSearch,
+    sortProductsForCatalog,
+  }
 }

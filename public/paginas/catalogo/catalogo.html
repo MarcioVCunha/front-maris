@@ -30,6 +30,12 @@
     </header>
 
     <main class="catalog-main">
+      <section class="catalog-banner" aria-label="Apresentação">
+        <p class="catalog-banner-phrase">Feito em família, escolhido com carinho</p>
+        <a id="catalog-whatsapp" class="catalog-banner-whatsapp" target="_blank" rel="noopener">Fale com a gente</a>
+        <p class="catalog-banner-note">Respondemos em horário comercial</p>
+      </section>
+
       <div class="catalog-toolbar">
         <div class="product-search">
           <label for="catalog-search" class="catalog-search-label">Buscar no catálogo</label>
@@ -54,6 +60,8 @@
       </div>
       <p id="catalog-feedback" class="catalog-feedback" hidden></p>
 
+      <div id="catalog-filters" class="catalog-filters" role="group" aria-label="Categorias"></div>
+
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog"></div>
 
@@ -62,6 +70,10 @@
         <div id="unavailable-products-grid" class="catalog unavailable-catalog"></div>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <a id="footer-whatsapp" target="_blank" rel="noopener">Fale com a gente</a>
+    </footer>
 
     <div id="product-modal" class="product-modal" hidden>
       <div class="product-modal-backdrop" data-close-modal="true"></div>
@@ -86,6 +98,7 @@
         </section>
 
         <div id="product-modal-actions" class="modal-actions"></div>
+        <a id="product-modal-whatsapp" class="product-whatsapp" target="_blank" rel="noopener">Tirar uma dúvida no WhatsApp</a>
       </div>
     </div>
 

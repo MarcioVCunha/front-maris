@@ -106,7 +106,114 @@ body {
 .catalog-main {
   max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
+}
+
+.catalog-banner {
+  padding: 56px 24px 36px;
+  text-align: center;
+  background: var(--maris-bg);
+}
+
+.catalog-banner-phrase {
+  margin: 0 auto;
+  max-width: 12em;
+  font-family: var(--maris-font-display);
+  font-weight: 500;
+  font-size: clamp(2.1rem, 8vw, 3.4rem);
+  line-height: 1.12;
+  color: var(--maris-black);
+  letter-spacing: 0.01em;
+}
+
+.catalog-banner-whatsapp {
+  display: inline-block;
+  margin-top: 28px;
+  padding: 12px 18px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--maris-gold-dark);
+  border: 1px solid var(--maris-border);
+  border-radius: var(--maris-radius);
+  background: transparent;
+}
+
+.catalog-banner-whatsapp:hover {
+  background: var(--maris-gold-light);
+}
+
+.catalog-banner-note {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  color: var(--maris-text-muted);
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 24px 12px;
+  scrollbar-width: thin;
+}
+
+.catalog-filter {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--maris-border);
+  border-radius: 999px;
+  background: var(--maris-surface);
+  color: var(--maris-text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.catalog-filter.is-selected {
+  background: var(--maris-black);
+  border-color: var(--maris-black);
+  color: #fff;
+}
+
+.catalog-filter:focus-visible {
+  outline: 2px solid var(--maris-gold-dark);
+  outline-offset: 2px;
+}
+
+.site-footer {
+  padding: 28px 24px 40px;
+  text-align: center;
+  border-top: 1px solid var(--maris-border);
+}
+
+.site-footer a {
+  color: var(--maris-gold-dark);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.product-whatsapp {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--maris-gold-dark);
+  text-decoration: none;
+}
+
+.product-whatsapp:hover {
+  text-decoration: underline;
 }
 
 /* —— Busca e ordenação —— */
@@ -670,6 +777,18 @@ body {
 
   .section-heading {
     padding: 20px 16px 10px;
+  }
+
+  .catalog-banner {
+    padding: 40px 20px 28px;
+  }
+
+  .catalog-filters {
+    padding: 4px 16px 12px;
+  }
+
+  .site-footer {
+    padding: 24px 16px 36px;
   }
 
   .site-header-inner {
