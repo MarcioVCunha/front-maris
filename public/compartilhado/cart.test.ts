@@ -65,7 +65,7 @@ Deno.test("resolveLine componente variant shared usa código composto", () => {
 
 Deno.test("resolveLine componente desconhecido (variant shared) usa fallback COMP-id", () => {
   const line = Cart.resolveLine({ product_code: null, component_id: 99 }, maps, "shared")
-  assertEquals(line.name, "Componente 99")
+  assertEquals(line.name, "Tipo 99")
   assertEquals(line.code, "COMP-99")
   assertEquals(line.available, 0)
 })
@@ -95,7 +95,7 @@ Deno.test("resolveLine componente variant cart usa fallbacks quando faltam nome 
     productImagesByCode: {}
   }
   const line = Cart.resolveLine({ product_code: null, component_id: 30 }, mapsFallback, "cart")
-  assertEquals(line.name, "Componente")
+  assertEquals(line.name, "Tipo")
   assertEquals(line.code, "COMP-30")
   assertEquals(line.unitPrice, 25)
   assertEquals(line.available, 4)

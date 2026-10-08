@@ -215,13 +215,8 @@ function renderProductCards() {
 
 async function loadProducts() {
   const [productsResponse, componentsResponse] = await Promise.all([
-    supabaseClient
-      .from("products")
-      .select("id, code, name, quantity, image_url, unit_price, is_on_sale, discount_percent"),
-    supabaseClient
-      .from("product_components_priced")
-      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
-      .eq("is_active", true)
+    window.MarisCatalogRead.selectProducts(supabaseClient),
+    window.MarisCatalogRead.selectPricedComponents(supabaseClient)
   ])
 
   const { data, error } = productsResponse
@@ -268,11 +263,7 @@ function renderSellerOptions() {
 }
 
 async function loadSellers() {
-  const { data, error } = await supabaseClient
-    .from("sellers")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("name")
+  const { data, error } = await window.MarisStaffData.listActiveSellers()
 
   if (error) {
     setMessage("Erro ao carregar vendedoras.", "error")

@@ -385,20 +385,11 @@ function renderCatalogGrids() {
 
 async function loadCatalogData() {
   const [productsResponse, componentsResponse, imagesResponse] = await Promise.all([
-    supabaseClient
-      .from("products")
-      .select("*")
+    window.MarisCatalogRead.selectProducts(supabaseClient)
       .order("quantity", { ascending: false })
       .order("name"),
-    supabaseClient
-      .from("product_components_priced")
-      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
-      .eq("is_active", true)
-      .order("name"),
-    supabaseClient
-      .from("product_images")
-      .select("product_id, image_url, sort_order")
-      .order("sort_order", { ascending: true })
+    window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name"),
+    window.MarisCatalogRead.selectImages(supabaseClient).order("sort_order", { ascending: true })
   ])
 
   const { data, error } = productsResponse

@@ -104,15 +104,8 @@ function render() {
 
 async function loadData() {
   const [productsRes, componentsRes] = await Promise.all([
-    supabaseClient
-      .from("products")
-      .select("code, name, unit_price, image_url, is_on_sale, discount_percent")
-      .order("name"),
-    supabaseClient
-      .from("product_components_priced")
-      .select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent")
-      .eq("is_active", true)
-      .order("name")
+    window.MarisCatalogRead.selectProducts(supabaseClient).order("name"),
+    window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name")
   ])
 
   if (productsRes.error || componentsRes.error) {
