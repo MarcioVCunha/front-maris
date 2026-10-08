@@ -1,5 +1,13 @@
 const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
-const { doesProductMatchSearch, sortProductsForCatalog } = window.MarisCatalogLogic
+const {
+  doesProductMatchSearch,
+  sortProductsForCatalog,
+  productMatchesCategory,
+  visibleCategories,
+  whatsappLink,
+  productWhatsappMessage,
+  CATALOG_WHATSAPP_MESSAGE,
+} = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
 const supabaseClient = createSupabaseClient()
@@ -24,6 +32,11 @@ const productModalStatus = document.getElementById("product-modal-status")
 const productModalComponentsList = document.getElementById("product-modal-components-list")
 const productModalActions = document.getElementById("product-modal-actions")
 const catalogFeedbackEl = document.getElementById("catalog-feedback")
+const catalogFiltersEl = document.getElementById("catalog-filters")
+const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
+
+let selectedCategory = "Todos"
+let categoryFilterSignature = ""
 
 let allComponents = []
 let currentModalProduct = null
@@ -65,6 +78,40 @@ function getSearchTerm() {
 
 function getSortMode() {
   return catalogSortSelect?.value || "name_asc"
+}
+
+function productPassesFilters(product, term) {
+  return doesProductMatchSearch(product, term) && productMatchesCategory(product, selectedCategory)
+}
+
+function bindStoreWhatsappLinks() {
+  const href = whatsappLink(CATALOG_WHATSAPP_MESSAGE)
+  for (const id of ["catalog-whatsapp", "footer-whatsapp"]) {
+    const link = document.getElementById(id)
+    if (link) link.href = href
+  }
+}
+
+function renderCategoryFilters() {
+  const categories = visibleCategories([...availableProducts, ...unavailableProducts])
+  if (selectedCategory !== "Todos" && !categories.includes(selectedCategory)) {
+    selectedCategory = "Todos"
+  }
+  const signature = ["Todos", ...categories].join("|")
+  if (signature !== categoryFilterSignature) {
+    categoryFilterSignature = signature
+    const buttons = ["Todos", ...categories]
+    catalogFiltersEl.innerHTML = buttons.map((name) => {
+      const selected = name === selectedCategory
+      return `<button type="button" class="catalog-filter${selected ? " is-selected" : ""}" data-category="${name}" aria-pressed="${selected ? "true" : "false"}">${name}</button>`
+    }).join("")
+    return
+  }
+  catalogFiltersEl.querySelectorAll("[data-category]").forEach((button) => {
+    const selected = button.getAttribute("data-category") === selectedCategory
+    button.classList.toggle("is-selected", selected)
+    button.setAttribute("aria-pressed", selected ? "true" : "false")
+  })
 }
 
 function getProductComponents(productCode) {
@@ -315,6 +362,9 @@ function openProductModal(product) {
   modalImageIndex = 0
 
   productModalTitle.textContent = product.name || "Produto"
+  if (productModalWhatsapp) {
+    productModalWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
+  }
   setModalImageIndex(0)
   productModalCode.textContent = ""
   if (components.length) {
@@ -348,12 +398,14 @@ function renderCatalogGrids() {
   const term = getSearchTerm()
   const sortMode = getSortMode()
 
+  renderCategoryFilters()
+
   const availFiltered = sortProductsForCatalog(
-    availableProducts.filter((p) => doesProductMatchSearch(p, term)),
+    availableProducts.filter((p) => productPassesFilters(p, term)),
     sortMode
   )
   const unavailFiltered = sortProductsForCatalog(
-    unavailableProducts.filter((p) => doesProductMatchSearch(p, term)),
+    unavailableProducts.filter((p) => productPassesFilters(p, term)),
     sortMode
   )
 
@@ -362,7 +414,9 @@ function renderCatalogGrids() {
   } else if (!availFiltered.length) {
     catalogEl.innerHTML = term
       ? "Nenhum produto disponível encontrado para a busca"
-      : "Nenhum produto disponível"
+      : selectedCategory !== "Todos"
+        ? "Nenhum produto disponível nessa categoria"
+        : "Nenhum produto disponível"
   } else {
     catalogEl.innerHTML = availFiltered.map(renderCatalogProduct).join("")
   }
@@ -585,6 +639,17 @@ if (catalogSearchInput) {
 if (catalogSortSelect) {
   catalogSortSelect.addEventListener("change", () => renderCatalogGrids())
 }
+
+if (catalogFiltersEl) {
+  catalogFiltersEl.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-category]")
+    if (!button) return
+    selectedCategory = button.getAttribute("data-category") || "Todos"
+    renderCatalogGrids()
+  })
+}
+
+bindStoreWhatsappLinks()
 
 waitlistForm.addEventListener("submit", (event) => {
   event.preventDefault()
