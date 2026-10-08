@@ -5,93 +5,124 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acesso da equipe — Maris Semijoias</title>
   <link rel="stylesheet" href="/assets/home.css">
-  <style>
-    .gate-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
-    .gate-brand { text-align: center; margin-bottom: 28px; text-decoration: none; color: inherit; }
-    .gate-brand span:first-child { font-family: var(--maris-font-display); font-size: 2rem; display: block; }
-    .gate-brand span:last-child { font-size: 0.65rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--maris-gold-dark); }
-    .gate-card { width: 100%; max-width: 400px; padding: 32px; background: var(--maris-surface); border: 1px solid var(--maris-border); border-radius: var(--maris-radius-lg); box-shadow: var(--maris-shadow); }
-    .gate-card h1 { font-family: var(--maris-font-display); font-size: 1.5rem; margin: 0 0 8px; font-weight: 600; }
-    .gate-card p { color: var(--maris-text-muted); margin: 0 0 24px; font-size: 0.95rem; }
-    .gate-card label { display: block; margin-bottom: 8px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--maris-text-muted); }
-    .gate-card input { width: 100%; padding: 12px 14px; border: 1px solid var(--maris-border); border-radius: var(--maris-radius); box-sizing: border-box; margin-bottom: 16px; font-family: inherit; }
-    .gate-card button { width: 100%; padding: 14px; background: var(--maris-black); color: #fff; border: none; border-radius: var(--maris-radius); font-family: inherit; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
-    .gate-card button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .gate-msg { margin-top: 14px; font-size: 0.9rem; min-height: 1.2em; }
-    .gate-msg.error { color: #a94442; }
-    .gate-catalog-link { display: block; margin-top: 24px; text-align: center; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--maris-text-muted); text-decoration: none; }
-    .gate-catalog-link:hover { color: var(--maris-gold-dark); }
-  </style>
+  <link rel="stylesheet" href="/paginas/admin/equipe.css">
   <script src="/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   <script src="/compartilhado/utils.js"></script>
-  <script src="/compartilhado/staff-auth.js"></script>
   <script src="/compartilhado/api.js"></script>
+  <script src="/compartilhado/staff-data.js"></script>
+  <script src="/compartilhado/staff-auth.js"></script>
 </head>
 <body>
   <div class="gate-wrap">
-  <a href="/catalog" class="gate-brand"><span>Maris</span><span>Semijoias</span></a>
-  <div class="gate-card">
-    <h1>Área da equipe</h1>
-    <p>Digite a senha para acessar administração e vendas.</p>
-    <form id="gate-form">
-      <label for="staff-password">Senha</label>
-      <input id="staff-password" type="password" autocomplete="current-password" required autofocus>
-      <button type="submit" id="gate-submit">Entrar</button>
-    </form>
-    <div id="gate-message" class="gate-msg" role="status" aria-live="polite"></div>
-    <a class="gate-catalog-link" href="/catalog">Ver catálogo público</a>
-  </div>
+    <a href="/catalog" class="gate-brand"><span>Maris</span><span>Semijoias</span></a>
+    <div class="gate-card">
+      <h1>Área da equipe</h1>
+      <p id="gate-lead">Entre com o e-mail e a senha da sua conta.</p>
+
+      <form id="login-form" class="gate-form">
+        <label for="staff-email">E-mail</label>
+        <input id="staff-email" type="email" autocomplete="username" inputmode="email" required autofocus>
+        <label for="staff-password">Senha</label>
+        <input id="staff-password" type="password" autocomplete="current-password" required>
+        <button type="submit" id="login-submit">Entrar</button>
+        <button type="button" id="show-reset" class="gate-text-btn">Esqueci minha senha</button>
+      </form>
+
+      <form id="reset-form" class="gate-form" hidden>
+        <label for="reset-email">E-mail</label>
+        <input id="reset-email" type="email" autocomplete="username" inputmode="email" required>
+        <button type="submit" id="reset-submit">Enviar link</button>
+        <button type="button" id="show-login" class="gate-text-btn">Voltar para entrar</button>
+      </form>
+
+      <div id="gate-message" class="gate-msg" role="status" aria-live="polite"></div>
+      <a class="gate-catalog-link" href="/catalog">Ver catálogo público</a>
+    </div>
   </div>
   <script>
-    const form = document.getElementById("gate-form")
-    const passwordInput = document.getElementById("staff-password")
-    const messageEl = document.getElementById("gate-message")
-    const submitBtn = document.getElementById("gate-submit")
-
-    // Aceita só caminhos relativos same-origin (evita open redirect).
-    function safeNextPath(raw) {
-      if (!raw) return "/"
-      let decoded = raw
-      try {
-        decoded = decodeURIComponent(String(raw))
-      } catch {
-        return "/"
-      }
-      if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("://")) {
-        return "/"
-      }
-      return decoded
-    }
-
+    const Auth = window.MarisStaffAuth
     const params = new URLSearchParams(window.location.search)
-    const nextUrl = safeNextPath(params.get("next"))
+    const nextUrl = Auth.safeNextPath(params.get("next"))
+    const loginForm = document.getElementById("login-form")
+    const resetForm = document.getElementById("reset-form")
+    const messageEl = document.getElementById("gate-message")
+    const leadEl = document.getElementById("gate-lead")
+    const loginSubmit = document.getElementById("login-submit")
+    const resetSubmit = document.getElementById("reset-submit")
 
-    if (window.MarisStaffAuth.isValid()) {
-      window.location.replace(nextUrl)
+    function showMessage(text, type) {
+      messageEl.textContent = text || ""
+      messageEl.className = type ? `gate-msg ${type}` : "gate-msg"
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault()
-      messageEl.textContent = ""
-      messageEl.className = "gate-msg"
-      submitBtn.disabled = true
+    function showLogin() {
+      resetForm.hidden = true
+      loginForm.hidden = false
+      leadEl.textContent = "Entre com o e-mail e a senha da sua conta."
+    }
 
-      try {
-        const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("verify-staff-access"), {
-          body: { password: passwordInput.value }
-        })
-        if (!ok) {
-          messageEl.textContent = data.error || "Senha incorreta."
-          messageEl.className = "gate-msg error"
+    function showReset() {
+      loginForm.hidden = true
+      resetForm.hidden = false
+      leadEl.textContent = "Enviaremos um link para você criar uma nova senha."
+      const email = document.getElementById("staff-email").value
+      if (email) document.getElementById("reset-email").value = email
+    }
+
+    if (params.get("senha") === "ok") {
+      showMessage("Senha atualizada. Entre com a nova senha.", "success")
+    }
+
+    if (Auth.isValid()) {
+      Auth.loadProfile().then(async (profile) => {
+        if (profile.ok) {
+          window.location.replace(nextUrl)
           return
         }
-        window.MarisStaffAuth.setToken(data.token)
+        await Auth.signOut()
+        showMessage(profile.error || "Esta conta não faz parte da equipe.", "error")
+      })
+    }
+
+    document.getElementById("show-reset").addEventListener("click", () => {
+      showMessage("")
+      showReset()
+    })
+    document.getElementById("show-login").addEventListener("click", () => {
+      showMessage("")
+      showLogin()
+    })
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      showMessage("")
+      loginSubmit.disabled = true
+      try {
+        const result = await Auth.signInAndLoadProfile(
+          document.getElementById("staff-email").value,
+          document.getElementById("staff-password").value
+        )
+        if (!result.ok) {
+          showMessage(result.error, "error")
+          return
+        }
         window.location.replace(nextUrl)
-      } catch {
-        messageEl.textContent = "Erro de conexão. Tente novamente."
-        messageEl.className = "gate-msg error"
       } finally {
-        submitBtn.disabled = false
+        loginSubmit.disabled = false
+      }
+    })
+
+    resetForm.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      showMessage("")
+      resetSubmit.disabled = true
+      try {
+        const result = await Auth.requestPasswordReset(document.getElementById("reset-email").value)
+        const message = Auth.resetRequestMessage(result)
+        showMessage(message.text, message.type)
+      } finally {
+        resetSubmit.disabled = false
       }
     })
   </script>

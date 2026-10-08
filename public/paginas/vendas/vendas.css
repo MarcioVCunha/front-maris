@@ -6,6 +6,26 @@
   margin: 0 auto;
 }
 
+#seller-select {
+  font-size: 16px;
+}
+
+#seller-select:disabled {
+  opacity: 1;
+  color: var(--maris-text);
+  background: var(--maris-bg);
+}
+
+.seller-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--maris-text-muted);
+}
+
+.seller-note[hidden] {
+  display: none !important;
+}
+
 .btn-reload {
   margin-top: 12px;
   padding: 10px 16px;

@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Administração — Maris Semijoias</title>
   <link rel="stylesheet" href="/assets/home.css">
+  <script src="/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/api.js"></script>
+  <script src="/compartilhado/staff-data.js"></script>
   <script src="/compartilhado/staff-auth.js"></script>
 </head>
 <body>
@@ -63,6 +68,11 @@
         <p>Ative descontos por produto ou tipo sem alterar o preço base.</p>
       </a>
     </nav>
+
+    <div class="dashboard-session">
+      <p id="staff-who" class="staff-who" hidden></p>
+      <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+    </div>
   </div>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

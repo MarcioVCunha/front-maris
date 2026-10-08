@@ -1,6 +1,10 @@
 @import url("/assets/maris-theme.css");
 @import url("/assets/maris-internal.css");
 
+.back-link[hidden] {
+  display: none !important;
+}
+
 .product-search {
   width: min(1100px, 100%);
   margin: 0 auto 18px;

@@ -6,19 +6,20 @@
     <title>Tipos dos produtos — Maris Semijoias</title>
 
     <link rel="stylesheet" href="/paginas/estoque/tipos-produto/tipos-produto.css">
-    <script src="/compartilhado/staff-auth.js"></script>
     <script src="/env.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
     <script src="/compartilhado/utils.js"></script>
     <script src="/compartilhado/api.js"></script>
     <script src="/compartilhado/staff-data.js"></script>
+    <script src="/compartilhado/staff-auth.js"></script>
     <script src="/compartilhado/catalog-read.js"></script>
     <script src="/compartilhado/ui.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
   </head>
 
   <body>
     <header>
-      <a class="back-link" href="/admin">← Voltar à administração</a>
+      <a class="back-link" href="/admin" data-staff-min="admin" hidden>← Voltar à administração</a>
+      <a class="back-link" href="/vendedoras" data-staff-only="seller" hidden>← Voltar às vendedoras</a>
       <h1>Gerenciar Tipos do Produto</h1>
       <p>Clique no produto para abrir os detalhes e separar em tipos.</p>
     </header>

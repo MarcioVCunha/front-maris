@@ -6,11 +6,13 @@
   <title>Detalhe do carrinho — Maris Semijoias</title>
   <link rel="stylesheet" href="/paginas/vendas/vendas.css">
   <link rel="stylesheet" href="/paginas/vendas/carrinhos-clientes.css">
-  <script src="/compartilhado/staff-auth.js"></script>
   <script src="/env.js"></script>
-  <script src="/compartilhado/utils.js"></script>
-  <script src="/compartilhado/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/api.js"></script>
+  <script src="/compartilhado/staff-data.js"></script>
+  <script src="/compartilhado/staff-auth.js"></script>
+  <script src="/compartilhado/ui.js"></script>
 </head>
 <body>
 <header>
@@ -33,6 +35,7 @@
 
   <section class="card sale-from-cart">
     <h2>Registrar venda</h2>
+    <p id="seller-note" class="seller-note" hidden></p>
     <label for="payment-method">Pagamento</label>
     <select id="payment-method">
       <option value="">Selecione</option>

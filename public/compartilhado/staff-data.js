@@ -28,13 +28,26 @@
 //   O conjunto enviado é o estado final daquele produto: atualiza os ids,
 //   insere os sem id e remove os tipos do produto que ficaram de fora.
 //   200 { ok: true }.
+//
+// staff-me
+//   GET com Authorization: Bearer <access_token da sessão Supabase>
+//   200 { ok: true, user: { id, email, name, role, seller_id } }
+//   role é "admin" ou "seller". seller_id é a vendedora ligada à conta, ou null.
+//   Enquanto a senha compartilhada ainda vale, a mesma função responde
+//   id, email e seller_id null, name "Senha compartilhada", role "admin".
+//   Erros, no campo error, do jeito que chegam:
+//   401 "Acesso da equipe inválido ou expirado."
+//   401 "A senha compartilhada foi desligada. Entre com e-mail e senha."
+//   403 "Esta conta não faz parte da equipe."
+//   403 "Sem permissão para esta ação."
 
 const FUNCTIONS = {
   listSales: "list-sales",
   markSalesPaid: "mark-sales-paid",
   listSellers: "list-sellers",
   listProductComponents: "list-product-components",
-  saveProductComponents: "save-product-components"
+  saveProductComponents: "save-product-components",
+  staffMe: "staff-me"
 }
 
 function buildFunctionUrl(name, params) {
@@ -158,6 +171,16 @@ window.MarisStaffData = {
     const result = await staffCall(FUNCTIONS.listProductComponents, { method: "GET" })
     if (result.error) return result
     return { data: sortByName(rowsFrom(result.data, "components")), error: null }
+  },
+
+  async fetchStaffProfile() {
+    const result = await staffCall(FUNCTIONS.staffMe, { method: "GET" })
+    if (result.error) return { user: null, error: result.error }
+    const body = result.data || {}
+    if (body.ok === false || !body.user) {
+      return { user: null, error: { message: body.error || "Não foi possível confirmar seu acesso." } }
+    }
+    return { user: body.user, error: null }
   },
 
   async saveProductComponents(productCode, components) {

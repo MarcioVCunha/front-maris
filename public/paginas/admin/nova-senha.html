@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova senha — Maris Semijoias</title>
+  <link rel="stylesheet" href="/assets/home.css">
+  <link rel="stylesheet" href="/paginas/admin/equipe.css">
+  <script src="/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/api.js"></script>
+  <script src="/compartilhado/staff-data.js"></script>
+  <script src="/compartilhado/staff-auth.js"></script>
+</head>
+<body>
+  <div class="gate-wrap">
+    <a href="/catalog" class="gate-brand"><span>Maris</span><span>Semijoias</span></a>
+    <div class="gate-card">
+      <h1>Nova senha</h1>
+      <p>Escolha uma senha com pelo menos 8 caracteres.</p>
+      <form id="password-form" class="gate-form" hidden>
+        <label for="new-password">Nova senha</label>
+        <input id="new-password" type="password" autocomplete="new-password" required>
+        <label for="confirm-password">Confirmar senha</label>
+        <input id="confirm-password" type="password" autocomplete="new-password" required>
+        <button type="submit" id="password-submit">Salvar senha</button>
+      </form>
+      <div id="gate-message" class="gate-msg" role="status" aria-live="polite"></div>
+      <a class="gate-catalog-link" href="/equipe">Voltar para a entrada</a>
+    </div>
+  </div>
+  <script>
+    const Auth = window.MarisStaffAuth
+    const form = document.getElementById("password-form")
+    const messageEl = document.getElementById("gate-message")
+    const submitBtn = document.getElementById("password-submit")
+
+    function showMessage(text, type) {
+      messageEl.textContent = text || ""
+      messageEl.className = type ? `gate-msg ${type}` : "gate-msg"
+    }
+
+    Auth.prepareRecoverySession().then((ready) => {
+      if (!ready.ok) {
+        form.hidden = true
+        showMessage(ready.error, "error")
+        return
+      }
+      form.hidden = false
+    })
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault()
+      const password = document.getElementById("new-password").value
+      const confirm = document.getElementById("confirm-password").value
+      const invalid = Auth.passwordError(password, confirm)
+      if (invalid) {
+        showMessage(invalid, "error")
+        return
+      }
+      showMessage("")
+      submitBtn.disabled = true
+      try {
+        const updated = await Auth.updatePassword(password)
+        if (!updated.ok) {
+          showMessage("Não foi possível salvar a senha. Peça um novo link e tente de novo.", "error")
+          return
+        }
+        await Auth.signOut()
+        window.location.replace("/equipe?senha=ok")
+      } finally {
+        submitBtn.disabled = false
+      }
+    })
+  </script>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script>
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>

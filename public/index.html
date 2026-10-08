@@ -7,6 +7,10 @@
   <title>Painel — Maris Semijoias</title>
   <link rel="stylesheet" href="/assets/home.css">
   <script src="/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+  <script src="/compartilhado/utils.js"></script>
+  <script src="/compartilhado/api.js"></script>
+  <script src="/compartilhado/staff-data.js"></script>
   <script src="/compartilhado/staff-auth.js"></script>
 </head>
 
@@ -18,9 +22,11 @@
       <p>Escolha a área que você precisa usar agora</p>
     </header>
 
+    <p id="staff-permission-note" class="staff-note" hidden></p>
+
     <nav class="cards cards--main" aria-label="Áreas principais">
 
-      <a class="menu-card menu-card--admin" href="/admin">
+      <a class="menu-card menu-card--admin" href="/admin" data-staff-min="admin" hidden>
         <span class="menu-card-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
@@ -41,7 +47,19 @@
           </svg>
         </span>
         <h2>Vendedoras</h2>
-        <p>Registrar vendas, carrinhos compartilhados, lista de espera e contas com repasse.</p>
+        <p>Registrar vendas e ver carrinhos compartilhados.</p>
+      </a>
+
+      <a class="menu-card menu-card--admin" href="/tipos-produto" data-staff-only="seller" hidden>
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 7v2l8 4 8-4V7l-8-4z" />
+            <path d="M4 12v2l8 4 8-4v-2" />
+            <path d="M4 17v2l8 4 8-4v-2" />
+          </svg>
+        </span>
+        <h2>Tipos dos produtos</h2>
+        <p>Separar produtos em tipos (brinco, colar) e ajustar o estoque de cada um.</p>
       </a>
 
       <a class="menu-card menu-card--catalogo" href="/catalog">
@@ -60,6 +78,7 @@
     </nav>
 
     <div class="dashboard-session">
+      <p id="staff-who" class="staff-who" hidden></p>
       <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
     </div>
   </div>
@@ -76,10 +95,6 @@
       }
     })()
 
-    document.getElementById("staff-logout-btn")?.addEventListener("click", () => {
-      window.MarisStaffAuth.clearToken()
-      window.location.href = "/equipe"
-    })
   </script>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

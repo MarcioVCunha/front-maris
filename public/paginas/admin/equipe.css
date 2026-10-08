@@ -1,0 +1,143 @@
+.gate-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.gate-brand {
+  text-align: center;
+  margin-bottom: 28px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.gate-brand span:first-child {
+  font-family: var(--maris-font-display);
+  font-size: 2rem;
+  display: block;
+}
+
+.gate-brand span:last-child {
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--maris-gold-dark);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 28px 22px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: var(--maris-radius-lg);
+  box-shadow: var(--maris-shadow);
+}
+
+.gate-card h1 {
+  font-family: var(--maris-font-display);
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.gate-card p {
+  color: var(--maris-text-muted);
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.gate-card label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--maris-text-muted);
+}
+
+.gate-card input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--maris-border);
+  border-radius: var(--maris-radius);
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+.gate-card button[type="submit"] {
+  width: 100%;
+  padding: 14px;
+  background: var(--maris-black);
+  color: #fff;
+  border: none;
+  border-radius: var(--maris-radius);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.gate-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gate-text-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--maris-gold-dark);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: center;
+}
+
+.gate-msg {
+  margin-top: 14px;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+  line-height: 1.4;
+}
+
+.gate-msg.error {
+  color: #a94442;
+}
+
+.gate-msg.success {
+  color: #2f6b3a;
+}
+
+.gate-catalog-link {
+  display: block;
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--maris-text-muted);
+  text-decoration: none;
+}
+
+.gate-catalog-link:hover {
+  color: var(--maris-gold-dark);
+}
+
+.gate-form[hidden],
+.gate-card [hidden] {
+  display: none !important;
+}
