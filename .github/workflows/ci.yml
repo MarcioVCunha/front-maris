@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.7
+          cache: true
+
+      - name: Test
+        run: deno task test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Valores fictícios. O script grava public/env.js e não chama a rede.
+          # Sem eles, o build cairia nos fallbacks de produção.
+          SUPABASE_URL: https://ci.invalid.supabase.co
+          SUPABASE_ANON_KEY: ci-dummy-anon-key
+          APP_ENV: staging
+
+      - name: Build usou só os valores fictícios
+        run: |
+          grep -q 'https://ci.invalid.supabase.co' public/env.js
+          grep -q 'ci-dummy-anon-key' public/env.js
+          if grep -q epuvfjdyyzccsuafwopr public/env.js; then
+            echo "O build gravou o projeto Supabase de produção."
+            exit 1
+          fi
