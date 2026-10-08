@@ -440,7 +440,7 @@ async function marcarSelecionadasComoPagas() {
   setMessage("Salvando…", "")
 
   try {
-    const { error } = await window.MarisStaffData.markSalesPaid(ids)
+    const { data, error } = await window.MarisStaffData.markSalesPaid(ids)
 
     if (error) {
       console.error(error)
@@ -453,9 +453,13 @@ async function marcarSelecionadasComoPagas() {
       return
     }
 
-    const n = ids.length
+    const n = Number.isInteger(data?.count) ? data.count : ids.length
     await loadSales()
-    setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
+    if (n < ids.length) {
+      setMessage(`${n} de ${ids.length} venda(s) marcada(s) como paga(s). As demais já estavam pagas ou canceladas.`, "success")
+    } else {
+      setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
+    }
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")

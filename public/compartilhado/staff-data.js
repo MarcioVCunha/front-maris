@@ -1,8 +1,7 @@
 // Único lugar que chama as Edge Functions da equipe para vendas, vendedoras
 // e tipos de produto. Todas usam auth: "staff".
 //
-// Contrato proposto (o PR do back-maris não estava acessível daqui).
-// Se os nomes divergirem, ajuste só FUNCTIONS.
+// Contrato das funções em back-maris/supabase/functions.
 //
 // list-sales
 //   GET ?status=active|cancelled&paid=unpaid|paid|all

@@ -4,12 +4,12 @@ import { assertEquals } from "jsr:@std/assert@1"
 
 const pagesRoot = new URL("../paginas/", import.meta.url)
 
-async function listJs(dir: URL): Promise<string[]> {
-  const out: string[] = []
+async function listJs(dir: URL): Promise<URL[]> {
+  const out: URL[] = []
   for await (const entry of Deno.readDir(dir)) {
     const next = new URL(entry.name + (entry.isDirectory ? "/" : ""), dir)
     if (entry.isDirectory) out.push(...(await listJs(next)))
-    else if (entry.name.endsWith(".js")) out.push(next.pathname)
+    else if (entry.name.endsWith(".js")) out.push(next)
   }
   return out
 }
@@ -32,7 +32,7 @@ Deno.test("páginas não leem custo nem gravam tabelas direto", async () => {
   for (const file of files) {
     const text = await Deno.readTextFile(file)
     for (const rule of forbidden) {
-      if (rule.re.test(text)) hits.push(`${file}: ${rule.name}`)
+      if (rule.re.test(text)) hits.push(`${file.pathname}: ${rule.name}`)
     }
   }
   assertEquals(hits, [])

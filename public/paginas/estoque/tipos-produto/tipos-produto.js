@@ -235,15 +235,8 @@ async function saveCurrentProductComponents() {
     product_code: productCode
   }))
 
-  const { data: allComponents, error: existingError } = await window.MarisStaffData.listProductComponents()
-  const existingRows = (allComponents || []).filter((row) => row.product_code === productCode)
-
-  if (existingError) {
-    setMessage("Erro ao ler tipos atuais.", "error")
-    return
-  }
-
-  const existingIds = new Set((existingRows || []).map((r) => r.id))
+  const existingRows = componentsByProductCode[productCode] || []
+  const existingIds = new Set(existingRows.map((r) => r.id))
   const keptIds = new Set(parsedRows.filter((r) => r.id).map((r) => r.id))
   const willWipeAllExisting =
     existingIds.size > 0 && [...existingIds].every((id) => !keptIds.has(id))
