@@ -77,9 +77,12 @@ Deno.test("agrupa cores pelo sufixo e deixa código sem sufixo sozinho", () => {
   assertEquals(parseProductColor("AN651-O").suffix, "O")
   assertEquals(parseProductColor("an651-r").label, "Ródio")
   assertEquals(parseProductColor("BM1-AD").base, "BM1")
+  assertEquals(parseProductColor("BM1-AD").suffix, "AD")
   assertEquals(parseProductColor("BM1-AD").label, "Aço dourado")
-  assertEquals(parseProductColor("BM2194-A").suffix, null)
+  assertEquals(parseProductColor("BM2194-A").suffix, "A")
+  assertEquals(parseProductColor("BM2194-A").label, "Aço")
   assertEquals(parseProductColor("BM1786").suffix, null)
+  assertEquals(parseProductColor("PM537-PRATA").suffix, null)
 
   const groups = groupProductsByColor([
     { code: "AN651-R", name: "Anel ródio", quantity: 1 },
@@ -87,8 +90,10 @@ Deno.test("agrupa cores pelo sufixo e deixa código sem sufixo sozinho", () => {
     { code: "BM1786", name: "Brinco liso", quantity: 1 },
     { code: "FOO-AD", name: "Pulseira aço", quantity: 1 },
     { code: "FOO-O", name: "Pulseira ouro", quantity: 1 },
-    { code: "BM2194-A", name: "Brinco aço polido", quantity: 1 },
     { code: "BM2194-AD", name: "Brinco aço dourado", quantity: 1 },
+    { code: "BM2194-A", name: "Brinco aço polido", quantity: 1 },
+    { code: "PM592-X", name: "Bracelete outro", quantity: 1 },
+    { code: "PM592-A", name: "Bracelete aço", quantity: 1 },
   ])
 
   const anel = groups.find((group) => group.base === "AN651" && group.variants.length === 2)
@@ -102,11 +107,16 @@ Deno.test("agrupa cores pelo sufixo e deixa código sem sufixo sozinho", () => {
   const aco = groups.find((group) => group.base === "FOO")
   assertEquals(aco.variants.map((variant) => variant.label), ["Ouro", "Aço dourado"])
 
-  const polido = groups.find((group) => group.variants.some((variant) => variant.product.code === "BM2194-A"))
-  const dourado = groups.find((group) => group.variants.some((variant) => variant.product.code === "BM2194-AD"))
-  assertEquals(polido.variants.length, 1)
-  assertEquals(dourado.variants.length, 1)
-  assertEquals(polido.key === dourado.key, false)
+  const acoInox = groups.find((group) => group.variants.some((variant) => variant.product.code === "BM2194-A"))
+  assertEquals(acoInox.variants.map((variant) => variant.suffix), ["A", "AD"])
+  assertEquals(acoInox.variants.map((variant) => variant.label), ["Aço", "Aço dourado"])
+
+  const outro = groups.find((group) => group.variants.some((variant) => variant.product.code === "PM592-X"))
+  const acoSolo = groups.find((group) => group.variants.some((variant) => variant.product.code === "PM592-A"))
+  assertEquals(outro.variants.length, 1)
+  assertEquals(outro.variants[0].suffix, null)
+  assertEquals(acoSolo.variants.length, 1)
+  assertEquals(outro.key === acoSolo.key, false)
 })
 
 Deno.test("grupo com uma cor só e disponibilidade pela primeira cor em estoque", () => {

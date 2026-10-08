@@ -45,29 +45,28 @@ export function productMatchesCategory(product, category) {
   return productCategory(product?.name) === category
 }
 
-// Sufixos de cor no fim do código. -AD vem antes de -O para não cortar no lugar errado.
+// O trecho depois do último hífen é a cor, se estiver nesta lista.
+// AD vem antes de A para o sufixo inteiro não ser lido como A.
 export const COLOR_SUFFIXES = [
   { suffix: "AD", label: "Aço dourado" },
+  { suffix: "A", label: "Aço" },
   { suffix: "O", label: "Ouro" },
   { suffix: "R", label: "Ródio" },
 ]
 
-const COLOR_SORT = { O: 0, R: 1, AD: 2 }
+const COLOR_SORT = { O: 0, R: 1, A: 2, AD: 3 }
 
 export function parseProductColor(code) {
   const raw = String(code || "").trim()
   const upper = raw.toUpperCase()
-  for (const color of COLOR_SUFFIXES) {
-    const token = `-${color.suffix}`
-    if (upper.endsWith(token) && upper.length > token.length) {
-      return {
-        base: upper.slice(0, -token.length),
-        suffix: color.suffix,
-        label: color.label,
-      }
-    }
+  const hyphen = upper.lastIndexOf("-")
+  if (hyphen <= 0 || hyphen >= upper.length - 1) {
+    return { base: upper, suffix: null, label: null }
   }
-  return { base: upper, suffix: null, label: null }
+  const tail = upper.slice(hyphen + 1)
+  const color = COLOR_SUFFIXES.find((item) => item.suffix === tail)
+  if (!color) return { base: upper, suffix: null, label: null }
+  return { base: upper.slice(0, hyphen), suffix: color.suffix, label: color.label }
 }
 
 export function groupProductsByColor(products) {
