@@ -13,6 +13,7 @@ const saleDiscountEl = document.getElementById("sale-discount")
 const saleTotalEl = document.getElementById("sale-total")
 const submitSaleBtn = document.getElementById("submit-sale")
 const saleMessageEl = document.getElementById("sale-message")
+const sellerNoteEl = document.getElementById("seller-note")
 
 const params = new URLSearchParams(window.location.search)
 const cartId = String(params.get("cart_id") || "").trim()
@@ -20,6 +21,7 @@ const cartId = String(params.get("cart_id") || "").trim()
 let activeCart = null
 let selectedLines = []
 let saleCompleted = false
+let sellerChoice = null
 
 function staffHeaders() {
   return {
@@ -111,10 +113,34 @@ cartItemsDetailEl.addEventListener("change", (event) => {
 
 paymentMethodSelect.addEventListener("change", updateSaleTotal)
 
+async function prepareSeller() {
+  const profile = await window.MarisStaffAuth.loadProfile()
+  if (!profile.ok) {
+    sellerChoice = { mode: "blocked", sellerId: null, message: profile.error || "Não foi possível confirmar seu acesso." }
+    return
+  }
+  sellerChoice = window.MarisStaffAuth.saleSellerChoice(profile.user)
+  if (sellerChoice.mode === "locked" && sellerNoteEl) {
+    sellerNoteEl.hidden = false
+    sellerNoteEl.textContent = "A venda entra na sua conta."
+  }
+  if (sellerChoice.mode === "unlinked") {
+    setSaleMessage(sellerChoice.message, "error")
+    submitSaleBtn.disabled = true
+  }
+}
+
 submitSaleBtn.addEventListener("click", async () => {
   if (!activeCart || saleCompleted) return
-  const sellerId = Number(activeCart.seller_id) || 0
-  if (sellerId <= 0) {
+  if (!sellerChoice) await prepareSeller()
+  if (sellerChoice.mode === "blocked" || sellerChoice.mode === "unlinked") {
+    setSaleMessage(sellerChoice.message, "error")
+    return
+  }
+  const sellerId = sellerChoice.mode === "locked"
+    ? sellerChoice.sellerId
+    : Number(activeCart.seller_id) || 0
+  if (sellerChoice.mode === "pick" && sellerId <= 0) {
     setSaleMessage("Carrinho sem vendedora definida.", "error")
     return
   }
@@ -172,12 +198,11 @@ submitSaleBtn.addEventListener("click", async () => {
   submitSaleBtn.disabled = true
   setSaleMessage("Registrando…")
   try {
-    const saleRes = await fetch(window.ENV.fn("register-sale"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seller_id: sellerId, payment_method: payment, items, component_items })
+    const saleRes = await window.MarisApi.callFunction(window.ENV.fn("register-sale"), {
+      auth: "staff",
+      body: { seller_id: sellerId, payment_method: payment, items, component_items }
     })
-    const saleData = await saleRes.json().catch(() => ({}))
+    const saleData = saleRes.data || {}
     if (!saleRes.ok) {
       setSaleMessage(saleData.error || "Erro ao registrar venda.", "error")
       submitSaleBtn.disabled = false
@@ -239,4 +264,4 @@ submitSaleBtn.addEventListener("click", async () => {
   }
 })
 
-loadCartDetail()
+Promise.all([loadCartDetail(), prepareSeller()])

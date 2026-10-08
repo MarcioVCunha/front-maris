@@ -173,12 +173,33 @@ Deno.test("componentes: lista e grava o conjunto final sem id nulo", async () =>
   assertEquals(calls.length, 0)
 })
 
+Deno.test("staff-me pede o perfil com auth staff", async () => {
+  reset({
+    ok: true,
+    status: 200,
+    data: { ok: true, user: { id: "u1", email: "ana@loja.test", name: "Ana", role: "seller", seller_id: 7 } }
+  })
+  const res = await Staff.fetchStaffProfile()
+  assertEquals(res.error, null)
+  assertEquals(res.user.role, "seller")
+  assertEquals(res.user.seller_id, 7)
+  assertEquals(calls[0].url, "https://example.test/functions/v1/staff-me")
+  assertEquals(calls[0].options.method, "GET")
+  assertEquals(calls[0].options.auth, "staff")
+
+  reset({ ok: false, status: 403, data: { error: "Não é da equipe" } })
+  const denied = await Staff.fetchStaffProfile()
+  assertEquals(denied.user, null)
+  assertEquals(denied.error?.message, "Não é da equipe")
+})
+
 Deno.test("nomes das funções ficam neste mapa", () => {
   assertEquals(Staff.FUNCTIONS, {
     listSales: "list-sales",
     markSalesPaid: "mark-sales-paid",
     listSellers: "list-sellers",
     listProductComponents: "list-product-components",
-    saveProductComponents: "save-product-components"
+    saveProductComponents: "save-product-components",
+    staffMe: "staff-me"
   })
 })

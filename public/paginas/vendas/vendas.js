@@ -13,6 +13,7 @@ const supabaseClient = createSupabaseClient()
 
 const form = document.getElementById("sale-form")
 const sellerSelect = document.getElementById("seller-select")
+const sellerNote = document.getElementById("seller-note")
 const paymentMethodSelect = document.getElementById("payment-method")
 const productsGrid = document.getElementById("products-grid")
 const productSearchInput = document.getElementById("product-search")
@@ -27,6 +28,8 @@ const messageEl = document.getElementById("message")
 let products = []
 let productsByCode = Object.create(null)
 let sellers = []
+let sellerChoice = { mode: "pick", sellerId: null, message: "" }
+let sellerLabel = ""
 let productComponents = []
 let componentsByProductCode = Object.create(null)
 let componentsById = Object.create(null)
@@ -246,6 +249,26 @@ async function loadProducts() {
 const LAST_SELLER_KEY = "maris_last_seller_id"
 
 function renderSellerOptions() {
+  if (sellerChoice.mode === "unlinked") {
+    sellerSelect.innerHTML = '<option value="">Sem vendedora ligada</option>'
+    sellerSelect.disabled = true
+    sellerNote.hidden = true
+    submitBtn.disabled = true
+    setMessage(sellerChoice.message, "error")
+    return
+  }
+
+  if (sellerChoice.mode === "locked") {
+    sellerSelect.innerHTML = `<option value="${escapeHtml(String(sellerChoice.sellerId))}">${escapeHtml(sellerLabel || "Sua conta")}</option>`
+    sellerSelect.value = String(sellerChoice.sellerId)
+    sellerSelect.disabled = true
+    sellerNote.hidden = false
+    sellerNote.textContent = "A venda entra na sua conta."
+    return
+  }
+
+  sellerSelect.disabled = false
+  sellerNote.hidden = true
   if (!sellers.length) {
     sellerSelect.innerHTML = '<option value="">Nenhuma vendedora cadastrada</option>'
     submitBtn.disabled = true
@@ -263,10 +286,25 @@ function renderSellerOptions() {
 }
 
 async function loadSellers() {
+  const profile = await window.MarisStaffAuth.loadProfile()
+  if (!profile.ok) {
+    sellerSelect.disabled = true
+    submitBtn.disabled = true
+    setMessage(profile.error || "Não foi possível confirmar seu acesso.", "error")
+    return
+  }
+
+  sellerChoice = window.MarisStaffAuth.saleSellerChoice(profile.user)
+  sellerLabel = profile.user.name || ""
+  if (sellerChoice.mode !== "pick") {
+    renderSellerOptions()
+    return
+  }
+
   const { data, error } = await window.MarisStaffData.listActiveSellers()
 
   if (error) {
-    setMessage("Erro ao carregar vendedoras.", "error")
+    setMessage(error.message || "Erro ao carregar vendedoras.", "error")
     console.log(error)
     return
   }
@@ -326,7 +364,12 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault()
   setMessage("")
 
-  const sellerId = Number(sellerSelect.value)
+  if (sellerChoice.mode === "unlinked") {
+    setMessage(sellerChoice.message, "error")
+    return
+  }
+
+  const sellerId = sellerChoice.mode === "locked" ? sellerChoice.sellerId : Number(sellerSelect.value)
   const paymentMethod = paymentMethodSelect.value
   const selectedItems = getSelectedItems()
   const selectedComponentItems = getSelectedComponentItems()
@@ -369,6 +412,7 @@ form.addEventListener("submit", async (event) => {
   submitBtn.disabled = true
   try {
     const { ok, data: result } = await window.MarisApi.callFunction(window.ENV.fn("register-sale"), {
+      auth: "staff",
       body: {
         seller_id: sellerId,
         payment_method: paymentMethod,

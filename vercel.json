@@ -46,6 +46,7 @@
     { "source": "/catalog", "destination": "/paginas/catalogo/catalogo.html" },
     { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
     { "source": "/catalog/cesta", "destination": "/paginas/catalogo/cesta-compartilhada.html" },
+    { "source": "/equipe/nova-senha", "destination": "/paginas/admin/nova-senha.html" },
     { "source": "/equipe", "destination": "/paginas/admin/equipe.html" }
   ]
 }

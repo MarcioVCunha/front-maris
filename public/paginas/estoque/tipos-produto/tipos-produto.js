@@ -121,7 +121,7 @@ async function loadComponents() {
   const { data, error } = await window.MarisStaffData.listProductComponents()
 
   if (error) {
-    setMessage("Erro ao carregar tipos cadastrados.", "error")
+    setMessage(error.message || "Erro ao carregar tipos cadastrados.", "error")
     return
   }
 
@@ -259,7 +259,7 @@ async function saveCurrentProductComponents() {
 
   const { error: saveError } = await window.MarisStaffData.saveProductComponents(productCode, parsedRows)
   if (saveError) {
-    setMessage(saveError.message ? `Erro ao salvar tipos: ${saveError.message}` : "Erro ao salvar tipos.", "error")
+    setMessage(saveError.message || "Erro ao salvar tipos.", "error")
     return
   }
 
