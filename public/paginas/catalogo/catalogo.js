@@ -1,12 +1,14 @@
 const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
 const {
-  doesProductMatchSearch,
-  sortProductsForCatalog,
-  productMatchesCategory,
   visibleCategories,
   whatsappLink,
   productWhatsappMessage,
   CATALOG_WHATSAPP_MESSAGE,
+  groupProductsByColor,
+  selectVariantByCode,
+  groupDisplayVariant,
+  partitionCatalogGroups,
+  sortGroupsForCatalog,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
@@ -34,19 +36,18 @@ const productModalActions = document.getElementById("product-modal-actions")
 const catalogFeedbackEl = document.getElementById("catalog-feedback")
 const catalogFiltersEl = document.getElementById("catalog-filters")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
+const productModalColors = document.getElementById("product-modal-colors")
 
 let selectedCategory = "Todos"
 let categoryFilterSignature = ""
 
 let allComponents = []
-let currentModalProduct = null
+let currentModalGroup = null
 
-let productsByCode = Object.create(null)
+let allGroups = []
+let selectedCodeByGroup = Object.create(null)
 let componentsByProductCode = Object.create(null)
 let imageUrlsByProductId = Object.create(null)
-/** Listas após carregar (antes do filtro de busca). */
-let availableProducts = []
-let unavailableProducts = []
 let modalImageUrls = []
 let modalImageIndex = 0
 let touchStartX = 0
@@ -80,10 +81,6 @@ function getSortMode() {
   return catalogSortSelect?.value || "name_asc"
 }
 
-function productPassesFilters(product, term) {
-  return doesProductMatchSearch(product, term) && productMatchesCategory(product, selectedCategory)
-}
-
 function bindStoreWhatsappLinks() {
   const href = whatsappLink(CATALOG_WHATSAPP_MESSAGE)
   for (const id of ["catalog-whatsapp", "footer-whatsapp"]) {
@@ -93,7 +90,10 @@ function bindStoreWhatsappLinks() {
 }
 
 function renderCategoryFilters() {
-  const categories = visibleCategories([...availableProducts, ...unavailableProducts])
+  const representatives = allGroups
+    .map((group) => groupDisplayVariant(group, isCatalogProductAvailable)?.product)
+    .filter(Boolean)
+  const categories = visibleCategories(representatives)
   if (selectedCategory !== "Todos" && !categories.includes(selectedCategory)) {
     selectedCategory = "Todos"
   }
@@ -157,16 +157,28 @@ function isCatalogProductAvailable(product, components = null) {
   return (Number(product.quantity) || 0) > 0
 }
 
-function sortCatalogByAvailabilityThenName(products) {
-  return [...products].sort((a, b) => {
-    const availA = isCatalogProductAvailable(a) ? 0 : 1
-    const availB = isCatalogProductAvailable(b) ? 0 : 1
-    if (availA !== availB) return availA - availB
-    return String(a.name || "").localeCompare(String(b.name || ""), "pt-BR")
-  })
+function findGroupByKey(key) {
+  return allGroups.find((group) => group.key === key) || null
 }
 
-function renderCatalogProduct(product) {
+function selectedVariant(group) {
+  return selectVariantByCode(group, isCatalogProductAvailable, selectedCodeByGroup[group?.key])
+}
+
+function renderColorOptions(group, selectedCode) {
+  if (!group || group.variants.length < 2) return ""
+  return group.variants.map((variant) => {
+    const code = variant.product?.code || ""
+    const selected = code === selectedCode
+    const unavailable = !isCatalogProductAvailable(variant.product)
+    return `<button type="button" class="color-option${selected ? " is-selected" : ""}${unavailable ? " is-unavailable" : ""}" data-color-code="${escapeHtml(code)}" aria-pressed="${selected ? "true" : "false"}">${escapeHtml(variant.label || code)}</button>`
+  }).join("")
+}
+
+function renderCatalogGroup(group) {
+  const variant = selectedVariant(group)
+  const product = variant?.product
+  if (!product) return ""
   const components = getProductComponents(product.code)
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
@@ -176,6 +188,7 @@ function renderCatalogProduct(product) {
   const productOnSale = hasPromo(product)
   const imageUrls = getProductImageUrls(product)
   const coverImage = imageUrls[0] || ""
+  const colorHtml = renderColorOptions(group, product.code)
 
   let splitInfo = ""
   if (components.length) {
@@ -214,12 +227,13 @@ function renderCatalogProduct(product) {
       : `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
 
   return `
-    <article class="product ${soldOut ? "sold-out" : ""}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
+    <article class="product ${soldOut ? "sold-out" : ""}" data-group-key="${escapeHtml(group.key)}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
       ${saleBadge}
       <img src="${escapeHtml(coverImage)}" alt="${escapeHtml(product.name)}" loading="lazy">
       <div class="product-body">
         <h3>${escapeHtml(product.name)}</h3>
         <div class="code">${escapeHtml(product.code)}</div>
+        ${colorHtml ? `<div class="color-options" role="group" aria-label="Cor">${colorHtml}</div>` : ""}
         ${splitInfo}
         ${priceHtml}
         ${actionHtml}
@@ -348,9 +362,12 @@ async function submitWaitlist() {
   }
 }
 
-function openProductModal(product) {
+function openProductModal(group) {
+  if (!group) return
+  currentModalGroup = group
+  const variant = selectedVariant(group)
+  const product = variant?.product
   if (!product) return
-  currentModalProduct = product
 
   const components = getProductComponents(product.code)
   const available = isCatalogProductAvailable(product, components)
@@ -362,6 +379,7 @@ function openProductModal(product) {
   modalImageIndex = 0
 
   productModalTitle.textContent = product.name || "Produto"
+  if (productModalColors) productModalColors.innerHTML = renderColorOptions(group, product.code)
   if (productModalWhatsapp) {
     productModalWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
   }
@@ -392,6 +410,15 @@ function openProductModal(product) {
 
 function closeProductModal() {
   productModal.hidden = true
+  currentModalGroup = null
+}
+
+function chooseGroupColor(groupKey, code) {
+  if (!groupKey || !code) return
+  selectedCodeByGroup[groupKey] = code
+  const group = findGroupByKey(groupKey)
+  renderCatalogGrids()
+  if (group && currentModalGroup?.key === groupKey) openProductModal(group)
 }
 
 function renderCatalogGrids() {
@@ -400,31 +427,27 @@ function renderCatalogGrids() {
 
   renderCategoryFilters()
 
-  const availFiltered = sortProductsForCatalog(
-    availableProducts.filter((p) => productPassesFilters(p, term)),
-    sortMode
-  )
-  const unavailFiltered = sortProductsForCatalog(
-    unavailableProducts.filter((p) => productPassesFilters(p, term)),
-    sortMode
-  )
+  const partitioned = partitionCatalogGroups(allGroups, {
+    term,
+    category: selectedCategory,
+    isAvailable: isCatalogProductAvailable,
+  })
+  const availFiltered = sortGroupsForCatalog(partitioned.available, sortMode, isCatalogProductAvailable)
+  const unavailFiltered = sortGroupsForCatalog(partitioned.soldOut, sortMode, isCatalogProductAvailable)
 
-  if (!availableProducts.length) {
-    catalogEl.innerHTML = "Nenhum produto disponível"
-  } else if (!availFiltered.length) {
+  if (!availFiltered.length && !unavailFiltered.length) {
+    catalogEl.hidden = false
     catalogEl.innerHTML = term
-      ? "Nenhum produto disponível encontrado para a busca"
+      ? "Nenhum produto encontrado para a busca"
       : selectedCategory !== "Todos"
-        ? "Nenhum produto disponível nessa categoria"
-        : "Nenhum produto disponível"
+        ? "Nenhum produto nessa categoria"
+        : "Nenhum produto encontrado"
+  } else if (!availFiltered.length) {
+    catalogEl.hidden = true
+    catalogEl.innerHTML = ""
   } else {
-    catalogEl.innerHTML = availFiltered.map(renderCatalogProduct).join("")
-  }
-
-  if (!unavailableProducts.length) {
-    unavailableProductsSection.hidden = true
-    unavailableProductsGrid.innerHTML = ""
-    return
+    catalogEl.hidden = false
+    catalogEl.innerHTML = availFiltered.map(renderCatalogGroup).join("")
   }
 
   if (!unavailFiltered.length) {
@@ -434,7 +457,7 @@ function renderCatalogGrids() {
   }
 
   unavailableProductsSection.hidden = false
-  unavailableProductsGrid.innerHTML = unavailFiltered.map(renderCatalogProduct).join("")
+  unavailableProductsGrid.innerHTML = unavailFiltered.map(renderCatalogGroup).join("")
 }
 
 async function loadCatalogData() {
@@ -451,8 +474,8 @@ async function loadCatalogData() {
   const { data: imagesData, error: imagesError } = imagesResponse
 
   if (error || componentsError || imagesError) {
-    availableProducts = []
-    unavailableProducts = []
+    allGroups = []
+    catalogEl.hidden = false
     catalogEl.innerHTML = "Erro ao carregar produtos"
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
@@ -474,26 +497,16 @@ async function loadCatalogData() {
   }
 
   if (!data?.length) {
-    availableProducts = []
-    unavailableProducts = []
+    allGroups = []
+    catalogEl.hidden = false
     catalogEl.innerHTML = "Nenhum produto encontrado"
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
     return
   }
 
-  const sortedProducts = sortCatalogByAvailabilityThenName(data)
-  productsByCode = Object.create(null)
-  sortedProducts.forEach((product) => {
-    productsByCode[product.code] = product
-  })
-
-  availableProducts = []
-  unavailableProducts = []
-  for (const product of sortedProducts) {
-    if (isCatalogProductAvailable(product)) availableProducts.push(product)
-    else unavailableProducts.push(product)
-  }
+  allGroups = groupProductsByColor(data)
+  selectedCodeByGroup = Object.create(null)
 
   allComponents = componentsData || []
   if (window.MarisCatalogCart) {
@@ -515,17 +528,19 @@ async function loadCatalogData() {
 }
 
 function handleProductClick(target) {
-  const productCard = target.closest(".product[data-product-code]")
+  const productCard = target.closest(".product[data-group-key]")
   if (!productCard) return
-
-  const code = productCard.dataset.productCode
-  if (!code) return
-
-  const product = productsByCode[code]
-  openProductModal(product)
+  openProductModal(findGroupByKey(productCard.getAttribute("data-group-key")))
 }
 
 function handleCatalogGridClick(event) {
+  const colorBtn = event.target.closest("[data-color-code]")
+  if (colorBtn) {
+    event.stopPropagation()
+    const card = colorBtn.closest("[data-group-key]")
+    chooseGroupColor(card?.getAttribute("data-group-key"), colorBtn.getAttribute("data-color-code"))
+    return
+  }
   const waitlistBtn = event.target.closest("[data-waitlist-code]")
   if (waitlistBtn) {
     event.stopPropagation()
@@ -535,8 +550,8 @@ function handleCatalogGridClick(event) {
   const viewTypesBtn = event.target.closest("[data-view-code]")
   if (viewTypesBtn) {
     event.stopPropagation()
-    const product = productsByCode[viewTypesBtn.getAttribute("data-view-code")]
-    openProductModal(product)
+    const card = viewTypesBtn.closest("[data-group-key]")
+    openProductModal(findGroupByKey(card?.getAttribute("data-group-key")))
     return
   }
   const addBtn = event.target.closest("[data-add-code]")
@@ -545,7 +560,8 @@ function handleCatalogGridClick(event) {
     const code = addBtn.getAttribute("data-add-code")
     // Produtos com tipos não devem ir para a cesta pelo pai.
     if (getProductComponents(code).length) {
-      openProductModal(productsByCode[code])
+      const card = addBtn.closest("[data-group-key]")
+      openProductModal(findGroupByKey(card?.getAttribute("data-group-key")))
       return
     }
     const result = window.MarisCatalogCart?.addProduct(code, 1)
@@ -559,6 +575,11 @@ catalogEl.addEventListener("click", handleCatalogGridClick)
 unavailableProductsGrid.addEventListener("click", handleCatalogGridClick)
 
 productModal.addEventListener("click", async (event) => {
+  const colorBtn = event.target.closest("[data-color-code]")
+  if (colorBtn && currentModalGroup) {
+    chooseGroupColor(currentModalGroup.key, colorBtn.getAttribute("data-color-code"))
+    return
+  }
   const addCode = event.target.closest("[data-add-code]")
   if (addCode) {
     const result = await window.MarisCatalogCart?.addProduct(addCode.getAttribute("data-add-code"), 1)

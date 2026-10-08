@@ -65,8 +65,8 @@
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog"></div>
 
-      <section id="unavailable-products-section" class="unavailable-products">
-        <h2 class="section-heading">Em falta — lista de espera</h2>
+      <section id="unavailable-products-section" class="unavailable-products" hidden>
+        <h2 class="section-heading">Esgotadas</h2>
         <div id="unavailable-products-grid" class="catalog unavailable-catalog"></div>
       </section>
     </main>
@@ -86,6 +86,7 @@
         </div>
         <div id="product-modal-dots" class="carousel-dots" aria-label="Lista de imagens do produto"></div>
         <h3 id="product-modal-title"></h3>
+        <div id="product-modal-colors" class="color-options" role="group" aria-label="Cor"></div>
         <div id="product-modal-code" class="modal-line"></div>
         <div id="product-modal-price" class="modal-line"></div>
         <div id="product-modal-stock" class="modal-line"></div>

@@ -45,6 +45,109 @@ export function productMatchesCategory(product, category) {
   return productCategory(product?.name) === category
 }
 
+// Sufixos de cor no fim do código. -AD vem antes de -O para não cortar no lugar errado.
+export const COLOR_SUFFIXES = [
+  { suffix: "AD", label: "Aço dourado" },
+  { suffix: "O", label: "Ouro" },
+  { suffix: "R", label: "Ródio" },
+]
+
+const COLOR_SORT = { O: 0, R: 1, AD: 2 }
+
+export function parseProductColor(code) {
+  const raw = String(code || "").trim()
+  const upper = raw.toUpperCase()
+  for (const color of COLOR_SUFFIXES) {
+    const token = `-${color.suffix}`
+    if (upper.endsWith(token) && upper.length > token.length) {
+      return {
+        base: upper.slice(0, -token.length),
+        suffix: color.suffix,
+        label: color.label,
+      }
+    }
+  }
+  return { base: upper, suffix: null, label: null }
+}
+
+export function groupProductsByColor(products) {
+  const map = new Map()
+  const groups = []
+  for (const product of products || []) {
+    const parsed = parseProductColor(product?.code)
+    const key = parsed.suffix ? `color:${parsed.base}` : `solo:${parsed.base}`
+    let group = map.get(key)
+    if (!group) {
+      group = { key, base: parsed.base, variants: [] }
+      map.set(key, group)
+      groups.push(group)
+    }
+    group.variants.push({
+      product,
+      suffix: parsed.suffix,
+      label: parsed.label,
+    })
+  }
+  for (const group of groups) {
+    group.variants.sort((a, b) => {
+      const ao = a.suffix == null ? 99 : COLOR_SORT[a.suffix]
+      const bo = b.suffix == null ? 99 : COLOR_SORT[b.suffix]
+      if (ao !== bo) return ao - bo
+      return String(a.product?.code || "").localeCompare(String(b.product?.code || ""), "pt-BR")
+    })
+  }
+  return groups
+}
+
+export function groupIsAvailable(group, isAvailable) {
+  return (group?.variants || []).some((variant) => Boolean(isAvailable?.(variant.product)))
+}
+
+export function selectVariantByCode(group, isAvailable, preferredCode) {
+  const variants = group?.variants || []
+  if (!variants.length) return null
+  if (preferredCode) {
+    const chosen = variants.find((variant) => String(variant.product?.code) === String(preferredCode))
+    if (chosen) return chosen
+  }
+  return variants.find((variant) => Boolean(isAvailable?.(variant.product))) || variants[0]
+}
+
+export function groupDisplayVariant(group, isAvailable) {
+  return selectVariantByCode(group, isAvailable, null)
+}
+
+export function groupMatchesFilters(group, term, category, isAvailable) {
+  const variants = group?.variants || []
+  if (term && !variants.some((variant) => doesProductMatchSearch(variant.product, term))) return false
+  if (!category || category === "Todos") return true
+  const display = groupDisplayVariant(group, isAvailable)
+  return productMatchesCategory(display?.product, category)
+}
+
+export function partitionCatalogGroups(groups, { term = "", category = "Todos", isAvailable } = {}) {
+  const available = []
+  const soldOut = []
+  for (const group of groups || []) {
+    if (!groupMatchesFilters(group, term, category, isAvailable)) continue
+    if (groupIsAvailable(group, isAvailable)) available.push(group)
+    else soldOut.push(group)
+  }
+  return { available, soldOut }
+}
+
+export function sortGroupsForCatalog(groups, mode, isAvailable) {
+  const groupByProduct = new Map()
+  const products = []
+  for (const group of groups || []) {
+    const display = groupDisplayVariant(group, isAvailable)
+    if (!display?.product) continue
+    groupByProduct.set(display.product, group)
+    products.push(display.product)
+  }
+  return sortProductsForCatalog(products, mode).map((product) => groupByProduct.get(product))
+}
+
 export function productWhatsappMessage(productName) {
   const name = String(productName || "").trim() || "peça"
   return `Oi, vi o ${name} no catálogo e queria tirar uma dúvida`
@@ -84,6 +187,15 @@ if (typeof globalThis.window !== "undefined") {
     productCategory,
     visibleCategories,
     productMatchesCategory,
+    COLOR_SUFFIXES,
+    parseProductColor,
+    groupProductsByColor,
+    groupIsAvailable,
+    selectVariantByCode,
+    groupDisplayVariant,
+    groupMatchesFilters,
+    partitionCatalogGroups,
+    sortGroupsForCatalog,
     productWhatsappMessage,
     whatsappLink,
     doesProductMatchSearch,
