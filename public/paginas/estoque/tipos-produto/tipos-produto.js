@@ -118,10 +118,7 @@ function renderComponentRows(productCode) {
 }
 
 async function loadComponents() {
-  const { data, error } = await supabaseClient
-    .from("product_components")
-    .select("id, product_code, name, price_percent, quantity, is_active")
-    .order("name")
+  const { data, error } = await window.MarisStaffData.listProductComponents()
 
   if (error) {
     setMessage("Erro ao carregar tipos cadastrados.", "error")
@@ -161,10 +158,7 @@ function handleProductCardClick(target) {
 }
 
 async function loadCatalogProducts() {
-  const { data, error } = await supabaseClient
-    .from("products")
-    .select("code, name, unit_price, quantity, image_url")
-    .order("name")
+  const { data, error } = await window.MarisCatalogRead.selectProducts(supabaseClient).order("name")
 
   if (error) {
     productsGrid.innerHTML = "Erro ao carregar produtos."
@@ -241,17 +235,8 @@ async function saveCurrentProductComponents() {
     product_code: productCode
   }))
 
-  const { data: existingRows, error: existingError } = await supabaseClient
-    .from("product_components")
-    .select("id")
-    .eq("product_code", productCode)
-
-  if (existingError) {
-    setMessage("Erro ao ler tipos atuais.", "error")
-    return
-  }
-
-  const existingIds = new Set((existingRows || []).map((r) => r.id))
+  const existingRows = componentsByProductCode[productCode] || []
+  const existingIds = new Set(existingRows.map((r) => r.id))
   const keptIds = new Set(parsedRows.filter((r) => r.id).map((r) => r.id))
   const willWipeAllExisting =
     existingIds.size > 0 && [...existingIds].every((id) => !keptIds.has(id))
@@ -272,53 +257,10 @@ async function saveCurrentProductComponents() {
     }
   }
 
-  for (const id of existingIds) {
-    if (!keptIds.has(id)) {
-      const { error: deleteOneError } = await supabaseClient
-        .from("product_components")
-        .delete()
-        .eq("id", id)
-        .eq("product_code", productCode)
-
-      if (deleteOneError) {
-        setMessage("Erro ao remover tipo retirado.", "error")
-        return
-      }
-    }
-  }
-
-  for (const row of parsedRows) {
-    const payload = {
-      name: row.name,
-      price_percent: row.price_percent,
-      quantity: row.quantity,
-      is_active: true
-    }
-
-    if (row.id) {
-      const { error: updateError } = await supabaseClient
-        .from("product_components")
-        .update(payload)
-        .eq("id", row.id)
-        .eq("product_code", productCode)
-
-      if (updateError) {
-        setMessage("Erro ao atualizar tipo.", "error")
-        return
-      }
-    } else {
-      const { error: insertError } = await supabaseClient
-        .from("product_components")
-        .insert({
-          product_code: row.product_code,
-          ...payload
-        })
-
-      if (insertError) {
-        setMessage("Erro ao criar tipo.", "error")
-        return
-      }
-    }
+  const { error: saveError } = await window.MarisStaffData.saveProductComponents(productCode, parsedRows)
+  if (saveError) {
+    setMessage(saveError.message ? `Erro ao salvar tipos: ${saveError.message}` : "Erro ao salvar tipos.", "error")
+    return
   }
 
   await loadComponents()

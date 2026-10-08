@@ -1,6 +1,5 @@
-const { createSupabaseClient, formatMoneyBRL } = window.MarisUtils
+const { formatMoneyBRL } = window.MarisUtils
 const { sellerLabel, buildCartsListUrl } = window.MarisCustomerCartsLogic
-const sbClient = createSupabaseClient()
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
 const sellerFilter = document.getElementById("seller-filter")
@@ -14,7 +13,7 @@ function staffHeaders() {
 }
 
 async function loadSellers() {
-  const { data } = await sbClient.from("sellers").select("id, name").eq("is_active", true).order("name")
+  const { data } = await window.MarisStaffData.listActiveSellers()
   const saved = localStorage.getItem("maris_seller_filter")
   sellerFilter.innerHTML =
     '<option value="all">Todas as vendedoras</option>' +

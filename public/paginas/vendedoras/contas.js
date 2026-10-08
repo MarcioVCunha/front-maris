@@ -46,9 +46,6 @@ let loadedSales = []
 /** @type {Record<string, string>} código do produto (uppercase) -> URL da capa */
 let imageUrlByProductCode = Object.create(null)
 
-const SALES_SELECT =
-  "id, created_at, paid_at, product_code, product_name, quantity, payment_method, total_value, seller_name, sale_item_type, parent_product_code, is_paid, status"
-
 function isCancelledView() {
   return (filterPaidSelect?.value || "") === "cancelled"
 }
@@ -152,9 +149,8 @@ async function loadProductImagesForSales(sales) {
   const codeList = [...codes]
   if (!codeList.length) return
 
-  const { data: products, error: productsError } = await supabaseClient
-    .from("products")
-    .select("id, code, image_url")
+  const { data: products, error: productsError } = await window.MarisCatalogRead
+    .selectProducts(supabaseClient)
     .in("code", codeList)
 
   if (productsError) {
@@ -174,9 +170,8 @@ async function loadProductImagesForSales(sales) {
   const productIds = Object.values(productIdByCode).filter((id) => Number.isInteger(id) && id > 0)
   if (!productIds.length) return
 
-  const { data: images, error: imagesError } = await supabaseClient
-    .from("product_images")
-    .select("product_id, image_url, sort_order")
+  const { data: images, error: imagesError } = await window.MarisCatalogRead
+    .selectImages(supabaseClient)
     .in("product_id", productIds)
     .order("sort_order", { ascending: true })
 
@@ -445,7 +440,7 @@ async function marcarSelecionadasComoPagas() {
   setMessage("Salvando…", "")
 
   try {
-    const { error } = await supabaseClient.from("sales").update({ is_paid: true }).in("id", ids)
+    const { data, error } = await window.MarisStaffData.markSalesPaid(ids)
 
     if (error) {
       console.error(error)
@@ -458,9 +453,13 @@ async function marcarSelecionadasComoPagas() {
       return
     }
 
-    const n = ids.length
+    const n = Number.isInteger(data?.count) ? data.count : ids.length
     await loadSales()
-    setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
+    if (n < ids.length) {
+      setMessage(`${n} de ${ids.length} venda(s) marcada(s) como paga(s). As demais já estavam pagas ou canceladas.`, "success")
+    } else {
+      setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
+    }
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
@@ -611,37 +610,7 @@ async function loadSales() {
   const mode = filterPaidSelect.value
 
   try {
-    let query = supabaseClient.from("sales").select(SALES_SELECT)
-
-    if (mode === "cancelled") {
-      query = query.eq("status", "cancelled")
-    } else {
-      query = query.eq("status", "active")
-      if (mode === "unpaid") {
-        query = query.or("is_paid.eq.false,is_paid.is.null")
-      } else if (mode === "paid") {
-        query = query.eq("is_paid", true)
-      }
-    }
-
-    if (mode === "paid") {
-      query = query.order("paid_at", { ascending: false, nullsFirst: false })
-    } else {
-      query = query.order("created_at", { ascending: false })
-    }
-
-    let { data, error } = await query
-
-    if (error && mode === "unpaid") {
-      const retry = await supabaseClient
-        .from("sales")
-        .select(SALES_SELECT)
-        .eq("status", "active")
-        .eq("is_paid", false)
-        .order("created_at", { ascending: false })
-      data = retry.data
-      error = retry.error
-    }
+    const { data, error } = await window.MarisStaffData.listSales(mode)
 
     if (error) {
       console.error(error)

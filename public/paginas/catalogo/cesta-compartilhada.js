@@ -125,9 +125,9 @@ function renderBasket() {
 
 async function loadCatalogData() {
   const [productsRes, componentsRes, imagesRes] = await Promise.all([
-    sbClient.from("products").select("id, code, name, unit_price, quantity, image_url, is_on_sale, discount_percent"),
-    sbClient.from("product_components_priced").select("id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent").eq("is_active", true),
-    sbClient.from("product_images").select("product_id, image_url, sort_order").order("sort_order", { ascending: true })
+    window.MarisCatalogRead.selectProducts(sbClient),
+    window.MarisCatalogRead.selectPricedComponents(sbClient),
+    window.MarisCatalogRead.selectImages(sbClient).order("sort_order", { ascending: true })
   ])
 
   if (productsRes.error || componentsRes.error || imagesRes.error) {
@@ -166,11 +166,7 @@ async function loadBasket() {
     basketState = "missing_id"
     return
   }
-  const { data, error } = await sbClient
-    .from("shared_baskets")
-    .select("items")
-    .eq("id", basketId)
-    .maybeSingle()
+  const { data, error } = await window.MarisCatalogRead.selectSharedBasket(sbClient, basketId)
 
   if (error) {
     basketItems = []
