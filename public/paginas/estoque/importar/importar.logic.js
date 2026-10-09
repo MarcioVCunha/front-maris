@@ -1,3 +1,10 @@
+import { formatImageFailuresWarning } from "../../../compartilhado/image-failures.js"
+
+export { formatImageFailuresWarning }
+
+export const IMPORT_CLIENT_TIMEOUT_MS = 150000
+export const IMPORT_LOADING_MESSAGE = "Importando... isso pode levar até 2 minutos"
+
 export function parseImportJsonText(text) {
   return JSON.parse(text)
 }
@@ -40,8 +47,11 @@ export function formatImportErrorMessage(data, status) {
 
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisImportLogic = {
+    IMPORT_CLIENT_TIMEOUT_MS,
+    IMPORT_LOADING_MESSAGE,
     parseImportJsonText,
     formatImportSuccessMessage,
     formatImportErrorMessage,
+    formatImageFailuresWarning,
   }
 }

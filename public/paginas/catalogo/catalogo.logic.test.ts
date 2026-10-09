@@ -9,6 +9,7 @@ import {
   partitionCatalogGroups,
   productCategory,
   productMatchesCategory,
+  resolveProductCategory,
   productWhatsappMessage,
   selectVariantByCode,
   sortProductsForCatalog,
@@ -54,6 +55,52 @@ Deno.test("categorias vazias somem e a ordem fica fixa", () => {
   assertEquals(productMatchesCategory({ name: "Pulseira" }, "Todos"), true)
   assertEquals(productMatchesCategory({ name: "Pulseira" }, "Colar"), false)
   assertEquals(productMatchesCategory({ name: "Pulseiras" }, "Pulseira"), true)
+})
+
+Deno.test("categoria gravada prevalece e valor vazio ou desconhecido volta ao nome", () => {
+  assertEquals(resolveProductCategory({ name: "Pulseira fina", categoria: "Tornozeleira" }), "Tornozeleira")
+  assertEquals(resolveProductCategory({ name: "Brinco argola", categoria: "Outros" }), "Outros")
+  assertEquals(resolveProductCategory({ name: "Piercing nariz", categoria: "Piercing" }), "Piercing")
+  assertEquals(resolveProductCategory({ name: "Brincos de pérola", categoria: null }), "Brinco")
+  assertEquals(resolveProductCategory({ name: "Colares", categoria: "  " }), "Colar")
+  assertEquals(resolveProductCategory({ name: "Anel fino", categoria: "brinco" }), "Anel")
+  assertEquals(resolveProductCategory({ name: "Kit festa", categoria: "Joia" }), "Outros")
+  assertEquals(productMatchesCategory({ name: "Pulseira", categoria: "Tornozeleira" }, "Tornozeleira"), true)
+  assertEquals(productMatchesCategory({ name: "Pulseira", categoria: "Tornozeleira" }, "Pulseira"), false)
+})
+
+Deno.test("botões seguem a ordem e somem quando a categoria não tem cartão", () => {
+  assertEquals(
+    visibleCategories([
+      { name: "Kit festa", categoria: "Piercing" },
+      { name: "Pulseira", categoria: "Tornozeleira" },
+      { name: "Brincos" },
+      { name: "Anel", categoria: "Anel" },
+    ]),
+    ["Brinco", "Anel", "Tornozeleira", "Piercing"],
+  )
+  assertEquals(visibleCategories([{ name: "Bracelete", categoria: "" }]).includes("Outros"), true)
+  assertEquals(visibleCategories([{ name: "Brinco", categoria: "Brinco" }]).includes("Outros"), false)
+})
+
+Deno.test("grupo de cores usa a categoria da variante principal", () => {
+  const groups = groupProductsByColor([
+    { code: "TZ1-O", name: "Pulseira tornozelo ouro", quantity: 1, categoria: "Tornozeleira" },
+    { code: "TZ1-R", name: "Pulseira tornozelo ródio", quantity: 0, categoria: "Pulseira" },
+  ])
+  const shown = partitionCatalogGroups(groups, { category: "Tornozeleira", isAvailable: inStock })
+  assertEquals(shown.available.map((group) => group.base), ["TZ1"])
+  const other = partitionCatalogGroups(groups, { category: "Pulseira", isAvailable: inStock })
+  assertEquals(other.available.length, 0)
+  assertEquals(other.soldOut.length, 0)
+
+  const soldPrimary = groupProductsByColor([
+    { code: "TZ2-O", name: "Tornozeleira ouro", quantity: 0, categoria: "Tornozeleira" },
+    { code: "TZ2-R", name: "Pulseira ródio", quantity: 2, categoria: "Pulseira" },
+  ])
+  assertEquals(groupDisplayVariant(soldPrimary[0], inStock).product.code, "TZ2-R")
+  const byPrimary = partitionCatalogGroups(soldPrimary, { category: "Pulseira", isAvailable: inStock })
+  assertEquals(byPrimary.available.map((group) => group.base), ["TZ2"])
 })
 
 Deno.test("link do WhatsApp usa o número único e a mensagem codificada", () => {

@@ -1,13 +1,16 @@
 const {
+  ADD_PRODUCT_CATEGORIES,
   buildAddProductPayload,
   validateAddProductPayload,
   formatAddProductSuccessMessage,
   formatAddProductErrorMessage,
+  formatImageFailuresWarning,
 } = window.MarisAddProductLogic
 
 const formEl = document.getElementById("addProductForm")
 const submitBtn = document.getElementById("submitBtn")
 const resultEl = document.getElementById("result")
+const imageFailuresEl = document.getElementById("imageFailures")
 const resultWrap = document.getElementById("resultWrap")
 const resultTitleEl = document.getElementById("resultTitle")
 const codeInput = document.getElementById("codeInput")
@@ -15,12 +18,24 @@ const nameInput = document.getElementById("nameInput")
 const priceInput = document.getElementById("priceInput")
 const quantityInput = document.getElementById("quantityInput")
 const imageUrlsInput = document.getElementById("imageUrlsInput")
+const categoriaInput = document.getElementById("categoriaInput")
+
+for (const category of ADD_PRODUCT_CATEGORIES) {
+  const option = document.createElement("option")
+  option.value = category
+  option.textContent = category
+  categoriaInput.append(option)
+}
 
 const FUNCTION_URL = window.ENV.fn("add-product")
 
-function setResult(text, kind) {
+function setResult(text, kind, warningText = "") {
   resultEl.textContent = text
   resultEl.classList.remove("is-loading", "is-error", "is-success")
+  if (imageFailuresEl) {
+    imageFailuresEl.textContent = warningText || ""
+    imageFailuresEl.hidden = !warningText
+  }
   if (kind === "loading") {
     resultEl.classList.add("is-loading")
     if (resultTitleEl) resultTitleEl.textContent = "Enviando…"
@@ -41,11 +56,13 @@ function getPayload() {
     unitPrice: priceInput.value,
     quantity: quantityInput.value,
     imageUrlsRaw: imageUrlsInput.value,
+    categoria: categoriaInput.value,
   })
 }
 
 formEl.addEventListener("submit", async (event) => {
   event.preventDefault()
+  if (submitBtn.disabled) return
 
   if (!FUNCTION_URL) {
     setResult("URL da função add-product não encontrada.", "error")
@@ -59,8 +76,8 @@ formEl.addEventListener("submit", async (event) => {
     return
   }
 
-  setResult("Enviando…", "loading")
   submitBtn.disabled = true
+  setResult("Enviando…", "loading")
 
   try {
     const { ok, status, data } = await window.MarisApi.callFunction(FUNCTION_URL, {
@@ -73,7 +90,11 @@ formEl.addEventListener("submit", async (event) => {
       return
     }
 
-    setResult(formatAddProductSuccessMessage(payload, data), "success")
+    setResult(
+      formatAddProductSuccessMessage(payload, data),
+      "success",
+      formatImageFailuresWarning(data),
+    )
     formEl.reset()
   } catch {
     setResult("Não foi possível conectar. Verifique a internet e tente de novo.", "error")

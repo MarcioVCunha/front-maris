@@ -119,6 +119,18 @@ Deno.test("callFunction: corpo não-JSON vira objeto vazio", async () => {
   }
 })
 
+Deno.test("callFunction: timeoutMs envia um sinal e sem ele a chamada não aborta", async () => {
+  const calls = mockFetch({ status: 200, body: { ok: true } })
+  try {
+    await API.callFunction("https://x/fn", { body: {}, timeoutMs: 150000 })
+    assertEquals(calls[0].init.signal instanceof AbortSignal, true)
+    await API.callFunction("https://x/fn", { body: {} })
+    assertEquals(calls[1].init.signal, undefined)
+  } finally {
+    restoreFetch()
+  }
+})
+
 Deno.test("callFunction: erro de rede propaga a exceção", async () => {
   mockFetch({ reject: true })
   try {

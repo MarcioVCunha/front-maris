@@ -63,7 +63,8 @@ body {
   font-weight: 600;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   border: 1px solid #dbc5ce;
   border-radius: 10px;
@@ -71,6 +72,7 @@ body {
   font: inherit;
   color: #3a2a32;
   background: #fff;
+  min-height: 48px;
 }
 
 .field textarea {
@@ -85,6 +87,7 @@ body {
 }
 
 .field input:focus,
+.field select:focus,
 .field textarea:focus {
   outline: none;
   border-color: #3ecf8e;
@@ -157,4 +160,17 @@ body {
   background: #f4fbf7;
   border-color: #b8e8d0;
   color: #2d5a45;
+}
+
+.result-warning {
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: 12px;
+  border: 1px solid #e6d48a;
+  background: #fff8dc;
+  color: #6b5420;
 }

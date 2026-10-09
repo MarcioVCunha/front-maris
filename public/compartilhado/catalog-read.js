@@ -1,7 +1,6 @@
 // Leituras que o visitante anônimo continua podendo fazer.
 // A lista de colunas fica aqui para nenhuma página pedir a coluna restrita de custo.
-// PRODUCTS_RELATION continua "products" até o back publicar a view do catálogo;
-// se o nome for outro, troque só esta constante.
+// O catálogo lê a view pública, que expõe categoria e não a coluna restrita.
 
 function rejectRestrictedColumn(columns) {
   if (/\bcusto\b/i.test(String(columns || ""))) {
@@ -10,8 +9,8 @@ function rejectRestrictedColumn(columns) {
 }
 
 window.MarisCatalogRead = {
-  PRODUCTS_RELATION: "products",
-  PRODUCT_COLUMNS: "id, code, name, unit_price, quantity, image_url, is_on_sale, discount_percent, created_at",
+  PRODUCTS_RELATION: "products_public",
+  PRODUCT_COLUMNS: "id, code, name, categoria, unit_price, quantity, image_url, is_on_sale, discount_percent, created_at",
   COMPONENTS_RELATION: "product_components_priced",
   COMPONENT_COLUMNS:
     "id, product_code, name, quantity, is_active, price_percent, computed_unit_price, parent_unit_price, parent_is_on_sale, parent_discount_percent",

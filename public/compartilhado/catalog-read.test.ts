@@ -68,13 +68,14 @@ Deno.test("colunas públicas não incluem custo", () => {
   }
   assert(columnsOf(Read.PRODUCT_COLUMNS).includes("created_at"))
   assert(columnsOf(Read.PRODUCT_COLUMNS).includes("unit_price"))
+  assert(columnsOf(Read.PRODUCT_COLUMNS).includes("categoria"))
   assertEquals(Read.SELLER_COLUMNS, "id, name")
 })
 
 Deno.test("selectProducts usa a relação e a lista explícita", () => {
   const client = new FakeClient()
   const chain = Read.selectProducts(client)
-  assertEquals(client.relation, "products")
+  assertEquals(client.relation, "products_public")
   assertEquals(chain.ops[0], ["select", Read.PRODUCT_COLUMNS])
 })
 

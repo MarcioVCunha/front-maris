@@ -34,6 +34,13 @@
           </label>
 
           <label class="field">
+            <span>Categoria</span>
+            <select id="categoriaInput" name="categoria">
+              <option value="">Automático (pelo nome)</option>
+            </select>
+          </label>
+
+          <label class="field">
             <span>Preço unitário *</span>
             <input id="priceInput" name="price" type="text" inputmode="decimal" required placeholder="Ex.: 89,90">
           </label>
@@ -54,6 +61,7 @@
         <section class="result-wrap" id="resultWrap" hidden>
           <h2 class="result-title" id="resultTitle">Resultado</h2>
           <p id="result" class="result-body" role="status"></p>
+          <p id="imageFailures" class="result-warning" hidden></p>
         </section>
       </main>
     </div>
