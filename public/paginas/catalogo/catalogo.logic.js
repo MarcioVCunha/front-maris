@@ -168,9 +168,9 @@ export function sortGroupsForCatalog(groups, mode, isAvailable, filters = null) 
   return sortProductsForCatalog(products, mode).map((product) => groupByProduct.get(product))
 }
 
-// Pix é sempre 5% sobre o preço já final (promoção, se houver). Uma conta só.
-// O banco vai gravar o mesmo valor em products_public. O nome da coluna ainda não existe.
-export const PIX_PRICE_FIELD = ""
+// Pix é 5% sobre o preço já final. products_public.preco_pix repete essa conta,
+// já com a promoção e com 2 casas. A coluna só existe depois da etapa 2 do banco.
+export const PIX_PRICE_FIELD = "preco_pix"
 
 export function pixPrice(amount) {
   const value = Number(amount)

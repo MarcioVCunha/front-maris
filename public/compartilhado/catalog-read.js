@@ -20,6 +20,8 @@ window.MarisCatalogRead = {
   SELLER_COLUMNS: "id, name",
   BASKETS_RELATION: "shared_baskets",
   BASKET_COLUMNS: "items",
+  // Mesmo nome de MarisCatalogLogic.PIX_PRICE_FIELD. A view ainda pode não ter a coluna.
+  PIX_PRICE_FIELD: "preco_pix",
   // View pública ainda pode não existir. Com a flag desligada, o catálogo não consulta.
   BESTSELLERS_ENABLED: false,
   BESTSELLERS_RELATION: "product_sales_counts",
@@ -39,12 +41,46 @@ window.MarisCatalogRead = {
   },
 
   productColumns() {
-    const field = window.MarisCatalogLogic?.PIX_PRICE_FIELD
-    return this.columnsWithPixField(this.PRODUCT_COLUMNS, field)
+    return this.columnsWithPixField(this.PRODUCT_COLUMNS, this.PIX_PRICE_FIELD)
+  },
+
+  missingPixColumn(error, field) {
+    const text = `${error?.message || ""} ${error?.details || ""} ${error?.code || ""}`
+    return text.toLowerCase().includes(String(field || "").toLowerCase())
+  },
+
+  queryWithColumnFallback(primary, fallback, field) {
+    const read = this
+    const calls = []
+    const run = (factory) => {
+      let query = factory()
+      for (const entry of calls) query = query[entry.method](...entry.args)
+      return query
+    }
+    const proxy = new Proxy({}, {
+      get(_target, prop) {
+        if (prop === "then") {
+          return (resolve, reject) => Promise.resolve(run(primary)).then((result) => {
+            if (result?.error && read.missingPixColumn(result.error, field)) return run(fallback)
+            return result
+          }).then(resolve, reject)
+        }
+        if (prop === "catch") return (onReject) => proxy.then((value) => value, onReject)
+        return (...args) => {
+          calls.push({ method: prop, args })
+          return proxy
+        }
+      }
+    })
+    return proxy
   },
 
   selectProducts(client) {
-    return this._select(client, this.PRODUCTS_RELATION, this.productColumns())
+    const columns = this.productColumns()
+    const primary = () => this._select(client, this.PRODUCTS_RELATION, columns)
+    if (columns === this.PRODUCT_COLUMNS) return primary()
+    const fallback = () => this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
+    return this.queryWithColumnFallback(primary, fallback, this.PIX_PRICE_FIELD)
   },
 
   selectPricedComponents(client) {

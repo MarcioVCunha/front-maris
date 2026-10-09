@@ -283,16 +283,15 @@ Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () =>
   assertEquals(cheio.finalPrice, 80)
   assertEquals(cheio.percentOff, 0)
   assertEquals(cheio.pixPrice, 76)
-  assertEquals(PIX_PRICE_FIELD, "")
+  assertEquals(PIX_PRICE_FIELD, "preco_pix")
 })
 
-Deno.test("Pix do catálogo usa a coluna quando o nome existir e o cálculo local quando não", () => {
-  const product = { unit_price: 100, preco_pix: 70 }
-  assertEquals(pixPriceFromSource(product, 100, ""), 95)
-  assertEquals(pixPriceFromSource(product, 100, "preco_pix"), 70)
-  assertEquals(pixPriceFromSource({ unit_price: 100 }, 100, "preco_pix"), 95)
-  assertEquals(pixPriceFromSource({ unit_price: 100, preco_pix: null }, 100, "preco_pix"), 95)
-  assertEquals(offerFromProduct({ unit_price: 100, preco_pix: 70 }).pixPrice, 95)
+Deno.test("preco_pix preenchido entra no catálogo e valor ausente ou nulo usa o cálculo local", () => {
+  assertEquals(offerFromProduct({ unit_price: 100, preco_pix: 70 }).pixPrice, 70)
+  assertEquals(offerFromProduct({ unit_price: 100, preco_pix: "79.80" }).pixPrice, 79.8)
+  assertEquals(offerFromProduct({ unit_price: 100 }).pixPrice, 95)
+  assertEquals(offerFromProduct({ unit_price: 100, preco_pix: null }).pixPrice, 95)
+  assertEquals(pixPriceFromSource({ preco_pix: "" }, 100), 95)
 })
 
 Deno.test("de/por só aparece com promoção ativa e o Pix incide sobre o preço já com desconto", () => {
