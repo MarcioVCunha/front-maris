@@ -58,7 +58,41 @@ Deno.test("o corpo usa os campos da proposta e não manda o preço da tela", () 
     website: ""
   })
   assertEquals(JSON.stringify(body).includes("unit_price"), false)
+  const withCountry = buildCreateOrderBody({ ...sampleInput, whatsapp: "5511999998888" })
+  assertEquals(withCountry.customer.whatsapp, "5511999998888")
+  assertEquals(MarisPedido.validateCreateOrderBody(withCountry).ok, true)
 })
+
+// Corpo público de create-order/handler.test.ts: "reserva de 7 dias volta na resposta".
+const CREATED_ORDER = {
+  ok: true,
+  order_id: 140,
+  subtotal: 100,
+  total_pix: 95,
+  reserved_until: "2026-10-16T12:00:00.000Z",
+  items: [{
+    code: "AN651-R",
+    name: "Anel",
+    quantity: 1,
+    unit_price: 100,
+    line_total: 100
+  }]
+}
+
+// Corpo público do 409 em create-order/handler.test.ts, depois de publicStockIssue.
+const STOCK_OUT = {
+  ok: false,
+  error: "Algumas peças esgotaram.",
+  stock_issues: [{
+    code: "AN651-R",
+    name: "Anel",
+    available: 0,
+    reason: "out_of_stock",
+    product_code: "AN651-R",
+    product_name: "Anel",
+    requested: 1
+  }]
+}
 
 Deno.test("create-order devolve o preço do banco, sem recalcular o Pix", async () => {
   let seenName = ""
@@ -66,21 +100,7 @@ Deno.test("create-order devolve o preço do banco, sem recalcular o Pix", async 
   const result = await submitCreateOrder((name, body) => {
     seenName = name
     seenBody = body
-    return {
-      ok: true,
-      status: 200,
-      data: {
-        ok: true,
-        order_id: 140,
-        status: "a_confirmar",
-        subtotal: 100,
-        total_pix: 70,
-        reserved_until: "2026-10-16T17:00:00.000Z",
-        items: [
-          { code: "AN651-R", name: "Anel", quantity: 1, unit_price: 79.8, line_total: 79.8 }
-        ]
-      }
-    }
+    return { ok: true, status: 200, data: CREATED_ORDER }
   }, { ...sampleInput, sellerId: 2 }, { enabled: true })
   assertEquals(seenName, "create-order")
   assertEquals(seenBody?.seller_id, 2)
@@ -89,43 +109,48 @@ Deno.test("create-order devolve o preço do banco, sem recalcular o Pix", async 
   assertEquals(result.order.orderId, 140)
   assertEquals(result.order.subtotal, 100)
   assertEquals(result.order.total, 100)
-  assertEquals(result.order.totalPix, 70)
-  assertEquals(result.order.items[0].unitPrice, 79.8)
-  assertEquals(result.order.items[0].lineTotal, 79.8)
-  assertEquals(reservationText(result.order.reservedUntil), "Sua peça fica reservada até 16/10/2026, 14:00")
+  assertEquals(result.order.totalPix, 95)
+  assertEquals(result.order.items[0].code, "AN651-R")
+  assertEquals(result.order.items[0].name, "Anel")
+  assertEquals(result.order.items[0].unitPrice, 100)
+  assertEquals(result.order.items[0].lineTotal, 100)
+  assertEquals(reservationText(result.order.reservedUntil), "Sua peça fica reservada até 16/10/2026, 09:00")
+
+  const copied = interpretCreateOrderResponse({
+    ok: true,
+    status: 200,
+    data: { ...CREATED_ORDER, total_pix: 70 }
+  })
+  if (copied.kind !== "confirmed") return
+  assertEquals(copied.order.totalPix, 70)
 })
 
 Deno.test("peça esgotada vem no 409 e sai da cesta", async () => {
   const result = await submitCreateOrder(() => ({
     ok: false,
     status: 409,
-    data: {
-      ok: false,
-      error: "Algumas peças acabaram de esgotar.",
-      stock_issues: [
-        {
-          product_code: "AN651-R",
-          product_name: "Anel Regulável",
-          requested: 1,
-          available: 0,
-          reason: "out_of_stock"
-        }
-      ]
-    }
+    data: STOCK_OUT
   }), sampleInput, { enabled: true })
   assertEquals(result.kind, "stock")
   if (result.kind !== "stock") return
+  assertEquals(result.error, "Algumas peças esgotaram.")
+  assertEquals(result.stockIssues[0].code, "AN651-R")
+  assertEquals(result.stockIssues[0].name, "Anel")
+  assertEquals(result.stockIssues[0].available, 0)
   assertEquals(result.stockIssues[0].reason, "out_of_stock")
-  assertEquals(stockIssueText(result.stockIssues[0]), "Anel Regulável acabou de esgotar. Disponível: 0.")
+  assertEquals(stockIssueText(result.stockIssues[0]), "Anel acabou de esgotar. Disponível: 0.")
   assertEquals(
-    stockIssueText({ product_name: "Anel", requested: 2, available: 1, reason: "insufficient" }),
+    stockIssueText({ name: "Anel", code: "AN651-R", available: 1, reason: "insufficient" }),
     "Anel não tem essa quantidade. Disponível: 1."
   )
   assertEquals(cartKeysForStockIssues([
     { key: "p-AN651-R", product_code: "AN651-R" },
     { key: "p-BM2194-A", product_code: "BM2194-A" },
-    { key: "c-12", component_id: 12 }
+    { key: "c-12", component_id: 12, code: "E2-MAE" }
   ], result.stockIssues), ["p-AN651-R"])
+  assertEquals(cartKeysForStockIssues([
+    { key: "c-12", component_id: 12, code: "E2-MAE" }
+  ], [{ code: "E2-MAE", name: "Brinco", available: 0, reason: "out_of_stock" }]), ["c-12"])
 })
 
 Deno.test("nome, WhatsApp e cesta vazia não disparam a chamada", async () => {
@@ -139,36 +164,54 @@ Deno.test("nome, WhatsApp e cesta vazia não disparam a chamada", async () => {
   const shortPhone = await submitCreateOrder(call, { ...sampleInput, whatsapp: "123" }, on)
   const emptyCart = await submitCreateOrder(call, { ...sampleInput, items: [] }, on)
   assertEquals(missingName, { kind: "error", error: "Informe o nome." })
-  assertEquals(shortPhone, { kind: "error", error: "Informe um WhatsApp com DDD." })
+  assertEquals(shortPhone, { kind: "error", error: "Informe um WhatsApp do Brasil, com DDD." })
+  const foreign = await submitCreateOrder(call, { ...sampleInput, whatsapp: "123456789012" }, on)
+  const withCountry = await submitCreateOrder(call, { ...sampleInput, whatsapp: "5511999998888", name: " " }, on)
+  assertEquals(foreign, { kind: "error", error: "Informe um WhatsApp do Brasil, com DDD." })
   assertEquals(emptyCart, { kind: "error", error: "Sua cesta está vazia." })
   assertEquals(calls, 0)
 })
 
 Deno.test("client_request_id repetido mostra o pedido completo", () => {
+  // Resposta pública de "reenvio não avisa de novo": o mesmo corpo, sem duplicate.
   const result = interpretCreateOrderResponse({
     ok: true,
     status: 200,
-    data: {
-      ok: true,
-      duplicate: true,
-      order_id: 140,
-      status: "a_confirmar",
-      subtotal: 80,
-      total_pix: 76,
-      reserved_until: "2026-10-16T17:00:00.000Z",
-      items: [
-        { code: "AN651-R", name: "Anel", quantity: 1, unit_price: 80, line_total: 80 }
-      ]
-    }
+    data: CREATED_ORDER
   })
   assertEquals(result.kind, "confirmed")
   if (result.kind !== "confirmed") return
+  assertEquals("duplicate" in CREATED_ORDER, false)
   assertEquals(result.order.orderId, 140)
-  assertEquals(result.order.subtotal, 80)
-  assertEquals(result.order.total, 80)
-  assertEquals(result.order.totalPix, 76)
-  assertEquals(result.order.items[0].lineTotal, 80)
-  assertEquals(reservationText(result.order.reservedUntil), "Sua peça fica reservada até 16/10/2026, 14:00")
+  assertEquals(result.order.subtotal, 100)
+  assertEquals(result.order.total, 100)
+  assertEquals(result.order.totalPix, 95)
+  assertEquals(result.order.items[0].code, "AN651-R")
+  assertEquals(result.order.items[0].lineTotal, 100)
+  assertEquals(reservationText(result.order.reservedUntil), "Sua peça fica reservada até 16/10/2026, 09:00")
   assertEquals(reservationText(null), "")
   assertEquals(reservationText("nao-e-data"), "")
+})
+
+Deno.test("dry_run, pausa e validação usam o status e o erro do handler", () => {
+  const preview = interpretCreateOrderResponse({
+    ok: true,
+    status: 200,
+    data: { ok: true, dry_run: true, subtotal: 100, total_pix: 95, stock_issues: [], items: [] }
+  }, { dryRun: true })
+  assertEquals(preview.kind, "available")
+
+  const paused = interpretCreateOrderResponse({
+    ok: false,
+    status: 503,
+    data: { error: "Pedidos pelo site estão pausados." }
+  })
+  assertEquals(paused, { kind: "error", error: "Pedidos pelo site estão pausados." })
+
+  const invalidPhone = interpretCreateOrderResponse({
+    ok: false,
+    status: 400,
+    data: { error: "Informe um WhatsApp do Brasil, com DDD." }
+  })
+  assertEquals(invalidPhone, { kind: "error", error: "Informe um WhatsApp do Brasil, com DDD." })
 })

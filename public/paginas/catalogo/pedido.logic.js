@@ -21,6 +21,12 @@ export function normalizeWhatsapp(value) {
   return digitsOnly(value)
 }
 
+// Mesma regra de normalizeBrazilWhatsapp: 10 ou 11 dígitos, ou 55 seguido deles.
+export function isBrazilWhatsapp(value) {
+  const digits = normalizeWhatsapp(value)
+  return /^55\d{10,11}$/.test(digits) || /^\d{10,11}$/.test(digits)
+}
+
 export function newClientRequestId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
@@ -57,8 +63,9 @@ export function validateCreateOrderBody(body) {
   const name = String(body?.customer?.name || "").trim()
   if (!name) return { ok: false, error: "Informe o nome." }
   if (name.length > MAX_CUSTOMER_NAME) return { ok: false, error: "O nome pode ter no máximo 80 caracteres." }
-  const whatsapp = normalizeWhatsapp(body?.customer?.whatsapp)
-  if (whatsapp.length < 10 || whatsapp.length > 13) return { ok: false, error: "Informe um WhatsApp com DDD." }
+  if (!isBrazilWhatsapp(body?.customer?.whatsapp)) {
+    return { ok: false, error: "Informe um WhatsApp do Brasil, com DDD." }
+  }
   if (String(body?.website || "").trim()) return { ok: false, error: "Não foi possível enviar o pedido." }
   const items = Array.isArray(body?.items) ? body.items : []
   if (!items.length) return { ok: false, error: "Sua cesta está vazia." }
@@ -117,7 +124,7 @@ export function reservationText(reservedUntil) {
 }
 
 export function stockIssueText(issue) {
-  const name = String(issue?.product_name || issue?.product_code || "Peça")
+  const name = String(issue?.name || issue?.product_name || issue?.code || issue?.product_code || "Peça")
   const available = Number(issue?.available)
   const availableLabel = Number.isFinite(available) ? String(available) : "0"
   if (issue?.reason === "insufficient") {
@@ -132,8 +139,10 @@ export function stockIssueText(issue) {
 export function cartKeysForStockIssues(lines, issues) {
   const wanted = new Set()
   for (const issue of issues || []) {
-    const code = String(issue?.product_code || "").trim()
+    const code = String(issue?.code || issue?.product_code || "").trim()
     if (code) wanted.add(code)
+    const componentId = Number(issue?.component_id)
+    if (Number.isInteger(componentId) && componentId > 0) wanted.add(`COMP-${componentId}`)
   }
   const keys = []
   for (const line of lines || []) {
@@ -153,7 +162,7 @@ export function interpretCreateOrderResponse(result, options = {}) {
   if (result?.status === 409 || issues.length) {
     return {
       kind: "stock",
-      error: data.error || "Algumas peças acabaram de esgotar.",
+      error: data.error || "Algumas peças esgotaram.",
       stockIssues: issues
     }
   }
@@ -184,6 +193,7 @@ export const MarisPedido = {
   MAX_UNITS_PER_LINE,
   MAX_CUSTOMER_NAME,
   normalizeWhatsapp,
+  isBrazilWhatsapp,
   newClientRequestId,
   orderItemsFromCart,
   buildCreateOrderBody,

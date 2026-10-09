@@ -267,8 +267,11 @@ Deno.test("sortProductsForCatalog: preço ascendente", () => {
 Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () => {
   assertEquals(pixPrice(100), 95)
   assertEquals(pixPrice(10), 9.5)
+  assertEquals(pixPrice(10.1), 9.6)
+  assertEquals(pixPrice(20.2), 19.19)
   assertEquals(pixPrice(0), 0)
   assertEquals(pixPrice(-4), 0)
+  assertEquals(pixPrice(null), 0)
   assertEquals(pixPrice(Number.NaN), 0)
 
   const promo = offerFromProduct({ unit_price: 100, is_on_sale: true, discount_percent: 10 })
