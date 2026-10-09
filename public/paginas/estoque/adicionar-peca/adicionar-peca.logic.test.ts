@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1"
 import {
+  ADD_PRODUCT_CATEGORIES,
   buildAddProductPayload,
   formatAddProductErrorMessage,
   formatAddProductSuccessMessage,
@@ -47,6 +48,40 @@ Deno.test("formatAddProductSuccessMessage: inclui código e nome", () => {
     formatAddProductSuccessMessage({ code: "A1", name: "Anel" }, {}),
     "Produto A1 (Anel) cadastrado com sucesso."
   )
+})
+
+Deno.test("categoria automática não entra no corpo do add-product", () => {
+  const base = { code: "A1", name: "Tornozeleira fina", unitPrice: 10, quantity: 1, imageUrlsRaw: "" }
+  for (const categoria of [undefined, null, "", "Automático (pelo nome)", "anel", "foo"]) {
+    const payload = buildAddProductPayload({ ...base, categoria })
+    assertEquals(Object.hasOwn(payload, "categoria"), false)
+  }
+})
+
+Deno.test("categoria escolhida vai com o valor exato da lista", () => {
+  assertEquals(ADD_PRODUCT_CATEGORIES, [
+    "Brinco",
+    "Colar",
+    "Pulseira",
+    "Choker",
+    "Anel",
+    "Pingente",
+    "Conjunto",
+    "Tornozeleira",
+    "Piercing",
+    "Outros",
+  ])
+  for (const categoria of ADD_PRODUCT_CATEGORIES) {
+    const payload = buildAddProductPayload({
+      code: "A1",
+      name: "Peça",
+      unitPrice: 10,
+      quantity: 1,
+      imageUrlsRaw: "",
+      categoria,
+    })
+    assertEquals(payload.categoria, categoria)
+  }
 })
 
 Deno.test("formatAddProductErrorMessage: usa data.error", () => {

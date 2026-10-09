@@ -20,9 +20,23 @@ export function parseMoneyBRL(raw) {
   return Number.isFinite(value) ? value : NaN
 }
 
-export function buildAddProductPayload({ code, name, unitPrice, quantity, imageUrlsRaw }) {
+// Valores exatos que add-product aceita. Primeira letra maiúscula, sem acento.
+export const ADD_PRODUCT_CATEGORIES = [
+  "Brinco",
+  "Colar",
+  "Pulseira",
+  "Choker",
+  "Anel",
+  "Pingente",
+  "Conjunto",
+  "Tornozeleira",
+  "Piercing",
+  "Outros",
+]
+
+export function buildAddProductPayload({ code, name, unitPrice, quantity, imageUrlsRaw, categoria }) {
   const imageUrls = parseImageUrlLines(imageUrlsRaw)
-  return {
+  const payload = {
     code: String(code || "").trim(),
     name: String(name || "").trim(),
     unit_price: parseMoneyBRL(unitPrice),
@@ -30,6 +44,9 @@ export function buildAddProductPayload({ code, name, unitPrice, quantity, imageU
     image_url: imageUrls[0] || "",
     image_urls: imageUrls,
   }
+  const category = String(categoria ?? "").trim()
+  if (ADD_PRODUCT_CATEGORIES.includes(category)) payload.categoria = category
+  return payload
 }
 
 export function validateAddProductPayload(payload) {
@@ -63,6 +80,7 @@ export function formatAddProductErrorMessage(data, status) {
 
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisAddProductLogic = {
+    ADD_PRODUCT_CATEGORIES,
     parseImageUrlLines,
     parseMoneyBRL,
     buildAddProductPayload,

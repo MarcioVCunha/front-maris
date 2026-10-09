@@ -1,4 +1,5 @@
 const {
+  ADD_PRODUCT_CATEGORIES,
   buildAddProductPayload,
   validateAddProductPayload,
   formatAddProductSuccessMessage,
@@ -15,6 +16,14 @@ const nameInput = document.getElementById("nameInput")
 const priceInput = document.getElementById("priceInput")
 const quantityInput = document.getElementById("quantityInput")
 const imageUrlsInput = document.getElementById("imageUrlsInput")
+const categoriaInput = document.getElementById("categoriaInput")
+
+for (const category of ADD_PRODUCT_CATEGORIES) {
+  const option = document.createElement("option")
+  option.value = category
+  option.textContent = category
+  categoriaInput.append(option)
+}
 
 const FUNCTION_URL = window.ENV.fn("add-product")
 
@@ -41,6 +50,7 @@ function getPayload() {
     unitPrice: priceInput.value,
     quantity: quantityInput.value,
     imageUrlsRaw: imageUrlsInput.value,
+    categoria: categoriaInput.value,
   })
 }
 

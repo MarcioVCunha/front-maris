@@ -1,7 +1,20 @@
 export const STORE_WHATSAPP_NUMBER = "5519992732874"
 export const CATALOG_WHATSAPP_MESSAGE = "Oi, vi o catálogo e queria tirar uma dúvida"
 
-export const CATEGORY_ORDER = ["Brinco", "Colar", "Pulseira", "Choker", "Anel", "Pingente", "Conjunto", "Outros"]
+export const CATEGORY_ORDER = [
+  "Brinco",
+  "Colar",
+  "Pulseira",
+  "Choker",
+  "Anel",
+  "Pingente",
+  "Conjunto",
+  "Tornozeleira",
+  "Piercing",
+  "Outros",
+]
+
+const KNOWN_CATEGORIES = new Set(CATEGORY_ORDER)
 
 const CATEGORY_BY_WORD = {
   brinco: "Brinco",
@@ -32,17 +45,23 @@ export function productCategory(name) {
   return CATEGORY_BY_WORD[first] || "Outros"
 }
 
+export function resolveProductCategory(product) {
+  const stored = String(product?.categoria ?? "").trim()
+  if (KNOWN_CATEGORIES.has(stored)) return stored
+  return productCategory(product?.name)
+}
+
 export function visibleCategories(products) {
   const seen = new Set()
   for (const product of products || []) {
-    seen.add(productCategory(product?.name))
+    seen.add(resolveProductCategory(product))
   }
   return CATEGORY_ORDER.filter((name) => seen.has(name))
 }
 
 export function productMatchesCategory(product, category) {
   if (!category || category === "Todos") return true
-  return productCategory(product?.name) === category
+  return resolveProductCategory(product) === category
 }
 
 // O trecho depois do último hífen é a cor, se estiver nesta lista.
@@ -184,6 +203,7 @@ if (typeof globalThis.window !== "undefined") {
     CATALOG_WHATSAPP_MESSAGE,
     CATEGORY_ORDER,
     productCategory,
+    resolveProductCategory,
     visibleCategories,
     productMatchesCategory,
     COLOR_SUFFIXES,
