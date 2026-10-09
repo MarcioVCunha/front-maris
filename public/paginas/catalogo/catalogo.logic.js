@@ -169,11 +169,23 @@ export function sortGroupsForCatalog(groups, mode, isAvailable, filters = null) 
 }
 
 // Pix é sempre 5% sobre o preço já final (promoção, se houver). Uma conta só.
+// O banco vai gravar o mesmo valor em products_public. O nome da coluna ainda não existe.
+export const PIX_PRICE_FIELD = ""
+
 export function pixPrice(amount) {
   const value = Number(amount)
   if (!Number.isFinite(value) || value <= 0) return 0
   const cents = Math.round(value * 100)
   return Math.round((cents * 95) / 100) / 100
+}
+
+export function pixPriceFromSource(product, finalPrice, field = PIX_PRICE_FIELD) {
+  const name = String(field || "").trim()
+  if (name && product && product[name] != null && product[name] !== "") {
+    const value = Number(product[name])
+    if (Number.isFinite(value) && value >= 0) return value
+  }
+  return pixPrice(finalPrice)
 }
 
 export function offerFromProduct(product) {
@@ -186,7 +198,7 @@ export function offerFromProduct(product) {
     finalPrice,
     onSale,
     percentOff: onSale ? percent : 0,
-    pixPrice: pixPrice(finalPrice),
+    pixPrice: pixPriceFromSource(product, finalPrice),
   }
 }
 
@@ -460,7 +472,9 @@ if (typeof globalThis.window !== "undefined") {
     groupMatchesFilters,
     partitionCatalogGroups,
     sortGroupsForCatalog,
+    PIX_PRICE_FIELD,
     pixPrice,
+    pixPriceFromSource,
     offerFromProduct,
     cartMoneyTotals,
     NEW_DAYS,

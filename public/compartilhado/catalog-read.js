@@ -30,8 +30,21 @@ window.MarisCatalogRead = {
     return client.from(relation).select(columns)
   },
 
+  columnsWithPixField(columns, field) {
+    const name = String(field || "").trim()
+    if (!name || /\bcusto\b/i.test(name)) return columns
+    const names = String(columns || "").split(",").map((part) => part.trim())
+    if (names.includes(name)) return columns
+    return `${columns}, ${name}`
+  },
+
+  productColumns() {
+    const field = window.MarisCatalogLogic?.PIX_PRICE_FIELD
+    return this.columnsWithPixField(this.PRODUCT_COLUMNS, field)
+  },
+
   selectProducts(client) {
-    return this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
+    return this._select(client, this.PRODUCTS_RELATION, this.productColumns())
   },
 
   selectPricedComponents(client) {

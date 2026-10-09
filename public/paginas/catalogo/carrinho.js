@@ -12,11 +12,6 @@ const sellerSelectEl = document.getElementById("seller-select")
 const checkStockBtn = document.getElementById("check-stock-btn")
 const shareCartBtn = document.getElementById("share-cart-btn")
 const stockIssuesEl = document.getElementById("stock-issues")
-const generateLinkBtn = document.getElementById("generate-link-btn")
-const shareResultEl = document.getElementById("share-result")
-const shareLinkInput = document.getElementById("share-link-input")
-const copyLinkBtn = document.getElementById("copy-link-btn")
-const shareWhatsappBtn = document.getElementById("share-whatsapp-btn")
 const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
 const orderConfirmationEl = document.getElementById("order-confirmation")
@@ -71,14 +66,12 @@ function renderCart() {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
     cartTotalEl.textContent = formatMoneyBRL(0)
     if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(0)
-    if (generateLinkBtn) generateLinkBtn.disabled = true
     if (shareCartBtn) shareCartBtn.disabled = true
     if (checkStockBtn) checkStockBtn.disabled = true
     setActiveStep(1)
     return
   }
 
-  if (generateLinkBtn) generateLinkBtn.disabled = false
   if (shareCartBtn) shareCartBtn.disabled = false
   if (checkStockBtn) checkStockBtn.disabled = false
   setActiveStep(2)
@@ -282,10 +275,6 @@ async function placeOrder(dryRun) {
       setMessage("As peças ainda estão disponíveis.", "success")
       return
     }
-    if (result.kind === "duplicate") {
-      setMessage(result.orderId ? `O pedido #${result.orderId} já foi enviado.` : "Esse pedido já foi enviado.", "success")
-      return
-    }
     if (result.kind === "confirmed") {
       saveBuyer()
       pendingRequestId = null
@@ -370,64 +359,7 @@ async function shareCart() {
 }
 
 function hideShareResult() {
-  if (!shareResultEl) return
-  shareResultEl.hidden = true
-  shareLinkInput.value = ""
-}
-
-function showShareResult(url) {
-  shareLinkInput.value = url
-  shareResultEl.hidden = false
-  const text = `Ol\u00e1! Separei algumas pe\u00e7as da Maris Semijoias, d\u00ea uma olhada: ${url}`
-  shareWhatsappBtn.href = `https://wa.me/?text=${encodeURIComponent(text)}`
-}
-
-async function generateLink() {
-  setMessage("")
-  const items = window.MarisCatalogCart.getItems().map((line) => ({
-    product_code: line.product_code || null,
-    component_id: line.component_id || null,
-    quantity: Number(line.quantity) || 0,
-    unit_price: Number(line.unit_price) || undefined
-  }))
-  if (!items.length) {
-    setMessage("Sua cesta est\u00e1 vazia.", "error")
-    return
-  }
-
-  generateLinkBtn.disabled = true
-  generateLinkBtn.textContent = "Gerando\u2026"
-  try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("create-shared-basket"), {
-      body: { items }
-    })
-    if (!ok || !data.id) {
-      setMessage(data.error || "N\u00e3o foi poss\u00edvel gerar o link.", "error")
-      return
-    }
-    const url = `${window.location.origin}/catalog/cesta?id=${encodeURIComponent(data.id)}`
-    showShareResult(url)
-    setMessage("Link gerado! Copie ou envie no WhatsApp.", "success")
-    setActiveStep(3)
-  } catch {
-    setMessage("Erro de conex\u00e3o ao gerar o link.", "error")
-  } finally {
-    generateLinkBtn.disabled = false
-    generateLinkBtn.textContent = "Gerar link para compartilhar"
-  }
-}
-
-async function copyLink() {
-  const url = shareLinkInput.value
-  if (!url) return
-  try {
-    await navigator.clipboard.writeText(url)
-    setMessage("Link copiado!", "success")
-  } catch {
-    shareLinkInput.focus()
-    shareLinkInput.select()
-    setMessage("Selecione e copie o link manualmente.", "")
-  }
+  window.MarisCestaLink?.hide()
 }
 
 cartLinesEl.addEventListener("click", (event) => {
@@ -458,8 +390,6 @@ if (buyerWhatsappEl) {
 if (buyerEmailEl) buyerEmailEl.addEventListener("blur", saveBuyer)
 if (checkStockBtn) checkStockBtn.addEventListener("click", checkStock)
 if (shareCartBtn) shareCartBtn.addEventListener("click", shareCart)
-if (generateLinkBtn) generateLinkBtn.addEventListener("click", generateLink)
-if (copyLinkBtn) copyLinkBtn.addEventListener("click", copyLink)
 
 window.addEventListener("maris-cart-updated", renderCart)
 

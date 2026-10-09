@@ -118,13 +118,15 @@ export function reservationText(reservedUntil) {
 
 export function stockIssueText(issue) {
   const name = String(issue?.product_name || issue?.product_code || "Peça")
-  if (issue?.reason === "out_of_stock" || Number(issue?.available) === 0) {
-    return `${name} acabou de esgotar e saiu da cesta.`
-  }
+  const available = Number(issue?.available)
+  const availableLabel = Number.isFinite(available) ? String(available) : "0"
   if (issue?.reason === "insufficient") {
-    return `${name}: você pediu ${issue.requested} e só há ${issue.available}.`
+    return `${name} não tem essa quantidade. Disponível: ${availableLabel}.`
   }
-  return `${name} não está mais disponível e saiu da cesta.`
+  if (issue?.reason === "out_of_stock") {
+    return `${name} acabou de esgotar. Disponível: ${availableLabel}.`
+  }
+  return `${name} não está mais disponível. Disponível: ${availableLabel}.`
 }
 
 export function cartKeysForStockIssues(lines, issues) {
@@ -159,7 +161,6 @@ export function interpretCreateOrderResponse(result, options = {}) {
     return { kind: "error", error: data.error || "Não foi possível fazer o pedido." }
   }
   if (options.dryRun) return { kind: "available" }
-  if (data.duplicate) return { kind: "duplicate", orderId: data.order_id ?? null }
   if (data.order_id == null) return { kind: "error", error: "O pedido não voltou com número." }
   return { kind: "confirmed", order: orderFromResponse(data) }
 }

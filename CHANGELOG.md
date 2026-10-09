@@ -6,8 +6,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
-- A cesta pode virar pedido. A cliente informa nome e WhatsApp e escolhe a vendedora se quiser. A confirmação mostra os itens, o total e o total no Pix devolvidos pelo banco, e a frase com o prazo lido de `reserved_until`. A reserva combinada é de 7 dias. Peça que acaba de esgotar sai da cesta.
-- A chamada `create-order` fica num módulo só, com os campos da proposta, atrás da flag `ORDERS_ENABLED` desligada. Com a flag desligada, a cesta segue como hoje.
+- A cesta pode virar pedido. A cliente informa nome e WhatsApp e escolhe a vendedora se quiser. A confirmação mostra os itens, o total e o total no Pix devolvidos por `create-order`, e a frase com o prazo lido de `reserved_until`. A reserva é de 7 dias. Um envio repetido mostra o mesmo pedido. Peça esgotada sai da cesta, com nome, quantidade disponível e motivo.
+- A chamada `create-order` fica num módulo só, atrás da flag `ORDERS_ENABLED` desligada. Com a flag desligada, a cesta segue como hoje. Com ela ligada, o link de compartilhar a cesta some. Esse código fica isolado para ser apagado nesse dia.
+- O Pix do catálogo usa a coluna de `products_public` quando `PIX_PRICE_FIELD` tiver nome. Enquanto a constante está vazia, o preço no Pix continua o cálculo local.
 - Fotos maiores no cartão, com fundo único, e segunda foto ao deslizar.
 - Filtros de categoria, preço, cor (dourado, ródio, aço e aço dourado) e só disponíveis. No celular ficam numa gaveta.
 - Ordenação por menor preço, maior preço e novidades.

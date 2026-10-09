@@ -77,6 +77,17 @@ Deno.test("colunas públicas não incluem custo", () => {
   assertEquals(Read.SELLER_COLUMNS, "id, name")
 })
 
+Deno.test("Pix público entra na leitura só quando o nome da coluna existir", () => {
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, ""), Read.PRODUCT_COLUMNS)
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "  "), Read.PRODUCT_COLUMNS)
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "custo"), Read.PRODUCT_COLUMNS)
+  assertEquals(
+    Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "preco_pix"),
+    `${Read.PRODUCT_COLUMNS}, preco_pix`
+  )
+  assertEquals(Read.productColumns(), Read.PRODUCT_COLUMNS)
+})
+
 Deno.test("selectProducts usa a relação e a lista explícita", () => {
   const client = new FakeClient()
   const chain = Read.selectProducts(client)

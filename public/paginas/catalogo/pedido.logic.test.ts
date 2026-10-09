@@ -7,6 +7,7 @@ import {
   cartKeysForStockIssues,
   interpretCreateOrderResponse,
   reservationText,
+  stockIssueText,
   submitCreateOrder
 } from "./pedido.logic.js"
 
@@ -115,6 +116,11 @@ Deno.test("peça esgotada vem no 409 e sai da cesta", async () => {
   assertEquals(result.kind, "stock")
   if (result.kind !== "stock") return
   assertEquals(result.stockIssues[0].reason, "out_of_stock")
+  assertEquals(stockIssueText(result.stockIssues[0]), "Anel Regulável acabou de esgotar. Disponível: 0.")
+  assertEquals(
+    stockIssueText({ product_name: "Anel", requested: 2, available: 1, reason: "insufficient" }),
+    "Anel não tem essa quantidade. Disponível: 1."
+  )
   assertEquals(cartKeysForStockIssues([
     { key: "p-AN651-R", product_code: "AN651-R" },
     { key: "p-BM2194-A", product_code: "BM2194-A" },
@@ -138,14 +144,31 @@ Deno.test("nome, WhatsApp e cesta vazia não disparam a chamada", async () => {
   assertEquals(calls, 0)
 })
 
-Deno.test("resposta repetida não inventa preço", () => {
+Deno.test("client_request_id repetido mostra o pedido completo", () => {
   const result = interpretCreateOrderResponse({
     ok: true,
     status: 200,
-    data: { ok: true, order_id: 140, duplicate: true }
+    data: {
+      ok: true,
+      duplicate: true,
+      order_id: 140,
+      status: "a_confirmar",
+      subtotal: 80,
+      total_pix: 76,
+      reserved_until: "2026-10-16T17:00:00.000Z",
+      items: [
+        { code: "AN651-R", name: "Anel", quantity: 1, unit_price: 80, line_total: 80 }
+      ]
+    }
   })
-  assertEquals(result.kind, "duplicate")
-  assertEquals(result.orderId, 140)
+  assertEquals(result.kind, "confirmed")
+  if (result.kind !== "confirmed") return
+  assertEquals(result.order.orderId, 140)
+  assertEquals(result.order.subtotal, 80)
+  assertEquals(result.order.total, 80)
+  assertEquals(result.order.totalPix, 76)
+  assertEquals(result.order.items[0].lineTotal, 80)
+  assertEquals(reservationText(result.order.reservedUntil), "Sua peça fica reservada até 16/10/2026, 14:00")
   assertEquals(reservationText(null), "")
   assertEquals(reservationText("nao-e-data"), "")
 })

@@ -21,7 +21,9 @@ import {
   NEW_DAYS,
   PIECE_CARE,
   pieceCareText,
+  PIX_PRICE_FIELD,
   pixPrice,
+  pixPriceFromSource,
   productCategory,
   productMatchesCategory,
   readCatalogLink,
@@ -281,6 +283,16 @@ Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () =>
   assertEquals(cheio.finalPrice, 80)
   assertEquals(cheio.percentOff, 0)
   assertEquals(cheio.pixPrice, 76)
+  assertEquals(PIX_PRICE_FIELD, "")
+})
+
+Deno.test("Pix do catálogo usa a coluna quando o nome existir e o cálculo local quando não", () => {
+  const product = { unit_price: 100, preco_pix: 70 }
+  assertEquals(pixPriceFromSource(product, 100, ""), 95)
+  assertEquals(pixPriceFromSource(product, 100, "preco_pix"), 70)
+  assertEquals(pixPriceFromSource({ unit_price: 100 }, 100, "preco_pix"), 95)
+  assertEquals(pixPriceFromSource({ unit_price: 100, preco_pix: null }, 100, "preco_pix"), 95)
+  assertEquals(offerFromProduct({ unit_price: 100, preco_pix: 70 }).pixPrice, 95)
 })
 
 Deno.test("de/por só aparece com promoção ativa e o Pix incide sobre o preço já com desconto", () => {
