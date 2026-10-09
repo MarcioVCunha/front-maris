@@ -4,6 +4,7 @@ const sbClient = window.MarisUtils.createSupabaseClient()
 
 const cartLinesEl = document.getElementById("cart-lines")
 const cartTotalEl = document.getElementById("cart-total")
+const cartPixEl = document.getElementById("cart-pix")
 const buyerNameEl = document.getElementById("buyer-name")
 const buyerWhatsappEl = document.getElementById("buyer-whatsapp")
 const buyerEmailEl = document.getElementById("buyer-email")
@@ -60,6 +61,7 @@ function renderCart() {
   if (!lines.length) {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
     cartTotalEl.textContent = formatMoneyBRL(0)
+    if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(0)
     if (generateLinkBtn) generateLinkBtn.disabled = true
     if (shareCartBtn) shareCartBtn.disabled = true
     if (checkStockBtn) checkStockBtn.disabled = true
@@ -97,7 +99,9 @@ function renderCart() {
       </article>
     `
   }).join("")
-  cartTotalEl.textContent = formatMoneyBRL(total)
+  const totals = window.MarisCatalogLogic?.cartMoneyTotals?.(window.MarisCatalogCart.getItems()) || { total, pixTotal: 0 }
+  cartTotalEl.textContent = formatMoneyBRL(totals.total)
+  if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(totals.pixTotal)
 }
 
 async function loadCatalogData() {

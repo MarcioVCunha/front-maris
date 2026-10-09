@@ -20,6 +20,10 @@ window.MarisCatalogRead = {
   SELLER_COLUMNS: "id, name",
   BASKETS_RELATION: "shared_baskets",
   BASKET_COLUMNS: "items",
+  // View pública ainda pode não existir. Com a flag desligada, o catálogo não consulta.
+  BESTSELLERS_ENABLED: false,
+  BESTSELLERS_RELATION: "product_sales_counts",
+  BESTSELLER_COLUMNS: "code, total_vendido",
 
   _select(client, relation, columns) {
     rejectRestrictedColumn(columns)
@@ -47,5 +51,12 @@ window.MarisCatalogRead = {
 
   selectSharedBasket(client, id) {
     return this._select(client, this.BASKETS_RELATION, this.BASKET_COLUMNS).eq("id", id).maybeSingle()
+  },
+
+  selectBestsellers(client) {
+    if (!this.BESTSELLERS_ENABLED) return null
+    const relation = String(this.BESTSELLERS_RELATION || "").trim()
+    if (!relation) return null
+    return this._select(client, relation, this.BESTSELLER_COLUMNS)
   }
 }

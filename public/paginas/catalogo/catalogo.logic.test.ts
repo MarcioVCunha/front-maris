@@ -1,17 +1,40 @@
 import { assertEquals } from "jsr:@std/assert@1"
 import {
+  buildCatalogLink,
+  cartMoneyTotals,
   CATALOG_WHATSAPP_MESSAGE,
   doesProductMatchSearch,
+  filterAndPartitionCatalog,
   groupDisplayVariant,
   groupIsAvailable,
+  groupPassesFilters,
   groupProductsByColor,
+  offerFromProduct,
+  parsePriceBound,
   parseProductColor,
   partitionCatalogGroups,
+  LAST_UNIT_BADGE_ENABLED,
+  LAST_UNIT_INITIAL_FIELD,
+  LAST_UNIT_INITIAL_MIN,
+  LAST_UNIT_QUANTITY,
+  lastUnitBadgeMatches,
+  NEW_DAYS,
+  PIECE_CARE,
+  pieceCareText,
+  pixPrice,
   productCategory,
   productMatchesCategory,
+  readCatalogLink,
+  relatedGroups,
+  resolvePieceLink,
   resolveProductCategory,
   productWhatsappMessage,
   selectVariantByCode,
+  showLastUnitBadge,
+  showNewBadge,
+  sortGroupsByBestsellers,
+  sortGroupsForCatalog,
+  totalsByProductCode,
   sortProductsForCatalog,
   STORE_WHATSAPP_NUMBER,
   visibleCategories,
@@ -237,4 +260,216 @@ Deno.test("sortProductsForCatalog: preço ascendente", () => {
     "price_asc",
   )
   assertEquals(sorted[0].unit_price, 10)
+})
+
+Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () => {
+  assertEquals(pixPrice(100), 95)
+  assertEquals(pixPrice(10), 9.5)
+  assertEquals(pixPrice(0), 0)
+  assertEquals(pixPrice(-4), 0)
+  assertEquals(pixPrice(Number.NaN), 0)
+
+  const promo = offerFromProduct({ unit_price: 100, is_on_sale: true, discount_percent: 10 })
+  assertEquals(promo.listPrice, 100)
+  assertEquals(promo.finalPrice, 90)
+  assertEquals(promo.onSale, true)
+  assertEquals(promo.percentOff, 10)
+  assertEquals(promo.pixPrice, 85.5)
+
+  const cheio = offerFromProduct({ unit_price: 80, is_on_sale: false, discount_percent: 20 })
+  assertEquals(cheio.onSale, false)
+  assertEquals(cheio.finalPrice, 80)
+  assertEquals(cheio.percentOff, 0)
+  assertEquals(cheio.pixPrice, 76)
+})
+
+Deno.test("de/por só aparece com promoção ativa e o Pix incide sobre o preço já com desconto", () => {
+  const semDesconto = offerFromProduct({ unit_price: 50, is_on_sale: true, discount_percent: 0 })
+  assertEquals(semDesconto.onSale, false)
+  assertEquals(semDesconto.finalPrice, 50)
+  assertEquals(semDesconto.pixPrice, 47.5)
+})
+
+Deno.test("total Pix da cesta usa o total, não a soma dos Pix arredondados", () => {
+  const totals = cartMoneyTotals([
+    { unit_price: 10.1, quantity: 1 },
+    { unit_price: 10.1, quantity: 1 },
+  ])
+  assertEquals(totals.total, 20.2)
+  assertEquals(totals.pixTotal, 19.19)
+  assertEquals(pixPrice(10.1) + pixPrice(10.1), 19.2)
+})
+
+Deno.test("ordenação usa o preço final da promoção e novidades por created_at", () => {
+  const byPrice = sortProductsForCatalog(
+    [
+      { name: "Cheio", unit_price: 95 },
+      { name: "Promo", unit_price: 100, is_on_sale: true, discount_percent: 10 },
+    ],
+    "price_asc",
+  )
+  assertEquals(byPrice.map((item) => item.name), ["Promo", "Cheio"])
+
+  const byNews = sortProductsForCatalog(
+    [
+      { name: "Antiga", unit_price: 10, created_at: "2026-01-01T00:00:00.000Z" },
+      { name: "Nova", unit_price: 40, created_at: "2026-10-01T00:00:00.000Z" },
+    ],
+    "created_desc",
+  )
+  assertEquals(byNews.map((item) => item.name), ["Nova", "Antiga"])
+})
+
+Deno.test("filtros de preço, cor e só disponíveis mantêm esgotadas no fim", () => {
+  const groups = groupProductsByColor([
+    { code: "AN1-O", name: "Anel ouro", quantity: 1, unit_price: 100, categoria: "Anel" },
+    { code: "AN1-A", name: "Anel aço", quantity: 0, unit_price: 90, categoria: "Anel" },
+    { code: "BR1-R", name: "Brinco ródio", quantity: 1, unit_price: 40, categoria: "Brinco", is_on_sale: true, discount_percent: 50 },
+    { code: "BR2-AD", name: "Brinco aço dourado", quantity: 1, unit_price: 30, categoria: "Brinco" },
+    { code: "CO1-O", name: "Colar ouro", quantity: 0, unit_price: 20, categoria: "Colar" },
+  ])
+
+  assertEquals(parsePriceBound(""), null)
+  assertEquals(parsePriceBound("1.234,50"), 1234.5)
+  assertEquals(groupPassesFilters(groups[0], { minPrice: null, maxPrice: null }, inStock), true)
+
+  const aco = filterAndPartitionCatalog(groups, { colorId: "aco" }, inStock)
+  assertEquals(aco.available.map((group) => group.base), ["AN1"])
+  assertEquals(aco.soldOut.length, 0)
+
+  const dourado = filterAndPartitionCatalog(groups, { colorId: "dourado", maxPrice: 50 }, inStock)
+  assertEquals(dourado.available.length, 0)
+  assertEquals(dourado.soldOut.map((group) => group.base), ["CO1"])
+
+  const soDisponiveis = filterAndPartitionCatalog(groups, { onlyAvailable: true }, inStock)
+  assertEquals(soDisponiveis.soldOut.length, 0)
+  assertEquals(soDisponiveis.available.map((group) => group.base), ["AN1", "BR1", "BR2"])
+
+  const promocao = filterAndPartitionCatalog(groups, { onSaleOnly: true }, inStock)
+  assertEquals(promocao.available.map((group) => group.base), ["BR1"])
+
+  const precoFinal = sortGroupsForCatalog(
+    filterAndPartitionCatalog(groups, { category: "Brinco" }, inStock).available,
+    "price_asc",
+    inStock,
+  )
+  assertEquals(precoFinal.map((group) => group.base), ["BR1", "BR2"])
+})
+
+Deno.test("deep link abre a cor disponível, cai na categoria se esgotar e guarda utm_source", () => {
+  const groups = groupProductsByColor([
+    { code: "BM145-O", name: "Brinco ouro", quantity: 0, categoria: "Brinco" },
+    { code: "BM145-R", name: "Brinco ródio", quantity: 2, categoria: "Brinco" },
+    { code: "AN252-O", name: "Anel ouro", quantity: 0, categoria: "Anel" },
+    { code: "AN252-R", name: "Anel ródio", quantity: 0, categoria: "Pulseira" },
+  ])
+
+  const link = readCatalogLink("?categoria=anel&peca=bm145&utm_source=instagram&utm_medium=bio")
+  assertEquals(link.categoria, "Anel")
+  assertEquals(link.peca, "bm145")
+  assertEquals(link.utmSource, "instagram")
+  assertEquals(link.utmMedium, "bio")
+
+  const aberta = resolvePieceLink(groups, link.peca, inStock)
+  assertEquals(aberta.kind, "piece")
+  assertEquals(aberta.variant.product.code, "BM145-R")
+  assertEquals(
+    buildCatalogLink({ peca: aberta.group.base, utmSource: link.utmSource, utmMedium: link.utmMedium }),
+    "/catalog?peca=BM145&utm_source=instagram&utm_medium=bio",
+  )
+
+  const esgotada = resolvePieceLink(groups, "AN252", inStock)
+  assertEquals(esgotada.kind, "soldout")
+  assertEquals(esgotada.category, "Anel")
+  assertEquals(
+    buildCatalogLink({ categoria: esgotada.category, peca: "", utmSource: "instagram" }),
+    "/catalog?categoria=Anel&utm_source=instagram",
+  )
+
+  assertEquals(resolvePieceLink(groups, "NAO-EXISTE", inStock).kind, "missing")
+  assertEquals(readCatalogLink("?categoria=Joia").categoria, "Todos")
+  assertEquals(buildCatalogLink({ categoria: "Todos" }), "/catalog")
+})
+
+Deno.test("peças relacionadas são da mesma categoria", () => {
+  const groups = groupProductsByColor([
+    { code: "A1-O", name: "Anel um", quantity: 1, categoria: "Anel" },
+    { code: "A2-O", name: "Anel dois", quantity: 0, categoria: "Anel" },
+    { code: "A3-O", name: "Anel tres", quantity: 1, categoria: "Anel" },
+    { code: "B1-O", name: "Brinco", quantity: 1, categoria: "Brinco" },
+  ])
+  const related = relatedGroups(groups, groups[0], inStock, 4)
+  assertEquals(related.map((group) => group.base), ["A3", "A2"])
+})
+
+Deno.test("última unidade exige 1 no estoque e 3 ou mais no cadastro, e fica desligada", () => {
+  assertEquals(LAST_UNIT_BADGE_ENABLED, false)
+  assertEquals(LAST_UNIT_QUANTITY, 1)
+  assertEquals(LAST_UNIT_INITIAL_MIN, 3)
+  assertEquals(LAST_UNIT_INITIAL_FIELD, "")
+  assertEquals(lastUnitBadgeMatches(1, 3), true)
+  assertEquals(lastUnitBadgeMatches(1, 8), true)
+  assertEquals(lastUnitBadgeMatches(1, 2), false)
+  assertEquals(lastUnitBadgeMatches(2, 5), false)
+  assertEquals(lastUnitBadgeMatches(0, 5), false)
+  assertEquals(lastUnitBadgeMatches(1, null), false)
+  assertEquals(showLastUnitBadge({ quantity: 1, quantidade_inicial: 5 }), false)
+})
+
+Deno.test("novo dura 30 dias depois do created_at", () => {
+  assertEquals(NEW_DAYS, 30)
+  const now = Date.parse("2026-10-09T12:00:00.000Z")
+  const day = 24 * 60 * 60 * 1000
+  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day).toISOString() }, now), true)
+  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day - 1).toISOString() }, now), false)
+  assertEquals(showNewBadge({ created_at: "2026-10-08T00:00:00.000Z" }, now), true)
+  assertEquals(showNewBadge({ created_at: "" }, now), false)
+})
+
+Deno.test("cuidados vêm de uma constante e o aço ganha a linha extra", () => {
+  assertEquals(
+    PIECE_CARE.general,
+    "Pra sua peça durar mais: tire antes do banho, da piscina, do mar e de academia. Passe perfume, creme e maquiagem antes de colocar. Guarde separada das outras peças, num saquinho ou caixinha, longe da umidade. Pra limpar, use só um pano macio e seco.",
+  )
+  assertEquals(
+    PIECE_CARE.steel,
+    "O aço é mais resistente à água, mas os cuidados acima mantêm o brilho por mais tempo.",
+  )
+  assertEquals(pieceCareText({ code: "BM1-O" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1-R" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1786" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1-A" }), `${PIECE_CARE.general}\n${PIECE_CARE.steel}`)
+  assertEquals(pieceCareText({ code: "BM1-AD" }), `${PIECE_CARE.general}\n${PIECE_CARE.steel}`)
+})
+
+Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () => {
+  const groups = groupProductsByColor([
+    { code: "A-O", name: "Anel", quantity: 1 },
+    { code: "B-O", name: "Brinco ouro", quantity: 1 },
+    { code: "B-A", name: "Brinco aço", quantity: 1 },
+    { code: "C-O", name: "Colar", quantity: 1 },
+  ])
+  const totals = totalsByProductCode([
+    { code: "b-o", total_vendido: 2 },
+    { code: "B-A", total_vendido: 5, total_sold: 100 },
+    { code: "A-O", total_vendido: 3 },
+    { code: "sem-total" },
+    { code: "", total_vendido: 9 },
+  ])
+  assertEquals(sortGroupsByBestsellers(groups, totals).map((group) => group.base), ["B", "A", "C"])
+
+  const byBase = totalsByProductCode([{ code: "C", total_vendido: 9 }])
+  assertEquals(sortGroupsByBestsellers(groups, byBase).map((group) => group.base), ["C", "A", "B"])
+
+  const tied = groupProductsByColor([
+    { code: "X-O", name: "X ouro", quantity: 1, created_at: "2026-01-01T00:00:00.000Z" },
+    { code: "X-R", name: "X ródio", quantity: 1, created_at: "2026-12-01T00:00:00.000Z" },
+    { code: "Y-O", name: "Y", quantity: 1, created_at: "2026-06-01T00:00:00.000Z" },
+  ])
+  const tiedTotals = totalsByProductCode([
+    { code: "X-O", total_vendido: 1 },
+    { code: "X-R", total_vendido: 1 },
+    { code: "Y-O", total_vendido: 2 },
+  ])
+  assertEquals(sortGroupsByBestsellers(tied, tiedTotals).map((group) => group.base), ["X", "Y"])
 })

@@ -87,4 +87,12 @@ A Vercel publica o que está na `main` a partir de `public/`. Preview de pull re
 
 ## O que o catálogo já faz
 
-Está resumido no `CHANGELOG.md`. A etapa seguinte do catálogo (filtros na gaveta, preço no Pix, página da peça) entra em `[Unreleased]` quando for para o ar.
+Está resumido no `CHANGELOG.md`, na seção `[Unreleased]`.
+
+Nesta etapa o visitante vê fotos maiores, desliza para a segunda foto, filtra por categoria, preço, cor e disponibilidade (no celular, dentro de uma gaveta) e ordena por menor preço, maior preço ou novidades. O preço promocional aparece como de/por com o percentual, e o Pix é 5% sobre o preço já final, também na cesta fixa. A página da peça tem galeria, cores e peças da mesma categoria. Os links `?categoria=` e `?peca=` abrem direto no catálogo e guardam `utm_source`.
+
+A página da peça mostra o texto de cuidados aprovado. Peças de aço e aço dourado ganham uma linha a mais. A redação fica na constante `PIECE_CARE`.
+
+O selo "Novo" aparece até 30 dias depois do cadastro (`NEW_DAYS`). O selo "Última unidade" só valeria para estoque exatamente 1, desde que o cadastro tivesse 3 ou mais. Essa quantidade inicial não existe na view pública, então a flag `LAST_UNIT_BADGE_ENABLED` deixa o selo desligado.
+
+"Mais vendidas" está desligada pela flag `BESTSELLERS_ENABLED`. Quando ligada, lê a view `product_sales_counts` (`code` com a cor e `total_vendido`), soma as cores de cada cartão e, no empate, mostra primeiro o `created_at` mais recente. Se a view não existir, o catálogo continua normal.

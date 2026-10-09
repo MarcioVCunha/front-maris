@@ -42,8 +42,12 @@
         <p class="cart-help">Confira os itens e ajuste as quantidades antes de enviar.</p>
         <div id="cart-lines" class="cart-lines"></div>
         <div class="cart-summary">
-          <span>Total estimado</span>
+          <span>Total</span>
           <strong id="cart-total">R$ 0,00</strong>
+        </div>
+        <div class="cart-summary">
+          <span>Total no Pix</span>
+          <strong id="cart-pix">R$ 0,00</strong>
         </div>
       </section>
 
@@ -84,8 +88,19 @@
       </div>
     </main>
 
-    <script src="/paginas/catalogo/catalogo-carrinho.js"></script>
-    <script src="/paginas/catalogo/carrinho.js"></script>
+    <aside id="cart-bar" class="cart-bar" aria-label="Cesta">
+      <a id="cart-bar-link" href="/catalog/carrinho">
+        <span id="cart-bar-count">Cesta vazia</span>
+        <span class="cart-bar-prices">
+          <strong id="cart-bar-total">R$ 0,00</strong>
+          <span id="cart-bar-pix">R$ 0,00 no Pix</span>
+        </span>
+      </a>
+    </aside>
+
+    <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
+    <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>
+    <script defer src="/paginas/catalogo/carrinho.js"></script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
