@@ -11,10 +11,11 @@ window.MarisApi = {
    * @param {object} [options.body] Corpo JSON (define Content-Type automaticamente).
    * @param {"none"|"anon"|"staff"} [options.auth] Convenção de cabeçalho de auth.
    * @param {object} [options.headers] Cabeçalhos extras.
+   * @param {number} [options.timeoutMs] Aborta a chamada depois desse tempo. Sem valor, não há timeout.
    * @returns {Promise<{ ok: boolean, status: number, data: any }>}
    */
   async callFunction(url, options = {}) {
-    const { method, body, auth = "none", headers = {} } = options
+    const { method, body, auth = "none", headers = {}, timeoutMs } = options
     const finalHeaders = { ...headers }
     const hasBody = body !== undefined && body !== null
     const finalMethod = method || (hasBody ? "POST" : "GET")
@@ -26,9 +27,13 @@ window.MarisApi = {
       Object.assign(finalHeaders, window.MarisStaffAuth?.authHeaders?.() || {})
     }
 
+    const timeout = Number(timeoutMs)
+    const signal = Number.isFinite(timeout) && timeout > 0 ? AbortSignal.timeout(timeout) : undefined
+
     const res = await fetch(url, {
       method: finalMethod,
       headers: finalHeaders,
+      ...(signal ? { signal } : {}),
       ...(hasBody ? { body: JSON.stringify(body) } : {})
     })
 

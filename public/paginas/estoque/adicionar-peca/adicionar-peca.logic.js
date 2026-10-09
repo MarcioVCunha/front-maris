@@ -1,3 +1,7 @@
+import { formatImageFailuresWarning } from "../../../compartilhado/image-failures.js"
+
+export { formatImageFailuresWarning }
+
 export function parseImageUrlLines(raw) {
   return String(raw || "")
     .split(/\r?\n|,/)
@@ -87,5 +91,6 @@ if (typeof globalThis.window !== "undefined") {
     validateAddProductPayload,
     formatAddProductSuccessMessage,
     formatAddProductErrorMessage,
+    formatImageFailuresWarning,
   }
 }
