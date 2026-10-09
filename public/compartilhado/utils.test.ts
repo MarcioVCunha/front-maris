@@ -27,6 +27,11 @@ Deno.test("effectivePrice aplica desconto só com promoção ativa e percentual 
   assertEquals(U.effectivePrice({ unit_price: 100, is_on_sale: false, discount_percent: 10 }), 100)
   assertEquals(U.effectivePrice({ unit_price: 100, is_on_sale: true, discount_percent: 0 }), 100)
   assertEquals(U.effectivePrice(null), 0)
+  const broken = { unit_price: 39.8, is_on_sale: true, discount_percent: 12.5 }
+  assertEquals(U.effectivePrice(broken), 34.82)
+  assertEquals(U.effectivePrice({ ...broken, preco_efetivo: 34.83 }), 34.83)
+  assertEquals(U.effectivePrice({ ...broken, preco_efetivo: null }), 34.82)
+  assertEquals(U.EFFECTIVE_PRICE_FIELD, "preco_efetivo")
 })
 
 Deno.test("hasPromo true só quando is_on_sale e desconto > 0", () => {

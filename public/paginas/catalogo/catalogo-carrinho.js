@@ -75,6 +75,7 @@
   }
 
   function lockedUnitPrice({ productCode = null, componentId = null }) {
+    // preco_efetivo, quando a view traz, entra por effectivePrice. Senão, o cálculo local.
     const effectivePrice = window.MarisUtils.effectivePrice
     if (componentId) return effectivePrice(componentsById[componentId])
     return effectivePrice(productsByCode[productCode])

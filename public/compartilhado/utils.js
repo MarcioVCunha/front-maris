@@ -42,9 +42,21 @@ window.MarisUtils = {
     return Math.round(value * 100) / 100
   },
 
+  // Mesmo nome de MarisCatalogLogic.EFFECTIVE_PRICE_FIELD. A view ainda pode não ter a coluna.
+  EFFECTIVE_PRICE_FIELD: "preco_efetivo",
+
+  priceFromColumn(row, field) {
+    const name = String(field || "").trim()
+    if (!name || !row || row[name] == null || row[name] === "") return null
+    const value = Number(row[name])
+    if (!Number.isFinite(value) || value < 0) return null
+    return value
+  },
+
   // Preço final considerando promoção. Aplica desconto somente quando
   // is_on_sale = true E discount_percent > 0; caso contrário, preço cheio.
   // Componente com parent_unit_price + price_percent: um único round (igual à view).
+  // products_public.preco_efetivo, quando vem preenchido, substitui essa conta.
   effectivePrice(row) {
     const parent = Number(row?.parent_unit_price)
     const pricePercent = Number(row?.price_percent)
@@ -53,6 +65,8 @@ window.MarisUtils = {
       const factor = disc > 0 ? 1 - disc / 100 : 1
       return window.MarisUtils.roundMoney((parent * pricePercent) / 100 * factor)
     }
+    const fromBank = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
+    if (fromBank != null) return fromBank
     const base = Number(row?.unit_price) || 0
     const pct = row?.is_on_sale ? Number(row?.discount_percent) || 0 : 0
     if (pct <= 0) return base
