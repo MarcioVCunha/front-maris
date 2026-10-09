@@ -22,7 +22,8 @@ const {
   showLowStockBadge,
   showNewBadge,
   pieceCareText,
-  BESTSELLERS_ENABLED,
+  totalsByProductCode,
+  sortGroupsByBestsellers,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
@@ -78,6 +79,8 @@ let minPrice = null
 let maxPrice = null
 let onlyAvailable = false
 let onSaleOnly = false
+let bestsellerTotals = null
+let bestsellerSort = false
 let pieceGroupKey = ""
 let ignoreNextCardClick = false
 let linkUtm = { utmSource: "", utmMedium: "", utmCampaign: "" }
@@ -550,7 +553,7 @@ function openPiecePage(group) {
   const description = productDescriptionText(product)
   pieceDescription.hidden = !description
   pieceDescription.textContent = description
-  const care = pieceCareText()
+  const care = pieceCareText(product)
   pieceCare.hidden = !care
   pieceCareTextEl.textContent = care
   pieceActions.innerHTML = renderPieceActions(product, components, soldOut)
@@ -618,8 +621,11 @@ function renderCatalogGrids() {
 
   const filters = activeFilters()
   const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
-  const availFiltered = sortGroupsForCatalog(partitioned.available, sortMode, isCatalogProductAvailable, filters)
-  const unavailFiltered = sortGroupsForCatalog(partitioned.soldOut, sortMode, isCatalogProductAvailable, filters)
+  const sortList = (groups) => bestsellerSort && bestsellerTotals
+    ? sortGroupsByBestsellers(groups, bestsellerTotals)
+    : sortGroupsForCatalog(groups, sortMode, isCatalogProductAvailable, filters)
+  const availFiltered = sortList(partitioned.available)
+  const unavailFiltered = sortList(partitioned.soldOut)
   if (pieceGroupKey && piecePage && !piecePage.hidden) {
     catalogEl.hidden = true
     unavailableProductsSection.hidden = true
@@ -716,7 +722,27 @@ async function loadCatalogData() {
       console.warn("Falha ao inicializar carrinho sem bloquear catalogo", error)
     }
   }
+  await loadBestsellerTotals()
   applyCatalogLink()
+}
+
+async function loadBestsellerTotals() {
+  bestsellerTotals = null
+  bestsellerSort = false
+  const button = collectionsEl?.querySelector("[data-collection='mais-vendidas']")
+  if (button) button.disabled = true
+  const relation = String(window.MarisCatalogRead?.BESTSELLERS_RELATION || "").trim()
+  if (!relation) return
+  try {
+    const query = window.MarisCatalogRead.selectBestsellers(supabaseClient)
+    if (!query) return
+    const { data, error } = await query
+    if (error || !Array.isArray(data)) return
+    bestsellerTotals = totalsByProductCode(data)
+    if (button) button.disabled = false
+  } catch (error) {
+    console.warn("Mais vendidas indisponível", error)
+  }
 }
 
 function handleProductClick(target) {
@@ -942,15 +968,25 @@ collectionsEl?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-collection]")
   if (!button || button.disabled) return
   const kind = button.getAttribute("data-collection")
-  if (kind === "mais-vendidas" || !BESTSELLERS_ENABLED && kind === "mais-vendidas") return
+  if (kind === "mais-vendidas") {
+    if (!bestsellerTotals) return
+    bestsellerSort = !bestsellerSort
+    onSaleOnly = false
+  }
   if (kind === "novidades" && catalogSortSelect) {
     catalogSortSelect.value = "created_desc"
     onSaleOnly = false
+    bestsellerSort = false
   }
-  if (kind === "promocoes") onSaleOnly = !onSaleOnly
+  if (kind === "promocoes") {
+    onSaleOnly = !onSaleOnly
+    bestsellerSort = false
+  }
   collectionsEl.querySelectorAll("[data-collection]").forEach((el) => {
     const name = el.getAttribute("data-collection")
-    const selected = (name === "promocoes" && onSaleOnly) || (name === "novidades" && !onSaleOnly && catalogSortSelect?.value === "created_desc")
+    const selected = (name === "promocoes" && onSaleOnly)
+      || (name === "novidades" && !onSaleOnly && !bestsellerSort && catalogSortSelect?.value === "created_desc")
+      || (name === "mais-vendidas" && bestsellerSort)
     el.classList.toggle("is-selected", selected)
     el.setAttribute("aria-pressed", selected ? "true" : "false")
   })

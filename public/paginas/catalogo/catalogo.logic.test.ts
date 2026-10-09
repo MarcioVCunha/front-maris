@@ -1,6 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1"
 import {
-  BESTSELLERS_ENABLED,
   buildCatalogLink,
   cartMoneyTotals,
   CATALOG_WHATSAPP_MESSAGE,
@@ -14,6 +13,7 @@ import {
   parsePriceBound,
   parseProductColor,
   partitionCatalogGroups,
+  PIECE_CARE,
   pieceCareText,
   pixPrice,
   productCategory,
@@ -26,7 +26,9 @@ import {
   selectVariantByCode,
   showLowStockBadge,
   showNewBadge,
+  sortGroupsByBestsellers,
   sortGroupsForCatalog,
+  totalsByProductCode,
   sortProductsForCatalog,
   STORE_WHATSAPP_NUMBER,
   visibleCategories,
@@ -394,6 +396,40 @@ Deno.test("peças relacionadas são da mesma categoria e os encaixes sem decisã
   assertEquals(related.map((group) => group.base), ["A3", "A2"])
   assertEquals(showLowStockBadge({ quantity: 1 }), false)
   assertEquals(showNewBadge({ created_at: "2026-10-08T00:00:00.000Z" }, Date.parse("2026-10-09T00:00:00.000Z")), false)
-  assertEquals(pieceCareText(), "")
-  assertEquals(BESTSELLERS_ENABLED, false)
+})
+
+Deno.test("cuidados vêm de uma constante e o aço ganha a linha extra", () => {
+  assertEquals(
+    PIECE_CARE.general,
+    "Pra sua peça durar mais: tire antes do banho, da piscina, do mar e de academia. Passe perfume, creme e maquiagem antes de colocar. Guarde separada das outras peças, num saquinho ou caixinha, longe da umidade. Pra limpar, use só um pano macio e seco.",
+  )
+  assertEquals(
+    PIECE_CARE.steel,
+    "O aço é mais resistente à água, mas os cuidados acima mantêm o brilho por mais tempo.",
+  )
+  assertEquals(pieceCareText({ code: "BM1-O" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1-R" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1786" }), PIECE_CARE.general)
+  assertEquals(pieceCareText({ code: "BM1-A" }), `${PIECE_CARE.general}\n${PIECE_CARE.steel}`)
+  assertEquals(pieceCareText({ code: "BM1-AD" }), `${PIECE_CARE.general}\n${PIECE_CARE.steel}`)
+})
+
+Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () => {
+  const groups = groupProductsByColor([
+    { code: "A-O", name: "Anel", quantity: 1 },
+    { code: "B-O", name: "Brinco ouro", quantity: 1 },
+    { code: "B-A", name: "Brinco aço", quantity: 1 },
+    { code: "C-O", name: "Colar", quantity: 1 },
+  ])
+  const totals = totalsByProductCode([
+    { code: "b-o", total_sold: 2 },
+    { code: "B-A", total_sold: 5 },
+    { code: "A-O", total_sold: 3 },
+    { code: "sem-total" },
+    { code: "", total_sold: 9 },
+  ])
+  assertEquals(sortGroupsByBestsellers(groups, totals).map((group) => group.base), ["B", "A", "C"])
+
+  const byBase = totalsByProductCode([{ code: "C", total_sold: 9 }])
+  assertEquals(sortGroupsByBestsellers(groups, byBase).map((group) => group.base), ["C", "A", "B"])
 })

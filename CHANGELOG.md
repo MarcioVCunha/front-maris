@@ -10,7 +10,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Filtros de categoria, preço, cor (dourado, ródio, aço e aço dourado) e só disponíveis. No celular ficam numa gaveta.
 - Ordenação por menor preço, maior preço e novidades.
 - Preço de/por com percentual de desconto e preço no Pix (5% sobre o valor já final) no cartão, na peça e na cesta.
-- Página da peça com galeria, cores, preços e peças da mesma categoria.
+- Página da peça com galeria, cores, preços, peças da mesma categoria e o texto proposto de cuidados. No aço, entra uma linha a mais. A redação fica numa constante, à espera do PO.
+- Coleção "Mais vendidas" preparada para uma view pública com o código da peça e o total vendido. Continua desligada enquanto essa view não existe.
 - Cesta fixa com total e total no Pix.
 - Links `?categoria=` e `?peca=` que abrem a cor disponível, caem na categoria se a peça estiver esgotada e preservam `utm_source`.
 

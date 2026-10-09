@@ -201,11 +201,15 @@ export function cartMoneyTotals(lines) {
   return { total, pixTotal: pixPrice(total) }
 }
 
-// Limiares ainda não decididos. null/vazio desliga o recurso sem inventar número ou texto.
+// Limiares ainda não decididos. null desliga o selo sem inventar número.
 export const LOW_STOCK_BADGE_MAX = null
 export const NEW_BADGE_DAYS = null
-export const PIECE_CARE_TEXT = ""
-export const BESTSELLERS_ENABLED = false
+
+// Texto proposto, ainda à espera do PO. Se a redação mudar, só esta constante muda.
+export const PIECE_CARE = {
+  general: "Pra sua peça durar mais: tire antes do banho, da piscina, do mar e de academia. Passe perfume, creme e maquiagem antes de colocar. Guarde separada das outras peças, num saquinho ou caixinha, longe da umidade. Pra limpar, use só um pano macio e seco.",
+  steel: "O aço é mais resistente à água, mas os cuidados acima mantêm o brilho por mais tempo.",
+}
 
 export function showLowStockBadge(product) {
   if (LOW_STOCK_BADGE_MAX == null) return false
@@ -221,8 +225,52 @@ export function showNewBadge(product, now = Date.now()) {
   return age >= 0 && age <= NEW_BADGE_DAYS * 24 * 60 * 60 * 1000
 }
 
-export function pieceCareText() {
-  return String(PIECE_CARE_TEXT || "")
+function isSteelPiece(product) {
+  const suffix = parseProductColor(product?.code).suffix
+  return suffix === "A" || suffix === "AD"
+}
+
+export function pieceCareText(product) {
+  const general = String(PIECE_CARE?.general || "").trim()
+  if (!general) return ""
+  const steel = String(PIECE_CARE?.steel || "").trim()
+  if (!steel || !isSteelPiece(product)) return general
+  return `${general}\n${steel}`
+}
+
+export function totalsByProductCode(rows) {
+  const totals = new Map()
+  for (const row of rows || []) {
+    const code = String(row?.code || "").trim().toUpperCase()
+    const total = Number(row?.total_sold)
+    if (!code || !Number.isFinite(total) || total < 0) continue
+    totals.set(code, total)
+  }
+  return totals
+}
+
+export function groupSoldTotal(group, totals) {
+  if (!totals || typeof totals.has !== "function") return 0
+  const fromVariants = []
+  for (const variant of group?.variants || []) {
+    const code = String(variant?.product?.code || "").trim().toUpperCase()
+    if (!code || !totals.has(code)) continue
+    fromVariants.push(Number(totals.get(code)) || 0)
+  }
+  if (fromVariants.length) return fromVariants.reduce((sum, value) => sum + value, 0)
+  const base = String(group?.base || "").trim().toUpperCase()
+  if (base && totals.has(base)) return Number(totals.get(base)) || 0
+  return 0
+}
+
+export function sortGroupsByBestsellers(groups, totals) {
+  return [...(groups || [])].sort((a, b) => {
+    const diff = groupSoldTotal(b, totals) - groupSoldTotal(a, totals)
+    if (diff) return diff
+    const aName = String(a?.variants?.[0]?.product?.name || a?.base || "")
+    const bName = String(b?.variants?.[0]?.product?.name || b?.base || "")
+    return aName.localeCompare(bName, "pt-BR")
+  })
 }
 
 export const COLOR_FILTERS = [
@@ -395,11 +443,13 @@ if (typeof globalThis.window !== "undefined") {
     cartMoneyTotals,
     LOW_STOCK_BADGE_MAX,
     NEW_BADGE_DAYS,
-    PIECE_CARE_TEXT,
-    BESTSELLERS_ENABLED,
+    PIECE_CARE,
     showLowStockBadge,
     showNewBadge,
     pieceCareText,
+    totalsByProductCode,
+    groupSoldTotal,
+    sortGroupsByBestsellers,
     COLOR_FILTERS,
     parsePriceBound,
     displayVariantForFilters,

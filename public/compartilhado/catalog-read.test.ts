@@ -17,6 +17,9 @@ const Read = win.MarisCatalogRead as {
   selectImages: (client: FakeClient) => FakeChain
   selectActiveSellers: (client: FakeClient) => FakeChain
   selectSharedBasket: (client: FakeClient, id: string) => FakeChain
+  BESTSELLERS_RELATION: string
+  BESTSELLER_COLUMNS: string
+  selectBestsellers: (client: FakeClient) => FakeChain | null
 }
 
 type Op = [string, ...unknown[]]
@@ -61,7 +64,8 @@ Deno.test("colunas públicas não incluem custo", () => {
     Read.COMPONENT_COLUMNS,
     Read.IMAGE_COLUMNS,
     Read.SELLER_COLUMNS,
-    Read.BASKET_COLUMNS
+    Read.BASKET_COLUMNS,
+    Read.BESTSELLER_COLUMNS
   ]) {
     assertEquals(columnsOf(columns).includes("custo"), false)
     assert(!/\bcusto\b/i.test(columns))
@@ -101,4 +105,23 @@ Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
   assertEquals(baskets.relation, "shared_baskets")
   assertEquals(baskets.chain.ops[1], ["eq", "id", "abc"])
   assertEquals(baskets.chain.ops[2], ["maybeSingle"])
+})
+
+Deno.test("mais vendidas não consulta enquanto a view não existe", () => {
+  assertEquals(Read.BESTSELLERS_RELATION, "")
+  assertEquals(Read.BESTSELLER_COLUMNS, "code, total_sold")
+  const idle = new FakeClient()
+  assertEquals(Read.selectBestsellers(idle), null)
+  assertEquals(idle.relation, "")
+
+  const previous = Read.BESTSELLERS_RELATION
+  try {
+    Read.BESTSELLERS_RELATION = "product_sales_public"
+    const client = new FakeClient()
+    const chain = Read.selectBestsellers(client)
+    assertEquals(client.relation, "product_sales_public")
+    assertEquals(chain?.ops[0], ["select", "code, total_sold"])
+  } finally {
+    Read.BESTSELLERS_RELATION = previous
+  }
 })

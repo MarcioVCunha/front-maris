@@ -91,4 +91,6 @@ Está resumido no `CHANGELOG.md`, na seção `[Unreleased]`.
 
 Nesta etapa o visitante vê fotos maiores, desliza para a segunda foto, filtra por categoria, preço, cor e disponibilidade (no celular, dentro de uma gaveta) e ordena por menor preço, maior preço ou novidades. O preço promocional aparece como de/por com o percentual, e o Pix é 5% sobre o preço já final, também na cesta fixa. A página da peça tem galeria, cores e peças da mesma categoria. Os links `?categoria=` e `?peca=` abrem direto no catálogo e guardam `utm_source`.
 
-Ainda sem regra definida, e por isso desligados: os selos "Últimas unidades" e "Novo", o texto de cuidados com a peça e a coleção "Mais vendidas".
+A página da peça mostra o texto proposto de cuidados com a peça. A redação está numa constante só e ainda depende da aprovação do PO. Peças de aço e aço dourado ganham uma linha a mais.
+
+Ainda sem regra definida, e por isso desligados: os selos "Últimas unidades" e "Novo". "Mais vendidas" também fica desligada até existir a view pública com o código da peça e o total vendido. O nome dessa view entra numa constante; enquanto estiver vazio, o catálogo não consulta.

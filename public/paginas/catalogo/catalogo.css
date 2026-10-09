@@ -1112,6 +1112,10 @@ body {
   line-height: 1.5;
 }
 
+.piece-care p {
+  white-space: pre-line;
+}
+
 .piece-care h2,
 .piece-related-wrap .section-heading {
   padding-left: 0;
