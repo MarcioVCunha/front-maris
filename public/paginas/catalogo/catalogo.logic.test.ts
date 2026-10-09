@@ -13,6 +13,8 @@ import {
   parsePriceBound,
   parseProductColor,
   partitionCatalogGroups,
+  LOW_STOCK_MAX,
+  NEW_DAYS,
   PIECE_CARE,
   pieceCareText,
   pixPrice,
@@ -385,7 +387,7 @@ Deno.test("deep link abre a cor disponível, cai na categoria se esgotar e guard
   assertEquals(buildCatalogLink({ categoria: "Todos" }), "/catalog")
 })
 
-Deno.test("peças relacionadas são da mesma categoria e os encaixes sem decisão ficam desligados", () => {
+Deno.test("peças relacionadas são da mesma categoria", () => {
   const groups = groupProductsByColor([
     { code: "A1-O", name: "Anel um", quantity: 1, categoria: "Anel" },
     { code: "A2-O", name: "Anel dois", quantity: 0, categoria: "Anel" },
@@ -394,8 +396,23 @@ Deno.test("peças relacionadas são da mesma categoria e os encaixes sem decisã
   ])
   const related = relatedGroups(groups, groups[0], inStock, 4)
   assertEquals(related.map((group) => group.base), ["A3", "A2"])
-  assertEquals(showLowStockBadge({ quantity: 1 }), false)
-  assertEquals(showNewBadge({ created_at: "2026-10-08T00:00:00.000Z" }, Date.parse("2026-10-09T00:00:00.000Z")), false)
+})
+
+Deno.test("últimas unidades vai de 1 a 2 e novo dura 30 dias", () => {
+  assertEquals(LOW_STOCK_MAX, 2)
+  assertEquals(NEW_DAYS, 30)
+  assertEquals(showLowStockBadge({ quantity: 1 }), true)
+  assertEquals(showLowStockBadge({ quantity: 2 }), true)
+  assertEquals(showLowStockBadge({ quantity: 0 }), false)
+  assertEquals(showLowStockBadge({ quantity: 3 }), false)
+  assertEquals(showLowStockBadge({ quantity: null }), false)
+
+  const now = Date.parse("2026-10-09T12:00:00.000Z")
+  const day = 24 * 60 * 60 * 1000
+  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day).toISOString() }, now), true)
+  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day - 1).toISOString() }, now), false)
+  assertEquals(showNewBadge({ created_at: "2026-10-08T00:00:00.000Z" }, now), true)
+  assertEquals(showNewBadge({ created_at: "" }, now), false)
 })
 
 Deno.test("cuidados vêm de uma constante e o aço ganha a linha extra", () => {
@@ -422,14 +439,14 @@ Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () =
     { code: "C-O", name: "Colar", quantity: 1 },
   ])
   const totals = totalsByProductCode([
-    { code: "b-o", total_sold: 2 },
-    { code: "B-A", total_sold: 5 },
-    { code: "A-O", total_sold: 3 },
+    { code: "b-o", total_vendido: 2 },
+    { code: "B-A", total_vendido: 5, total_sold: 100 },
+    { code: "A-O", total_vendido: 3 },
     { code: "sem-total" },
-    { code: "", total_sold: 9 },
+    { code: "", total_vendido: 9 },
   ])
   assertEquals(sortGroupsByBestsellers(groups, totals).map((group) => group.base), ["B", "A", "C"])
 
-  const byBase = totalsByProductCode([{ code: "C", total_sold: 9 }])
+  const byBase = totalsByProductCode([{ code: "C", total_vendido: 9 }])
   assertEquals(sortGroupsByBestsellers(groups, byBase).map((group) => group.base), ["C", "A", "B"])
 })

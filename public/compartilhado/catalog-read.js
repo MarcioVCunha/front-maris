@@ -20,10 +20,10 @@ window.MarisCatalogRead = {
   SELLER_COLUMNS: "id, name",
   BASKETS_RELATION: "shared_baskets",
   BASKET_COLUMNS: "items",
-  // A view pública (código da peça e total vendido) ainda não existe.
-  // O nome vazio é o que mantém "Mais vendidas" desligada: o catálogo não consulta.
-  BESTSELLERS_RELATION: "",
-  BESTSELLER_COLUMNS: "code, total_sold",
+  // View pública ainda pode não existir. Com a flag desligada, o catálogo não consulta.
+  BESTSELLERS_ENABLED: false,
+  BESTSELLERS_RELATION: "product_sales_counts",
+  BESTSELLER_COLUMNS: "code, total_vendido",
 
   _select(client, relation, columns) {
     rejectRestrictedColumn(columns)
@@ -54,6 +54,7 @@ window.MarisCatalogRead = {
   },
 
   selectBestsellers(client) {
+    if (!this.BESTSELLERS_ENABLED) return null
     const relation = String(this.BESTSELLERS_RELATION || "").trim()
     if (!relation) return null
     return this._select(client, relation, this.BESTSELLER_COLUMNS)

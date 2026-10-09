@@ -58,6 +58,7 @@ const onlyAvailableInput = document.getElementById("filter-only-available")
 const piecePage = document.getElementById("piece-page")
 const pieceGallery = document.getElementById("piece-gallery")
 const pieceTitle = document.getElementById("piece-title")
+const pieceBadges = document.getElementById("piece-badges")
 const pieceCode = document.getElementById("piece-code")
 const pieceColors = document.getElementById("piece-colors")
 const piecePrices = document.getElementById("piece-prices")
@@ -263,11 +264,12 @@ function renderPhotoStrip(urls, alt) {
   return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}</div>`
 }
 
-function renderNoteBadges(product) {
+function renderNoteBadges(product, soldOut) {
   const notes = []
-  if (showLowStockBadge(product)) notes.push("Últimas unidades")
+  if (!soldOut && showLowStockBadge(product)) notes.push("Últimas unidades")
   if (showNewBadge(product)) notes.push("Novo")
-  return notes.map((label) => `<span class="product-note-badge">${label}</span>`).join("")
+  if (!notes.length) return ""
+  return `<div class="product-notes">${notes.map((label) => `<span class="product-note-badge">${label}</span>`).join("")}</div>`
 }
 
 function productDescriptionText(product) {
@@ -331,7 +333,7 @@ function renderCatalogGroup(group) {
   return `
     <article class="product ${soldOut ? "sold-out" : ""}" data-group-key="${escapeHtml(group.key)}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
       ${saleBadge}
-      ${renderNoteBadges(product)}
+      ${renderNoteBadges(product, soldOut)}
       ${renderPhotoStrip(imageUrls, product.name || "Peça")}
       <div class="product-body">
         <h3>${escapeHtml(product.name)}</h3>
@@ -543,6 +545,7 @@ function openPiecePage(group) {
     ? urls.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(product.name || "Peça")}">`).join("")
     : ""
   pieceTitle.textContent = product.name || "Peça"
+  if (pieceBadges) pieceBadges.innerHTML = renderNoteBadges(product, soldOut)
   pieceCode.textContent = product.code || ""
   pieceColors.innerHTML = renderColorOptions(group, product.code)
   piecePrices.innerHTML = components.length
@@ -731,10 +734,12 @@ async function loadBestsellerTotals() {
   bestsellerSort = false
   const button = collectionsEl?.querySelector("[data-collection='mais-vendidas']")
   if (button) button.disabled = true
-  const relation = String(window.MarisCatalogRead?.BESTSELLERS_RELATION || "").trim()
+  const read = window.MarisCatalogRead
+  if (!read?.BESTSELLERS_ENABLED) return
+  const relation = String(read.BESTSELLERS_RELATION || "").trim()
   if (!relation) return
   try {
-    const query = window.MarisCatalogRead.selectBestsellers(supabaseClient)
+    const query = read.selectBestsellers(supabaseClient)
     if (!query) return
     const { data, error } = await query
     if (error || !Array.isArray(data)) return

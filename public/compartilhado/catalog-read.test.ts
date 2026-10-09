@@ -17,6 +17,7 @@ const Read = win.MarisCatalogRead as {
   selectImages: (client: FakeClient) => FakeChain
   selectActiveSellers: (client: FakeClient) => FakeChain
   selectSharedBasket: (client: FakeClient, id: string) => FakeChain
+  BESTSELLERS_ENABLED: boolean
   BESTSELLERS_RELATION: string
   BESTSELLER_COLUMNS: string
   selectBestsellers: (client: FakeClient) => FakeChain | null
@@ -107,21 +108,22 @@ Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
   assertEquals(baskets.chain.ops[2], ["maybeSingle"])
 })
 
-Deno.test("mais vendidas não consulta enquanto a view não existe", () => {
-  assertEquals(Read.BESTSELLERS_RELATION, "")
-  assertEquals(Read.BESTSELLER_COLUMNS, "code, total_sold")
+Deno.test("mais vendidas fica desligada e não consulta a view", () => {
+  assertEquals(Read.BESTSELLERS_ENABLED, false)
+  assertEquals(Read.BESTSELLERS_RELATION, "product_sales_counts")
+  assertEquals(Read.BESTSELLER_COLUMNS, "code, total_vendido")
   const idle = new FakeClient()
   assertEquals(Read.selectBestsellers(idle), null)
   assertEquals(idle.relation, "")
 
-  const previous = Read.BESTSELLERS_RELATION
+  const previous = Read.BESTSELLERS_ENABLED
   try {
-    Read.BESTSELLERS_RELATION = "product_sales_public"
+    Read.BESTSELLERS_ENABLED = true
     const client = new FakeClient()
     const chain = Read.selectBestsellers(client)
-    assertEquals(client.relation, "product_sales_public")
-    assertEquals(chain?.ops[0], ["select", "code, total_sold"])
+    assertEquals(client.relation, "product_sales_counts")
+    assertEquals(chain?.ops[0], ["select", "code, total_vendido"])
   } finally {
-    Read.BESTSELLERS_RELATION = previous
+    Read.BESTSELLERS_ENABLED = previous
   }
 })

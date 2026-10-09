@@ -201,28 +201,27 @@ export function cartMoneyTotals(lines) {
   return { total, pixTotal: pixPrice(total) }
 }
 
-// Limiares ainda não decididos. null desliga o selo sem inventar número.
-export const LOW_STOCK_BADGE_MAX = null
-export const NEW_BADGE_DAYS = null
+export const LOW_STOCK_MAX = 2
+export const NEW_DAYS = 30
 
-// Texto proposto, ainda à espera do PO. Se a redação mudar, só esta constante muda.
+// Texto aprovado pelo PO. Se a redação mudar, só esta constante muda.
 export const PIECE_CARE = {
   general: "Pra sua peça durar mais: tire antes do banho, da piscina, do mar e de academia. Passe perfume, creme e maquiagem antes de colocar. Guarde separada das outras peças, num saquinho ou caixinha, longe da umidade. Pra limpar, use só um pano macio e seco.",
   steel: "O aço é mais resistente à água, mas os cuidados acima mantêm o brilho por mais tempo.",
 }
 
 export function showLowStockBadge(product) {
-  if (LOW_STOCK_BADGE_MAX == null) return false
-  const quantity = Number(product?.quantity) || 0
-  return quantity > 0 && quantity <= LOW_STOCK_BADGE_MAX
+  const quantity = Number(product?.quantity)
+  if (!Number.isInteger(quantity)) return false
+  return quantity >= 1 && quantity <= LOW_STOCK_MAX
 }
 
 export function showNewBadge(product, now = Date.now()) {
-  if (NEW_BADGE_DAYS == null) return false
   const created = Date.parse(String(product?.created_at || ""))
   if (!Number.isFinite(created)) return false
   const age = now - created
-  return age >= 0 && age <= NEW_BADGE_DAYS * 24 * 60 * 60 * 1000
+  const windowMs = NEW_DAYS * 24 * 60 * 60 * 1000
+  return age >= 0 && age <= windowMs
 }
 
 function isSteelPiece(product) {
@@ -242,7 +241,7 @@ export function totalsByProductCode(rows) {
   const totals = new Map()
   for (const row of rows || []) {
     const code = String(row?.code || "").trim().toUpperCase()
-    const total = Number(row?.total_sold)
+    const total = Number(row?.total_vendido)
     if (!code || !Number.isFinite(total) || total < 0) continue
     totals.set(code, total)
   }
@@ -441,8 +440,8 @@ if (typeof globalThis.window !== "undefined") {
     pixPrice,
     offerFromProduct,
     cartMoneyTotals,
-    LOW_STOCK_BADGE_MAX,
-    NEW_BADGE_DAYS,
+    LOW_STOCK_MAX,
+    NEW_DAYS,
     PIECE_CARE,
     showLowStockBadge,
     showNewBadge,
