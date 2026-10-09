@@ -4,6 +4,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-09
+
 ### Adicionado
 
 - Fotos maiores no cartão, com fundo único, e segunda foto ao deslizar.
@@ -30,4 +32,5 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - A importação espera o processamento das fotos e avisa que pode levar até 2 minutos.
 - Testes em Deno e build de verificação em todo pull request e na `main`.
 
+[1.1.0]: https://github.com/MarcioVCunha/front-maris/commit/690694e
 [1.0.0]: https://github.com/MarcioVCunha/front-maris/commit/ffa162d
