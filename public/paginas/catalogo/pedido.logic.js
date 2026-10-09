@@ -123,8 +123,22 @@ export function reservationText(reservedUntil) {
   return `Sua peça fica reservada até ${formatted}`
 }
 
+function positiveComponentId(value) {
+  const componentId = Number(value)
+  return Number.isInteger(componentId) && componentId > 0 ? componentId : null
+}
+
+function stockIssueLabel(issue) {
+  const name = String(issue?.name || issue?.product_name || "").trim()
+  const code = String(issue?.code || issue?.product_code || "").trim()
+  if (positiveComponentId(issue?.component_id) && name && code && name !== code) {
+    return `${name} (${code})`
+  }
+  return name || code || "Peça"
+}
+
 export function stockIssueText(issue) {
-  const name = String(issue?.name || issue?.product_name || issue?.code || issue?.product_code || "Peça")
+  const name = stockIssueLabel(issue)
   const available = Number(issue?.available)
   const availableLabel = Number.isFinite(available) ? String(available) : "0"
   if (issue?.reason === "insufficient") {
@@ -137,21 +151,29 @@ export function stockIssueText(issue) {
 }
 
 export function cartKeysForStockIssues(lines, issues) {
-  const wanted = new Set()
+  const productCodes = new Set()
+  const componentIds = new Set()
   for (const issue of issues || []) {
+    const componentId = positiveComponentId(issue?.component_id)
+    if (componentId) {
+      componentIds.add(componentId)
+      continue
+    }
     const code = String(issue?.code || issue?.product_code || "").trim()
-    if (code) wanted.add(code)
-    const componentId = Number(issue?.component_id)
-    if (Number.isInteger(componentId) && componentId > 0) wanted.add(`COMP-${componentId}`)
+    if (code) productCodes.add(code)
   }
   const keys = []
   for (const line of lines || []) {
-    const key = line?.key || (line?.component_id ? `c-${line.component_id}` : `p-${line.product_code}`)
+    const lineComponentId = positiveComponentId(line?.component_id)
+    const key = String(line?.key || (lineComponentId ? `c-${lineComponentId}` : `p-${line.product_code}`))
+    if (lineComponentId && componentIds.has(lineComponentId)) {
+      keys.push(key)
+      continue
+    }
     const codes = []
-    if (line?.product_code) codes.push(String(line.product_code))
-    if (line?.code) codes.push(String(line.code))
-    if (line?.component_id) codes.push(`COMP-${line.component_id}`)
-    if (codes.some((code) => wanted.has(code))) keys.push(String(key))
+    if (line?.product_code) codes.push(String(line.product_code).trim())
+    if (line?.code) codes.push(String(line.code).trim())
+    if (codes.some((code) => productCodes.has(code))) keys.push(key)
   }
   return [...new Set(keys)]
 }

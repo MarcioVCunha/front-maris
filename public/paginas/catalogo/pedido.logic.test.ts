@@ -201,11 +201,74 @@ Deno.test("peça esgotada vem no 409 e sai da cesta", async () => {
   assertEquals(result.stockIssues[1].reason, "insufficient")
   assertEquals(stockIssueText(result.stockIssues[0]), "Anel Ajustável Aro Triplo no Ouro acabou de esgotar. Disponível: 0.")
   assertEquals(stockIssueText(result.stockIssues[1]), "Anel Liso Vazado Ajustável não tem essa quantidade. Disponível: 1.")
+  assertEquals("component_id" in result.stockIssues[0], false)
+  assertEquals("component_id" in result.stockIssues[1], false)
   assertEquals(cartKeysForStockIssues([
     { key: "p-AN223-O", product_code: "AN223-O" },
     { key: "p-AN519-O", product_code: "AN519-O" },
     { key: "c-13", component_id: 13, code: "PG-OUTRO" }
   ], result.stockIssues), ["p-AN223-O", "p-AN519-O"])
+})
+
+// HTTP 409 real de peça composta. Cada issue traz component_id.
+const COMPONENT_STOCK_OUT = {
+  ok: false,
+  error: "Algumas peças esgotaram.",
+  stock_issues: [
+    {
+      code: "CJ099-O",
+      name: "Brinco",
+      available: 0,
+      reason: "out_of_stock",
+      product_code: "CJ099-O",
+      product_name: "Brinco",
+      requested: 1,
+      component_id: 5
+    },
+    {
+      code: "PG072-O",
+      name: "Cruz Esmeralda",
+      available: 1,
+      reason: "insufficient",
+      product_code: "PG072-O",
+      product_name: "Cruz Esmeralda",
+      requested: 2,
+      component_id: 13
+    },
+    {
+      code: "COMP-999999",
+      name: "COMP-999999",
+      available: 0,
+      reason: "out_of_stock",
+      product_code: "COMP-999999",
+      product_name: "COMP-999999",
+      requested: 1,
+      component_id: 999999
+    }
+  ]
+}
+
+Deno.test("componente esgotado cita a peça e sai só essa linha da cesta", () => {
+  const result = interpretCreateOrderResponse({
+    ok: false,
+    status: 409,
+    data: COMPONENT_STOCK_OUT
+  })
+  assertEquals(result.kind, "stock")
+  if (result.kind !== "stock") return
+  assertEquals(result.error, "Algumas peças esgotaram.")
+  assertEquals(result.stockIssues.map((issue) => issue.component_id), [5, 13, 999999])
+  assertEquals(stockIssueText(result.stockIssues[0]), "Brinco (CJ099-O) acabou de esgotar. Disponível: 0.")
+  assertEquals(stockIssueText(result.stockIssues[1]), "Cruz Esmeralda (PG072-O) não tem essa quantidade. Disponível: 1.")
+  assertEquals(stockIssueText(result.stockIssues[2]), "COMP-999999 acabou de esgotar. Disponível: 0.")
+  assertEquals(cartKeysForStockIssues([
+    { key: "p-CJ099-O", product_code: "CJ099-O", code: "CJ099-O" },
+    { key: "c-5", component_id: 5, code: "CJ099-O" },
+    { key: "p-PG072-O", product_code: "PG072-O", code: "PG072-O" },
+    { key: "c-13", component_id: 13, code: "PG072-O" },
+    { key: "c-999999", component_id: 999999, code: "COMP-999999" },
+    { key: "p-AN419-O", product_code: "AN419-O", code: "AN419-O" }
+  ], result.stockIssues), ["c-5", "c-13", "c-999999"])
 })
 
 Deno.test("nome, WhatsApp e cesta vazia não disparam a chamada", async () => {
