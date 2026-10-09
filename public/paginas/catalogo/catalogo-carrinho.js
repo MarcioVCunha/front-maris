@@ -37,7 +37,17 @@
     const count = cartItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
     if (cartCountEl) cartCountEl.textContent = String(count)
     if (headerCartBtn) headerCartBtn.hidden = false
-    window.dispatchEvent(new CustomEvent("maris-cart-updated", { detail: { count } }))
+    const totals = window.MarisCatalogLogic?.cartMoneyTotals
+      ? window.MarisCatalogLogic.cartMoneyTotals(cartItems)
+      : { total: 0, pixTotal: 0 }
+    const format = window.MarisUtils?.formatMoneyBRL
+    const countEl = document.getElementById("cart-bar-count")
+    const totalEl = document.getElementById("cart-bar-total")
+    const pixEl = document.getElementById("cart-bar-pix")
+    if (countEl) countEl.textContent = count === 1 ? "1 item" : count ? `${count} itens` : "Cesta vazia"
+    if (totalEl && format) totalEl.textContent = format(totals.total)
+    if (pixEl && format) pixEl.textContent = `${format(totals.pixTotal)} no Pix`
+    window.dispatchEvent(new CustomEvent("maris-cart-updated", { detail: { count, total: totals.total, pixTotal: totals.pixTotal } }))
   }
 
   function saveCart() {

@@ -87,4 +87,8 @@ A Vercel publica o que está na `main` a partir de `public/`. Preview de pull re
 
 ## O que o catálogo já faz
 
-Está resumido no `CHANGELOG.md`. A etapa seguinte do catálogo (filtros na gaveta, preço no Pix, página da peça) entra em `[Unreleased]` quando for para o ar.
+Está resumido no `CHANGELOG.md`, na seção `[Unreleased]`.
+
+Nesta etapa o visitante vê fotos maiores, desliza para a segunda foto, filtra por categoria, preço, cor e disponibilidade (no celular, dentro de uma gaveta) e ordena por menor preço, maior preço ou novidades. O preço promocional aparece como de/por com o percentual, e o Pix é 5% sobre o preço já final, também na cesta fixa. A página da peça tem galeria, cores e peças da mesma categoria. Os links `?categoria=` e `?peca=` abrem direto no catálogo e guardam `utm_source`.
+
+Ainda sem regra definida, e por isso desligados: os selos "Últimas unidades" e "Novo", o texto de cuidados com a peça e a coleção "Mais vendidas".

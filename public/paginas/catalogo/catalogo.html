@@ -51,16 +51,72 @@
           <label for="catalog-sort" class="catalog-search-label">Ordenar por</label>
           <select id="catalog-sort">
             <option value="name_asc">Nome (A-Z)</option>
-            <option value="price_asc">Preço (menor primeiro)</option>
-            <option value="price_desc">Preço (maior primeiro)</option>
-            <option value="created_desc">Mais recentes</option>
+            <option value="price_asc">Menor preço</option>
+            <option value="price_desc">Maior preço</option>
+            <option value="created_desc">Novidades</option>
             <option value="created_asc">Mais antigos</option>
           </select>
         </div>
       </div>
+
+      <div class="catalog-collections" role="group" aria-label="Coleções">
+        <button type="button" class="catalog-filter" data-collection="novidades">Novidades</button>
+        <button type="button" class="catalog-filter" data-collection="promocoes">Promoções</button>
+        <button type="button" class="catalog-filter" data-collection="mais-vendidas" disabled>Mais vendidas</button>
+      </div>
+
+      <div class="catalog-filters-bar">
+        <button type="button" id="catalog-filters-open" class="catalog-filters-open">Filtros</button>
+      </div>
+
+      <div id="catalog-drawer" class="catalog-drawer">
+        <div class="catalog-drawer-backdrop" data-close-drawer="true"></div>
+        <div class="catalog-drawer-panel" role="dialog" aria-modal="false" aria-labelledby="catalog-drawer-title">
+          <div class="catalog-drawer-head">
+            <h2 id="catalog-drawer-title">Filtros</h2>
+            <button type="button" id="catalog-filters-close" class="catalog-filters-close" aria-label="Fechar">×</button>
+          </div>
+          <p class="catalog-drawer-label">Categoria</p>
+          <div id="catalog-filters" class="catalog-filters" role="group" aria-label="Categorias"></div>
+          <div class="catalog-price-filters">
+            <label for="filter-min-price">Preço mínimo
+              <input id="filter-min-price" inputmode="decimal" placeholder="0,00" autocomplete="off">
+            </label>
+            <label for="filter-max-price">Preço máximo
+              <input id="filter-max-price" inputmode="decimal" placeholder="0,00" autocomplete="off">
+            </label>
+          </div>
+          <p class="catalog-drawer-label">Cor</p>
+          <div id="catalog-color-filters" class="catalog-filters" role="group" aria-label="Cores"></div>
+          <label class="catalog-check" for="filter-only-available">
+            <input id="filter-only-available" type="checkbox">
+            Só disponíveis
+          </label>
+          <button type="button" id="catalog-filters-apply" class="catalog-filters-apply">Ver peças</button>
+        </div>
+      </div>
+
       <p id="catalog-feedback" class="catalog-feedback" hidden></p>
 
-      <div id="catalog-filters" class="catalog-filters" role="group" aria-label="Categorias"></div>
+      <section id="piece-page" class="piece-page" hidden>
+        <a id="piece-back" class="piece-back" href="/catalog">Voltar ao catálogo</a>
+        <div id="piece-gallery" class="piece-gallery"></div>
+        <h1 id="piece-title"></h1>
+        <p id="piece-code" class="piece-code"></p>
+        <div id="piece-colors" class="color-options" role="group" aria-label="Cor"></div>
+        <div id="piece-prices"></div>
+        <p id="piece-description" class="piece-description" hidden></p>
+        <section id="piece-care" class="piece-care" hidden>
+          <h2>Cuidados com a peça</h2>
+          <p id="piece-care-text"></p>
+        </section>
+        <div id="piece-actions" class="piece-actions"></div>
+        <a id="piece-whatsapp" class="product-whatsapp" target="_blank" rel="noopener">Tirar uma dúvida no WhatsApp</a>
+        <section class="piece-related-wrap">
+          <h2 class="section-heading">Peças relacionadas</h2>
+          <div id="piece-related" class="catalog"></div>
+        </section>
+      </section>
 
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog"></div>
@@ -74,6 +130,16 @@
     <footer class="site-footer">
       <a id="footer-whatsapp" target="_blank" rel="noopener">Fale com a gente</a>
     </footer>
+
+    <aside id="cart-bar" class="cart-bar" aria-label="Cesta">
+      <a id="cart-bar-link" href="/catalog/carrinho">
+        <span id="cart-bar-count">Cesta vazia</span>
+        <span class="cart-bar-prices">
+          <strong id="cart-bar-total">R$ 0,00</strong>
+          <span id="cart-bar-pix">R$ 0,00 no Pix</span>
+        </span>
+      </a>
+    </aside>
 
     <div id="product-modal" class="product-modal" hidden>
       <div class="product-modal-backdrop" data-close-modal="true"></div>
@@ -124,8 +190,8 @@
       </div>
     </div>
 
-    <script src="/paginas/catalogo/catalogo-carrinho.js"></script>
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
+    <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>
     <script defer src="/paginas/catalogo/catalogo.js"></script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

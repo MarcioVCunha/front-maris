@@ -451,8 +451,9 @@ body {
 
 .product .price.on-sale {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
 }
 
 .price-old {
@@ -858,5 +859,354 @@ body {
 @media (max-width: 340px) {
   .catalog {
     grid-template-columns: 1fr;
+  }
+}
+
+.catalog-main,
+.cart-page {
+  padding-bottom: 96px;
+}
+
+.catalog-collections,
+.catalog-filters-bar {
+  padding: 0 16px 8px;
+}
+
+.catalog-collections {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.catalog-filters-open,
+.catalog-filters-apply {
+  min-height: 44px;
+  border: 1px solid var(--maris-black);
+  border-radius: 999px;
+  background: var(--maris-black);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  cursor: pointer;
+}
+
+.catalog-filters-apply {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.catalog-drawer {
+  display: none;
+}
+
+.catalog-drawer.is-open {
+  display: block;
+}
+
+.catalog-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(67, 40, 56, 0.4);
+  z-index: 60;
+}
+
+.catalog-drawer-panel {
+  position: fixed;
+  z-index: 61;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 88vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px 28px;
+}
+
+.catalog-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.catalog-drawer-head h2,
+.catalog-drawer-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--maris-text-muted);
+}
+
+.catalog-drawer-head h2 {
+  font-family: var(--maris-font-display);
+  font-size: 1.4rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--maris-black);
+}
+
+.catalog-filters-close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.catalog-drawer .catalog-filters {
+  padding: 8px 0 12px;
+}
+
+.catalog-price-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.catalog-price-filters label,
+.catalog-check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--maris-text);
+}
+
+.catalog-price-filters input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--maris-border);
+  border-radius: var(--maris-radius);
+  font: inherit;
+}
+
+.catalog-check {
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+  gap: 10px;
+}
+
+.product-media {
+  position: relative;
+  background: #f4efe9;
+}
+
+.product-photos {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  background: #f4efe9;
+  aspect-ratio: 1 / 1;
+  scrollbar-width: none;
+}
+
+.product-photos::-webkit-scrollbar {
+  display: none;
+}
+
+.product-photos img,
+.product-photos-empty {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  scroll-snap-align: start;
+  background: #f4efe9;
+  aspect-ratio: auto;
+}
+
+.product-photo-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.product-photo-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(67, 40, 56, 0.35);
+}
+
+.price-off {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--maris-gold-dark);
+}
+
+.price-pix {
+  font-size: 0.78rem;
+  color: var(--maris-text-muted);
+}
+
+.product-note-badge {
+  display: none;
+}
+
+.piece-page {
+  padding: 8px 16px 24px;
+}
+
+.piece-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--maris-gold-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.piece-gallery {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  background: #f4efe9;
+  border-radius: var(--maris-radius-lg);
+  aspect-ratio: 1 / 1;
+}
+
+.piece-gallery img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  scroll-snap-align: start;
+  background: #f4efe9;
+}
+
+.piece-page h1 {
+  margin: 16px 0 4px;
+  font-family: var(--maris-font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--maris-black);
+}
+
+.piece-code,
+.piece-description,
+.piece-care p,
+.piece-related-empty {
+  margin: 0 0 12px;
+  color: var(--maris-text-muted);
+  font-size: 0.9rem;
+}
+
+.piece-description,
+.piece-care p {
+  color: var(--maris-text);
+  line-height: 1.5;
+}
+
+.piece-care h2,
+.piece-related-wrap .section-heading {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.piece-actions {
+  margin: 8px 0 12px;
+}
+
+.piece-actions .add-cart-card-btn,
+.piece-actions .waitlist-card-btn,
+.piece-actions .view-types-card-btn {
+  width: 100%;
+}
+
+.cart-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--maris-black);
+  color: #fff;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+
+.cart-bar a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cart-bar-prices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cart-bar-prices strong {
+  font-size: 1rem;
+}
+
+#cart-bar-pix {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+@media (min-width: 900px) {
+  .catalog-filters-open,
+  .catalog-filters-close,
+  .catalog-drawer-backdrop,
+  .catalog-filters-apply {
+    display: none;
+  }
+
+  .catalog-drawer,
+  .catalog-drawer.is-open {
+    display: block;
+  }
+
+  .catalog-drawer-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    border-radius: 0;
+    padding: 0 24px 8px;
+  }
+
+  .catalog-collections,
+  .catalog-filters-bar {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .piece-page {
+    display: grid;
+    grid-template-columns: minmax(280px, 460px) 1fr;
+    column-gap: 32px;
+    padding: 12px 24px 32px;
+    align-items: start;
+  }
+
+  .piece-back,
+  .piece-related-wrap {
+    grid-column: 1 / -1;
+  }
+
+  .piece-gallery {
+    grid-row: span 6;
   }
 }

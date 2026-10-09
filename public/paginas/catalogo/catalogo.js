@@ -7,8 +7,22 @@ const {
   groupProductsByColor,
   selectVariantByCode,
   groupDisplayVariant,
-  partitionCatalogGroups,
   sortGroupsForCatalog,
+  offerFromProduct,
+  pixPrice,
+  COLOR_FILTERS,
+  parsePriceBound,
+  displayVariantForFilters,
+  filterAndPartitionCatalog,
+  relatedGroups,
+  readCatalogLink,
+  buildCatalogQuery,
+  resolvePieceLink,
+  normalizeCategoryParam,
+  showLowStockBadge,
+  showNewBadge,
+  pieceCareText,
+  BESTSELLERS_ENABLED,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
@@ -35,11 +49,38 @@ const productModalComponentsList = document.getElementById("product-modal-compon
 const productModalActions = document.getElementById("product-modal-actions")
 const catalogFeedbackEl = document.getElementById("catalog-feedback")
 const catalogFiltersEl = document.getElementById("catalog-filters")
+const catalogDrawer = document.getElementById("catalog-drawer")
+const colorFiltersEl = document.getElementById("catalog-color-filters")
+const minPriceInput = document.getElementById("filter-min-price")
+const maxPriceInput = document.getElementById("filter-max-price")
+const onlyAvailableInput = document.getElementById("filter-only-available")
+const piecePage = document.getElementById("piece-page")
+const pieceGallery = document.getElementById("piece-gallery")
+const pieceTitle = document.getElementById("piece-title")
+const pieceCode = document.getElementById("piece-code")
+const pieceColors = document.getElementById("piece-colors")
+const piecePrices = document.getElementById("piece-prices")
+const pieceDescription = document.getElementById("piece-description")
+const pieceCare = document.getElementById("piece-care")
+const pieceCareTextEl = document.getElementById("piece-care-text")
+const pieceActions = document.getElementById("piece-actions")
+const pieceWhatsapp = document.getElementById("piece-whatsapp")
+const pieceRelated = document.getElementById("piece-related")
+const pieceBack = document.getElementById("piece-back")
+const collectionsEl = document.querySelector(".catalog-collections")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
 const productModalColors = document.getElementById("product-modal-colors")
 
 let selectedCategory = "Todos"
 let categoryFilterSignature = ""
+let colorId = ""
+let minPrice = null
+let maxPrice = null
+let onlyAvailable = false
+let onSaleOnly = false
+let pieceGroupKey = ""
+let ignoreNextCardClick = false
+let linkUtm = { utmSource: "", utmMedium: "", utmCampaign: "" }
 
 let allComponents = []
 let currentModalGroup = null
@@ -161,8 +202,73 @@ function findGroupByKey(key) {
   return allGroups.find((group) => group.key === key) || null
 }
 
+function colorSuffixes(id) {
+  return COLOR_FILTERS.find((item) => item.id === id)?.suffixes || []
+}
+
 function selectedVariant(group) {
-  return selectVariantByCode(group, isCatalogProductAvailable, selectedCodeByGroup[group?.key])
+  const preferred = selectedCodeByGroup[group?.key]
+  if (preferred) {
+    const chosen = selectVariantByCode(group, isCatalogProductAvailable, preferred)
+    const suffixes = colorSuffixes(colorId)
+    if (!suffixes.length || suffixes.includes(chosen?.suffix)) return chosen
+  }
+  return displayVariantForFilters(group, { colorId }, isCatalogProductAvailable) || groupDisplayVariant(group, isCatalogProductAvailable)
+}
+
+function activeFilters() {
+  return {
+    term: getSearchTerm(),
+    category: selectedCategory,
+    minPrice,
+    maxPrice,
+    colorId,
+    onlyAvailable,
+    onSaleOnly,
+  }
+}
+
+function currentPieceBase() {
+  if (!pieceGroupKey) return ""
+  return findGroupByKey(pieceGroupKey)?.base || ""
+}
+
+function syncCatalogUrl() {
+  const next = buildCatalogQuery({
+    categoria: selectedCategory,
+    peca: currentPieceBase(),
+    utmSource: linkUtm.utmSource,
+    utmMedium: linkUtm.utmMedium,
+    utmCampaign: linkUtm.utmCampaign,
+  })
+  if ((location.search || "") === next) return
+  history.replaceState(null, "", `${location.pathname}${next}`)
+}
+
+function renderOfferHtml(product) {
+  const offer = offerFromProduct(product)
+  const main = offer.onSale
+    ? `<span class="price-old">de ${formatMoneyBRL(offer.listPrice)}</span> <span class="price-now">por ${formatMoneyBRL(offer.finalPrice)}</span> <span class="price-off">${offer.percentOff}% OFF</span>`
+    : `<span class="price-now">${formatMoneyBRL(offer.finalPrice)}</span>`
+  return `<div class="price${offer.onSale ? " on-sale" : ""}">${main}</div><div class="price-pix">${formatMoneyBRL(offer.pixPrice)} no Pix</div>`
+}
+
+function renderPhotoStrip(urls, alt) {
+  const shown = (urls || []).filter(Boolean).slice(0, 2)
+  if (!shown.length) return `<div class="product-media"><div class="product-photos product-photos-empty"></div></div>`
+  const dots = shown.length > 1 ? `<div class="product-photo-dots" aria-hidden="true"><span></span><span></span></div>` : ""
+  return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}</div>`
+}
+
+function renderNoteBadges(product) {
+  const notes = []
+  if (showLowStockBadge(product)) notes.push("Últimas unidades")
+  if (showNewBadge(product)) notes.push("Novo")
+  return notes.map((label) => `<span class="product-note-badge">${label}</span>`).join("")
+}
+
+function productDescriptionText(product) {
+  return String(product?.description || product?.descricao || "").trim()
 }
 
 function renderColorOptions(group, selectedCode) {
@@ -183,40 +289,33 @@ function renderCatalogGroup(group) {
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
   const showPrice = !soldOut
-  const basePrice = Number(product.unit_price) || 0
-  const finalPrice = effectivePrice(product)
   const productOnSale = hasPromo(product)
   const imageUrls = getProductImageUrls(product)
-  const coverImage = imageUrls[0] || ""
   const colorHtml = renderColorOptions(group, product.code)
 
   let splitInfo = ""
   if (components.length) {
-    let minPrice = Infinity
+    let lowest = Infinity
     for (const c of components) {
       const componentQty = Number(c.quantity) || 0
       if (componentQty <= 0) continue
       const p = effectivePrice(c)
-      if (p < minPrice) minPrice = p
+      if (p < lowest) lowest = p
     }
-    if (minPrice !== Infinity) {
-      splitInfo = `<div class="split-info">Pode ser comprado separado a partir de ${formatMoneyBRL(minPrice)}</div>`
+    if (lowest !== Infinity) {
+      splitInfo = `<div class="split-info">Pode ser comprado separado a partir de ${formatMoneyBRL(lowest)} · ${formatMoneyBRL(pixPrice(lowest))} no Pix</div>`
     }
   }
 
   let priceHtml = ""
   if (!components.length) {
-    if (!showPrice) {
-      priceHtml = `<div class="price unavailable">Em falta</div>`
-    } else if (productOnSale) {
-      priceHtml = `<div class="price on-sale">${window.MarisUI.renderPricePair(basePrice, finalPrice, "")}</div>`
-    } else {
-      priceHtml = `<div class="price">${formatMoneyBRL(basePrice)}</div>`
-    }
+    priceHtml = showPrice
+      ? renderOfferHtml(product)
+      : `<div class="price unavailable">Em falta</div>`
   }
 
   const saleBadge = productOnSale && !soldOut
-    ? `<span class="product-sale-badge">-${Number(product.discount_percent) || 0}%</span>`
+    ? `<span class="product-sale-badge">${offerFromProduct(product).percentOff}% OFF</span>`
     : ""
 
   // Com tipos: só abre o modal (estoque/venda são por tipo, não pelo pai).
@@ -229,7 +328,8 @@ function renderCatalogGroup(group) {
   return `
     <article class="product ${soldOut ? "sold-out" : ""}" data-group-key="${escapeHtml(group.key)}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
       ${saleBadge}
-      <img src="${escapeHtml(coverImage)}" alt="${escapeHtml(product.name)}" loading="lazy">
+      ${renderNoteBadges(product)}
+      ${renderPhotoStrip(imageUrls, product.name || "Peça")}
       <div class="product-body">
         <h3>${escapeHtml(product.name)}</h3>
         <div class="code">${escapeHtml(product.code)}</div>
@@ -372,9 +472,6 @@ function openProductModal(group) {
   const components = getProductComponents(product.code)
   const available = isCatalogProductAvailable(product, components)
   const soldOut = !available
-  const basePrice = Number(product.unit_price) || 0
-  const finalPrice = effectivePrice(product)
-  const productOnSale = hasPromo(product)
   modalImageUrls = getProductImageUrls(product)
   modalImageIndex = 0
 
@@ -389,10 +486,8 @@ function openProductModal(group) {
     productModalPrice.innerHTML = "Preço: consulte os valores dos tipos"
   } else if (soldOut) {
     productModalPrice.innerHTML = "Preço: Em falta"
-  } else if (productOnSale) {
-    productModalPrice.innerHTML = `Preço: ${window.MarisUI.renderPricePair(basePrice, finalPrice)}`
   } else {
-    productModalPrice.innerHTML = `Preço: ${formatMoneyBRL(basePrice)}`
+    productModalPrice.innerHTML = renderOfferHtml(product)
   }
   productModalStock.textContent = ""
   productModalStatus.textContent = ""
@@ -417,8 +512,102 @@ function chooseGroupColor(groupKey, code) {
   if (!groupKey || !code) return
   selectedCodeByGroup[groupKey] = code
   const group = findGroupByKey(groupKey)
-  renderCatalogGrids()
+  if (pieceGroupKey === groupKey && group) openPiecePage(group)
+  else renderCatalogGrids()
   if (group && currentModalGroup?.key === groupKey) openProductModal(group)
+}
+
+function renderPieceActions(product, components, soldOut) {
+  if (soldOut) {
+    return `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+  }
+  if (components.length) {
+    return `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
+  }
+  return `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
+}
+
+function openPiecePage(group) {
+  if (!group || !piecePage) return
+  pieceGroupKey = group.key
+  const variant = selectedVariant(group)
+  const product = variant?.product
+  if (!product) return
+  const components = getProductComponents(product.code)
+  const soldOut = !isCatalogProductAvailable(product, components)
+  const urls = getProductImageUrls(product)
+  pieceGallery.innerHTML = urls.length
+    ? urls.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(product.name || "Peça")}">`).join("")
+    : ""
+  pieceTitle.textContent = product.name || "Peça"
+  pieceCode.textContent = product.code || ""
+  pieceColors.innerHTML = renderColorOptions(group, product.code)
+  piecePrices.innerHTML = components.length
+    ? ""
+    : soldOut
+      ? `<div class="price unavailable">Em falta</div>`
+      : renderOfferHtml(product)
+  const description = productDescriptionText(product)
+  pieceDescription.hidden = !description
+  pieceDescription.textContent = description
+  const care = pieceCareText()
+  pieceCare.hidden = !care
+  pieceCareTextEl.textContent = care
+  pieceActions.innerHTML = renderPieceActions(product, components, soldOut)
+  if (pieceWhatsapp) pieceWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
+  const related = relatedGroups(allGroups, group, isCatalogProductAvailable, 4)
+  pieceRelated.innerHTML = related.length
+    ? related.map(renderCatalogGroup).join("")
+    : `<p class="piece-related-empty">Nenhuma outra peça desta categoria agora.</p>`
+  if (pieceBack) {
+    const backQuery = buildCatalogQuery({
+      categoria: selectedCategory,
+      utmSource: linkUtm.utmSource,
+      utmMedium: linkUtm.utmMedium,
+      utmCampaign: linkUtm.utmCampaign,
+    })
+    pieceBack.href = `${location.pathname}${backQuery}`
+  }
+  piecePage.hidden = false
+  catalogEl.hidden = true
+  unavailableProductsSection.hidden = true
+  syncCatalogUrl()
+  window.scrollTo(0, 0)
+}
+
+function closePiecePage() {
+  pieceGroupKey = ""
+  if (piecePage) piecePage.hidden = true
+  syncCatalogUrl()
+  renderCatalogGrids()
+}
+
+function applyCatalogLink() {
+  const link = readCatalogLink(location.search)
+  linkUtm = {
+    utmSource: link.utmSource,
+    utmMedium: link.utmMedium,
+    utmCampaign: link.utmCampaign,
+  }
+  selectedCategory = link.categoria
+  if (!link.peca) {
+    pieceGroupKey = ""
+    if (piecePage) piecePage.hidden = true
+    syncCatalogUrl()
+    renderCatalogGrids()
+    return
+  }
+  const resolved = resolvePieceLink(allGroups, link.peca, isCatalogProductAvailable)
+  if (resolved.kind === "piece") {
+    selectedCodeByGroup[resolved.group.key] = resolved.variant.product.code
+    openPiecePage(resolved.group)
+    return
+  }
+  pieceGroupKey = ""
+  if (piecePage) piecePage.hidden = true
+  if (resolved.kind === "soldout") selectedCategory = normalizeCategoryParam(resolved.category)
+  syncCatalogUrl()
+  renderCatalogGrids()
 }
 
 function renderCatalogGrids() {
@@ -427,13 +616,15 @@ function renderCatalogGrids() {
 
   renderCategoryFilters()
 
-  const partitioned = partitionCatalogGroups(allGroups, {
-    term,
-    category: selectedCategory,
-    isAvailable: isCatalogProductAvailable,
-  })
-  const availFiltered = sortGroupsForCatalog(partitioned.available, sortMode, isCatalogProductAvailable)
-  const unavailFiltered = sortGroupsForCatalog(partitioned.soldOut, sortMode, isCatalogProductAvailable)
+  const filters = activeFilters()
+  const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
+  const availFiltered = sortGroupsForCatalog(partitioned.available, sortMode, isCatalogProductAvailable, filters)
+  const unavailFiltered = sortGroupsForCatalog(partitioned.soldOut, sortMode, isCatalogProductAvailable, filters)
+  if (pieceGroupKey && piecePage && !piecePage.hidden) {
+    catalogEl.hidden = true
+    unavailableProductsSection.hidden = true
+    return
+  }
 
   if (!availFiltered.length && !unavailFiltered.length) {
     catalogEl.hidden = false
@@ -507,6 +698,7 @@ async function loadCatalogData() {
 
   allGroups = groupProductsByColor(data)
   selectedCodeByGroup = Object.create(null)
+  renderColorFilters()
 
   allComponents = componentsData || []
   if (window.MarisCatalogCart) {
@@ -524,21 +716,25 @@ async function loadCatalogData() {
       console.warn("Falha ao inicializar carrinho sem bloquear catalogo", error)
     }
   }
-  renderCatalogGrids()
+  applyCatalogLink()
 }
 
 function handleProductClick(target) {
   const productCard = target.closest(".product[data-group-key]")
   if (!productCard) return
-  openProductModal(findGroupByKey(productCard.getAttribute("data-group-key")))
+  openPiecePage(findGroupByKey(productCard.getAttribute("data-group-key")))
 }
 
 function handleCatalogGridClick(event) {
+  if (ignoreNextCardClick) {
+    ignoreNextCardClick = false
+    return
+  }
   const colorBtn = event.target.closest("[data-color-code]")
   if (colorBtn) {
     event.stopPropagation()
     const card = colorBtn.closest("[data-group-key]")
-    chooseGroupColor(card?.getAttribute("data-group-key"), colorBtn.getAttribute("data-color-code"))
+    chooseGroupColor(card?.getAttribute("data-group-key") || pieceGroupKey, colorBtn.getAttribute("data-color-code"))
     return
   }
   const waitlistBtn = event.target.closest("[data-waitlist-code]")
@@ -551,7 +747,7 @@ function handleCatalogGridClick(event) {
   if (viewTypesBtn) {
     event.stopPropagation()
     const card = viewTypesBtn.closest("[data-group-key]")
-    openProductModal(findGroupByKey(card?.getAttribute("data-group-key")))
+    openProductModal(findGroupByKey(card?.getAttribute("data-group-key") || pieceGroupKey))
     return
   }
   const addBtn = event.target.closest("[data-add-code]")
@@ -661,14 +857,115 @@ if (catalogSortSelect) {
   catalogSortSelect.addEventListener("change", () => renderCatalogGrids())
 }
 
+function renderColorFilters() {
+  if (!colorFiltersEl) return
+  const options = [{ id: "", label: "Todas as cores" }, ...COLOR_FILTERS]
+  colorFiltersEl.innerHTML = options.map((item) => {
+    const selected = item.id === colorId
+    return `<button type="button" class="catalog-filter${selected ? " is-selected" : ""}" data-color-filter="${item.id}" aria-pressed="${selected ? "true" : "false"}">${item.label}</button>`
+  }).join("")
+}
+
+function readDrawerFilters() {
+  minPrice = parsePriceBound(minPriceInput?.value)
+  maxPrice = parsePriceBound(maxPriceInput?.value)
+  onlyAvailable = Boolean(onlyAvailableInput?.checked)
+}
+
+function setDrawerOpen(open) {
+  catalogDrawer?.classList.toggle("is-open", Boolean(open))
+}
+
+function refreshAfterFilterChange() {
+  if (pieceGroupKey) closePiecePage()
+  else {
+    syncCatalogUrl()
+    renderCatalogGrids()
+  }
+}
+
+function bindPhotoSwipe(root) {
+  if (!root) return
+  root.addEventListener("pointerdown", (event) => {
+    const photos = event.target.closest(".product-photos")
+    if (!photos) return
+    photos.dataset.scrollStart = String(photos.scrollLeft)
+  })
+  root.addEventListener("pointerup", (event) => {
+    const photos = event.target.closest(".product-photos")
+    if (!photos) return
+    const start = Number(photos.dataset.scrollStart || 0)
+    if (Math.abs(photos.scrollLeft - start) > 6) ignoreNextCardClick = true
+  })
+}
+
 if (catalogFiltersEl) {
   catalogFiltersEl.addEventListener("click", (event) => {
     const button = event.target.closest("[data-category]")
     if (!button) return
     selectedCategory = button.getAttribute("data-category") || "Todos"
-    renderCatalogGrids()
+    refreshAfterFilterChange()
   })
 }
+
+document.getElementById("catalog-filters-open")?.addEventListener("click", () => setDrawerOpen(true))
+document.getElementById("catalog-filters-close")?.addEventListener("click", () => setDrawerOpen(false))
+document.getElementById("catalog-filters-apply")?.addEventListener("click", () => {
+  readDrawerFilters()
+  setDrawerOpen(false)
+  refreshAfterFilterChange()
+})
+catalogDrawer?.addEventListener("click", (event) => {
+  const target = event.target
+  if (target instanceof HTMLElement && target.dataset.closeDrawer === "true") setDrawerOpen(false)
+})
+minPriceInput?.addEventListener("change", () => {
+  readDrawerFilters()
+  refreshAfterFilterChange()
+})
+maxPriceInput?.addEventListener("change", () => {
+  readDrawerFilters()
+  refreshAfterFilterChange()
+})
+onlyAvailableInput?.addEventListener("change", () => {
+  readDrawerFilters()
+  refreshAfterFilterChange()
+})
+colorFiltersEl?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-color-filter]")
+  if (!button) return
+  colorId = button.getAttribute("data-color-filter") || ""
+  renderColorFilters()
+  refreshAfterFilterChange()
+})
+collectionsEl?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-collection]")
+  if (!button || button.disabled) return
+  const kind = button.getAttribute("data-collection")
+  if (kind === "mais-vendidas" || !BESTSELLERS_ENABLED && kind === "mais-vendidas") return
+  if (kind === "novidades" && catalogSortSelect) {
+    catalogSortSelect.value = "created_desc"
+    onSaleOnly = false
+  }
+  if (kind === "promocoes") onSaleOnly = !onSaleOnly
+  collectionsEl.querySelectorAll("[data-collection]").forEach((el) => {
+    const name = el.getAttribute("data-collection")
+    const selected = (name === "promocoes" && onSaleOnly) || (name === "novidades" && !onSaleOnly && catalogSortSelect?.value === "created_desc")
+    el.classList.toggle("is-selected", selected)
+    el.setAttribute("aria-pressed", selected ? "true" : "false")
+  })
+  refreshAfterFilterChange()
+})
+pieceBack?.addEventListener("click", (event) => {
+  event.preventDefault()
+  closePiecePage()
+})
+piecePage?.addEventListener("click", handleCatalogGridClick)
+bindPhotoSwipe(catalogEl)
+bindPhotoSwipe(unavailableProductsGrid)
+bindPhotoSwipe(pieceRelated)
+window.addEventListener("popstate", () => applyCatalogLink())
+renderColorFilters()
 
 bindStoreWhatsappLinks()
 
