@@ -19,6 +19,14 @@ const copyLinkBtn = document.getElementById("copy-link-btn")
 const shareWhatsappBtn = document.getElementById("share-whatsapp-btn")
 const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
+const orderConfirmationEl = document.getElementById("order-confirmation")
+const websiteEl = document.getElementById("buyer-website")
+let pendingRequestId = null
+let orderConfirmed = false
+
+function ordersEnabled() {
+  return window.MarisPedido?.ORDERS_ENABLED === true
+}
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -57,6 +65,7 @@ function formatWhatsappMask(value) {
 }
 
 function renderCart() {
+  if (orderConfirmed) return
   const lines = window.MarisCatalogCart.getLineDetails()
   if (!lines.length) {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
@@ -162,7 +171,139 @@ function getSharePayload() {
   }
 }
 
+function callCreateOrder(functionName, body) {
+  return window.MarisApi.callFunction(window.ENV.fn(functionName), { body })
+}
+
+function applyOrderMode() {
+  const title = document.querySelector(".cart-card--primary-path h2")
+  if (title) title.textContent = "Finalizar pedido"
+  const help = document.querySelector(".cart-card--primary-path .cart-help")
+  if (help) help.textContent = "Informe seu nome e WhatsApp. A vendedora é opcional."
+  if (shareCartBtn) shareCartBtn.textContent = "Finalizar pedido"
+  const emailLabel = document.querySelector("label[for='buyer-email']")
+  if (emailLabel) emailLabel.hidden = true
+  if (buyerEmailEl) buyerEmailEl.hidden = true
+  const sellerLabel = document.querySelector("label[for='seller-select']")
+  if (sellerLabel) sellerLabel.textContent = "Vendedora (opcional)"
+  if (sellerSelectEl?.options?.[0]) sellerSelectEl.options[0].textContent = "Sem vendedora"
+  const labels = ["Revise os itens", "Seus dados", "Pedido feito"]
+  stepEls.forEach((el, index) => {
+    const badge = el.querySelector("span")
+    const number = badge ? badge.textContent : String(index + 1)
+    el.textContent = ""
+    const span = document.createElement("span")
+    span.textContent = number
+    el.append(span, ` ${labels[index]}`)
+  })
+}
+
+function renderOrderConfirmation(order) {
+  orderConfirmed = true
+  const itemsCard = document.querySelector(".cart-card--items")
+  const checkout = document.querySelector(".cart-checkout-column")
+  if (itemsCard) itemsCard.hidden = true
+  if (checkout) checkout.hidden = true
+  if (!orderConfirmationEl) return
+  orderConfirmationEl.hidden = false
+  const title = document.getElementById("order-title")
+  const reservation = document.getElementById("order-reservation")
+  const linesEl = document.getElementById("order-lines")
+  const totalEl = document.getElementById("order-total")
+  const pixEl = document.getElementById("order-pix")
+  if (title) title.textContent = order.orderId ? `Pedido #${order.orderId}` : "Pedido"
+  if (reservation) reservation.textContent = window.MarisPedido.reservationText(order.reservedUntil)
+  if (linesEl) {
+    linesEl.innerHTML = (order.items || []).map((item) => {
+      const unit = item.unitPrice == null ? "—" : formatMoneyBRL(item.unitPrice)
+      const line = item.lineTotal == null ? "—" : formatMoneyBRL(item.lineTotal)
+      return `
+        <article class="cart-line">
+          <div>
+            <p class="cart-line-name">${window.MarisUI.escapeHtml(item.name)}</p>
+            <p class="cart-line-code">${window.MarisUI.escapeHtml(item.code)} · ${item.quantity} un. · ${unit}</p>
+          </div>
+          <div class="order-line-prices">
+            <p class="cart-line-name">${line}</p>
+          </div>
+        </article>`
+    }).join("")
+  }
+  if (totalEl) totalEl.textContent = order.total == null ? "—" : formatMoneyBRL(order.total)
+  if (pixEl) pixEl.textContent = order.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
+  setActiveStep(3)
+}
+
+function showStockIssues(result) {
+  const lines = window.MarisCatalogCart.getLineDetails()
+  const keys = window.MarisPedido.cartKeysForStockIssues(lines, result.stockIssues)
+  for (const key of keys) window.MarisCatalogCart.removeByKey(key)
+  pendingRequestId = null
+  if (stockIssuesEl) {
+    stockIssuesEl.hidden = false
+    stockIssuesEl.innerHTML = (result.stockIssues || []).map((issue) => {
+      return `<li>${window.MarisUI.escapeHtml(window.MarisPedido.stockIssueText(issue))}</li>`
+    }).join("")
+  }
+  setMessage(result.error || "Algumas peças acabaram de esgotar.", "error")
+  renderCart()
+}
+
+async function placeOrder(dryRun) {
+  setMessage("")
+  if (!pendingRequestId) pendingRequestId = window.MarisPedido.newClientRequestId()
+  const button = dryRun ? checkStockBtn : shareCartBtn
+  if (button) button.disabled = true
+  try {
+    const result = await window.MarisPedido.submitCreateOrder(callCreateOrder, {
+      clientRequestId: pendingRequestId,
+      name: buyerNameEl?.value || "",
+      whatsapp: buyerWhatsappEl?.value || "",
+      sellerId: sellerSelectEl?.value || "",
+      items: window.MarisCatalogCart.getItems(),
+      dryRun,
+      website: websiteEl?.value || ""
+    })
+    if (result.kind === "disabled") return
+    if (result.kind === "error") {
+      setMessage(result.error, "error")
+      return
+    }
+    if (result.kind === "stock") {
+      showStockIssues(result)
+      return
+    }
+    if (result.kind === "available") {
+      if (stockIssuesEl) {
+        stockIssuesEl.hidden = true
+        stockIssuesEl.innerHTML = ""
+      }
+      saveBuyer()
+      setMessage("As peças ainda estão disponíveis.", "success")
+      return
+    }
+    if (result.kind === "duplicate") {
+      setMessage(result.orderId ? `O pedido #${result.orderId} já foi enviado.` : "Esse pedido já foi enviado.", "success")
+      return
+    }
+    if (result.kind === "confirmed") {
+      saveBuyer()
+      pendingRequestId = null
+      renderOrderConfirmation(result.order)
+      window.MarisCatalogCart.clear()
+      setMessage("")
+    }
+  } finally {
+    if (!button || orderConfirmed) return
+    button.disabled = !window.MarisCatalogCart.getItems().length
+  }
+}
+
 async function checkStock() {
+  if (ordersEnabled()) {
+    await placeOrder(true)
+    return
+  }
   setMessage("")
   const parsed = getSharePayload()
   if (parsed.error) {
@@ -196,6 +337,10 @@ async function checkStock() {
 }
 
 async function shareCart() {
+  if (ordersEnabled()) {
+    await placeOrder(false)
+    return
+  }
   setMessage("")
   const parsed = getSharePayload()
   if (parsed.error) {
@@ -298,6 +443,7 @@ cartLinesEl.addEventListener("click", (event) => {
     if (update?.clamped) setMessage(`Limite de estoque para esse item: ${update.available}.`, "error")
   }
   if (action === "minus") window.MarisCatalogCart.setQuantityByKey(key, line.quantity - 1)
+  pendingRequestId = null
   hideShareResult()
   renderCart()
 })
@@ -322,6 +468,7 @@ window.addEventListener("maris-cart-updated", renderCart)
     await window.MarisCatalogCart.init()
     await loadCatalogData()
     await loadSellers()
+    if (ordersEnabled()) applyOrderMode()
     const buyer = window.MarisCatalogCart.getBuyerProfile()
     if (buyer && buyerNameEl) {
       buyerNameEl.value = buyer.name || ""
