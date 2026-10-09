@@ -81,7 +81,7 @@ let maxPrice = null
 let onlyAvailable = false
 let onSaleOnly = false
 let bestsellerTotals = null
-let bestsellerSort = false
+const BESTSELLER_SORT = "bestsellers"
 let pieceGroupKey = ""
 let ignoreNextCardClick = false
 let linkUtm = { utmSource: "", utmMedium: "", utmCampaign: "" }
@@ -624,7 +624,7 @@ function renderCatalogGrids() {
 
   const filters = activeFilters()
   const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
-  const sortList = (groups) => bestsellerSort && bestsellerTotals
+  const sortList = (groups) => sortMode === BESTSELLER_SORT && bestsellerTotals
     ? sortGroupsByBestsellers(groups, bestsellerTotals)
     : sortGroupsForCatalog(groups, sortMode, isCatalogProductAvailable, filters)
   const availFiltered = sortList(partitioned.available)
@@ -729,23 +729,68 @@ async function loadCatalogData() {
   applyCatalogLink()
 }
 
+function bestsellerControls() {
+  return {
+    option: catalogSortSelect?.querySelector("option[value='bestsellers']") || null,
+    button: collectionsEl?.querySelector("[data-collection='mais-vendidas']") || null
+  }
+}
+
+function setBestsellersVisible(visible) {
+  const { option, button } = bestsellerControls()
+  if (!visible) {
+    if (catalogSortSelect?.value === BESTSELLER_SORT) catalogSortSelect.value = "name_asc"
+    if (option) {
+      option.hidden = true
+      option.disabled = true
+    }
+    if (button) {
+      button.hidden = true
+      button.disabled = true
+      button.classList.remove("is-selected")
+      button.setAttribute("aria-pressed", "false")
+    }
+    return
+  }
+  if (option) {
+    option.hidden = false
+    option.disabled = false
+  }
+  if (button) {
+    button.hidden = false
+    button.disabled = false
+  }
+}
+
+function syncCollectionPressed() {
+  const sort = getSortMode()
+  collectionsEl?.querySelectorAll("[data-collection]").forEach((el) => {
+    const name = el.getAttribute("data-collection")
+    const selected = (name === "promocoes" && onSaleOnly)
+      || (name === "novidades" && !onSaleOnly && sort === "created_desc")
+      || (name === "mais-vendidas" && sort === BESTSELLER_SORT)
+    el.classList.toggle("is-selected", selected)
+    el.setAttribute("aria-pressed", selected ? "true" : "false")
+  })
+}
+
 async function loadBestsellerTotals() {
   bestsellerTotals = null
-  bestsellerSort = false
-  const button = collectionsEl?.querySelector("[data-collection='mais-vendidas']")
-  if (button) button.disabled = true
+  setBestsellersVisible(false)
   const read = window.MarisCatalogRead
   if (!read?.BESTSELLERS_ENABLED) return
-  const relation = String(read.BESTSELLERS_RELATION || "").trim()
-  if (!relation) return
   try {
     const query = read.selectBestsellers(supabaseClient)
     if (!query) return
     const { data, error } = await query
     if (error || !Array.isArray(data)) return
-    bestsellerTotals = totalsByProductCode(data)
-    if (button) button.disabled = false
+    const totals = totalsByProductCode(data)
+    if (!totals.size) return
+    bestsellerTotals = totals
+    setBestsellersVisible(true)
   } catch (error) {
+    bestsellerTotals = null
+    setBestsellersVisible(false)
     console.warn("Mais vendidas indisponível", error)
   }
 }
@@ -885,7 +930,11 @@ if (catalogSearchInput) {
 }
 
 if (catalogSortSelect) {
-  catalogSortSelect.addEventListener("change", () => renderCatalogGrids())
+  catalogSortSelect.addEventListener("change", () => {
+    if (getSortMode() === BESTSELLER_SORT) onSaleOnly = false
+    syncCollectionPressed()
+    renderCatalogGrids()
+  })
 }
 
 function renderColorFilters() {
@@ -973,28 +1022,20 @@ collectionsEl?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-collection]")
   if (!button || button.disabled) return
   const kind = button.getAttribute("data-collection")
-  if (kind === "mais-vendidas") {
+  if (kind === "mais-vendidas" && catalogSortSelect) {
     if (!bestsellerTotals) return
-    bestsellerSort = !bestsellerSort
+    catalogSortSelect.value = catalogSortSelect.value === BESTSELLER_SORT ? "name_asc" : BESTSELLER_SORT
     onSaleOnly = false
   }
   if (kind === "novidades" && catalogSortSelect) {
     catalogSortSelect.value = "created_desc"
     onSaleOnly = false
-    bestsellerSort = false
   }
   if (kind === "promocoes") {
     onSaleOnly = !onSaleOnly
-    bestsellerSort = false
+    if (onSaleOnly && catalogSortSelect?.value === BESTSELLER_SORT) catalogSortSelect.value = "name_asc"
   }
-  collectionsEl.querySelectorAll("[data-collection]").forEach((el) => {
-    const name = el.getAttribute("data-collection")
-    const selected = (name === "promocoes" && onSaleOnly)
-      || (name === "novidades" && !onSaleOnly && !bestsellerSort && catalogSortSelect?.value === "created_desc")
-      || (name === "mais-vendidas" && bestsellerSort)
-    el.classList.toggle("is-selected", selected)
-    el.setAttribute("aria-pressed", selected ? "true" : "false")
-  })
+  syncCollectionPressed()
   refreshAfterFilterChange()
 })
 pieceBack?.addEventListener("click", (event) => {

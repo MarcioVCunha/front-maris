@@ -108,21 +108,21 @@ Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
   assertEquals(baskets.chain.ops[2], ["maybeSingle"])
 })
 
-Deno.test("mais vendidas fica desligada e não consulta a view", () => {
-  assertEquals(Read.BESTSELLERS_ENABLED, false)
+Deno.test("mais vendidas ligada consulta a view e desligada não consulta", () => {
+  assertEquals(Read.BESTSELLERS_ENABLED, true)
   assertEquals(Read.BESTSELLERS_RELATION, "product_sales_counts")
   assertEquals(Read.BESTSELLER_COLUMNS, "code, total_vendido")
-  const idle = new FakeClient()
-  assertEquals(Read.selectBestsellers(idle), null)
-  assertEquals(idle.relation, "")
+  const client = new FakeClient()
+  const chain = Read.selectBestsellers(client)
+  assertEquals(client.relation, "product_sales_counts")
+  assertEquals(chain?.ops[0], ["select", "code, total_vendido"])
 
   const previous = Read.BESTSELLERS_ENABLED
   try {
-    Read.BESTSELLERS_ENABLED = true
-    const client = new FakeClient()
-    const chain = Read.selectBestsellers(client)
-    assertEquals(client.relation, "product_sales_counts")
-    assertEquals(chain?.ops[0], ["select", "code, total_vendido"])
+    Read.BESTSELLERS_ENABLED = false
+    const idle = new FakeClient()
+    assertEquals(Read.selectBestsellers(idle), null)
+    assertEquals(idle.relation, "")
   } finally {
     Read.BESTSELLERS_ENABLED = previous
   }
