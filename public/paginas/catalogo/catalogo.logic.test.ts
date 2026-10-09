@@ -13,7 +13,11 @@ import {
   parsePriceBound,
   parseProductColor,
   partitionCatalogGroups,
-  LOW_STOCK_MAX,
+  LAST_UNIT_BADGE_ENABLED,
+  LAST_UNIT_INITIAL_FIELD,
+  LAST_UNIT_INITIAL_MIN,
+  LAST_UNIT_QUANTITY,
+  lastUnitBadgeMatches,
   NEW_DAYS,
   PIECE_CARE,
   pieceCareText,
@@ -26,7 +30,7 @@ import {
   resolveProductCategory,
   productWhatsappMessage,
   selectVariantByCode,
-  showLowStockBadge,
+  showLastUnitBadge,
   showNewBadge,
   sortGroupsByBestsellers,
   sortGroupsForCatalog,
@@ -398,15 +402,22 @@ Deno.test("peças relacionadas são da mesma categoria", () => {
   assertEquals(related.map((group) => group.base), ["A3", "A2"])
 })
 
-Deno.test("últimas unidades vai de 1 a 2 e novo dura 30 dias", () => {
-  assertEquals(LOW_STOCK_MAX, 2)
-  assertEquals(NEW_DAYS, 30)
-  assertEquals(showLowStockBadge({ quantity: 1 }), true)
-  assertEquals(showLowStockBadge({ quantity: 2 }), true)
-  assertEquals(showLowStockBadge({ quantity: 0 }), false)
-  assertEquals(showLowStockBadge({ quantity: 3 }), false)
-  assertEquals(showLowStockBadge({ quantity: null }), false)
+Deno.test("última unidade exige 1 no estoque e 3 ou mais no cadastro, e fica desligada", () => {
+  assertEquals(LAST_UNIT_BADGE_ENABLED, false)
+  assertEquals(LAST_UNIT_QUANTITY, 1)
+  assertEquals(LAST_UNIT_INITIAL_MIN, 3)
+  assertEquals(LAST_UNIT_INITIAL_FIELD, "")
+  assertEquals(lastUnitBadgeMatches(1, 3), true)
+  assertEquals(lastUnitBadgeMatches(1, 8), true)
+  assertEquals(lastUnitBadgeMatches(1, 2), false)
+  assertEquals(lastUnitBadgeMatches(2, 5), false)
+  assertEquals(lastUnitBadgeMatches(0, 5), false)
+  assertEquals(lastUnitBadgeMatches(1, null), false)
+  assertEquals(showLastUnitBadge({ quantity: 1, quantidade_inicial: 5 }), false)
+})
 
+Deno.test("novo dura 30 dias depois do created_at", () => {
+  assertEquals(NEW_DAYS, 30)
   const now = Date.parse("2026-10-09T12:00:00.000Z")
   const day = 24 * 60 * 60 * 1000
   assertEquals(showNewBadge({ created_at: new Date(now - 30 * day).toISOString() }, now), true)
@@ -449,4 +460,16 @@ Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () =
 
   const byBase = totalsByProductCode([{ code: "C", total_vendido: 9 }])
   assertEquals(sortGroupsByBestsellers(groups, byBase).map((group) => group.base), ["C", "A", "B"])
+
+  const tied = groupProductsByColor([
+    { code: "X-O", name: "X ouro", quantity: 1, created_at: "2026-01-01T00:00:00.000Z" },
+    { code: "X-R", name: "X ródio", quantity: 1, created_at: "2026-12-01T00:00:00.000Z" },
+    { code: "Y-O", name: "Y", quantity: 1, created_at: "2026-06-01T00:00:00.000Z" },
+  ])
+  const tiedTotals = totalsByProductCode([
+    { code: "X-O", total_vendido: 1 },
+    { code: "X-R", total_vendido: 1 },
+    { code: "Y-O", total_vendido: 2 },
+  ])
+  assertEquals(sortGroupsByBestsellers(tied, tiedTotals).map((group) => group.base), ["X", "Y"])
 })

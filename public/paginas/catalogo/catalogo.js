@@ -19,7 +19,7 @@ const {
   buildCatalogQuery,
   resolvePieceLink,
   normalizeCategoryParam,
-  showLowStockBadge,
+  showLastUnitBadge,
   showNewBadge,
   pieceCareText,
   totalsByProductCode,
@@ -266,7 +266,7 @@ function renderPhotoStrip(urls, alt) {
 
 function renderNoteBadges(product, soldOut) {
   const notes = []
-  if (!soldOut && showLowStockBadge(product)) notes.push("Últimas unidades")
+  if (!soldOut && showLastUnitBadge(product)) notes.push("Última unidade")
   if (showNewBadge(product)) notes.push("Novo")
   if (!notes.length) return ""
   return `<div class="product-notes">${notes.map((label) => `<span class="product-note-badge">${label}</span>`).join("")}</div>`

@@ -93,6 +93,6 @@ Nesta etapa o visitante vê fotos maiores, desliza para a segunda foto, filtra p
 
 A página da peça mostra o texto de cuidados aprovado. Peças de aço e aço dourado ganham uma linha a mais. A redação fica na constante `PIECE_CARE`.
 
-O selo "Últimas unidades" aparece com 1 ou 2 unidades em estoque (`LOW_STOCK_MAX`). O selo "Novo" aparece até 30 dias depois do cadastro (`NEW_DAYS`). Peça esgotada não recebe "Últimas unidades".
+O selo "Novo" aparece até 30 dias depois do cadastro (`NEW_DAYS`). O selo "Última unidade" só valeria para estoque exatamente 1, desde que o cadastro tivesse 3 ou mais. Essa quantidade inicial não existe na view pública, então a flag `LAST_UNIT_BADGE_ENABLED` deixa o selo desligado.
 
-"Mais vendidas" está desligada pela flag `BESTSELLERS_ENABLED`. Quando ligada, lê a view `product_sales_counts` (`code` com a cor e `total_vendido`) e soma as cores de cada cartão. Se a view não existir, o catálogo continua normal.
+"Mais vendidas" está desligada pela flag `BESTSELLERS_ENABLED`. Quando ligada, lê a view `product_sales_counts` (`code` com a cor e `total_vendido`), soma as cores de cada cartão e, no empate, mostra primeiro o `created_at` mais recente. Se a view não existir, o catálogo continua normal.

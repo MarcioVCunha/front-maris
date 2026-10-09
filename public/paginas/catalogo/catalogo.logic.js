@@ -201,8 +201,12 @@ export function cartMoneyTotals(lines) {
   return { total, pixTotal: pixPrice(total) }
 }
 
-export const LOW_STOCK_MAX = 2
 export const NEW_DAYS = 30
+// Sem coluna com a quantidade do cadastro. A flag deixa o selo desligado.
+export const LAST_UNIT_BADGE_ENABLED = false
+export const LAST_UNIT_QUANTITY = 1
+export const LAST_UNIT_INITIAL_MIN = 3
+export const LAST_UNIT_INITIAL_FIELD = ""
 
 // Texto aprovado pelo PO. Se a redação mudar, só esta constante muda.
 export const PIECE_CARE = {
@@ -210,10 +214,18 @@ export const PIECE_CARE = {
   steel: "O aço é mais resistente à água, mas os cuidados acima mantêm o brilho por mais tempo.",
 }
 
-export function showLowStockBadge(product) {
-  const quantity = Number(product?.quantity)
-  if (!Number.isInteger(quantity)) return false
-  return quantity >= 1 && quantity <= LOW_STOCK_MAX
+export function lastUnitBadgeMatches(quantity, initialQuantity) {
+  if (Number(quantity) !== LAST_UNIT_QUANTITY) return false
+  const initial = Number(initialQuantity)
+  if (!Number.isFinite(initial)) return false
+  return initial >= LAST_UNIT_INITIAL_MIN
+}
+
+export function showLastUnitBadge(product) {
+  if (!LAST_UNIT_BADGE_ENABLED) return false
+  const field = LAST_UNIT_INITIAL_FIELD
+  if (!field) return false
+  return lastUnitBadgeMatches(product?.quantity, product?.[field])
 }
 
 export function showNewBadge(product, now = Date.now()) {
@@ -262,10 +274,21 @@ export function groupSoldTotal(group, totals) {
   return 0
 }
 
+function groupCreatedAt(group) {
+  let latest = 0
+  for (const variant of group?.variants || []) {
+    const time = Date.parse(String(variant?.product?.created_at || ""))
+    if (Number.isFinite(time) && time > latest) latest = time
+  }
+  return latest
+}
+
 export function sortGroupsByBestsellers(groups, totals) {
   return [...(groups || [])].sort((a, b) => {
     const diff = groupSoldTotal(b, totals) - groupSoldTotal(a, totals)
     if (diff) return diff
+    const created = groupCreatedAt(b) - groupCreatedAt(a)
+    if (created) return created
     const aName = String(a?.variants?.[0]?.product?.name || a?.base || "")
     const bName = String(b?.variants?.[0]?.product?.name || b?.base || "")
     return aName.localeCompare(bName, "pt-BR")
@@ -440,10 +463,14 @@ if (typeof globalThis.window !== "undefined") {
     pixPrice,
     offerFromProduct,
     cartMoneyTotals,
-    LOW_STOCK_MAX,
     NEW_DAYS,
+    LAST_UNIT_BADGE_ENABLED,
+    LAST_UNIT_QUANTITY,
+    LAST_UNIT_INITIAL_MIN,
+    LAST_UNIT_INITIAL_FIELD,
     PIECE_CARE,
-    showLowStockBadge,
+    lastUnitBadgeMatches,
+    showLastUnitBadge,
     showNewBadge,
     pieceCareText,
     totalsByProductCode,

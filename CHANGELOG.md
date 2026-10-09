@@ -11,8 +11,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Ordenação por menor preço, maior preço e novidades.
 - Preço de/por com percentual de desconto e preço no Pix (5% sobre o valor já final) no cartão, na peça e na cesta.
 - Página da peça com galeria, cores, preços, peças da mesma categoria e o texto de cuidados aprovado. No aço, entra uma linha a mais.
-- Selo "Últimas unidades" quando a peça tem 1 ou 2 unidades (`LOW_STOCK_MAX`). Selo "Novo" até 30 dias depois do cadastro (`NEW_DAYS`). Peça esgotada não recebe "Últimas unidades".
-- Coleção "Mais vendidas" preparada para a view `product_sales_counts` (`code` e `total_vendido`), somando as cores do cartão. A flag fica desligada. Se a view não existir, o catálogo segue sem erro.
+- Selo "Novo" até 30 dias depois do cadastro (`NEW_DAYS`).
+- Selo "Última unidade" pronto para quando a peça tiver exatamente 1 em estoque e 3 ou mais no cadastro. A flag fica desligada: a view pública não guarda essa quantidade inicial.
+- Coleção "Mais vendidas" preparada para a view `product_sales_counts` (`code` e `total_vendido`), somando as cores do cartão. Empate fica com o `created_at` mais recente. A flag fica desligada. Se a view não existir, o catálogo segue sem erro.
 - Cesta fixa com total e total no Pix.
 - Links `?categoria=` e `?peca=` que abrem a cor disponível, caem na categoria se a peça estiver esgotada e preservam `utm_source`.
 
