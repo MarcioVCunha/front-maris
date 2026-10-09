@@ -20,8 +20,8 @@ window.MarisCatalogRead = {
   SELLER_COLUMNS: "id, name",
   BASKETS_RELATION: "shared_baskets",
   BASKET_COLUMNS: "items",
-  // View pública ainda pode não existir. Com a flag desligada, o catálogo não consulta.
-  BESTSELLERS_ENABLED: false,
+  // View product_sales_counts. Se a leitura falhar, o catálogo segue sem esta ordenação.
+  BESTSELLERS_ENABLED: true,
   BESTSELLERS_RELATION: "product_sales_counts",
   BESTSELLER_COLUMNS: "code, total_vendido",
 
