@@ -171,6 +171,8 @@ export function sortGroupsForCatalog(groups, mode, isAvailable, filters = null) 
 // Pix é 5% sobre o preço já final. products_public.preco_pix repete essa conta,
 // já com a promoção e com 2 casas. A coluna só existe depois da etapa 2 do banco.
 export const PIX_PRICE_FIELD = "preco_pix"
+// products_public.preco_efetivo é o preço já com a promoção. Mesmo nome em MarisUtils.
+export const EFFECTIVE_PRICE_FIELD = "preco_efetivo"
 
 export function pixPrice(amount) {
   const value = Number(amount)
@@ -179,20 +181,30 @@ export function pixPrice(amount) {
   return Math.round((cents * 95) / 100) / 100
 }
 
-export function pixPriceFromSource(product, finalPrice, field = PIX_PRICE_FIELD) {
+export function moneyFromSource(product, field) {
   const name = String(field || "").trim()
-  if (name && product && product[name] != null && product[name] !== "") {
-    const value = Number(product[name])
-    if (Number.isFinite(value) && value >= 0) return value
-  }
-  return pixPrice(finalPrice)
+  if (!name || !product || product[name] == null || product[name] === "") return null
+  const value = Number(product[name])
+  if (!Number.isFinite(value) || value < 0) return null
+  return value
+}
+
+export function pixPriceFromSource(product, finalPrice, field = PIX_PRICE_FIELD) {
+  const value = moneyFromSource(product, field)
+  return value == null ? pixPrice(finalPrice) : value
+}
+
+export function localFinalPrice(listPrice, onSale, percent) {
+  if (!onSale) return listPrice
+  return Math.round(listPrice * (1 - percent / 100) * 100) / 100
 }
 
 export function offerFromProduct(product) {
   const listPrice = Number(product?.unit_price) || 0
   const percent = product?.is_on_sale ? Number(product?.discount_percent) || 0 : 0
   const onSale = Boolean(product?.is_on_sale) && percent > 0
-  const finalPrice = onSale ? Math.round(listPrice * (1 - percent / 100) * 100) / 100 : listPrice
+  const fromBank = moneyFromSource(product, EFFECTIVE_PRICE_FIELD)
+  const finalPrice = fromBank == null ? localFinalPrice(listPrice, onSale, percent) : fromBank
   return {
     listPrice,
     finalPrice,
@@ -473,8 +485,11 @@ if (typeof globalThis.window !== "undefined") {
     partitionCatalogGroups,
     sortGroupsForCatalog,
     PIX_PRICE_FIELD,
+    EFFECTIVE_PRICE_FIELD,
     pixPrice,
     pixPriceFromSource,
+    moneyFromSource,
+    localFinalPrice,
     offerFromProduct,
     cartMoneyTotals,
     NEW_DAYS,

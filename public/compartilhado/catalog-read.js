@@ -20,8 +20,10 @@ window.MarisCatalogRead = {
   SELLER_COLUMNS: "id, name",
   BASKETS_RELATION: "shared_baskets",
   BASKET_COLUMNS: "items",
-  // Mesmo nome de MarisCatalogLogic.PIX_PRICE_FIELD. A view ainda pode não ter a coluna.
+  // Mesmos nomes de MarisCatalogLogic. A view ainda pode não ter as colunas.
   PIX_PRICE_FIELD: "preco_pix",
+  EFFECTIVE_PRICE_FIELD: "preco_efetivo",
+  OPTIONAL_PRICE_FIELDS: ["preco_pix", "preco_efetivo"],
   // View pública ainda pode não existir. Com a flag desligada, o catálogo não consulta.
   BESTSELLERS_ENABLED: false,
   BESTSELLERS_RELATION: "product_sales_counts",
@@ -41,12 +43,19 @@ window.MarisCatalogRead = {
   },
 
   productColumns() {
-    return this.columnsWithPixField(this.PRODUCT_COLUMNS, this.PIX_PRICE_FIELD)
+    return this.OPTIONAL_PRICE_FIELDS.reduce(
+      (columns, field) => this.columnsWithPixField(columns, field),
+      this.PRODUCT_COLUMNS
+    )
   },
 
   missingPixColumn(error, field) {
     const text = `${error?.message || ""} ${error?.details || ""} ${error?.code || ""}`
     return text.toLowerCase().includes(String(field || "").toLowerCase())
+  },
+
+  missingOptionalPriceColumn(error) {
+    return this.OPTIONAL_PRICE_FIELDS.some((field) => this.missingPixColumn(error, field))
   },
 
   queryWithColumnFallback(primary, fallback, field) {
@@ -61,7 +70,10 @@ window.MarisCatalogRead = {
       get(_target, prop) {
         if (prop === "then") {
           return (resolve, reject) => Promise.resolve(run(primary)).then((result) => {
-            if (result?.error && read.missingPixColumn(result.error, field)) return run(fallback)
+            const missing = Array.isArray(field)
+              ? read.missingOptionalPriceColumn(result?.error)
+              : read.missingPixColumn(result?.error, field)
+            if (result?.error && missing) return run(fallback)
             return result
           }).then(resolve, reject)
         }
@@ -80,7 +92,7 @@ window.MarisCatalogRead = {
     const primary = () => this._select(client, this.PRODUCTS_RELATION, columns)
     if (columns === this.PRODUCT_COLUMNS) return primary()
     const fallback = () => this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
-    return this.queryWithColumnFallback(primary, fallback, this.PIX_PRICE_FIELD)
+    return this.queryWithColumnFallback(primary, fallback, this.OPTIONAL_PRICE_FIELDS)
   },
 
   selectPricedComponents(client) {

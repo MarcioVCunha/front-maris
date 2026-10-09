@@ -21,6 +21,7 @@ import {
   NEW_DAYS,
   PIECE_CARE,
   pieceCareText,
+  EFFECTIVE_PRICE_FIELD,
   PIX_PRICE_FIELD,
   pixPrice,
   pixPriceFromSource,
@@ -287,6 +288,36 @@ Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () =>
   assertEquals(cheio.percentOff, 0)
   assertEquals(cheio.pixPrice, 76)
   assertEquals(PIX_PRICE_FIELD, "preco_pix")
+  assertEquals(EFFECTIVE_PRICE_FIELD, "preco_efetivo")
+})
+
+Deno.test("preco_efetivo preenchido entra no de/por, na ordenação e no Pix; ausente usa o cálculo local", () => {
+  const promo = { unit_price: 39.8, is_on_sale: true, discount_percent: 12.5, name: "Pulseira" }
+  const local = offerFromProduct(promo)
+  assertEquals(local.listPrice, 39.8)
+  assertEquals(local.onSale, true)
+  assertEquals(local.percentOff, 12.5)
+  assertEquals(local.finalPrice, 34.82)
+  assertEquals(local.pixPrice, pixPrice(34.82))
+
+  const fromBank = offerFromProduct({ ...promo, preco_efetivo: 34.83 })
+  assertEquals(fromBank.listPrice, 39.8)
+  assertEquals(fromBank.finalPrice, 34.83)
+  assertEquals(fromBank.onSale, true)
+  assertEquals(fromBank.pixPrice, pixPrice(34.83))
+  assertEquals(offerFromProduct({ ...promo, preco_efetivo: "34.83" }).finalPrice, 34.83)
+  assertEquals(offerFromProduct({ ...promo, preco_efetivo: null }).finalPrice, 34.82)
+  assertEquals(offerFromProduct({ ...promo, preco_efetivo: "" }).finalPrice, 34.82)
+  assertEquals(offerFromProduct({ ...promo, preco_efetivo: 34.83, preco_pix: 33.09 }).pixPrice, 33.09)
+
+  const sorted = sortProductsForCatalog(
+    [
+      { name: "Local", unit_price: 40 },
+      { name: "Banco", unit_price: 50, is_on_sale: true, discount_percent: 20, preco_efetivo: 30 },
+    ],
+    "price_asc",
+  )
+  assertEquals(sorted.map((item) => item.name), ["Banco", "Local"])
 })
 
 Deno.test("preco_pix preenchido entra no catálogo e valor ausente ou nulo usa o cálculo local", () => {
