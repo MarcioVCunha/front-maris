@@ -11,6 +11,9 @@ const Read = win.MarisCatalogRead as {
   COMPONENT_COLUMNS: string
   IMAGE_COLUMNS: string
   SELLER_COLUMNS: string
+  ARCHIVED_AT_FIELD: string
+  isArchivedProduct: (row: Record<string, unknown>) => boolean
+  withoutArchivedProducts: (rows: Record<string, unknown>[]) => Record<string, unknown>[]
   selectProducts: (client: FakeClient) => FakeChain
   selectPricedComponents: (client: FakeClient) => FakeChain
   selectImages: (client: FakeClient) => FakeChain
@@ -19,6 +22,9 @@ const Read = win.MarisCatalogRead as {
   BESTSELLERS_RELATION: string
   BESTSELLER_COLUMNS: string
   selectBestsellers: (client: FakeClient) => FakeChain | null
+  columnsWithPixField: (columns: string, field: string) => string
+  productColumns: () => string
+  missingOptionalPriceColumn: (error: { message?: string }) => boolean
 }
 
 type Op = [string, ...unknown[]]
@@ -131,6 +137,46 @@ Deno.test("componentes com preço, imagens e vendedoras", () => {
   assertEquals(sellers.relation, "sellers")
   assertEquals(sellers.chain.ops[0][1], "id, name")
   assertEquals(sellers.chain.ops[1], ["eq", "is_active", true])
+})
+
+Deno.test("peças com archived_at saem da lista pública", async () => {
+  assertEquals(Read.ARCHIVED_AT_FIELD, "archived_at")
+  assertEquals(Read.isArchivedProduct({ code: "A", archived_at: null }), false)
+  assertEquals(Read.isArchivedProduct({ code: "A", archived_at: "2026-10-14T12:00:00Z" }), true)
+  assertEquals(
+    Read.withoutArchivedProducts([
+      { code: "OK" },
+      { code: "GONE", archived_at: "2026-10-14T12:00:00Z" },
+      { code: "ALSO", archived_at: null }
+    ]).map((row) => row.code),
+    ["OK", "ALSO"]
+  )
+
+  const client = {
+    from() {
+      return {
+        select() {
+          return {
+            then(resolve: (value: unknown) => void) {
+              resolve({
+                data: [
+                  { code: "VIVA" },
+                  { code: "ARQUIVADA", archived_at: "2026-10-14T12:00:00Z" }
+                ],
+                error: null
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+  const result = await Read.selectProducts(client as unknown as FakeClient)
+  assertEquals(result.data?.map((row: { code: string }) => row.code), ["VIVA"])
+
+  const contract = await Deno.readTextFile(new URL("../../docs/contratos/catalogo-arquivadas.md", import.meta.url))
+  assert(contract.includes("archived_at IS NULL"))
+  assert(contract.includes("admin-product-archive"))
 })
 
 Deno.test("mais vendidas ligada consulta a view e desligada não consulta", () => {

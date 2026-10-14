@@ -22,6 +22,9 @@ window.MarisCatalogRead = {
   PIX_PRICE_FIELD: "preco_pix",
   EFFECTIVE_PRICE_FIELD: "preco_efetivo",
   OPTIONAL_PRICE_FIELDS: ["preco_pix", "preco_efetivo"],
+  // products.archived_at — a view precisa filtrar (docs/contratos/catalogo-arquivadas.md).
+  // Se a view expor a coluna, o front também descarta.
+  ARCHIVED_AT_FIELD: "archived_at",
   // View product_sales_counts. Se a leitura falhar, o catálogo segue sem esta ordenação.
   BESTSELLERS_ENABLED: true,
   BESTSELLERS_RELATION: "product_sales_counts",
@@ -30,6 +33,17 @@ window.MarisCatalogRead = {
   _select(client, relation, columns) {
     rejectRestrictedColumn(columns)
     return client.from(relation).select(columns)
+  },
+
+  isArchivedProduct(row) {
+    const value = row?.archived_at
+    if (value == null) return false
+    if (typeof value === "string" && value.trim() === "") return false
+    return true
+  },
+
+  withoutArchivedProducts(rows) {
+    return (Array.isArray(rows) ? rows : []).filter((row) => !this.isArchivedProduct(row))
   },
 
   columnsWithPixField(columns, field) {
@@ -56,6 +70,11 @@ window.MarisCatalogRead = {
     return this.OPTIONAL_PRICE_FIELDS.some((field) => this.missingPixColumn(error, field))
   },
 
+  filterProductResult(result) {
+    if (!result || result.error || !Array.isArray(result.data)) return result
+    return { ...result, data: this.withoutArchivedProducts(result.data) }
+  },
+
   queryWithColumnFallback(primary, fallback, field) {
     const read = this
     const calls = []
@@ -73,7 +92,7 @@ window.MarisCatalogRead = {
               : read.missingPixColumn(result?.error, field)
             if (result?.error && missing) return run(fallback)
             return result
-          }).then(resolve, reject)
+          }).then((result) => read.filterProductResult(result)).then(resolve, reject)
         }
         if (prop === "catch") return (onReject) => proxy.then((value) => value, onReject)
         return (...args) => {
@@ -88,7 +107,9 @@ window.MarisCatalogRead = {
   selectProducts(client) {
     const columns = this.productColumns()
     const primary = () => this._select(client, this.PRODUCTS_RELATION, columns)
-    if (columns === this.PRODUCT_COLUMNS) return primary()
+    if (columns === this.PRODUCT_COLUMNS) {
+      return this.queryWithColumnFallback(primary, primary, "__no_optional_column__")
+    }
     const fallback = () => this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
     return this.queryWithColumnFallback(primary, fallback, this.OPTIONAL_PRICE_FIELDS)
   },
