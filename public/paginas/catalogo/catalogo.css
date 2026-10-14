@@ -1309,6 +1309,14 @@ body {
     font-size: 1.15rem;
   }
 
+  .catalog-drawer .catalog-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow: visible;
+    padding: 8px 0 12px;
+  }
+
   .catalog {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 24px;

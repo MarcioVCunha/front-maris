@@ -89,11 +89,6 @@
   padding: 16px;
 }
 
-.panel-rail .session {
-  width: 100%;
-  padding: 16px 0 0;
-}
-
 .stack,
 .piece-row,
 .sku-row {
@@ -348,14 +343,18 @@ dialog h2 {
   .panel-shell {
     display: grid;
     grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
     align-items: start;
+    min-height: 100vh;
   }
 
   .panel-rail {
+    grid-column: 1;
+    grid-row: 1 / -1;
     position: sticky;
     top: 0;
     min-height: 100vh;
-    padding: 28px 20px;
+    padding: 28px 20px 88px;
     border-right: 1px solid var(--maris-border);
     background: var(--maris-surface);
     display: flex;
@@ -391,13 +390,21 @@ dialog h2 {
     justify-content: flex-start;
   }
 
-  .panel-rail .session {
-    margin-top: auto;
-    padding-top: 24px;
+  .panel-body {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    min-width: 0;
   }
 
-  .panel-body {
-    min-width: 0;
+  .session {
+    grid-column: 1;
+    grid-row: 2;
+    width: 248px;
+    margin: 0;
+    padding: 16px 20px 24px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent, var(--maris-surface) 28%);
   }
 
   .view,
@@ -427,7 +434,16 @@ dialog h2 {
   .channel-row,
   .best-row {
     margin-bottom: 0;
-    min-height: 72px;
+    min-height: 88px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .channel-row b,
+  .best-row b {
+    font-size: 1.15rem;
   }
 
   .sale-row {
