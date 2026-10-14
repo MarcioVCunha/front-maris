@@ -208,7 +208,7 @@ export async function submitCreateOrder(callFunction, input, options = {}) {
 }
 
 export const MarisPedido = {
-  ORDERS_ENABLED: false,
+  ORDERS_ENABLED: true,
   CREATE_ORDER_FUNCTION,
   RESERVE_DAYS,
   MAX_ORDER_ITEMS,
