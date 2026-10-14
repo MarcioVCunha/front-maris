@@ -11,6 +11,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Alterado
 
 - `/admin` abre o painel. Promoções continua em `/promocoes`, com atalho no menu.
+- Entrar em `/admin` espera o perfil do administrador. Um `staff-me` interrompido pela troca de página não manda mais para a mensagem de sem permissão.
 
 ### Alterado
 

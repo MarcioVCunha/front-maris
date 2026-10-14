@@ -234,7 +234,31 @@
     window.location.replace(`${GATE_PATH}?next=${next}`)
   }
 
+  let pageUnloading = false
+
+  function notePageUnloading() {
+    pageUnloading = true
+  }
+
+  if (typeof window?.addEventListener === "function") {
+    window.addEventListener("pagehide", notePageUnloading)
+    window.addEventListener("beforeunload", notePageUnloading)
+  }
+
+  function profileWasAborted(profile) {
+    if (profile?.aborted) return true
+    return /abort/i.test(String(profile?.error || ""))
+  }
+
+  // "wait" = a navegação levou o pedido embora. Não é falta de permissão.
+  function settleAdminGate(profile, options = {}) {
+    if (options.unloading || pageUnloading || profileWasAborted(profile)) return "wait"
+    if (!profile?.ok || profile.user?.role !== "admin") return "deny"
+    return "allow"
+  }
+
   function redirectHomeDenied() {
+    if (pageUnloading) return
     window.location.replace("/?aviso=sem-permissao")
   }
 
@@ -310,6 +334,7 @@
 
     normalizePath,
     isAdminOnlyPath,
+    settleAdminGate,
     safeNextPath,
     landingPath,
     normalizeStaffUser,
@@ -348,7 +373,8 @@
           ? await window.MarisStaffData.fetchStaffProfile()
           : await fetchStaffProfileDirect()
         if (result?.error || !result?.user) {
-          return { ok: false, error: result?.error?.message || "Não foi possível confirmar seu acesso." }
+          const error = result?.error?.message || "Não foi possível confirmar seu acesso."
+          return { ok: false, aborted: profileWasAborted({ error }) || pageUnloading, error }
         }
         const user = normalizeStaffUser(result.user)
         if (!user) return { ok: false, error: "Seu acesso não tem um papel reconhecido." }
@@ -359,7 +385,12 @@
         }
         return { ok: true, user }
       } catch (e) {
-        return { ok: false, error: e?.message || "Erro de conexão." }
+        const error = e?.message || "Erro de conexão."
+        return {
+          ok: false,
+          aborted: e?.name === "AbortError" || profileWasAborted({ error }) || pageUnloading,
+          error
+        }
       }
     },
 
@@ -509,14 +540,22 @@
     setPageHidden(true)
     window.MarisStaffAuth.loadProfile()
       .then((profile) => {
-        if (!profile.ok || profile.user.role !== "admin") {
+        const gate = settleAdminGate(profile)
+        if (gate === "wait") return
+        if (gate === "deny") {
           redirectHomeDenied()
           return
         }
         setPageHidden(false)
         applyMenus(profile.user)
       })
-      .catch(() => {
+      .catch((error) => {
+        const gate = settleAdminGate({
+          ok: false,
+          aborted: error?.name === "AbortError",
+          error: error?.message
+        })
+        if (gate === "wait") return
         redirectHomeDenied()
       })
   }

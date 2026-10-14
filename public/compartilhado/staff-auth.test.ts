@@ -224,6 +224,10 @@ Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
     "allow"
   )
   assertEquals(
+    Auth.accessDecision({ pathname: "/admin", role: "admin", hasSession: true, optional: false }),
+    "allow"
+  )
+  assertEquals(
     Auth.accessDecision({ pathname: "/vendas", role: null, hasSession: false, optional: false }),
     "login"
   )
@@ -235,6 +239,23 @@ Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
     Auth.accessDecision({ pathname: "/equipe/nova-senha", role: null, hasSession: false, optional: false }),
     "allow"
   )
+})
+
+Deno.test("admin entra em /admin e /admin/estoque e um staff-me abortado não é falta de permissão", () => {
+  pinWindow()
+  const admin = { ok: true, user: { id: "1", name: "Marcio Cunha", role: "admin", email: "marcio@loja.test" } }
+  for (const pathname of ["/admin", "/admin/estoque"]) {
+    assertEquals(
+      Auth.accessDecision({ pathname, role: "admin", hasSession: true, optional: false }),
+      "allow",
+      pathname
+    )
+    assertEquals(Auth.settleAdminGate(admin), "allow", pathname)
+  }
+  assertEquals(Auth.settleAdminGate({ ok: false, aborted: true, error: "The user aborted a request." }), "wait")
+  assertEquals(Auth.settleAdminGate({ ok: false, error: "The user aborted a request." }, { unloading: true }), "wait")
+  assertEquals(Auth.settleAdminGate({ ok: false, error: "Não foi possível confirmar seu acesso." }), "deny")
+  assertEquals(Auth.settleAdminGate({ ok: true, user: { role: "seller", name: "Marineide" } }), "deny")
 })
 
 Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração", () => {

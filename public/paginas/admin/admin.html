@@ -84,7 +84,10 @@
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <script type="module">
     import { shouldShowDashboard } from "/paginas/admin/painel.logic.js"
-    if (shouldShowDashboard()) location.replace("/admin/inicio")
+    if (shouldShowDashboard()) {
+      const profile = await window.MarisStaffAuth.loadProfile()
+      if (profile?.ok && profile.user?.role === "admin") location.replace("/admin/inicio")
+    }
   </script>
 </body>
 </html>
