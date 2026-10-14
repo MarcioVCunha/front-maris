@@ -1,6 +1,7 @@
 // Sessão da equipe via Supabase Auth (e-mail e senha).
 // authHeaders() manda o access_token da sessão para as Edge Functions.
-// O papel (admin ou seller) vem de GET staff-me, não do JWT decodificado aqui.
+// O papel (admin, seller ou vendedora) vem de GET staff-me, não do JWT decodificado aqui.
+// vendedora vale como seller. O seller_id do perfil é o da venda.
 //
 // Páginas só de administração: ADMIN_ONLY_PATHS.
 // Vendedora entra em vendas e tipos do produto.
@@ -112,6 +113,15 @@
     return decoded
   }
 
+  // Vendedora entra direto na tela nova. Admin segue o next, ou o início.
+  function landingPath(user, rawNext) {
+    const next = safeNextPath(rawNext)
+    if (user?.role !== "seller") return next
+    const path = normalizePath(String(next).split("?")[0].split("#")[0])
+    if (path === "/" || path === "/vendedoras" || path === "/vendas") return "/vendas/nova"
+    return next
+  }
+
   function normalizeSellerId(value) {
     if (value == null || value === "") return null
     const id = Number(value)
@@ -122,7 +132,7 @@
   function normalizeStaffUser(raw) {
     if (!raw || typeof raw !== "object") return null
     const roleRaw = String(raw.role || "").trim().toLowerCase()
-    const role = roleRaw === "admin" || roleRaw === "seller" ? roleRaw : ""
+    const role = roleRaw === "admin" ? "admin" : (roleRaw === "seller" || roleRaw === "vendedora" ? "seller" : "")
     if (!role) return null
     const email = String(raw.email || "").trim()
     const name = String(raw.name || "").trim() || email
@@ -298,6 +308,7 @@
     normalizePath,
     isAdminOnlyPath,
     safeNextPath,
+    landingPath,
     normalizeStaffUser,
     roleLabel,
     accessDecision,

@@ -43,7 +43,6 @@
   <script>
     const Auth = window.MarisStaffAuth
     const params = new URLSearchParams(window.location.search)
-    const nextUrl = Auth.safeNextPath(params.get("next"))
     const loginForm = document.getElementById("login-form")
     const resetForm = document.getElementById("reset-form")
     const messageEl = document.getElementById("gate-message")
@@ -77,7 +76,7 @@
     if (Auth.isValid()) {
       Auth.loadProfile().then(async (profile) => {
         if (profile.ok) {
-          window.location.replace(nextUrl)
+          window.location.replace(Auth.landingPath(profile.user, params.get("next")))
           return
         }
         await Auth.signOut()
@@ -107,7 +106,7 @@
           showMessage(result.error, "error")
           return
         }
-        window.location.replace(nextUrl)
+        window.location.replace(Auth.landingPath(result.user, params.get("next")))
       } finally {
         loginSubmit.disabled = false
       }

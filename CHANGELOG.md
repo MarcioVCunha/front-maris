@@ -20,6 +20,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Alterado
 
 - A venda segue o contrato do servidor: preço Pix (`preco_pix`), WhatsApp nacional sem o 55, e o total devolvido depois de criar. O card diz quantas peças foram pagas e em quantas vendas. A lista mostra paga, parcial ou a receber. Peça esgotada (409) mostra a mensagem e deixa ajustar.
+- Quem entra em `/equipe` com papel `vendedora` (sem ser admin) cai direto em `/vendas/nova`. O `seller_id` sai do perfil da equipe, como a Marineide ligada à vendedora 2.
 - A venda manda só `piece_id` e quantidade, sem preço. O detalhe usa o total do servidor: subtotal das linhas, desconto do Pix e o `total` recebido.
 
 ### Removido

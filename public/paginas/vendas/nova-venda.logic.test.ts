@@ -366,6 +366,31 @@ Deno.test("409 de estoque avisa e deixa ajustar a quantidade", () => {
   assertEquals(adjusted.message.includes("Anel Liso Vazado Ajustável não tem essa quantidade. Disponível: 1."), true)
 })
 
+Deno.test("vendedora não admin manda o seller_id do perfil e não o formulário antigo", async () => {
+  const built = buildCreateSaleBody({
+    sellerId: 2,
+    customer: { id: 4 },
+    paymentStatus: "paid",
+    paymentMethod: "dinheiro",
+    pieces: [{ id: 9, code: "AN", name: "Anel", quantity: 1, unit_price: 100 }]
+  })
+  assertEquals(built.ok, true)
+  if (!built.ok) return
+  assertEquals(built.body.seller_id, 2)
+  assertEquals("unit_price" in built.body, false)
+  const page = await Deno.readTextFile(new URL("./nova-venda.js", import.meta.url))
+  assertEquals(page.includes("state.seller = profile.user"), true)
+  assertEquals(page.includes("sellerId: state.seller?.seller_id"), true)
+  assertEquals(page.includes("saleSellerChoice"), false)
+  const html = await Deno.readTextFile(new URL("./nova-venda.html", import.meta.url))
+  assertEquals(html.includes('id="sale-form"'), false)
+  assertEquals(html.includes("Registrar vendas"), false)
+  const hub = await Deno.readTextFile(new URL("../admin/vendedoras.html", import.meta.url))
+  assertEquals(hub.includes("Registrar vendas"), false)
+  assertEquals(hub.includes("Venda avulsa"), false)
+  assertEquals(hub.includes('href="/vendas"'), false)
+})
+
 Deno.test("o atalho da equipe abre a venda nova", async () => {
   const hub = await Deno.readTextFile(new URL("../admin/vendedoras.html", import.meta.url))
   const link = hub.match(/<a\b[^>]*href="\/vendas\/nova"[^>]*>/)

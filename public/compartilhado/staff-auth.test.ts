@@ -126,6 +126,7 @@ const Auth = (win as Record<string, unknown>).MarisStaffAuth as {
   isValid: () => boolean
   authHeaders: () => Record<string, string>
   safeNextPath: (raw: string | null) => string
+  landingPath: (user: { role?: string } | null, rawNext: string | null) => string
   normalizeStaffUser: (raw: unknown) => { role: string; name: string; email: string } | null
   accessDecision: (input: { pathname: string; role: string | null; hasSession: boolean; optional: boolean }) => string
   menuFor: (role: string) => Record<string, boolean>
@@ -280,6 +281,7 @@ Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
     seller_id: "7"
   })
   assertEquals(linked?.seller_id, 7)
+  assertEquals(Auth.normalizeStaffUser({ id: "1", email: "a@b.c", role: "vendedora" })?.role, "seller")
   assertEquals(Auth.safeNextPath("/vendas?id=1"), "/vendas?id=1")
   assertEquals(Auth.safeNextPath("//evil.test"), "/")
   assertEquals(Auth.safeNextPath("https://evil.test"), "/")
@@ -287,6 +289,39 @@ Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
   assertEquals(Auth.safeNextPath("/%2F%2Fevil"), "/")
   assertEquals(Auth.safeNextPath("/equipe"), "/")
   assertEquals(Auth.safeNextPath("/equipe/nova-senha"), "/")
+})
+
+Deno.test("vendedora sem ser admin entra direto na venda nova com o seller_id do perfil", async () => {
+  pinWindow()
+  const marineide = Auth.normalizeStaffUser({
+    id: "marineide",
+    email: "marineide@loja.test",
+    name: "Marineide",
+    role: "vendedora",
+    seller_id: 2
+  })
+  assertEquals(marineide?.role, "seller")
+  assertEquals(marineide?.seller_id, 2)
+  assertEquals(Auth.accessDecision({ pathname: "/vendas/nova", role: marineide?.role, hasSession: true, optional: false }), "allow")
+  assertEquals(Auth.accessDecision({ pathname: "/admin", role: marineide?.role, hasSession: true, optional: false }), "deny")
+  assertEquals(Auth.landingPath(marineide, null), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/vendedoras"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/vendas"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/tipos-produto"), "/tipos-produto")
+
+  const admin = Auth.normalizeStaffUser({
+    id: "1",
+    email: "marcio@loja.test",
+    name: "Marcio",
+    role: "admin",
+    seller_id: null
+  })
+  assertEquals(Auth.landingPath(admin, null), "/")
+  assertEquals(Auth.landingPath(admin, "/admin"), "/admin")
+  const gate = await Deno.readTextFile(new URL("../paginas/admin/equipe.html", import.meta.url))
+  assertEquals(gate.includes("Auth.landingPath"), true)
+  assertEquals(gate.includes("location.replace(nextUrl)"), false)
 })
 
 Deno.test("entrar confirma o perfil e recusa quem não é da equipe", async () => {
