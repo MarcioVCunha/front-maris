@@ -22,8 +22,8 @@ window.MarisCatalogRead = {
   PIX_PRICE_FIELD: "preco_pix",
   EFFECTIVE_PRICE_FIELD: "preco_efetivo",
   OPTIONAL_PRICE_FIELDS: ["preco_pix", "preco_efetivo"],
-  // products.archived_at — a view precisa filtrar (docs/contratos/catalogo-arquivadas.md).
-  // Se a view expor a coluna, o front também descarta.
+  // products_public já filtra com catalog_product_visible (archived_at IS NULL).
+  // Se alguma leitura trouxer archived_at, o front também descarta.
   ARCHIVED_AT_FIELD: "archived_at",
   // View product_sales_counts. Se a leitura falhar, o catálogo segue sem esta ordenação.
   BESTSELLERS_ENABLED: true,

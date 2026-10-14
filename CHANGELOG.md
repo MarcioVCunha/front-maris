@@ -8,7 +8,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 - Painel do administrador em `/admin`, ligado (`ADMIN_DASHBOARD_ENABLED`). O menu é Início, Estoque, Vendas, Vendedoras e Promoções. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel, e a aba Tipos grava o SKU no padrão código-TIPO. Os nomes e os corpos ficam em `painel.api.js`.
 - Brilho de carregamento (`compartilhado/loading.js`): estrela de 4 pontas ✦ que enche e esvazia nas cores da Maris. Usado no catálogo, na cesta e no painel (boot e troca de aba), com `role="status"`, `aria-label="Carregando"` e sem animação quando `prefers-reduced-motion`.
-- Catálogo descarta peças com `archived_at` na leitura pública. A view `products_public` ainda precisa de `WHERE archived_at IS NULL` (ver `docs/contratos/catalogo-arquivadas.md`); arquivar no painel já usa `admin-product-archive` com `{ code }`.
+- Catálogo alinhado ao back-maris PR #15: `products_public` esconde arquivadas via `catalog_product_visible` (`archived_at IS NULL`); `catalog-read.js` ainda descarta `archived_at` se vier na linha. `admin-product-archive` documentado com `{ code, archive? }` (ver `docs/contratos/catalogo-arquivadas.md`).
 
 ### Alterado
 

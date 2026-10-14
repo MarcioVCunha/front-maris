@@ -1,51 +1,66 @@
 # Catálogo e peças arquivadas
 
-Arquivar no painel usa `POST admin-product-archive` com `{ "code": "AN581-R" }` e grava `products.archived_at`.
+Contrato alinhado ao back-maris (PR #15 / migration `marketplace_admin_archive_views`).
 
-## Problema
+## POST admin-product-archive
 
-A view `public.products_public` (lida pelo catálogo anônimo) é hoje:
+`POST /functions/v1/admin-product-archive`  
+Auth: staff com permissão `products.write` (admin).
 
-```sql
-SELECT ... FROM products;
+### Entrada
+
+```json
+{ "code": "AN581-R", "archive": true }
 ```
 
-Sem `WHERE archived_at IS NULL`. Peça arquivada continua no catálogo público.
+| Campo | Regra |
+| --- | --- |
+| `code` | Obrigatório |
+| `archive` | Opcional. Padrão `true` (arquivar). `false` desarquiva (`archived_at = null`). Tem de ser boolean se enviado. |
 
-## Correção no banco (back-maris / SQL)
+O painel envia `{ "code" }` para arquivar (equivale a `archive: true`).
 
-Recriar a view filtrando arquivadas. Manter as colunas atuais (`preco_efetivo`, `preco_pix`, etc.):
+### Saída ok (arquivar)
+
+```json
+{ "ok": true, "code": "AN581-R", "archived_at": "2026-10-14T15:00:00.000Z", "already_archived": false }
+```
+
+Se já estava arquivada: `already_archived: true` e o `archived_at` atual.
+
+### Saída ok (desarquivar, `archive: false`)
+
+```json
+{ "ok": true, "code": "AN581-R", "archived_at": null, "already_archived": false, "already_unarchived": false }
+```
+
+Se já estava ativa: `already_unarchived: true`.
+
+### Erros
+
+- `400` código vazio / `archive` não boolean / tentativa de mandar custo
+- `404` peça não encontrada
+- `401` / `403` auth
+
+## Como o catálogo esconde arquivadas
+
+A view pública já filtra no banco:
 
 ```sql
 CREATE OR REPLACE VIEW public.products_public AS
 SELECT
-  id,
-  created_at,
-  code,
-  name,
-  unit_price,
-  image_url,
-  quantity,
-  alterado_at,
-  is_on_sale,
-  discount_percent,
-  categoria,
-  effective_unit_price(
-    unit_price::numeric,
-    CASE WHEN COALESCE(is_on_sale, false) THEN discount_percent ELSE 0::numeric END
-  )::numeric(10,2) AS preco_efetivo,
-  pix_price(
-    effective_unit_price(
-      unit_price::numeric,
-      CASE WHEN COALESCE(is_on_sale, false) THEN discount_percent ELSE 0::numeric END
-    )
-  )::numeric(10,2) AS preco_pix
+  id, created_at, code, name, unit_price, image_url, quantity, alterado_at,
+  is_on_sale, discount_percent, categoria,
+  ... AS preco_efetivo,
+  ... AS preco_pix
 FROM products
-WHERE archived_at IS NULL;
+WHERE catalog_product_visible(code);
 ```
 
-Opcional: expor `archived_at` na view (sempre null com o filtro) — o front já descarta linhas com `archived_at` preenchido se a coluna aparecer.
+`catalog_product_visible(code)` é `true` só quando `products.archived_at IS NULL`.
 
-## Front
+A view **não** expõe a coluna `archived_at`. O catálogo anônimo lê só `products_public`, então peças arquivadas não aparecem.
 
-`catalog-read.js` aplica `withoutArchivedProducts` na resposta. Enquanto a view não filtrar, a coluna não vem e o filtro no cliente não consegue esconder — a correção efetiva é a view.
+### Front
+
+`catalog-read.js` ainda aplica `withoutArchivedProducts` se alguma linha vier com `archived_at` preenchido (defesa). A exclusão efetiva é a da view / `catalog_product_visible`.

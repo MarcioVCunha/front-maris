@@ -260,8 +260,11 @@ export function validateAddProduct(payload) {
   return validateProductUpdate(payload)
 }
 
-export function archivePayload(code) {
-  return { code: String(code || "").trim() }
+/** Corpo de admin-product-archive. archive omitido = arquivar (padrão true no back). */
+export function archivePayload(code, archive = true) {
+  const body = { code: String(code || "").trim() }
+  if (archive === false) body.archive = false
+  return body
 }
 
 export function archiveConfirmText(piece) {

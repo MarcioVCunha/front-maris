@@ -175,8 +175,10 @@ Deno.test("peças com archived_at saem da lista pública", async () => {
   assertEquals(result.data?.map((row: { code: string }) => row.code), ["VIVA"])
 
   const contract = await Deno.readTextFile(new URL("../../docs/contratos/catalogo-arquivadas.md", import.meta.url))
+  assert(contract.includes("catalog_product_visible"))
   assert(contract.includes("archived_at IS NULL"))
   assert(contract.includes("admin-product-archive"))
+  assert(contract.includes('"archive"'))
 })
 
 Deno.test("mais vendidas ligada consulta a view e desligada não consulta", () => {
