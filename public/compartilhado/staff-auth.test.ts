@@ -400,6 +400,46 @@ Deno.test("esqueci a senha manda para /equipe/nova-senha", async () => {
   assertEquals(Auth.resetRequestMessage({ ok: false, error: "rate limit" }).type, "error")
 })
 
+function jwt(sub: string) {
+  const payload = btoa(JSON.stringify({ sub, exp: 2000000000 }))
+  return `eyJhbGciOiJub25lIn0.${payload}.x`
+}
+
+Deno.test("o perfil da sessão abre na hora e o staff-me segue em segundo plano", async () => {
+  pinWindow()
+  local.clear()
+  session.clear()
+  locationState.pathname = "/equipe"
+  storeSession({
+    access_token: jwt("marcio"),
+    expires_at: Math.floor(Date.now() / 1000) + 3600
+  })
+  session.setItem("maris_staff_profile", JSON.stringify({
+    sub: "marcio",
+    user: { id: "1", email: "marcio@loja.test", name: "Marcio Cunha", role: "admin", seller_id: 1 }
+  }))
+  let calls = 0
+  staffData.fetchStaffProfile = async () => {
+    calls += 1
+    return {
+      user: { id: "1", email: "marcio@loja.test", name: "Marcio Cunha", role: "admin", seller_id: 1 },
+      error: null
+    }
+  }
+  const first = Auth.loadProfile()
+  const second = Auth.loadProfile()
+  assertEquals((await first).cached, true)
+  assertEquals((await first).user?.name, "Marcio Cunha")
+  assertEquals((await second).user?.role, "admin")
+  assertEquals(calls, 1)
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  assertEquals(calls, 1)
+  session.clear()
+  local.clear()
+  locationState.pathname = "/equipe"
+  staffData.fetchStaffProfile = async () => profileResult
+})
+
 Deno.test("o perfil usa staff-me e a recuperação não espera se a sessão já existe", async () => {
   pinWindow()
   profileResult = {

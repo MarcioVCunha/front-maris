@@ -4,6 +4,8 @@ import { ADD_PRODUCT_CATEGORIES, parseImageUrlLines, parseMoneyBRL } from "../es
 export const ADMIN_DASHBOARD_ENABLED = true
 export const NCM_DEFAULT = "71171900"
 export const ORIGEM_DEFAULT = 0
+export const STOCK_PAGE_SIZE = 20
+export const NO_DATA = "sem dados ainda"
 
 export const DASHBOARD_VIEWS = [
   { id: "inicio", href: "/admin/inicio", label: "Início" },
@@ -45,6 +47,20 @@ export function dashboardView(pathname, search = "") {
 
 export function isDashboardAdmin(user) {
   return user?.role === "admin"
+}
+
+export function isPanelLink(pathname) {
+  const path = String(pathname || "").replace(/\/$/, "") || "/"
+  return path === "/admin" || path.startsWith("/admin/")
+}
+
+export function currentMonthKey(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit"
+  }).format(now)
+  return parts.slice(0, 7)
 }
 
 export function displayQuantity(value) {
@@ -238,7 +254,7 @@ export function renderStockList(products, formatMoney = formatPrice) {
     const qty = displayQuantity(piece.quantity)
     const photo = Array.isArray(piece.image_urls) ? piece.image_urls[0] : piece.image_url
     const image = photo
-      ? `<img src="${escapeHtml(photo)}" alt="">`
+      ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" decoding="async" width="52" height="52">`
       : `<span class="thumb thumb--empty">${escapeHtml(String(piece.code || "?").slice(0, 2))}</span>`
     return `<a class="piece-row" href="/admin/peca?code=${encodeURIComponent(piece.code || "")}">
       ${image}
@@ -347,6 +363,201 @@ export function renderTipos(products) {
 
 export function renderImportHelp() {
   return `<p class="hint">O JSON pode trazer, além de código, nome, preço e quantidade: descricao, peso_g, largura_cm, altura_cm, comprimento_cm, ncm, origem e gtin.</p>`
+}
+
+export function filterStock(products, query) {
+  const needle = String(query || "").trim().toLocaleLowerCase("pt-BR")
+  const rows = products || []
+  if (!needle) return rows
+  return rows.filter((piece) => {
+    const hay = [piece?.code, piece?.name, piece?.categoria].join(" ").toLocaleLowerCase("pt-BR")
+    return hay.includes(needle)
+  })
+}
+
+export function visibleStock(products, query, limit = STOCK_PAGE_SIZE) {
+  const filtered = filterStock(products, query)
+  const size = Math.max(1, Number(limit) || STOCK_PAGE_SIZE)
+  return { rows: filtered.slice(0, size), total: filtered.length }
+}
+
+export function renderStockPage({ rows, total, query }) {
+  const shown = (rows || []).length
+  const more = total > shown
+    ? `<button type="button" id="stock-more" class="btn-ghost">Mais peças</button>`
+    : ""
+  const meta = total ? `<p class="hint" id="stock-meta">${shown} de ${total}</p>` : ""
+  return `<form id="stock-search" class="stock-tools" role="search">
+    <label class="field"><span>Buscar</span>
+      <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
+    </label>
+  </form>
+  ${meta}
+  <div id="stock-list">${renderStockList(rows)}</div>
+  ${more}`
+}
+
+const CHANNEL_LABELS = {
+  site: "Site",
+  equipe: "Equipe",
+  marketplace: "Marketplace"
+}
+
+export function channelLabel(channel) {
+  const key = String(channel || "").trim().toLowerCase()
+  return CHANNEL_LABELS[key] || String(channel || "")
+}
+
+export function formatWhen(iso) {
+  const date = new Date(iso || "")
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  })
+}
+
+function money(value, formatMoney) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return formatMoney(0)
+  return formatMoney(number)
+}
+
+export function normalizeOverview(data) {
+  if (!data || data.ok === false || typeof data !== "object") return null
+  return {
+    month: String(data.month || ""),
+    charged_total: Number(data.charged_total) || 0,
+    paid_count: Number(data.paid_count) || 0,
+    paid_orders_count: Number(data.paid_orders_count) || 0,
+    channels: Array.isArray(data.channels) ? data.channels : [],
+    best_sellers: Array.isArray(data.best_sellers) ? data.best_sellers : []
+  }
+}
+
+export function normalizeRecentSales(data) {
+  if (!data || data.ok === false) return null
+  const sales = Array.isArray(data.sales) ? data.sales : []
+  return sales.map((sale) => ({
+    id: sale.id,
+    created_at: sale.created_at || sale.paid_at || "",
+    seller_name: sale.seller_name || "",
+    channel: sale.channel || "",
+    customer_name: sale.customer_name || "",
+    total: sale.total,
+    payment_status: sale.payment_status || "",
+    payment_method: sale.payment_method || "",
+    items_count: Number(sale.items_count) || 0
+  }))
+}
+
+export function normalizeSellersMonth(data) {
+  if (!data || data.ok === false || !Array.isArray(data.sellers)) return null
+  return data.sellers.map((seller) => ({
+    seller_id: seller.seller_id,
+    name: seller.name || "Vendedora",
+    month_ready: true,
+    paid_count: Number(seller.paid_count) || 0,
+    paid_orders_count: Number(seller.paid_orders_count) || 0,
+    charged_total: Number(seller.charged_total) || 0,
+    commission_amount: Number(seller.commission_amount) || 0,
+    commission_percent: seller.commission_percent == null ? null : Number(seller.commission_percent),
+    balance: seller.balance == null || seller.balance === "" ? null : Number(seller.balance)
+  }))
+}
+
+export function sellersFromDirectory(sellers) {
+  if (!Array.isArray(sellers)) return null
+  return sellers.map((seller) => ({
+    seller_id: seller.id,
+    name: seller.name || "Vendedora",
+    month_ready: false,
+    balance: null
+  }))
+}
+
+function paymentLabel(method) {
+  if (method === "pix") return "Pix"
+  if (method === "dinheiro") return "Dinheiro"
+  if (method === "cartao") return "Cartão"
+  return ""
+}
+
+function statusLabel(status) {
+  if (status === "paid") return "Paga"
+  if (status === "partial") return "Parcial"
+  if (status === "receivable") return "A receber"
+  return ""
+}
+
+export function renderInicio(overview, formatMoney = formatPrice) {
+  const data = overview && overview.month != null && overview.channels ? overview : normalizeOverview(overview)
+  if (!data) return `<p class="empty">${NO_DATA}</p>`
+  const channels = data.channels.length
+    ? `<ul class="plain-list">${data.channels.map((item) => `<li class="channel-row">
+        <span>${escapeHtml(channelLabel(item.channel))}</span>
+        <b>${escapeHtml(money(item.charged_total, formatMoney))}</b>
+        <small>${Number(item.orders) || 0} pedidos</small>
+      </li>`).join("")}</ul>`
+    : `<p class="empty">${NO_DATA}</p>`
+  const best = data.best_sellers.length
+    ? `<ul class="plain-list">${data.best_sellers.map((item) => `<li class="best-row">
+        <span><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
+          <small>${escapeHtml(item.code || "")}</small></span>
+        <b>${Number(item.quantity) || 0} un.</b>
+      </li>`).join("")}</ul>`
+    : `<p class="empty">${NO_DATA}</p>`
+  return `<section class="report">
+    <h2>Vendas do mês</h2>
+    <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
+    <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
+    <h2>Origem</h2>
+    ${channels}
+    <h2>Mais vendidas</h2>
+    ${best}
+  </section>`
+}
+
+export function renderVendas(sales, formatMoney = formatPrice) {
+  const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
+  if (!rows) return `<p class="empty">${NO_DATA}</p>`
+  if (!rows.length) return `<p class="empty">Nenhuma venda recente.</p>`
+  return `<section class="report"><h2>Vendas recentes</h2>${rows.map((sale) => {
+    const who = [sale.seller_name, channelLabel(sale.channel)].filter(Boolean).join(" · ")
+    const pay = [statusLabel(sale.payment_status), paymentLabel(sale.payment_method)].filter(Boolean).join(" · ")
+    return `<article class="sale-row">
+      <span><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
+        <small>${escapeHtml(who)}</small></span>
+      <span class="piece-side"><b>${escapeHtml(money(sale.total, formatMoney))}</b>
+        <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
+    </article>`
+  }).join("")}</section>`
+}
+
+export function renderVendedoras(sellers, formatMoney = formatPrice) {
+  const rows = Array.isArray(sellers) ? sellers : normalizeSellersMonth(sellers)
+  if (!rows) return `<p class="empty">${NO_DATA}</p>`
+  if (!rows.length) return `<p class="empty">Nenhuma vendedora ativa.</p>`
+  return rows.map((seller) => {
+    const month = seller.month_ready
+      ? `${seller.paid_count} peças em ${seller.paid_orders_count} pedidos · ${money(seller.charged_total, formatMoney)}`
+      : NO_DATA
+    const commission = seller.month_ready
+      ? `${money(seller.commission_amount, formatMoney)}${seller.commission_percent == null ? "" : ` (${seller.commission_percent}%)`}`
+      : NO_DATA
+    const balance = seller.balance == null || Number.isNaN(Number(seller.balance))
+      ? NO_DATA
+      : money(seller.balance, formatMoney)
+    return `<article class="seller-card">
+      <h2>${escapeHtml(seller.name || "Vendedora")}</h2>
+      <p>Mês: ${escapeHtml(month)}</p>
+      <p>Comissão: ${escapeHtml(commission)}</p>
+      <p>Saldo a receber: ${escapeHtml(balance)}</p>
+    </article>`
+  }).join("")
 }
 
 export { ADD_PRODUCT_CATEGORIES }

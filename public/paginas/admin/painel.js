@@ -7,23 +7,38 @@ import {
   defaultsFor,
   fieldPlaceholder,
   isComponentSku,
+  currentMonthKey,
   isDashboardAdmin,
+  isPanelLink,
   navHtml,
+  normalizeOverview,
+  normalizeRecentSales,
+  normalizeSellersMonth,
   renderAddForm,
   renderArchiveDialog,
   renderImportHelp,
+  renderInicio,
   renderPieceForm,
   renderStockList,
+  renderStockPage,
   renderTipos,
+  renderVendas,
+  renderVendedoras,
+  sellersFromDirectory,
   shouldShowDashboard,
   stockNavHtml,
+  STOCK_PAGE_SIZE,
   validateAddProduct,
-  validateProductUpdate
+  validateProductUpdate,
+  visibleStock
 } from "./painel.logic.js"
 import {
   addProduct,
   archiveProduct,
   fetchCategoryDefaults,
+  fetchMonthOverview,
+  fetchRecentSales,
+  fetchSellersMonth,
   importProducts,
   listProducts,
   updateComponentSku,
@@ -67,7 +82,12 @@ const state = {
   productsLoaded: false,
   defaults: {},
   defaultsLoaded: false,
-  piece: null
+  piece: null,
+  stockQuery: "",
+  stockLimit: STOCK_PAGE_SIZE,
+  overview: undefined,
+  recent: undefined,
+  sellers: undefined
 }
 
 function showMessage(text, kind) {
@@ -163,7 +183,8 @@ function bindPieceForm() {
         return
       }
       dialog.close()
-      location.assign("/admin/estoque")
+      state.productsLoaded = false
+      navigate("/admin/estoque")
     })
   })
 }
@@ -185,6 +206,7 @@ function bindAddForm() {
     }
     showMessage("Salvando…")
     const result = await addProduct(payload)
+    if (result.ok) state.productsLoaded = false
     showMessage(result.ok ? "Peça adicionada." : result.error, result.ok ? "" : "error")
   })
 }
@@ -247,28 +269,135 @@ function bindImport() {
   })
 }
 
-async function render(view) {
+let renderToken = 0
+
+function paintStock() {
+  const { rows, total } = visibleStock(state.products, state.stockQuery, state.stockLimit)
+  const empty = state.stockQuery.trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque."
+  const listHtml = rows.length ? renderStockList(rows) : `<p class="empty">${empty}</p>`
+  const list = document.getElementById("stock-list")
+  if (!list) {
+    viewEl.innerHTML = renderStockPage({ rows, total, query: state.stockQuery })
+    const fresh = document.getElementById("stock-list")
+    if (fresh) fresh.innerHTML = listHtml
+    return
+  }
+  list.innerHTML = listHtml
+  const meta = document.getElementById("stock-meta")
+  if (meta) meta.textContent = total ? `${rows.length} de ${total}` : ""
+  const more = document.getElementById("stock-more")
+  if (total > rows.length) {
+    if (!more) {
+      const button = document.createElement("button")
+      button.id = "stock-more"
+      button.type = "button"
+      button.className = "btn-ghost"
+      button.textContent = "Mais peças"
+      viewEl.appendChild(button)
+    }
+  } else if (more) {
+    more.remove()
+  }
+}
+
+function bindStockOnce() {
+  if (viewEl.dataset.stockBound === "1") return
+  viewEl.dataset.stockBound = "1"
+  viewEl.addEventListener("input", (event) => {
+    if (event.target.id !== "stock-query") return
+    state.stockQuery = event.target.value
+    state.stockLimit = STOCK_PAGE_SIZE
+    paintStock()
+  })
+  viewEl.addEventListener("click", (event) => {
+    if (event.target.id !== "stock-more") return
+    state.stockLimit += STOCK_PAGE_SIZE
+    paintStock()
+  })
+  viewEl.addEventListener("submit", (event) => {
+    if (event.target.id === "stock-search") event.preventDefault()
+  })
+}
+
+async function loadOverview() {
+  if (state.overview !== undefined) return state.overview
+  const result = await fetchMonthOverview({ month: currentMonthKey() })
+  state.overview = result.ok ? normalizeOverview(result.data) : null
+  return state.overview
+}
+
+async function loadRecent() {
+  if (state.recent !== undefined) return state.recent
+  const result = await fetchRecentSales({ limit: 20 })
+  state.recent = result.ok ? normalizeRecentSales(result.data) : null
+  return state.recent
+}
+
+async function loadSellers() {
+  if (state.sellers !== undefined) return state.sellers
+  const result = await fetchSellersMonth({ month: currentMonthKey() })
+  if (result.ok) {
+    state.sellers = normalizeSellersMonth(result.data)
+    return state.sellers
+  }
+  const listed = await window.MarisStaffData?.listActiveSellers?.()
+  state.sellers = listed && !listed.error ? sellersFromDirectory(listed.data) : null
+  return state.sellers
+}
+
+function navigate(href) {
+  const url = new URL(href, location.origin)
+  const next = `${url.pathname}${url.search}`
+  if (next !== `${location.pathname}${location.search}`) history.pushState(null, "", next)
+  showView()
+}
+
+function onPanelClick(event) {
+  if (event.defaultPrevented || event.button !== 0) return
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const link = event.target.closest?.("a[href]")
+  if (!link || link.target || link.hasAttribute("download")) return
+  const url = new URL(link.href, location.origin)
+  if (url.origin !== location.origin || !isPanelLink(url.pathname)) return
+  event.preventDefault()
+  navigate(`${url.pathname}${url.search}`)
+}
+
+async function render(view, token) {
   showMessage("")
+  const stale = () => token !== renderToken
   if (view === "inicio") {
-    viewEl.innerHTML = `<p class="empty">O resumo do dia entra aqui.</p>`
+    if (state.overview === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    const overview = await loadOverview()
+    if (stale()) return
+    viewEl.innerHTML = renderInicio(overview)
     return
   }
   if (view === "vendas") {
-    viewEl.innerHTML = `<p class="empty">As vendas da loja entram aqui.</p>`
+    if (state.recent === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    const sales = await loadRecent()
+    if (stale()) return
+    viewEl.innerHTML = renderVendas(sales)
     return
   }
   if (view === "vendedoras") {
-    viewEl.innerHTML = `<p class="empty">A equipe entra aqui.</p>`
+    if (state.sellers === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    const sellers = await loadSellers()
+    if (stale()) return
+    viewEl.innerHTML = renderVendedoras(sellers)
     return
   }
   if (view === "estoque") {
+    if (!document.getElementById("stock-search")) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
     await loadProducts()
-    viewEl.innerHTML = renderStockList(state.products)
+    if (stale()) return
+    paintStock()
     return
   }
   if (view === "peca") {
     const code = new URLSearchParams(location.search).get("code")
     await Promise.all([loadProducts(), loadDefaults()])
+    if (stale()) return
     state.piece = state.products.find((item) => item.code === code) || null
     if (!state.piece) {
       viewEl.innerHTML = `<p class="empty">Peça não encontrada.</p>`
@@ -280,12 +409,14 @@ async function render(view) {
   }
   if (view === "tipos") {
     await loadProducts()
+    if (stale()) return
     viewEl.innerHTML = renderTipos(state.products)
     bindTipos()
     return
   }
   if (view === "adicionar") {
     await loadDefaults()
+    if (stale()) return
     viewEl.innerHTML = renderAddForm()
     bindAddForm()
     return
@@ -301,22 +432,44 @@ async function render(view) {
   }
 }
 
+async function showView() {
+  const token = ++renderToken
+  const view = dashboardView(location.pathname, location.search)
+  paintChrome(view)
+  await render(view, token)
+}
+
+function reveal() {
+  const loading = document.getElementById("staff-loading")
+  if (loading) loading.hidden = true
+  const panel = document.getElementById("panel")
+  if (panel) panel.hidden = false
+}
+
 async function boot() {
+  if (!window.MarisStaffAuth?.isValid?.()) {
+    window.MarisStaffAuth?.requireStaffAccess?.()
+    return
+  }
   const profile = await window.MarisStaffAuth.loadProfile()
   if (profile?.aborted || window.MarisStaffAuth.settleAdminGate(profile) === "wait") return
   if (!profile?.ok || !isDashboardAdmin(profile.user)) {
-    viewEl.innerHTML = `<p class="empty">Só o administrador entra neste painel.</p>`
-    document.body.hidden = false
+    const loading = document.getElementById("staff-loading")
+    if (loading) {
+      loading.hidden = false
+      loading.textContent = "Só o administrador entra neste painel."
+    }
     return
   }
-  const view = dashboardView(location.pathname, location.search)
-  paintChrome(view)
-  document.body.hidden = false
-  await render(view)
+  document.addEventListener("click", onPanelClick)
+  window.addEventListener("popstate", () => { showView() })
+  bindStockOnce()
+  reveal()
+  await showView()
 }
 
 if (!shouldShowDashboard()) {
-  location.replace("/admin")
+  location.replace("/paginas/admin/admin.html")
 } else {
   boot()
 }

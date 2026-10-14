@@ -7,7 +7,10 @@ export const ADMIN_DASHBOARD_API = {
   categoryDefaults: "category-defaults",
   componentUpdate: "admin-component-update",
   addProduct: "add-product",
-  importProducts: "import-products"
+  importProducts: "import-products",
+  monthOverview: "admin-month-overview",
+  recentSales: "admin-recent-sales",
+  sellersMonth: "admin-sellers-month"
 }
 
 function withQuery(url, query) {
@@ -107,6 +110,52 @@ export async function updateComponentSku(body, client) {
 export async function addProduct(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.addProduct, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível cadastrar a peça.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * GET admin-month-overview?month=YYYY-MM
+ * Resposta: { ok, month, timezone, paid_count, paid_orders_count, charged_total,
+ *   channels: [{ channel: site|equipe|marketplace, orders, charged_total }],
+ *   best_sellers: [{ code, name, quantity, charged_total }] }
+ * Só administrador. Se a função ainda não existe, a tela mostra "sem dados ainda".
+ */
+export async function fetchMonthOverview({ month }, client) {
+  const result = await call(ADMIN_DASHBOARD_API.monthOverview, {
+    method: "GET",
+    query: { month }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar o mês.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * GET admin-recent-sales?limit=20
+ * Resposta: { ok, sales: [{ id, created_at, seller_name, channel, customer_name,
+ *   total, payment_status, payment_method, items_count }] }
+ * Vendas de todas as vendedoras. Só administrador.
+ */
+export async function fetchRecentSales({ limit = 20 }, client) {
+  const result = await call(ADMIN_DASHBOARD_API.recentSales, {
+    method: "GET",
+    query: { limit }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as vendas.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * GET admin-sellers-month?month=YYYY-MM
+ * Resposta: { ok, month, timezone, sellers: [{ seller_id, name, paid_count,
+ *   paid_orders_count, charged_total, commission_amount, commission_percent, balance }] }
+ * balance é o saldo a receber. Só administrador.
+ */
+export async function fetchSellersMonth({ month }, client) {
+  const result = await call(ADMIN_DASHBOARD_API.sellersMonth, {
+    method: "GET",
+    query: { month }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as vendedoras.")
   return { ok: true, data: result.data || {} }
 }
 
