@@ -217,6 +217,38 @@ export function formatSaleWhen(iso) {
   }).format(date)
 }
 
+export function formatSaleDate(iso) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date)
+}
+
+export function whatsappLink(value) {
+  const digits = normalizeWhatsapp(value)
+  if (digits.length < 10) return ""
+  return `https://wa.me/55${digits}`
+}
+
+export function saleDetailTotals(sale) {
+  const items = Array.isArray(sale?.items) ? sale.items : []
+  const priced = saleTotals(items, sale?.payment_method)
+  const charged = Number.isFinite(Number(sale?.total)) ? roundMoney(sale.total) : priced.total
+  const pix = sale?.payment_method === "pix"
+  return {
+    subtotal: priced.subtotal,
+    discount: pix ? priced.discount : 0,
+    total: charged,
+    pix
+  }
+}
+
 export function renderRecentSales(sales, formatMoney) {
   const rows = sales || []
   if (!rows.length) return `<p class="recent-empty">Nenhuma venda recente.</p>`
@@ -225,7 +257,8 @@ export function renderRecentSales(sales, formatMoney) {
     const status = paid ? "Pago" : "A receber"
     const method = METHOD_LABEL[sale.payment_method] || ""
     const when = formatSaleWhen(sale.created_at)
-    return `<article class="recent-sale">
+    const label = `Ver venda de ${sale.customer_name || "cliente"}`
+    return `<button type="button" class="recent-sale" data-sale-id="${escapeHtml(sale.id)}" aria-label="${escapeHtml(label)}">
       <div class="recent-sale-main">
         <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
         <span>${escapeHtml(when)}</span>
@@ -234,8 +267,56 @@ export function renderRecentSales(sales, formatMoney) {
         <b>${escapeHtml(formatMoney(sale.total))}</b>
         <span>${escapeHtml(method)} · ${status}</span>
       </div>
+    </button>`
+  }).join("")
+}
+
+function detailPhoto(item) {
+  const url = String(item?.image_url || "").trim()
+  if (!url) {
+    const letters = String(item?.code || item?.name || "?").slice(0, 2)
+    return `<span class="piece-photo piece-photo--empty">${escapeHtml(letters)}</span>`
+  }
+  return `<img class="piece-photo" src="${escapeHtml(url)}" alt="">`
+}
+
+export function renderSaleDetail(sale, formatMoney) {
+  const paid = isPaidSale(sale)
+  const status = paid ? "Pago" : "A receber"
+  const method = METHOD_LABEL[sale?.payment_method] || ""
+  const totals = saleDetailTotals(sale)
+  const link = whatsappLink(sale?.customer_whatsapp)
+  const whatsapp = formatWhatsapp(sale?.customer_whatsapp)
+  const contact = link
+    ? `<a class="whatsapp-link" href="${escapeHtml(link)}">${escapeHtml(whatsapp)}</a>`
+    : `<span>Sem WhatsApp</span>`
+  const pieces = (sale?.items || []).map((item) => {
+    const line = roundMoney((Number(item.unit_price) || 0) * (Number(item.quantity) || 0))
+    return `<article class="detail-piece">
+      ${detailPhoto(item)}
+      <span class="piece-copy">
+        <strong>${escapeHtml(item.name || "Peça")}</strong>
+        <small>${escapeHtml(item.code || "")} · Qtd ${Number(item.quantity) || 0}</small>
+      </span>
+      <b>${escapeHtml(formatMoney(line))}</b>
     </article>`
   }).join("")
+  const discount = totals.pix
+    ? `<div><span>Desconto Pix (5%)</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
+    : ""
+  return `<p class="flow-kicker">Venda</p>
+    <h2 id="sale-modal-title">${escapeHtml(formatSaleDate(sale?.created_at))}</h2>
+    <div class="detail-pieces">${pieces || `<p class="recent-empty">Sem peças nesta venda.</p>`}</div>
+    <div class="detail-customer">
+      <strong>${escapeHtml(sale?.customer_name || "Cliente")}</strong>
+      ${contact}
+    </div>
+    <p class="detail-pay">${escapeHtml(method)} · ${status}</p>
+    <div class="pay-summary">
+      <div><span>Subtotal</span><strong>${escapeHtml(formatMoney(totals.subtotal))}</strong></div>
+      ${discount}
+      <div><span>Total</span><strong>${escapeHtml(formatMoney(totals.total))}</strong></div>
+    </div>`
 }
 
 if (typeof globalThis.window !== "undefined") {
@@ -258,6 +339,9 @@ if (typeof globalThis.window !== "undefined") {
     saleTotals,
     buildCreateSaleBody,
     escapeHtml,
-    renderRecentSales
+    renderRecentSales,
+    renderSaleDetail,
+    whatsappLink,
+    saleDetailTotals
   }
 }

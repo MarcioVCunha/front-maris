@@ -58,9 +58,10 @@ export async function fetchMonthSummary({ sellerId, month }, client) {
 
 /**
  * TODO(backend): GET seller-recent-sales?seller_id=&limit=20
- * Resposta: { ok: true, sales: [{ id, created_at, customer_name, total,
- *   payment_method, payment_status, paid_at }] }
- * Só as vendas dessa vendedora. A tela não oferece editar nem cancelar.
+ * Resposta: { ok: true, sales: [{ id, created_at, customer_name, customer_whatsapp,
+ *   total, payment_method, payment_status, paid_at,
+ *   items: [{ code, name, image_url, quantity, unit_price }] }] }
+ * Só as vendas dessa vendedora. A tela só lê: não edita nem cancela.
  */
 export async function fetchRecentSales({ sellerId, limit = 20 }, client) {
   const result = await call(NEW_SALE_API.recentSales, {

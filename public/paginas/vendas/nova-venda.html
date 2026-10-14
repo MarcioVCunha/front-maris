@@ -41,6 +41,14 @@
   </section>
 </main>
 
+<div id="sale-modal" class="sale-modal" hidden>
+  <button type="button" class="sale-modal-backdrop" data-close-sale aria-label="Fechar"></button>
+  <div class="sale-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
+    <div id="sale-modal-body"></div>
+    <button type="button" class="sale-modal-close" data-close-sale>Fechar</button>
+  </div>
+</div>
+
 <main id="sale-flow" class="sale-main" hidden>
   <ol class="step-bar" aria-label="Etapas da venda">
     <li data-step-pill="1">1 Peças</li>

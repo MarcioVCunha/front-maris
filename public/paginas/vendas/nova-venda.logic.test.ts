@@ -9,10 +9,12 @@ import {
   filterPieces,
   monthCard,
   renderRecentSales,
+  renderSaleDetail,
   saleTotals,
   setPieceQuantity,
   sumPaidChargesInMonth,
   togglePiece,
+  whatsappLink,
 } from "./nova-venda.logic.js"
 
 Deno.test("a flag da venda nova nasce desligada", async () => {
@@ -124,15 +126,60 @@ Deno.test("Pix tira 5% e o corpo da venda não manda preço", () => {
   }).ok, false)
 })
 
-Deno.test("vendas recentes não têm botão de editar nem cancelar", () => {
+Deno.test("vendas recentes abrem detalhe e não têm editar nem cancelar", () => {
   const html = renderRecentSales([
-    { customer_name: "Lia", total: 190, payment_method: "pix", payment_status: "paid", created_at: "2026-10-14T15:00:00Z" }
+    { id: 7, customer_name: "Lia", total: 190, payment_method: "pix", payment_status: "paid", created_at: "2026-10-14T15:00:00Z" }
   ], (value) => `R$ ${value}`)
   assertEquals(html.includes("Lia"), true)
   assertEquals(html.includes("Pago"), true)
-  assertEquals(/<button/i.test(html), false)
+  assertEquals(html.includes('data-sale-id="7"'), true)
   assertEquals(/editar|cancelar/i.test(html), false)
   assertEquals(renderRecentSales([], (value) => String(value)).includes("Nenhuma venda recente"), true)
+})
+
+Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", () => {
+  assertEquals(whatsappLink("11988887777"), "https://wa.me/5511988887777")
+  assertEquals(whatsappLink("123"), "")
+  const html = renderSaleDetail({
+    id: 7,
+    created_at: "2026-10-14T15:00:00Z",
+    customer_name: "Lia Souza",
+    customer_whatsapp: "11988887777",
+    payment_method: "pix",
+    payment_status: "paid",
+    total: 114,
+    items: [{
+      code: "AN581-R",
+      name: "Anel rosa",
+      image_url: "https://loja.test/anel.jpg",
+      quantity: 1,
+      unit_price: 120
+    }]
+  }, (value) => `R$ ${value}`)
+  assertEquals(html.includes("Anel rosa"), true)
+  assertEquals(html.includes("AN581-R"), true)
+  assertEquals(html.includes("Qtd 1"), true)
+  assertEquals(html.includes("https://loja.test/anel.jpg"), true)
+  assertEquals(html.includes("https://wa.me/5511988887777"), true)
+  assertEquals(html.includes("Lia Souza"), true)
+  assertEquals(html.includes("Pix"), true)
+  assertEquals(html.includes("Pago"), true)
+  assertEquals(html.includes("Desconto Pix (5%)"), true)
+  assertEquals(html.includes("R$ 6"), true)
+  assertEquals(html.includes("R$ 114"), true)
+  assertEquals(/editar|cancelar/i.test(html), false)
+
+  const cash = renderSaleDetail({
+    created_at: "2026-10-10T18:00:00Z",
+    customer_name: "Bia",
+    payment_method: "dinheiro",
+    payment_status: "receivable",
+    total: 80,
+    items: [{ code: "BR1", name: "Brinco", quantity: 1, unit_price: 80 }]
+  }, (value) => `R$ ${value}`)
+  assertEquals(cash.includes("A receber"), true)
+  assertEquals(cash.includes("Desconto Pix"), false)
+  assertEquals(cash.includes("Sem WhatsApp"), true)
 })
 
 Deno.test("o atalho da tela nova fica escondido enquanto a flag está desligada", async () => {

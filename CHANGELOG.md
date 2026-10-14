@@ -8,6 +8,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 - Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
 - Tela nova de registrar venda em `/vendas/nova`, desligada (`NEW_SALE_ENABLED`). Card do mês com 30% de comissão só sobre vendas pagas (zero para Marcio e Marineide), fluxo em três passos e as vendas recentes da própria vendedora. A tela atual em `/vendas` não muda.
+- Toque numa venda recente abre o detalhe só de leitura: data, peças, cliente, WhatsApp, pagamento e total, com desconto no Pix quando for o caso. Sem editar nem cancelar.
 
 ### Removido
 

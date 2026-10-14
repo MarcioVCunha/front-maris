@@ -10,6 +10,7 @@ import {
   formatWhatsapp,
   monthCard,
   renderRecentSales,
+  renderSaleDetail,
   saleTotals,
   setPieceQuantity,
   shouldShowNewSale,
@@ -33,6 +34,8 @@ const monthTotalEl = document.getElementById("month-total")
 const monthCommissionEl = document.getElementById("month-commission")
 const commissionNoteEl = document.getElementById("commission-note")
 const recentEl = document.getElementById("recent-sales")
+const saleModalEl = document.getElementById("sale-modal")
+const saleModalBodyEl = document.getElementById("sale-modal-body")
 const newSaleBtn = document.getElementById("new-sale-btn")
 const homeMessageEl = document.getElementById("home-message")
 const pieceSearchEl = document.getElementById("piece-search")
@@ -53,6 +56,7 @@ const payTotalEl = document.getElementById("pay-total")
 const state = {
   seller: null,
   step: 1,
+  recentSales: [],
   pieceHits: [],
   selected: [],
   customerHits: [],
@@ -190,6 +194,7 @@ async function loadHome() {
     monthTotalEl.textContent = money(0)
     monthCommissionEl.textContent = money(0)
     commissionNoteEl.textContent = "Sem comissão nesta conta."
+    state.recentSales = []
     recentEl.innerHTML = renderRecentSales([], money)
     newSaleBtn.disabled = true
     return
@@ -204,7 +209,8 @@ async function loadHome() {
   monthCommissionEl.textContent = money(card.commission)
   commissionNoteEl.textContent = card.note
   if (!summary.ok) setNote(homeMessageEl, summary.error, "error")
-  recentEl.innerHTML = renderRecentSales(recent.ok ? recent.sales : [], money)
+  state.recentSales = recent.ok ? recent.sales : []
+  recentEl.innerHTML = renderRecentSales(state.recentSales, money)
   if (!recent.ok) setNote(homeMessageEl, recent.error, "error")
 }
 
@@ -360,6 +366,34 @@ document.querySelectorAll("[data-method]").forEach((button) => {
     state.paymentMethod = button.getAttribute("data-method")
     renderPayment()
   })
+})
+
+function openSale(sale) {
+  if (!sale || !saleModalEl || !saleModalBodyEl) return
+  saleModalBodyEl.innerHTML = renderSaleDetail(sale, money)
+  saleModalEl.hidden = false
+  saleModalEl.querySelector(".sale-modal-close")?.focus()
+}
+
+function closeSale() {
+  if (!saleModalEl) return
+  saleModalEl.hidden = true
+  saleModalBodyEl.innerHTML = ""
+}
+
+recentEl.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-sale-id]")
+  if (!row) return
+  const sale = state.recentSales.find((item) => String(item.id) === row.getAttribute("data-sale-id"))
+  openSale(sale)
+})
+
+saleModalEl?.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-sale]")) closeSale()
+})
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && saleModalEl && !saleModalEl.hidden) closeSale()
 })
 
 window.MarisUI.bindDebouncedSearch(pieceSearchEl, onPieceSearch, { debounceMs: 200 })

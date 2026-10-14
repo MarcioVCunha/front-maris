@@ -114,14 +114,22 @@
   margin-top: 10px;
 }
 
-.recent-sale {
+.nova-venda button.recent-sale {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  width: 100%;
+  min-height: 76px;
   padding: 14px;
   background: var(--maris-surface);
+  color: var(--maris-text);
   border: 1px solid var(--maris-border-soft);
   border-radius: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  text-align: left;
 }
 
 .recent-sale-main,
@@ -313,6 +321,95 @@
 
 .step-message.error {
   color: #a94442;
+}
+
+.sale-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sale-modal[hidden] {
+  display: none;
+}
+
+.nova-venda .sale-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(47, 31, 42, 0.45);
+  text-transform: none;
+}
+
+.sale-modal-sheet {
+  position: relative;
+  width: min(480px, 100%);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  background: var(--maris-bg);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 16px 16px;
+  box-shadow: var(--maris-shadow-hover);
+}
+
+.sale-modal-sheet h2 {
+  margin: 4px 0 12px;
+  font-family: var(--maris-font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.detail-pieces {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-piece {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border-soft);
+  border-radius: 14px;
+}
+
+.detail-piece b {
+  margin-left: auto;
+}
+
+.detail-customer,
+.detail-pay {
+  margin: 14px 0 0;
+}
+
+.nova-venda .whatsapp-link {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  color: var(--maris-black);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nova-venda .sale-modal-close {
+  min-height: 56px;
+  margin-top: 16px;
+  border-radius: 14px;
 }
 
 .pay-summary .total-figure {

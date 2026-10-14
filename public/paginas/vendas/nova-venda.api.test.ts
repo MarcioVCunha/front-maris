@@ -39,11 +39,19 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
   await searchCustomers({ query: "lia" }, customers)
   assertEquals(customers.calls[0].name, "sale-customer-search")
 
-  const recent = fakeClient({ ok: true, sales: [{ id: 8 }] })
+  const sale = {
+    id: 8,
+    customer_whatsapp: "11988887777",
+    items: [{ code: "AN581-R", name: "Anel rosa", quantity: 1, unit_price: 120, image_url: "a.jpg" }]
+  }
+  const recent = fakeClient({ ok: true, sales: [sale] })
   const listed = await fetchRecentSales({ sellerId: 3 }, recent)
   assertEquals(recent.calls[0].name, "seller-recent-sales")
   assertEquals(recent.calls[0].options.query, { seller_id: 3, limit: 20 })
-  assertEquals(listed.sales, [{ id: 8 }])
+  assertEquals(listed.sales, [sale])
+  const source = await Deno.readTextFile(new URL("./nova-venda.api.js", import.meta.url))
+  assertEquals(source.includes("customer_whatsapp"), true)
+  assertEquals(source.includes("unit_price"), true)
 })
 
 Deno.test("cadastrar cliente e criar a venda mandam o corpo combinado", async () => {
