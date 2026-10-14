@@ -160,6 +160,7 @@ Deno.test("adicionar peça repete os campos novos e o arquivamento pede confirma
   assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.altura_cm}"`), true)
   const piece = { code: "AN581-R", name: "Anel rosa" }
   assertEquals(archivePayload(piece.code), { code: "AN581-R" })
+  assertEquals(archivePayload(piece.code, false), { code: "AN581-R", archive: false })
   assertEquals(archiveConfirmText(piece), "Arquivar Anel rosa (AN581-R)? Ela sai da lista do estoque.")
   assert(renderArchiveDialog(piece).includes("archive-confirm"))
 })

@@ -73,13 +73,24 @@ export async function updateProduct(body, client) {
 }
 
 /**
- * POST admin-product-archive
- * Corpo: { code }
+ * POST admin-product-archive (back-maris PR #15)
+ * Corpo: { code, archive? } — archive padrão true; false desarquiva.
+ * Resposta: { ok, code, archived_at, already_archived, already_unarchived? }
  */
 export async function archiveProduct(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.productArchive, { method: "POST", body }, client)
-  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível arquivar a peça.")
-  return { ok: true }
+  if (!result?.ok || result.data?.ok === false) {
+    const archive = body?.archive !== false
+    return failed(result, archive ? "Não foi possível arquivar a peça." : "Não foi possível desarquivar a peça.")
+  }
+  const data = result.data || {}
+  return {
+    ok: true,
+    code: data.code ?? body?.code ?? null,
+    archived_at: data.archived_at ?? null,
+    already_archived: data.already_archived === true,
+    already_unarchived: data.already_unarchived === true
+  }
 }
 
 /**

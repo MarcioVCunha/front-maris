@@ -53,10 +53,30 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(saved.calls[0].options.method, "POST")
   assertEquals(saved.calls[0].options.body, body)
 
-  const archived = client({ ok: true })
-  await archiveProduct({ code: "AN581-R" }, archived)
+  const archived = client({
+    ok: true,
+    code: "AN581-R",
+    archived_at: "2026-10-14T15:00:00.000Z",
+    already_archived: false
+  })
+  const archiveResult = await archiveProduct({ code: "AN581-R" }, archived)
   assertEquals(archived.calls[0].name, "admin-product-archive")
   assertEquals(archived.calls[0].options.body, { code: "AN581-R" })
+  assertEquals(archiveResult.ok, true)
+  assertEquals(archiveResult.archived_at, "2026-10-14T15:00:00.000Z")
+  assertEquals(archiveResult.already_archived, false)
+
+  const unarchived = client({
+    ok: true,
+    code: "AN581-R",
+    archived_at: null,
+    already_archived: false,
+    already_unarchived: false
+  })
+  const unarchiveResult = await archiveProduct({ code: "AN581-R", archive: false }, unarchived)
+  assertEquals(unarchived.calls[0].options.body, { code: "AN581-R", archive: false })
+  assertEquals(unarchiveResult.archived_at, null)
+  assertEquals(unarchiveResult.already_unarchived, false)
 
   const defaults = client({
     ok: true,
