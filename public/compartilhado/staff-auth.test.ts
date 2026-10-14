@@ -212,6 +212,17 @@ Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
   assertEquals(Auth.isAdminOnlyPath("/tipos-produto"), false)
   assertEquals(Auth.ADMIN_ONLY_PATHS.includes("/tipos-produto"), false)
   assertEquals([...Auth.ADMIN_ONLY_PATHS].sort(), [...adminPages].sort())
+  assertEquals(Auth.isAdminOnlyPath("/admin/estoque"), true)
+  assertEquals(Auth.isAdminOnlyPath("/admin/peca"), true)
+  assertEquals(Auth.isAdminOnlyPath("/paginas/admin/painel.html"), true)
+  assertEquals(
+    Auth.accessDecision({ pathname: "/admin/estoque", role: "seller", hasSession: true, optional: false }),
+    "deny"
+  )
+  assertEquals(
+    Auth.accessDecision({ pathname: "/admin/estoque", role: "admin", hasSession: true, optional: false }),
+    "allow"
+  )
   assertEquals(
     Auth.accessDecision({ pathname: "/vendas", role: null, hasSession: false, optional: false }),
     "login"
@@ -476,6 +487,7 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/equipe.html",
     "paginas/admin/nova-senha.html",
     "paginas/admin/admin.html",
+    "paginas/admin/painel.html",
     "paginas/admin/vendedoras.html",
     "paginas/vendas/nova-venda.html",
     "paginas/vendas/lista-espera.html",

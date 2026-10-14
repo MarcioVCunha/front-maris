@@ -36,7 +36,10 @@
   }
 
   function isAdminOnlyPath(pathname) {
-    return ADMIN_ONLY_PATHS.includes(normalizePath(pathname))
+    const path = normalizePath(pathname)
+    if (path === "/admin" || path.startsWith("/admin/")) return true
+    if (path === "/paginas/admin/painel.html") return true
+    return ADMIN_ONLY_PATHS.includes(path)
   }
 
   function supabaseUrl() {
