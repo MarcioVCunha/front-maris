@@ -8,18 +8,20 @@
 </head>
 <body class="painel">
   <p id="staff-loading" class="boot-loading">Carregando…</p>
-  <div id="panel" hidden>
-    <header>
+  <div id="panel" class="panel-shell" hidden>
+    <aside class="panel-rail">
       <a class="back-link" href="/">← Voltar ao início</a>
       <p id="staff-who" class="who" hidden></p>
       <h1 id="view-title">Painel</h1>
       <nav id="dash-nav" class="dash-nav" aria-label="Painel"></nav>
-    </header>
-    <nav id="stock-nav" class="subnav" hidden aria-label="Estoque"></nav>
-    <main id="view" class="view"></main>
-    <p id="message" class="note" hidden></p>
-    <div class="session">
-      <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+      <nav id="stock-nav" class="subnav" hidden aria-label="Estoque"></nav>
+      <div class="session">
+        <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+      </div>
+    </aside>
+    <div class="panel-body">
+      <main id="view" class="view"></main>
+      <p id="message" class="note" hidden></p>
     </div>
     <dialog id="archive-dialog"></dialog>
   </div>
