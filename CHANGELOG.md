@@ -14,6 +14,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Entrar em `/admin` espera o perfil do administrador. Um `staff-me` interrompido pela troca de página não manda mais para a mensagem de sem permissão.
 - `/admin` abre direto o painel, com "Carregando…" no lugar da página antiga. O perfil fica na sessão e as abas do painel trocam sem recarregar a página. O estoque busca e mostra as peças aos poucos. Início, Vendas e Vendedoras leem o resumo do mês quando o servidor responde.
 - No computador (≥1024px e ≥1440px), o catálogo, a peça, a cesta e o painel ganham layout largo: filtros ao lado, grade mais ampla, menu lateral no admin e listas mais espaçosas. No celular o visual continua o de sempre.
+- Em Adicionar peça, a embalagem já vem com peso 80 g, largura 20 cm, comprimento 17 cm e altura 5 cm. Se a categoria tiver padrão no banco, ao trocar a categoria esses valores entram sem apagar o que foi editado à mão.
 
 ### Alterado
 

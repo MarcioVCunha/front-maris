@@ -7,6 +7,15 @@ export const ORIGEM_DEFAULT = 0
 export const STOCK_PAGE_SIZE = 20
 export const NO_DATA = "sem dados ainda"
 
+// Embalagem padrão ao adicionar peça. A categoria pode trazer outros valores.
+export const PACKAGING_FIELDS = ["peso_g", "largura_cm", "comprimento_cm", "altura_cm"]
+export const PACKAGING_DEFAULTS = {
+  peso_g: "80",
+  largura_cm: "20",
+  comprimento_cm: "17",
+  altura_cm: "5"
+}
+
 export const DASHBOARD_VIEWS = [
   { id: "inicio", href: "/admin/inicio", label: "Início" },
   { id: "estoque", href: "/admin/estoque", label: "Estoque" },
@@ -104,6 +113,37 @@ export function fieldPlaceholder(field, defaults) {
 
 function filled(value) {
   return value != null && String(value).trim() !== ""
+}
+
+export function packagingValues(defaults = {}) {
+  const out = {}
+  for (const field of PACKAGING_FIELDS) {
+    const fromCategory = defaults?.[field]
+    out[field] = filled(fromCategory) ? String(fromCategory) : PACKAGING_DEFAULTS[field]
+  }
+  return out
+}
+
+export function samePackagingNumber(a, b) {
+  const left = String(a ?? "").trim().replace(",", ".")
+  const right = String(b ?? "").trim().replace(",", ".")
+  if (!left && !right) return true
+  const na = Number(left)
+  const nb = Number(right)
+  if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb
+  return left === right
+}
+
+// Só troca o valor se ainda for o sugerido anterior (o usuário não mexeu).
+export function nextPackagingValues({ current = {}, previousSuggested = {}, nextSuggested = {} } = {}) {
+  const next = {}
+  for (const field of PACKAGING_FIELDS) {
+    const cur = current[field]
+    const prev = previousSuggested[field]
+    const suggested = nextSuggested[field]
+    next[field] = samePackagingNumber(cur, prev) ? String(suggested ?? "") : String(cur ?? "")
+  }
+  return next
 }
 
 export function pieceFormState(piece = {}, defaults = {}) {
@@ -319,6 +359,7 @@ export function renderArchiveDialog(piece) {
 
 export function renderAddForm(defaults = {}) {
   const state = pieceFormState({}, defaults)
+  const pack = packagingValues(defaults)
   return `<form id="add-form" class="stack">
     <h2>Adicionar peça</h2>
     ${field("Código", `<input id="code" required placeholder="Ex.: BM1786-O">`)}
@@ -328,10 +369,10 @@ export function renderAddForm(defaults = {}) {
     ${field("Quantidade", `<input id="quantity" inputmode="numeric" required value="0">`)}
     ${field("Fotos", `<textarea id="photos" rows="3" placeholder="Uma URL por linha"></textarea>`)}
     ${field("Descrição", `<textarea id="descricao" rows="3" placeholder="${escapeHtml(state.placeholders.descricao)}"></textarea>`)}
-    ${field("Peso (g)", `<input id="peso" inputmode="decimal" placeholder="${escapeHtml(state.placeholders.peso_g)}">`)}
-    ${field("Largura (cm)", `<input id="largura" inputmode="decimal" placeholder="${escapeHtml(state.placeholders.largura_cm)}">`)}
-    ${field("Altura (cm)", `<input id="altura" inputmode="decimal" placeholder="${escapeHtml(state.placeholders.altura_cm)}">`)}
-    ${field("Comprimento (cm)", `<input id="comprimento" inputmode="decimal" placeholder="${escapeHtml(state.placeholders.comprimento_cm)}">`)}
+    ${field("Peso (g)", `<input id="peso" inputmode="decimal" value="${escapeHtml(pack.peso_g)}">`)}
+    ${field("Largura (cm)", `<input id="largura" inputmode="decimal" value="${escapeHtml(pack.largura_cm)}">`)}
+    ${field("Altura (cm)", `<input id="altura" inputmode="decimal" value="${escapeHtml(pack.altura_cm)}">`)}
+    ${field("Comprimento (cm)", `<input id="comprimento" inputmode="decimal" value="${escapeHtml(pack.comprimento_cm)}">`)}
     ${field("NCM", `<input id="ncm" value="${NCM_DEFAULT}">`)}
     ${field("Origem", `<input id="origem" inputmode="numeric" value="${ORIGEM_DEFAULT}">`)}
     ${field("GTIN", `<input id="gtin" placeholder="Opcional">`)}
