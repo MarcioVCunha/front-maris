@@ -1,14 +1,16 @@
 # Venda de marketplace (Shopee, Mercado Livre, TikTok)
 
-A tela `/vendas/nova` prepara o fluxo atrás da flag `MARKETPLACE_SALE_ENABLED` (desligada). O front **não** chama essas funções enquanto a flag estiver off. Não há edge function de marketplace no front hoje; `sale-create` exige `seller_id` e gera comissão de vendedora — não serve para este canal sem contrato novo.
+A tela `/vendas/nova` prepara o fluxo atrás da flag `MARKETPLACE_SALE_ENABLED` (desligada). O front **não** chama essas funções enquanto a flag estiver off.
+
+Endpoints **ainda não estão no ar**. Nomes e corpos abaixo são o contrato assumido até o PR do back-maris; se o back divergir, ajustar o front na hora de ligar a flag.
 
 Canal no resumo do painel já prevê `marketplace` (`admin-month-overview.channels`).
 
-## POST marketplace-sale-create
+## POST register-marketplace-order
 
 Registra venda de marketplace: baixa estoque, **sem** `seller_id` e **sem** comissão.
 
-`POST /functions/v1/marketplace-sale-create`  
+`POST /functions/v1/register-marketplace-order`  
 Auth: equipe (staff). Preferência: só `admin`.
 
 ### Entrada
@@ -61,7 +63,7 @@ Auth: equipe (staff). Preferência: só `admin`.
 }
 ```
 
-`sale_ids` são as linhas canceláveis. `commission_amount` sempre `0` e `sem_comissao` sempre `true`.
+`sale_ids` são as linhas do pedido. `commission_amount` sempre `0` e `sem_comissao` sempre `true`.
 
 ### Erros
 
@@ -69,33 +71,24 @@ Auth: equipe (staff). Preferência: só `admin`.
 - `400` validação (`marketplace` inválido, itens vazios, etc.)
 - `409` `{ "ok": false, "error": "Algumas peças esgotaram.", "stock_issues": [...] }` (mesmo formato de `sale-create`)
 
-## POST cancel-sale (estoque de volta)
+## POST cancel-marketplace-order
 
-Já existe em Contas vendedoras: devolve a peça ao estoque e marca cancelada.
+Cancela o pedido de marketplace e **devolve as peças ao estoque**.
 
-Hoje o front de Contas manda só `{ "sale_id": number }` (uma linha).
+`POST /functions/v1/cancel-marketplace-order`  
+Auth: equipe (staff). Preferência: só `admin`.
 
-Para cancelar a venda de marketplace inteira a partir de `/vendas/nova`, o backend precisa aceitar **um** destes (o front usa o primeiro que a função publicar):
-
-### Opção A — por linhas (já alinhada ao Contas)
-
-```json
-{ "sale_id": 101 }
-```
-
-Repetir por cada id de `sale_ids`, ou aceitar:
-
-```json
-{ "sale_ids": [101, 102] }
-```
-
-### Opção B — por pedido
+### Entrada
 
 ```json
 { "order_id": 55 }
 ```
 
-Cancela todas as linhas do pedido marketplace e devolve o estoque de todas.
+Alternativa aceitável (se o back preferir linhas):
+
+```json
+{ "sale_ids": [101, 102] }
+```
 
 ### Saída ok
 
@@ -103,17 +96,17 @@ Cancela todas as linhas do pedido marketplace e devolve o estoque de todas.
 { "ok": true, "stock_restored": true }
 ```
 
+`cancel-sale` (Contas vendedoras) **não** é usado para este fluxo.
+
 ## Listagem
 
-Enquanto não houver endpoint próprio, a tela continua em `seller-recent-sales` (só a vendedora da conta). Vendas marketplace **sem** vendedora precisam aparecer para o admin — contrato sugerido (opcional, mesma forma de `admin-recent-sales`):
-
-`GET admin-recent-sales` já devolve `channel`. Incluir `"marketplace": "shopee"|"mercado_livre"|"tiktok"|null` em cada venda quando `channel === "marketplace"`.
+Enquanto não houver endpoint próprio, a tela continua em `seller-recent-sales` (só a vendedora da conta). Vendas marketplace **sem** vendedora precisam aparecer para o admin — contrato sugerido: `GET admin-recent-sales` com `"marketplace": "shopee"|"mercado_livre"|"tiktok"|null` quando `channel === "marketplace"`.
 
 ## Colunas / dados
 
-Se ainda não existirem no banco (não inventar no front):
+Se ainda não existirem no banco:
 
 - pedido/venda com `channel = marketplace`
 - campo `marketplace` (`shopee` \| `mercado_livre` \| `tiktok`)
 - `seller_id` nulo e comissão zero nesse canal
-- cancelamento que reverte a baixa de estoque (como `cancel-sale` já faz nas vendas da equipe)
+- cancelamento que reverte a baixa de estoque

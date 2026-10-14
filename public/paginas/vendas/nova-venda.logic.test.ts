@@ -5,7 +5,7 @@ import {
   buildCreateSaleBody,
   buildMarketplaceSaleBody,
   cancelMarketplaceOrderPayload,
-  cancelMarketplaceSalePayload,
+  cancelMarketplaceSaleIdsPayload,
   chargedTotalFromSummary,
   commissionRateFor,
   customerPayload,
@@ -440,7 +440,7 @@ Deno.test("marketplace fica desligado e monta o corpo sem seller_id", async () =
   }).ok, false)
 
   assertEquals(cancelMarketplaceOrderPayload(55), { ok: true, body: { order_id: 55 } })
-  assertEquals(cancelMarketplaceSalePayload(101), { ok: true, body: { sale_id: 101 } })
+  assertEquals(cancelMarketplaceSaleIdsPayload([101, 102]), { ok: true, body: { sale_ids: [101, 102] } })
   assertEquals(isMarketplaceSale({ channel: "marketplace", marketplace: "tiktok" }), true)
   assertEquals(isMarketplaceSale({ channel: "equipe" }), false)
 
@@ -462,8 +462,9 @@ Deno.test("marketplace fica desligado e monta o corpo sem seller_id", async () =
   assert(page.includes('id="marketplace-sale-btn"'))
   assert(page.includes('data-marketplace="shopee"'))
   const contract = await Deno.readTextFile(new URL("../../../docs/contratos/venda-marketplace.md", import.meta.url))
-  assert(contract.includes("marketplace-sale-create"))
-  assert(contract.includes("cancel-sale"))
+  assert(contract.includes("register-marketplace-order"))
+  assert(contract.includes("cancel-marketplace-order"))
+  assertEquals(contract.includes("marketplace-sale-create"), false)
 })
 
 Deno.test("a função antiga de venda fica só no changelog", async () => {

@@ -7,10 +7,9 @@ export const NEW_SALE_API = {
   searchCustomers: "sale-customer-search",
   saveCustomer: "sale-customer-save",
   createSale: "sale-create",
-  /** Contrato em docs/contratos/venda-marketplace.md — ainda não publicado. */
-  marketplaceCreate: "marketplace-sale-create",
-  /** Já usado em Contas; marketplace precisa aceitar order_id ou sale_ids. */
-  cancelSale: "cancel-sale"
+  /** Contrato assumido em docs/contratos/venda-marketplace.md — ainda não no ar. */
+  registerMarketplaceOrder: "register-marketplace-order",
+  cancelMarketplaceOrder: "cancel-marketplace-order"
 }
 
 function withQuery(url, query) {
@@ -196,12 +195,12 @@ export async function createSale(body, client) {
 }
 
 /**
- * POST marketplace-sale-create
+ * POST register-marketplace-order (ainda não no ar)
  * Corpo: { marketplace, payment_status, payment_method, items, client_request_id?,
  *   external_order_id?, customer? } — sem seller_id. Ver contrato.
  */
-export async function createMarketplaceSale(body, client) {
-  const result = await call(NEW_SALE_API.marketplaceCreate, {
+export async function registerMarketplaceOrder(body, client) {
+  const result = await call(NEW_SALE_API.registerMarketplaceOrder, {
     method: "POST",
     body
   }, client)
@@ -234,11 +233,11 @@ export async function createMarketplaceSale(body, client) {
 }
 
 /**
- * POST cancel-sale — devolve peça ao estoque.
- * Contas usa { sale_id }. Marketplace prefere { order_id } (contrato).
+ * POST cancel-marketplace-order (ainda não no ar)
+ * Corpo preferido: { order_id }. Devolve peças ao estoque.
  */
-export async function cancelSale(body, client) {
-  const result = await call(NEW_SALE_API.cancelSale, {
+export async function cancelMarketplaceOrder(body, client) {
+  const result = await call(NEW_SALE_API.cancelMarketplaceOrder, {
     method: "POST",
     body
   }, client)
@@ -257,8 +256,8 @@ if (typeof globalThis.window !== "undefined") {
     searchCustomers,
     saveCustomer,
     createSale,
-    createMarketplaceSale,
-    cancelSale,
+    registerMarketplaceOrder,
+    cancelMarketplaceOrder,
     recentSalesLimit,
     messageForSaleError
   }

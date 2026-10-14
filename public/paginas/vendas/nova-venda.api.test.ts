@@ -1,13 +1,13 @@
 import { assertEquals } from "jsr:@std/assert@1"
 import {
   NEW_SALE_API,
-  cancelSale,
-  createMarketplaceSale,
+  cancelMarketplaceOrder,
   createSale,
   fetchMonthSummary,
   fetchRecentSales,
   messageForSaleError,
   recentSalesLimit,
+  registerMarketplaceOrder,
   saveCustomer,
   searchCustomers,
   searchPieces,
@@ -203,9 +203,9 @@ Deno.test("erro da função provisória volta mensagem e não segue", async () =
   assertEquals(result.error, "Função ainda não publicada.")
 })
 
-Deno.test("marketplace-sale-create e cancel-sale usam os nomes do contrato", async () => {
-  assertEquals(NEW_SALE_API.marketplaceCreate, "marketplace-sale-create")
-  assertEquals(NEW_SALE_API.cancelSale, "cancel-sale")
+Deno.test("register-marketplace-order e cancel-marketplace-order usam os nomes do contrato", async () => {
+  assertEquals(NEW_SALE_API.registerMarketplaceOrder, "register-marketplace-order")
+  assertEquals(NEW_SALE_API.cancelMarketplaceOrder, "cancel-marketplace-order")
 
   const body = {
     marketplace: "mercado_livre",
@@ -229,8 +229,8 @@ Deno.test("marketplace-sale-create e cancel-sale usam os nomes do contrato", asy
     commission_amount: 0,
     sem_comissao: true
   })
-  const sale = await createMarketplaceSale(body, created)
-  assertEquals(created.calls[0].name, "marketplace-sale-create")
+  const sale = await registerMarketplaceOrder(body, created)
+  assertEquals(created.calls[0].name, "register-marketplace-order")
   assertEquals(created.calls[0].options.body, body)
   assertEquals(sale.ok, true)
   assertEquals(sale.order?.channel, "marketplace")
@@ -239,8 +239,8 @@ Deno.test("marketplace-sale-create e cancel-sale usam os nomes do contrato", asy
   assertEquals(sale.order?.sale_ids, [101])
 
   const cancelled = fakeClient({ ok: true, stock_restored: true })
-  const result = await cancelSale({ order_id: 55 }, cancelled)
-  assertEquals(cancelled.calls[0].name, "cancel-sale")
+  const result = await cancelMarketplaceOrder({ order_id: 55 }, cancelled)
+  assertEquals(cancelled.calls[0].name, "cancel-marketplace-order")
   assertEquals(cancelled.calls[0].options.body, { order_id: 55 })
   assertEquals(result.ok, true)
   assertEquals(result.stockRestored, true)

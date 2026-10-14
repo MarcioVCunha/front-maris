@@ -23,11 +23,11 @@ import {
   togglePiece
 } from "./nova-venda.logic.js"
 import {
-  cancelSale,
-  createMarketplaceSale,
+  cancelMarketplaceOrder as cancelMarketplaceOrderApi,
   createSale,
   fetchMonthSummary,
   fetchRecentSales,
+  registerMarketplaceOrder,
   saveCustomer,
   searchCustomers,
   searchPieces
@@ -362,7 +362,7 @@ async function confirmSale() {
   }
   body = { ...body, client_request_id: saleRequestId(body) }
   flowNextEl.disabled = true
-  const result = market ? await createMarketplaceSale(body) : await createSale(body)
+  const result = market ? await registerMarketplaceOrder(body) : await createSale(body)
   flowNextEl.disabled = false
   if (!result.ok) {
     if (result.status === 409 && result.stockIssues?.length) {
@@ -544,7 +544,7 @@ async function cancelMarketplaceOrder(orderId) {
     "Cancelar esta venda de marketplace e devolver as peças ao estoque? Esta ação não pode ser desfeita."
   )
   if (!ok) return
-  const result = await cancelSale(built.body)
+  const result = await cancelMarketplaceOrderApi(built.body)
   if (!result.ok) {
     setNote(homeMessageEl, result.error, "error")
     return

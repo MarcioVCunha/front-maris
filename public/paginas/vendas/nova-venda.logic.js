@@ -264,7 +264,7 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
 }
 
 /**
- * Corpo de marketplace-sale-create. Sem seller_id e sem comissão.
+ * Corpo de register-marketplace-order. Sem seller_id e sem comissão.
  * Ver docs/contratos/venda-marketplace.md.
  */
 export function buildMarketplaceSaleBody({
@@ -309,18 +309,20 @@ export function buildMarketplaceSaleBody({
   return { ok: true, body }
 }
 
-/** Payload preferido para cancelar pedido marketplace (opção B do contrato). */
+/** Payload de cancel-marketplace-order: { order_id }. */
 export function cancelMarketplaceOrderPayload(orderId) {
   const id = Number(orderId)
   if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Pedido inválido." }
   return { ok: true, body: { order_id: id } }
 }
 
-/** Payload por linha, compatível com o cancel-sale já usado em Contas. */
-export function cancelMarketplaceSalePayload(saleId) {
-  const id = Number(saleId)
-  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Venda inválida." }
-  return { ok: true, body: { sale_id: id } }
+/** Alternativa do contrato: { sale_ids }. */
+export function cancelMarketplaceSaleIdsPayload(saleIds) {
+  const ids = (Array.isArray(saleIds) ? saleIds : [])
+    .map((value) => Number(value))
+    .filter((id) => Number.isInteger(id) && id > 0)
+  if (!ids.length) return { ok: false, error: "Venda inválida." }
+  return { ok: true, body: { sale_ids: ids } }
 }
 
 export function isMarketplaceSale(sale) {
@@ -591,7 +593,7 @@ if (typeof globalThis.window !== "undefined") {
     buildCreateSaleBody,
     buildMarketplaceSaleBody,
     cancelMarketplaceOrderPayload,
-    cancelMarketplaceSalePayload,
+    cancelMarketplaceSaleIdsPayload,
     escapeHtml,
     renderRecentSales,
     renderSaleDetail,
