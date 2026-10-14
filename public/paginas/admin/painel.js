@@ -303,6 +303,7 @@ async function render(view) {
 
 async function boot() {
   const profile = await window.MarisStaffAuth.loadProfile()
+  if (profile?.aborted || window.MarisStaffAuth.settleAdminGate(profile) === "wait") return
   if (!profile?.ok || !isDashboardAdmin(profile.user)) {
     viewEl.innerHTML = `<p class="empty">Só o administrador entra neste painel.</p>`
     document.body.hidden = false
