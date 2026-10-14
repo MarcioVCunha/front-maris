@@ -11,6 +11,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Removido
 
 - Saem as cestas compartilhadas. O site não chama mais `create-shared-basket`, `customer-cart-share`, `list-shared-carts`, `discard-shared-cart` nem `mark-cart-converted`. Somem o link de compartilhar na cesta, a página `/catalog/cesta` e as telas `/carrinhos-clientes` e `/carrinho-cliente`.
+- Links antigos `/catalog/cesta` (com qualquer query, como `?id=`) e `/catalog/cesta-compartilhada.html` redirecionam para `/catalog`.
 
 ## [1.2.0] - 2026-10-14
 

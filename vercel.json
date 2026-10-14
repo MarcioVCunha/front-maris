@@ -15,6 +15,8 @@
     { "source": "/sales/waitlist.html", "destination": "/lista-espera", "permanent": true },
     { "source": "/catalog/catalog.html", "destination": "/catalog", "permanent": true },
     { "source": "/catalog/carrinho.html", "destination": "/catalog/carrinho", "permanent": true },
+    { "source": "/catalog/cesta", "destination": "/catalog", "permanent": true },
+    { "source": "/catalog/cesta-compartilhada.html", "destination": "/catalog", "permanent": true },
     { "source": "/staff-gate.html", "destination": "/equipe", "permanent": true },
     { "source": "/home.css", "destination": "/assets/home.css", "permanent": true },
     { "source": "/maris-theme.css", "destination": "/assets/maris-theme.css", "permanent": true },
