@@ -1,6 +1,5 @@
-// Chamadas da tela nova de venda. O contrato do Backend ainda não está fechado.
-// Os nomes e os corpos abaixo são o formato que a tela espera. Não ligar
-// NEW_SALE_ENABLED antes de o Backend publicar essas funções.
+// Chamadas da tela nova de venda, no formato do back-maris (PR #11).
+// NEW_SALE_ENABLED continua desligada até essas funções estarem publicadas.
 
 export const NEW_SALE_API = {
   monthSummary: "seller-month-summary",
@@ -36,16 +35,30 @@ async function call(name, options, client) {
   return transport(name, options)
 }
 
+export const RECENT_SALES_LIMIT = 20
+export const RECENT_SALES_MAX = 50
+
+export function recentSalesLimit(limit = RECENT_SALES_LIMIT) {
+  const value = Math.floor(Number(limit))
+  if (!Number.isInteger(value) || value < 1) return RECENT_SALES_LIMIT
+  return Math.min(value, RECENT_SALES_MAX)
+}
+
 function failed(result, fallback) {
-  return { ok: false, error: result?.data?.error || fallback, status: result?.status || 0 }
+  return {
+    ok: false,
+    error: result?.data?.error || fallback,
+    status: result?.status || 0,
+    stockIssues: Array.isArray(result?.data?.stock_issues) ? result.data.stock_issues : []
+  }
 }
 
 /**
- * TODO(backend): GET seller-month-summary?seller_id=&month=YYYY-MM
- * Resposta: { ok: true, charged_total: number, paid_count: number }
- * charged_total soma só vendas pagas, pela data de pagamento (paid_at), no mês.
- * A comissão de 30% é desta tela. Marcio e Marineide ficam com comissão zero.
- * Se a função devolver { sales: [...] } em vez do total, a tela soma as pagas do mês.
+ * GET seller-month-summary?seller_id=&month=YYYY-MM
+ * Resposta: { ok, month, paid_count, charged_total, commission_percent,
+ *   commission_amount, sem_comissao }
+ * charged_total soma só vendas pagas, pela data de pagamento (paid_at).
+ * A comissão exibida é a do servidor (commission_amount / sem_comissao).
  */
 export async function fetchMonthSummary({ sellerId, month }, client) {
   const result = await call(NEW_SALE_API.monthSummary, {
@@ -57,16 +70,17 @@ export async function fetchMonthSummary({ sellerId, month }, client) {
 }
 
 /**
- * TODO(backend): GET seller-recent-sales?seller_id=&limit=20
- * Resposta: { ok: true, sales: [{ id, created_at, customer_name, customer_whatsapp,
- *   total, payment_method, payment_status, paid_at,
- *   items: [{ code, name, image_url, quantity, unit_price }] }] }
- * Só as vendas dessa vendedora. A tela só lê: não edita nem cancela.
+ * GET seller-recent-sales?seller_id=&limit=20
+ * Cada venda: { id, items, total, paid_at, created_at, customer_name,
+ *   customer_whatsapp, payment_method: pix|dinheiro|cartao,
+ *   payment_status: paid|receivable }
+ * items: { code, name, image_url, quantity, unit_price }
+ * limit padrão 20, máximo 50. A tela só lê.
  */
-export async function fetchRecentSales({ sellerId, limit = 20 }, client) {
+export async function fetchRecentSales({ sellerId, limit = RECENT_SALES_LIMIT }, client) {
   const result = await call(NEW_SALE_API.recentSales, {
     method: "GET",
-    query: { seller_id: sellerId, limit }
+    query: { seller_id: sellerId, limit: recentSalesLimit(limit) }
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as vendas.")
   const sales = Array.isArray(result.data?.sales) ? result.data.sales : []
@@ -74,9 +88,10 @@ export async function fetchRecentSales({ sellerId, limit = 20 }, client) {
 }
 
 /**
- * TODO(backend): GET sale-piece-search?q=&seller_id=
- * Resposta: { ok: true, pieces: [{ id, code, name, image_url, unit_price, quantity }] }
- * Só peças com estoque. A tela descarta quantity <= 0 de novo.
+ * GET sale-piece-search?q=&seller_id=
+ * pieces[]: { id, code, name, image_url, quantity, unit_price, preco_pix,
+ *   item_type, component_id }
+ * id de componente é "c:N". unit_price é o preço efetivo. A tela descarta quantity <= 0.
  */
 export async function searchPieces({ sellerId, query }, client) {
   const result = await call(NEW_SALE_API.searchPieces, {
@@ -89,8 +104,9 @@ export async function searchPieces({ sellerId, query }, client) {
 }
 
 /**
- * TODO(backend): GET sale-customer-search?q=
- * Resposta: { ok: true, customers: [{ id, name, whatsapp }] }
+ * GET sale-customer-search?q=
+ * customers[]: { id, name, whatsapp }
+ * whatsapp é nacional, sem o 55. O link wa.me é que coloca o 55.
  */
 export async function searchCustomers({ query }, client) {
   const result = await call(NEW_SALE_API.searchCustomers, {
@@ -103,9 +119,8 @@ export async function searchCustomers({ query }, client) {
 }
 
 /**
- * TODO(backend): POST sale-customer-save
- * Corpo: { name, whatsapp }
- * Resposta: { ok: true, customer: { id, name, whatsapp } }
+ * POST sale-customer-save
+ * Corpo e resposta: { id, name, whatsapp } com WhatsApp nacional, sem 55.
  */
 export async function saveCustomer({ name, whatsapp }, client) {
   const result = await call(NEW_SALE_API.saveCustomer, {
@@ -119,13 +134,12 @@ export async function saveCustomer({ name, whatsapp }, client) {
 }
 
 /**
- * TODO(backend): POST sale-create
- * Corpo: { seller_id, customer: { id } | { name, whatsapp },
- *   payment_status: "paid" | "receivable",
- *   payment_method: "pix" | "dinheiro" | "cartao",
- *   items: [{ piece_id, quantity }] }
- * Sem preço da tela. Uma venda vira um pedido. O estoque baixa no servidor.
- * Resposta: { ok: true, order_id, total, stock_updated: true }
+ * POST sale-create
+ * Corpo: { seller_id, customer, payment_status, payment_method,
+ *   client_request_id, items: [{ piece_id, quantity, product_code|component_id }] }
+ * O preço da tela é ignorado. payment_method: pix | dinheiro | cartao.
+ * Resposta: { ok, order_id, total, stock_updated, duplicate }
+ * 409: { ok: false, error, stock_issues } no mesmo formato da etapa 2.
  */
 export async function createSale(body, client) {
   const result = await call(NEW_SALE_API.createSale, {
@@ -133,7 +147,16 @@ export async function createSale(body, client) {
     body
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível registrar a venda.")
-  return { ok: true, order: result.data || {} }
+  const data = result.data || {}
+  return {
+    ok: true,
+    order: {
+      order_id: data.order_id ?? null,
+      total: data.total,
+      stock_updated: data.stock_updated === true,
+      duplicate: data.duplicate === true
+    }
+  }
 }
 
 if (typeof globalThis.window !== "undefined") {
@@ -144,6 +167,7 @@ if (typeof globalThis.window !== "undefined") {
     searchPieces,
     searchCustomers,
     saveCustomer,
-    createSale
+    createSale,
+    recentSalesLimit
   }
 }

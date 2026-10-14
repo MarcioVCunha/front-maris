@@ -10,6 +10,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Tela nova de registrar venda em `/vendas/nova`, desligada (`NEW_SALE_ENABLED`). Card do mês com 30% de comissão só sobre vendas pagas (zero para Marcio e Marineide), fluxo em três passos e as vendas recentes da própria vendedora. A tela atual em `/vendas` não muda.
 - Toque numa venda recente abre o detalhe só de leitura: data, peças, cliente, WhatsApp, pagamento e total, com desconto no Pix quando for o caso. Sem editar nem cancelar.
 
+### Alterado
+
+- A tela nova de venda segue o contrato do servidor: comissão do mês, preço Pix (`preco_pix`), WhatsApp sem o 55 e o total devolvido depois de criar. Peça esgotada (409) mostra a mensagem e deixa ajustar. A flag continua desligada.
+
 ### Removido
 
 - Saem as cestas compartilhadas. O site não chama mais `create-shared-basket`, `customer-cart-share`, `list-shared-carts`, `discard-shared-cart` nem `mark-cart-converted`. Somem o link de compartilhar na cesta, a página `/catalog/cesta` e as telas `/carrinhos-clientes` e `/carrinho-cliente`.

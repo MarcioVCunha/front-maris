@@ -1,14 +1,15 @@
 import {
   NEW_SALE_ENABLED,
+  applyStockIssues,
   buildCreateSaleBody,
-  chargedTotalFromSummary,
   currentYearMonth,
   customerPayload,
   escapeHtml,
   filterCustomers,
   filterPieces,
   formatWhatsapp,
-  monthCard,
+  monthCardFromSummary,
+  newClientRequestId,
   renderRecentSales,
   renderSaleDetail,
   saleTotals,
@@ -62,7 +63,9 @@ const state = {
   customerHits: [],
   pickedCustomer: null,
   paymentStatus: "",
-  paymentMethod: ""
+  paymentMethod: "",
+  clientRequestId: "",
+  saleFingerprint: ""
 }
 
 function setNote(el, text, type) {
@@ -133,11 +136,12 @@ function renderPieces() {
   }
   pieceResultsEl.innerHTML = visible.map((piece) => {
     const picked = state.selected.some((item) => String(item.id) === String(piece.id))
+    const pix = Number.isFinite(Number(piece.preco_pix)) ? ` · Pix ${money(piece.preco_pix)}` : ""
     return `<button type="button" class="piece" data-piece="${escapeHtml(piece.id)}" aria-pressed="${picked ? "true" : "false"}">
       ${piecePhoto(piece)}
       <span class="piece-copy">
         <strong>${escapeHtml(piece.name)}</strong>
-        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(piece.unit_price))} · ${Number(piece.quantity) || 0} em estoque</small>
+        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(piece.unit_price))}${escapeHtml(pix)} · ${Number(piece.quantity) || 0} em estoque</small>
       </span>
     </button>`
   }).join("")
@@ -203,8 +207,9 @@ async function loadHome() {
     fetchMonthSummary({ sellerId, month }),
     fetchRecentSales({ sellerId })
   ])
-  const charged = summary.ok ? chargedTotalFromSummary(summary.data, currentYearMonth()) : 0
-  const card = monthCard({ chargedTotal: charged, seller: state.seller })
+  const card = summary.ok
+    ? monthCardFromSummary(summary.data, state.seller)
+    : monthCardFromSummary({ charged_total: 0 }, state.seller)
   monthTotalEl.textContent = money(card.chargedTotal)
   monthCommissionEl.textContent = money(card.commission)
   commissionNoteEl.textContent = card.note
@@ -240,6 +245,15 @@ async function onCustomerSearch() {
   renderCustomers()
 }
 
+function saleRequestId(body) {
+  const fingerprint = JSON.stringify(body)
+  if (state.saleFingerprint !== fingerprint || !state.clientRequestId) {
+    state.saleFingerprint = fingerprint
+    state.clientRequestId = newClientRequestId()
+  }
+  return state.clientRequestId
+}
+
 async function confirmSale() {
   const built = buildCreateSaleBody({
     sellerId: state.seller?.seller_id,
@@ -261,22 +275,38 @@ async function confirmSale() {
     }
     body = { ...body, customer: { id: saved.customer.id } }
   }
+  body = { ...body, client_request_id: saleRequestId(body) }
   flowNextEl.disabled = true
   const result = await createSale(body)
   flowNextEl.disabled = false
   if (!result.ok) {
+    if (result.status === 409 && result.stockIssues?.length) {
+      const adjusted = applyStockIssues(state.selected, result.stockIssues)
+      state.selected = adjusted.pieces
+      renderPieces()
+      renderPayment()
+      setNote(flowMessageEl, adjusted.message, "error")
+      return
+    }
     setNote(flowMessageEl, result.error, "error")
     return
   }
+  const charged = Number(result.order?.total)
+  const totalText = Number.isFinite(charged) ? ` Total ${money(charged)}.` : ""
+  const lead = result.order?.duplicate
+    ? "Esta venda já estava registrada."
+    : (result.order?.stock_updated === false ? "Venda registrada, mas o estoque não atualizou." : "Venda registrada.")
   state.selected = []
   state.pickedCustomer = null
   state.paymentStatus = ""
   state.paymentMethod = ""
+  state.clientRequestId = ""
+  state.saleFingerprint = ""
   customerNameEl.value = ""
   customerWhatsappEl.value = ""
   pieceSearchEl.value = ""
   showHome()
-  setNote(homeMessageEl, "Venda registrada.", "success")
+  setNote(homeMessageEl, `${lead}${totalText}`, "success")
   await loadHome()
 }
 

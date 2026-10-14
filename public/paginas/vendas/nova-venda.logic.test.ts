@@ -7,7 +7,9 @@ import {
   customerPayload,
   filterCustomers,
   filterPieces,
+  applyStockIssues,
   monthCard,
+  monthCardFromSummary,
   renderRecentSales,
   renderSaleDetail,
   saleTotals,
@@ -92,6 +94,7 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
 Deno.test("cliente existente ou novo, com WhatsApp", () => {
   assertEquals(customerPayload({ id: 4, name: "", whatsapp: "" }), { ok: true, customer: { id: 4 } })
   assertEquals(customerPayload({ name: "Lia", whatsapp: "(11) 98888-7777" }).customer?.whatsapp, "11988887777")
+  assertEquals(customerPayload({ name: "Lia", whatsapp: "5511988887777" }).customer?.whatsapp, "11988887777")
   assertEquals(customerPayload({ name: "", whatsapp: "11988887777" }).ok, false)
   assertEquals(customerPayload({ name: "Lia", whatsapp: "123" }).ok, false)
   assertEquals(filterCustomers([
@@ -105,6 +108,11 @@ Deno.test("Pix tira 5% e o corpo da venda não manda preço", () => {
     { unit_price: 120, quantity: 1 },
     { unit_price: 80, quantity: 1 }
   ], "pix"), { subtotal: 200, discount: 10, total: 190 })
+  assertEquals(saleTotals([
+    { unit_price: 120, preco_pix: 114, quantity: 1 },
+    { unit_price: 80, preco_pix: 76, quantity: 1 }
+  ], "pix"), { subtotal: 200, discount: 10, total: 190 })
+  assertEquals(saleTotals([{ unit_price: 100, preco_pix: 90, quantity: 1 }], "pix").total, 90)
   assertEquals(saleTotals([{ unit_price: 36, quantity: 1 }], "dinheiro").total, 36)
 
   const built = buildCreateSaleBody({
@@ -112,11 +120,20 @@ Deno.test("Pix tira 5% e o corpo da venda não manda preço", () => {
     customer: { id: 9 },
     paymentStatus: "receivable",
     paymentMethod: "cartao",
-    pieces: [{ id: "p1", quantity: 2, unit_price: 50 }]
+    clientRequestId: "11111111-1111-4111-8111-111111111111",
+    pieces: [
+      { id: "c:12", code: "AN581-R", component_id: 12, quantity: 1, unit_price: 120, preco_pix: 114 },
+      { id: 9, code: "BR1", quantity: 2, unit_price: 50, preco_pix: 47.5 }
+    ]
   })
   assertEquals(built.ok, true)
-  assertEquals(built.body?.items, [{ piece_id: "p1", quantity: 2 }])
+  assertEquals(built.body?.items, [
+    { piece_id: "c:12", component_id: 12, quantity: 1 },
+    { piece_id: 9, product_code: "BR1", quantity: 2 }
+  ])
+  assertEquals(built.body?.client_request_id, "11111111-1111-4111-8111-111111111111")
   assertEquals(JSON.stringify(built.body).includes("unit_price"), false)
+  assertEquals(JSON.stringify(built.body).includes("preco_pix"), false)
   assertEquals(buildCreateSaleBody({
     sellerId: 3,
     customer: { name: "Lia", whatsapp: "11988887777" },
@@ -139,6 +156,7 @@ Deno.test("vendas recentes abrem detalhe e não têm editar nem cancelar", () =>
 
 Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", () => {
   assertEquals(whatsappLink("11988887777"), "https://wa.me/5511988887777")
+  assertEquals(whatsappLink("5511988887777"), "https://wa.me/5511988887777")
   assertEquals(whatsappLink("123"), "")
   const html = renderSaleDetail({
     id: 7,
@@ -180,6 +198,66 @@ Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", (
   assertEquals(cash.includes("A receber"), true)
   assertEquals(cash.includes("Desconto Pix"), false)
   assertEquals(cash.includes("Sem WhatsApp"), true)
+})
+
+Deno.test("o resumo do mês usa a comissão do servidor", () => {
+  const month = {
+    ok: true,
+    month: "2026-10",
+    paid_count: 4,
+    charged_total: 1240,
+    commission_percent: 30,
+    commission_amount: 372,
+    sem_comissao: false
+  }
+  const card = monthCardFromSummary(month, { name: "Ana Souza" })
+  assertEquals(card.chargedTotal, 1240)
+  assertEquals(card.commission, 372)
+  assertEquals(card.paidCount, 4)
+  assertEquals(card.note, "30% do valor cobrado nas vendas pagas.")
+
+  const none = monthCardFromSummary({
+    month: "2026-10",
+    paid_count: 2,
+    charged_total: 800,
+    commission_percent: 0,
+    commission_amount: 0,
+    sem_comissao: true
+  }, { name: "Ana Souza" })
+  assertEquals(none.commission, 0)
+  assertEquals(none.note, "Sem comissão nesta conta.")
+})
+
+Deno.test("409 de estoque avisa e deixa ajustar a quantidade", () => {
+  const adjusted = applyStockIssues([
+    { id: "c:5", code: "CJ099-O", component_id: 5, quantity: 1, stock: 2 },
+    { id: 2, code: "AN519-O", quantity: 2, stock: 4 }
+  ], [
+    {
+      code: "CJ099-O",
+      name: "Brinco",
+      available: 0,
+      reason: "out_of_stock",
+      product_code: "CJ099-O",
+      product_name: "Brinco",
+      requested: 1,
+      component_id: 5
+    },
+    {
+      code: "AN519-O",
+      name: "Anel Liso Vazado Ajustável",
+      available: 1,
+      reason: "insufficient",
+      product_code: "AN519-O",
+      product_name: "Anel Liso Vazado Ajustável",
+      requested: 2
+    }
+  ])
+  assertEquals(adjusted.pieces.map((piece) => piece.id), [2])
+  assertEquals(adjusted.pieces[0].quantity, 1)
+  assertEquals(adjusted.pieces[0].stock, 1)
+  assertEquals(adjusted.message.includes("Brinco (CJ099-O) acabou de esgotar. Disponível: 0."), true)
+  assertEquals(adjusted.message.includes("Anel Liso Vazado Ajustável não tem essa quantidade. Disponível: 1."), true)
 })
 
 Deno.test("o atalho da tela nova fica escondido enquanto a flag está desligada", async () => {

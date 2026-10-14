@@ -1,7 +1,10 @@
 // Regras da tela nova de venda. A flag nasce desligada: /vendas segue a tela atual.
+import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
+
 export const NEW_SALE_ENABLED = false
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
+export { newClientRequestId }
 
 const ZERO_COMMISSION_NAMES = ["marcio", "marineide"]
 
@@ -111,12 +114,16 @@ export function togglePiece(selected, piece) {
   if (current.some((item) => sameId(item.id, piece.id))) {
     return current.filter((item) => !sameId(item.id, piece.id))
   }
+  const pix = Number(piece.preco_pix)
   return [...current, {
     id: piece.id,
     code: piece.code,
     name: piece.name,
     image_url: piece.image_url || "",
     unit_price: roundMoney(piece.unit_price),
+    preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,
+    item_type: piece.item_type || "",
+    component_id: piece.component_id ?? null,
     quantity: 1,
     stock
   }]
@@ -133,7 +140,9 @@ export function setPieceQuantity(selected, id, rawQuantity) {
 }
 
 export function normalizeWhatsapp(value) {
-  return String(value || "").replace(/\D/g, "").slice(0, 11)
+  let digits = String(value || "").replace(/\D/g, "")
+  if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2)
+  return digits.slice(0, 11)
 }
 
 export function formatWhatsapp(value) {
@@ -164,14 +173,41 @@ export function customerPayload({ id, name, whatsapp } = {}) {
 }
 
 export function saleTotals(pieces, paymentMethod) {
-  const subtotal = roundMoney((pieces || []).reduce((sum, piece) => {
+  const rows = pieces || []
+  const subtotal = roundMoney(rows.reduce((sum, piece) => {
     return sum + roundMoney(piece.unit_price) * (Number(piece.quantity) || 0)
   }, 0))
-  const discount = paymentMethod === "pix" ? roundMoney(subtotal * PIX_DISCOUNT_RATE) : 0
-  return { subtotal, discount, total: roundMoney(subtotal - discount) }
+  if (paymentMethod !== "pix") return { subtotal, discount: 0, total: subtotal }
+  const anyPix = rows.some((piece) => Number.isFinite(Number(piece.preco_pix)))
+  if (!anyPix) {
+    const discount = roundMoney(subtotal * PIX_DISCOUNT_RATE)
+    return { subtotal, discount, total: roundMoney(subtotal - discount) }
+  }
+  const total = roundMoney(rows.reduce((sum, piece) => {
+    const qty = Number(piece.quantity) || 0
+    const pix = Number(piece.preco_pix)
+    const unit = Number.isFinite(pix)
+      ? roundMoney(pix)
+      : roundMoney(roundMoney(piece.unit_price) * (1 - PIX_DISCOUNT_RATE))
+    return sum + unit * qty
+  }, 0))
+  return { subtotal, discount: roundMoney(Math.max(0, subtotal - total)), total }
 }
 
-export function buildCreateSaleBody({ sellerId, customer, paymentStatus, paymentMethod, pieces }) {
+function saleLine(piece) {
+  const quantity = Number(piece.quantity) || 0
+  const fromId = /^c:(\d+)$/.exec(String(piece.id ?? ""))
+  const componentId = Number(piece.component_id ?? (fromId ? fromId[1] : NaN))
+  if (Number.isInteger(componentId) && componentId > 0) {
+    return { piece_id: piece.id, component_id: componentId, quantity }
+  }
+  const line = { piece_id: piece.id, quantity }
+  const code = String(piece.code || "").trim()
+  if (code) line.product_code = code
+  return line
+}
+
+export function buildCreateSaleBody({ sellerId, customer, paymentStatus, paymentMethod, pieces, clientRequestId }) {
   const seller = Number(sellerId)
   if (!Number.isInteger(seller) || seller <= 0) {
     return { ok: false, error: "Esta conta não está ligada a uma vendedora." }
@@ -185,16 +221,72 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
   if (!["pix", "dinheiro", "cartao"].includes(paymentMethod)) {
     return { ok: false, error: "Escolha Pix, dinheiro ou cartão." }
   }
-  return {
-    ok: true,
-    body: {
-      seller_id: seller,
-      customer: who.customer,
-      payment_status: paymentStatus,
-      payment_method: paymentMethod,
-      items: pieces.map((piece) => ({ piece_id: piece.id, quantity: piece.quantity }))
-    }
+  const body = {
+    seller_id: seller,
+    customer: who.customer,
+    payment_status: paymentStatus,
+    payment_method: paymentMethod,
+    items: pieces.map(saleLine)
   }
+  const requestId = String(clientRequestId || "").trim()
+  if (requestId) body.client_request_id = requestId
+  return { ok: true, body }
+}
+
+export function monthCardFromSummary(data, seller) {
+  const chargedTotal = chargedTotalFromSummary(data, currentYearMonth())
+  const sent = data != null && (
+    Object.prototype.hasOwnProperty.call(data, "commission_amount")
+    || Object.prototype.hasOwnProperty.call(data, "sem_comissao")
+    || Object.prototype.hasOwnProperty.call(data, "commission_percent")
+  )
+  const base = monthCard({ chargedTotal, seller })
+  if (!sent) {
+    return { ...base, month: data?.month || "", paidCount: Number(data?.paid_count) || 0 }
+  }
+  const percent = Number(data.commission_percent)
+  const sem = data.sem_comissao === true || percent === 0
+  const amount = Number(data.commission_amount)
+  const shown = Number.isFinite(percent) ? percent : Math.round((base.rate || 0) * 100)
+  const commission = sem
+    ? 0
+    : (Number.isFinite(amount) ? roundMoney(amount) : roundMoney(chargedTotal * (shown / 100)))
+  return {
+    month: data.month || "",
+    paidCount: Number(data.paid_count) || 0,
+    chargedTotal,
+    commission,
+    rate: sem ? 0 : shown / 100,
+    zeroCommission: sem,
+    note: sem ? "Sem comissão nesta conta." : `${shown}% do valor cobrado nas vendas pagas.`
+  }
+}
+
+function stockIssueMatches(piece, issue) {
+  const componentId = Number(issue?.component_id)
+  if (Number.isInteger(componentId) && componentId > 0) {
+    return Number(piece.component_id) === componentId || String(piece.id) === `c:${componentId}`
+  }
+  const code = String(issue?.code || issue?.product_code || "").trim()
+  if (!code || String(piece.code) !== code) return false
+  return !(Number(piece.component_id) > 0)
+}
+
+export function applyStockIssues(pieces, issues) {
+  const list = Array.isArray(issues) ? issues : []
+  let next = (pieces || []).map((piece) => ({ ...piece }))
+  for (const issue of list) {
+    const available = Number(issue?.available)
+    const stock = Number.isFinite(available) ? available : 0
+    next = next.flatMap((piece) => {
+      if (!stockIssueMatches(piece, issue)) return [piece]
+      if (stock <= 0) return []
+      const quantity = Math.min(Number(piece.quantity) || 1, stock)
+      return [{ ...piece, stock, quantity: Math.max(1, Math.floor(quantity)) }]
+    })
+  }
+  const message = list.map((issue) => stockIssueText(issue)).filter(Boolean).join(" ")
+  return { pieces: next, message: message || "Algumas peças esgotaram." }
 }
 
 export function escapeHtml(value) {
@@ -241,9 +333,10 @@ export function saleDetailTotals(sale) {
   const priced = saleTotals(items, sale?.payment_method)
   const charged = Number.isFinite(Number(sale?.total)) ? roundMoney(sale.total) : priced.total
   const pix = sale?.payment_method === "pix"
+  const discount = pix ? roundMoney(Math.max(0, priced.subtotal - charged)) : 0
   return {
     subtotal: priced.subtotal,
-    discount: pix ? priced.discount : 0,
+    discount,
     total: charged,
     pix
   }
@@ -326,6 +419,8 @@ if (typeof globalThis.window !== "undefined") {
     roundMoney,
     commissionRateFor,
     monthCard,
+    monthCardFromSummary,
+    applyStockIssues,
     sumPaidChargesInMonth,
     chargedTotalFromSummary,
     currentYearMonth,
