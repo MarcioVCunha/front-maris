@@ -1,0 +1,10 @@
+---
+description: Regras gerais de arquitetura e economia de tokens do sistema da loja
+globs: *
+alwaysApply: true
+---
+# Diretrizes de Código e Economia
+- Seja direto e conciso. Não gere explicações longas após escrever o código.
+- Nunca reescreva arquivos inteiros se puder aplicar apenas o diff nas linhas alteradas.
+- Não rode testes globais ou builds automaticamente sem permissão; rode apenas checagem de tipos (type-check) no arquivo modificado.
+- Idioma: Responda em português, mantendo variáveis e funções no padrão já existente no projeto.
