@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minha cesta — Maris Semijoias</title>
     <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/compartilhado/loading.css">
     <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
     <link rel="stylesheet" href="/paginas/catalogo/carrinho.css">
     <script src="/env.js"></script>
@@ -40,7 +41,14 @@
       <section class="cart-card cart-card--items">
         <h1>Minha cesta</h1>
         <p class="cart-help">Confira os itens e ajuste as quantidades antes de enviar.</p>
-        <div id="cart-lines" class="cart-lines"></div>
+        <div id="cart-lines" class="cart-lines cart-lines--loading">
+          <div class="maris-loading maris-loading--md" role="status" aria-label="Carregando">
+            <svg class="maris-loading__spark" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true" focusable="false">
+              <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
+              <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
+            </svg>
+          </div>
+        </div>
         <div class="cart-summary">
           <span>Total</span>
           <strong id="cart-total">R$ 0,00</strong>
@@ -98,6 +106,7 @@
       </a>
     </aside>
 
+    <script type="module" src="/compartilhado/loading.js"></script>
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
     <script type="module" src="/paginas/catalogo/pedido.logic.js"></script>
     <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>

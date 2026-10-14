@@ -27,6 +27,11 @@ const {
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
+function loadingMarkup(options = {}) {
+  if (window.MarisLoading?.html) return window.MarisLoading.html(options)
+  return `<div class="maris-loading${options.size ? ` maris-loading--${options.size}` : ""}${options.block ? " maris-loading--block" : ""}" role="status" aria-label="Carregando"></div>`
+}
+
 const supabaseClient = createSupabaseClient()
 
 const catalogEl = document.getElementById("catalog")
@@ -34,6 +39,17 @@ const catalogSearchInput = document.getElementById("catalog-search")
 const catalogSortSelect = document.getElementById("catalog-sort")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
+
+function showCatalogLoading() {
+  if (!catalogEl) return
+  catalogEl.classList.add("catalog--loading")
+  catalogEl.hidden = false
+  catalogEl.innerHTML = loadingMarkup({ size: "md", block: true })
+}
+
+function clearCatalogLoading() {
+  catalogEl?.classList.remove("catalog--loading")
+}
 const productModal = document.getElementById("product-modal")
 const productModalCarousel = document.querySelector(".product-modal-carousel")
 const productModalPrevBtn = document.getElementById("product-modal-prev")
@@ -617,6 +633,7 @@ function applyCatalogLink() {
 }
 
 function renderCatalogGrids() {
+  clearCatalogLoading()
   const term = getSearchTerm()
   const sortMode = getSortMode()
 
@@ -661,6 +678,7 @@ function renderCatalogGrids() {
 }
 
 async function loadCatalogData() {
+  showCatalogLoading()
   const [productsResponse, componentsResponse, imagesResponse] = await Promise.all([
     window.MarisCatalogRead.selectProducts(supabaseClient)
       .order("quantity", { ascending: false })
@@ -675,6 +693,7 @@ async function loadCatalogData() {
 
   if (error || componentsError || imagesError) {
     allGroups = []
+    clearCatalogLoading()
     catalogEl.hidden = false
     catalogEl.innerHTML = "Erro ao carregar produtos"
     unavailableProductsSection.hidden = true
@@ -698,6 +717,7 @@ async function loadCatalogData() {
 
   if (!data?.length) {
     allGroups = []
+    clearCatalogLoading()
     catalogEl.hidden = false
     catalogEl.innerHTML = "Nenhum produto encontrado"
     unavailableProductsSection.hidden = true

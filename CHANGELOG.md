@@ -7,12 +7,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Adicionado
 
 - Painel do administrador em `/admin`, ligado (`ADMIN_DASHBOARD_ENABLED`). O menu é Início, Estoque, Vendas, Vendedoras e Promoções. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel, e a aba Tipos grava o SKU no padrão código-TIPO. Os nomes e os corpos ficam em `painel.api.js`.
+- Brilho de carregamento (`compartilhado/loading.js`): estrela de 4 pontas ✦ que enche e esvazia nas cores da Maris. Usado no catálogo, na cesta e no painel (boot e troca de aba), com `role="status"`, `aria-label="Carregando"` e sem animação quando `prefers-reduced-motion`.
 
 ### Alterado
 
 - `/admin` abre o painel. Promoções continua em `/promocoes`, com atalho no menu.
 - Entrar em `/admin` espera o perfil do administrador. Um `staff-me` interrompido pela troca de página não manda mais para a mensagem de sem permissão.
-- `/admin` abre direto o painel, com "Carregando…" no lugar da página antiga. O perfil fica na sessão e as abas do painel trocam sem recarregar a página. O estoque busca e mostra as peças aos poucos. Início, Vendas e Vendedoras leem o resumo do mês quando o servidor responde.
+- `/admin` abre direto o painel, com o brilho de carregamento no lugar da página antiga. O perfil fica na sessão e as abas do painel trocam sem recarregar a página. O estoque busca e mostra as peças aos poucos. Início, Vendas e Vendedoras leem o resumo do mês quando o servidor responde.
 - No computador (≥1024px e ≥1440px), o catálogo, a peça, a cesta e o painel ganham layout largo: filtros ao lado, grade mais ampla, menu lateral no admin e listas mais espaçosas. No celular o visual continua o de sempre.
 - Em Adicionar peça, a embalagem já vem com peso 80 g, comprimento 20 cm, largura 17 cm e altura 5 cm. Os padrões por categoria vêm de `category-defaults` (tabela `category_defaults`); se a leitura falhar, fica o fallback fixo, sem apagar o que foi editado à mão.
 

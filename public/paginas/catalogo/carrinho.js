@@ -53,8 +53,17 @@ function formatWhatsappMask(value) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
+function showCartLoading() {
+  if (!cartLinesEl) return
+  cartLinesEl.classList.add("cart-lines--loading")
+  cartLinesEl.innerHTML = window.MarisLoading?.html
+    ? window.MarisLoading.html({ size: "md", block: true })
+    : `<div class="maris-loading maris-loading--md" role="status" aria-label="Carregando"></div>`
+}
+
 function renderCart() {
   if (orderConfirmed) return
+  cartLinesEl?.classList.remove("cart-lines--loading")
   const lines = window.MarisCatalogCart.getLineDetails()
   if (!lines.length) {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
@@ -274,6 +283,7 @@ if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitOrder)
 window.addEventListener("maris-cart-updated", renderCart)
 
 ;(async () => {
+  showCartLoading()
   try {
     await window.MarisCatalogCart.init()
     await loadCatalogData()

@@ -4,10 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel — Maris Semijoias</title>
+  <link rel="stylesheet" href="/compartilhado/loading.css">
   <link rel="stylesheet" href="/paginas/admin/painel.css">
 </head>
 <body class="painel">
-  <p id="staff-loading" class="boot-loading">Carregando…</p>
+  <div id="staff-loading" class="boot-loading">
+    <div class="maris-loading maris-loading--lg" role="status" aria-label="Carregando">
+      <svg class="maris-loading__spark" viewBox="0 0 32 32" width="52" height="52" aria-hidden="true" focusable="false">
+        <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
+        <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
+      </svg>
+    </div>
+  </div>
   <div id="panel" class="panel-shell" hidden>
     <aside class="panel-rail">
       <a class="back-link" href="/">← Voltar ao início</a>
@@ -31,6 +39,7 @@
   <script src="/compartilhado/api.js"></script>
   <script src="/compartilhado/staff-data.js"></script>
   <script src="/compartilhado/staff-auth.js" data-optional></script>
+  <script type="module" src="/compartilhado/loading.js"></script>
   <script type="module" src="/paginas/admin/painel.js"></script>
 </body>
 </html>

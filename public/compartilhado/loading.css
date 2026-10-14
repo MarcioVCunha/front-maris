@@ -1,0 +1,89 @@
+/* Carregamento Maris — brilho ✦ */
+
+.maris-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--maris-gold-dark, #9f6d83);
+  line-height: 0;
+}
+
+.maris-loading--block {
+  display: flex;
+  width: 100%;
+  min-height: 160px;
+  padding: 32px 16px;
+}
+
+.maris-loading--sm .maris-loading__spark {
+  width: 28px;
+  height: 28px;
+}
+
+.maris-loading--lg .maris-loading__spark,
+.boot-loading .maris-loading__spark {
+  width: 52px;
+  height: 52px;
+}
+
+.maris-loading__spark {
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+}
+
+.maris-loading__spark-outline {
+  color: var(--maris-gold, #c792a8);
+  opacity: 0.55;
+}
+
+.maris-loading__spark-fill {
+  color: var(--maris-gold-dark, #9f6d83);
+  transform-origin: 16px 16px;
+  transform-box: fill-box;
+  animation: maris-spark-fill 1.45s ease-in-out infinite;
+}
+
+@keyframes maris-spark-fill {
+  0%,
+  100% {
+    fill-opacity: 0.08;
+    transform: scale(0.72);
+  }
+  45%,
+  55% {
+    fill-opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maris-loading__spark-fill {
+    animation: none;
+    fill-opacity: 0.9;
+    transform: none;
+  }
+
+  .maris-loading__spark-outline {
+    opacity: 0.7;
+  }
+}
+
+.boot-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  margin: 0;
+  padding: 48px 16px;
+}
+
+.catalog.catalog--loading,
+#cart-lines.cart-lines--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  grid-template-columns: none;
+}
