@@ -1,0 +1,9 @@
+---
+description: Regras para cálculo de vendas, carrinho, pagamentos e estoque da loja
+globs: **/services/**, **/api/**, **/controllers/**, **/models/**, **/*estoque*, **/*venda*, **/*pagamento*
+alwaysApply: false
+---
+# Regras de Negócio da Loja
+- Todo cálculo de preço, frete e desconto deve ser validado no backend/servidor, nunca apenas no frontend.
+- Operações de baixa de estoque e fechamento de pedido devem ser atômicas e seguras contra concorrência.
+- Trate erros de forma explícita e retorne mensagens claras para o usuário final.
