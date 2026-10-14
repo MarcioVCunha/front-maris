@@ -458,6 +458,7 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/admin.html",
     "paginas/admin/vendedoras.html",
     "paginas/vendas/vendas.html",
+    "paginas/vendas/nova-venda.html",
     "paginas/vendas/lista-espera.html",
     "paginas/vendedoras/contas.html",
     "paginas/estoque/tipos-produto/tipos-produto.html",

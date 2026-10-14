@@ -35,6 +35,16 @@
         <p>Venda avulsa na loja. Informe vendedora, método de pagamento e itens — baixa no estoque.</p>
       </a>
 
+      <a class="menu-card menu-card--sub menu-card--vendedoras" href="/vendas/nova" id="nova-venda-link" hidden>
+        <span class="menu-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+        <h2>Registrar venda</h2>
+        <p>Tela nova: peças, cliente e pagamento. Ainda desligada.</p>
+      </a>
+
       <a class="menu-card menu-card--sub menu-card--admin" href="/tipos-produto" data-staff-only="seller" hidden>
         <span class="menu-card-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -76,6 +86,13 @@
       <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
     </div>
   </div>
+  <script type="module">
+    import { NEW_SALE_ENABLED } from "/paginas/vendas/nova-venda.logic.js"
+    if (NEW_SALE_ENABLED) {
+      const link = document.getElementById("nova-venda-link")
+      if (link) link.hidden = false
+    }
+  </script>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>

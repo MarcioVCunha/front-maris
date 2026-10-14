@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrar venda — Maris Semijoias</title>
+<link rel="stylesheet" href="/paginas/vendas/nova-venda.css">
+<script src="/env.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
+<script src="/compartilhado/utils.js"></script>
+<script src="/compartilhado/api.js"></script>
+<script src="/compartilhado/staff-data.js"></script>
+<script src="/compartilhado/staff-auth.js"></script>
+<script src="/compartilhado/ui.js"></script>
+</head>
+<body class="nova-venda" hidden>
+<header>
+  <a class="back-link" href="/vendedoras">← Voltar às vendedoras</a>
+  <h1>Registrar venda</h1>
+  <p id="seller-name">Sua conta</p>
+</header>
+
+<main id="sale-home" class="sale-main">
+  <section class="month-card" aria-labelledby="month-heading">
+    <p class="eyebrow">Este mês</p>
+    <h2 id="month-total">R$ 0,00</h2>
+    <p id="month-heading" class="month-label">0 peças pagas em 0 vendas</p>
+    <div class="commission-line">
+      <span>Comissão</span>
+      <strong id="month-commission">R$ 0,00</strong>
+    </div>
+    <p id="commission-note" class="commission-note">30% do valor cobrado nas vendas pagas.</p>
+  </section>
+
+  <button id="new-sale-btn" class="btn-nova" type="button">Nova venda</button>
+  <p id="home-message" class="step-message" hidden></p>
+
+  <section class="recent-block" aria-labelledby="recent-heading">
+    <h2 id="recent-heading">Suas vendas</h2>
+    <div id="recent-sales" class="recent-list"></div>
+  </section>
+</main>
+
+<div id="sale-modal" class="sale-modal" hidden>
+  <button type="button" class="sale-modal-backdrop" data-close-sale aria-label="Fechar"></button>
+  <div class="sale-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
+    <div id="sale-modal-body"></div>
+    <button type="button" class="sale-modal-close" data-close-sale>Fechar</button>
+  </div>
+</div>
+
+<main id="sale-flow" class="sale-main" hidden>
+  <ol class="step-bar" aria-label="Etapas da venda">
+    <li data-step-pill="1">1 Peças</li>
+    <li data-step-pill="2">2 Cliente</li>
+    <li data-step-pill="3">3 Pagamento</li>
+  </ol>
+
+  <section id="step-pieces">
+    <p class="flow-kicker">Peças</p>
+    <p class="flow-help">Busque por código ou nome. Só entram peças em estoque.</p>
+    <label for="piece-search" class="visually-hidden">Buscar peças</label>
+    <input id="piece-search" type="search" placeholder="Código ou nome" autocomplete="off">
+    <div id="selected-pieces" class="selected-list"></div>
+    <div id="piece-results" class="piece-list"></div>
+  </section>
+
+  <section id="step-customer" hidden>
+    <p class="flow-kicker">Cliente</p>
+    <p class="flow-help">Escolha uma cliente ou cadastre nome e WhatsApp.</p>
+    <label for="customer-search" class="visually-hidden">Buscar cliente</label>
+    <input id="customer-search" type="search" placeholder="Nome ou WhatsApp" autocomplete="off">
+    <div id="customer-results" class="customer-list"></div>
+    <div class="register-box">
+      <p class="flow-kicker">Nova cliente</p>
+      <label for="customer-name">Nome</label>
+      <input id="customer-name" type="text" autocomplete="name">
+      <label for="customer-whatsapp">WhatsApp</label>
+      <input id="customer-whatsapp" type="tel" inputmode="numeric" autocomplete="tel">
+    </div>
+  </section>
+
+  <section id="step-payment" hidden>
+    <p class="flow-kicker">Pagamento</p>
+    <p class="flow-help">Uma venda vira um pedido. O estoque baixa no servidor.</p>
+    <div class="choice-grid" role="group" aria-label="Situação">
+      <button type="button" class="choice" data-status="paid">Pago</button>
+      <button type="button" class="choice" data-status="receivable">A receber</button>
+    </div>
+    <div class="choice-grid methods" role="group" aria-label="Forma de pagamento">
+      <button type="button" class="choice" data-method="pix">Pix</button>
+      <button type="button" class="choice" data-method="dinheiro">Dinheiro</button>
+      <button type="button" class="choice" data-method="cartao">Cartão</button>
+    </div>
+    <div class="pay-summary">
+      <div><span>Subtotal</span><strong id="pay-subtotal">R$ 0,00</strong></div>
+      <div id="pay-discount-row" hidden><span>Desconto Pix (5%)</span><strong id="pay-discount">R$ 0,00</strong></div>
+      <div><span>Total</span><strong id="pay-total" class="total-figure">R$ 0,00</strong></div>
+    </div>
+  </section>
+
+  <p id="flow-message" class="step-message" hidden></p>
+  <div class="flow-actions">
+    <button id="flow-next" class="btn-next" type="button">Continuar</button>
+    <button id="flow-back" class="btn-back" type="button">Voltar</button>
+  </div>
+</main>
+
+<script type="module" src="/paginas/vendas/nova-venda.js"></script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script>
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+</body>
+</html>

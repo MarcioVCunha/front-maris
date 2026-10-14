@@ -15,6 +15,7 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/admin` | Administração | Atalhos da administração |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Registrar venda |
+| `/vendas/nova` | Equipe | Registrar venda, tela nova. Desligada (`NEW_SALE_ENABLED`) |
 | `/lista-espera` | Administração | Lista de espera |
 | `/adicionar-peca` | Administração | Cadastrar uma peça |
 | `/importar` | Administração | Importar várias peças por JSON |
