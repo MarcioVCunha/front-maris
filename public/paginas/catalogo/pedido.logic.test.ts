@@ -26,9 +26,9 @@ const sampleInput = {
   website: ""
 }
 
-Deno.test("a flag do pedido começa desligada e a reserva combinada é de 7 dias", () => {
-  assertEquals(enabledAtImport, false)
-  assertEquals(MarisPedido.ORDERS_ENABLED, false)
+Deno.test("a flag do pedido começa ligada e a reserva combinada é de 7 dias", () => {
+  assertEquals(enabledAtImport, true)
+  assertEquals(MarisPedido.ORDERS_ENABLED, true)
   assertEquals(CREATE_ORDER_FUNCTION, "create-order")
   assertEquals(RESERVE_DAYS, 7)
 })
@@ -38,8 +38,8 @@ Deno.test("com a flag desligada a cesta não chama create-order", async () => {
   const result = await submitCreateOrder(() => {
     called = true
     return { ok: true, status: 200, data: {} }
-  }, sampleInput)
-  assertEquals(MarisPedido.ORDERS_ENABLED, false)
+  }, sampleInput, { enabled: false })
+  assertEquals(MarisPedido.ORDERS_ENABLED, true)
   assertEquals(result.kind, "disabled")
   assertEquals(called, false)
 })
