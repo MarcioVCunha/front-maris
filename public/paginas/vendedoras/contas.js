@@ -1,3 +1,11 @@
+import {
+  orderPaidHint,
+  paidIdsToRemove,
+  rowsForUnpaidView,
+  toggleSaleSelection,
+  withoutPaidIds
+} from "./contas.logic.js"
+
 const utils = window.MarisUtils
 if (!utils || typeof utils.createSupabaseClient !== "function") {
   document.getElementById("sales-grid").innerHTML =
@@ -31,6 +39,9 @@ const REPASSE_PERCENT = 0.7
 
 /** @type {Set<string>} */
 const selectedSaleIds = new Set()
+
+/** Ids que esta sessão acabou de marcar. A busca seguinte pode ainda devolvê-los como a receber. */
+const justPaidIds = new Set()
 
 const PAYMENT_LABELS = {
   pix: "Pix",
@@ -194,6 +205,12 @@ async function loadProductImagesForSales(sales) {
   }
 }
 
+function rowsOnScreen() {
+  const filtered = applySearchFilter(loadedSales)
+  if (currentFilterMode() !== "unpaid") return filtered
+  return rowsForUnpaidView(filtered).filter((row) => !justPaidIds.has(saleIdKey(row)))
+}
+
 function applySearchFilter(rows) {
   const term = (searchInput?.value || "").trim().toLowerCase()
   if (!term) return rows
@@ -325,6 +342,7 @@ function renderRows(rows) {
       const id = saleIdKey(row)
       const dateLabel = paid && row.paid_at ? "Paga em" : "Data"
       const dateValue = paid && row.paid_at ? row.paid_at : row.created_at
+      const hint = orderPaidHint(row)
 
       let badgeClass = paid ? "badge-paid" : "badge-unpaid"
       let badgeText = paid ? "Paga" : "A receber"
@@ -337,6 +355,7 @@ function renderRows(rows) {
         ${renderProductPhoto(row)}
         <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
         <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
+        ${hint ? `<p class="sale-order-hint">${escapeHtml(hint)}</p>` : ""}
         <dl class="sale-card-meta">
           <div><dt>${dateLabel}</dt><dd>${formatDate(dateValue)}</dd></div>
           <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
@@ -414,7 +433,7 @@ function selectedIdsInView(rows) {
 }
 
 async function marcarSelecionadasComoPagas() {
-  const filtered = applySearchFilter(loadedSales)
+  const filtered = rowsOnScreen()
   const ids = selectedIdsInView(filtered)
   if (!ids.length) {
     setMessage("Selecione ao menos uma venda na lista.", "error")
@@ -453,13 +472,22 @@ async function marcarSelecionadasComoPagas() {
       return
     }
 
+    const updated = paidIdsToRemove(ids, data)
+    for (const id of updated) {
+      justPaidIds.add(String(id))
+      selectedSaleIds.delete(String(id))
+    }
+    loadedSales = withoutPaidIds(loadedSales, updated)
+    if (btnMarcarRepasse) delete btnMarcarRepasse.dataset.loading
+    refreshDisplay()
+
     const n = Number.isInteger(data?.count) ? data.count : ids.length
-    await loadSales()
     if (n < ids.length) {
       setMessage(`${n} de ${ids.length} venda(s) marcada(s) como paga(s). As demais já estavam pagas ou canceladas.`, "success")
     } else {
       setMessage(`${n} venda(s) marcada(s) como paga(s).`, "success")
     }
+    await loadSales({ quiet: true })
   } catch (e) {
     console.error(e)
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
@@ -472,8 +500,7 @@ async function marcarSelecionadasComoPagas() {
 }
 
 function refreshDisplay() {
-  const filtered = applySearchFilter(loadedSales)
-  renderRows(filtered)
+  renderRows(rowsOnScreen())
 }
 
 async function devolverVendas(saleIds, triggerBtn, creditSnapshot) {
@@ -541,7 +568,7 @@ async function devolverVendas(saleIds, triggerBtn, creditSnapshot) {
 }
 
 async function devolverSelecionadas() {
-  const filtered = applySearchFilter(loadedSales)
+  const filtered = rowsOnScreen()
   if (!selectedAreAllPaidActive(filtered)) {
     setMessage("Selecione apenas vendas pagas e ativas para devolver.", "error")
     return
@@ -600,12 +627,16 @@ async function cancelarVenda(saleId, triggerBtn) {
   }
 }
 
-async function loadSales() {
+async function loadSales(options) {
+  const quiet = options?.quiet === true
   if (!salesGrid || !filterPaidSelect) return
 
-  setMessage("")
-  salesGrid.innerHTML = `<p class="empty-cell">Carregando…</p>`
-  if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
+  if (!quiet) {
+    justPaidIds.clear()
+    setMessage("")
+    salesGrid.innerHTML = `<p class="empty-cell">Carregando…</p>`
+    if (toolbarSelectedEl) toolbarSelectedEl.textContent = ""
+  }
 
   const mode = filterPaidSelect.value
 
@@ -614,6 +645,7 @@ async function loadSales() {
 
     if (error) {
       console.error(error)
+      if (quiet) return
       const detail = error.message || error.code || String(error)
       setMessage(`Erro ao carregar vendas: ${detail}`, "error")
       salesGrid.innerHTML = `<p class="empty-cell">Erro ao carregar.</p>`
@@ -623,12 +655,19 @@ async function loadSales() {
       return
     }
 
-    selectedSaleIds.clear()
+    if (!quiet) selectedSaleIds.clear()
     loadedSales = data || []
+    if (quiet) {
+      const stillThere = new Set(rowsOnScreen().map((row) => saleIdKey(row)))
+      for (const id of [...selectedSaleIds]) {
+        if (!stillThere.has(id)) selectedSaleIds.delete(id)
+      }
+    }
     await loadProductImagesForSales(loadedSales)
     refreshDisplay()
   } catch (e) {
     console.error(e)
+    if (quiet) return
     setMessage(`Erro inesperado: ${e?.message || e}`, "error")
     salesGrid.innerHTML = `<p class="empty-cell">Erro ao carregar.</p>`
     loadedSales = []
@@ -643,7 +682,7 @@ if (selectAllCheckbox) {
       selectAllCheckbox.checked = false
       return
     }
-    const filtered = applySearchFilter(loadedSales)
+    const filtered = rowsOnScreen()
     if (selectAllCheckbox.checked) {
       for (const row of filtered) {
         const id = saleIdKey(row)
@@ -665,8 +704,9 @@ if (salesGrid) {
     if (!(target instanceof HTMLInputElement) || !target.classList.contains("row-select")) return
     const id = target.dataset.saleId
     if (!id) return
-    if (target.checked) selectedSaleIds.add(id)
-    else selectedSaleIds.delete(id)
+    const next = toggleSaleSelection(selectedSaleIds, id)
+    selectedSaleIds.clear()
+    for (const key of next) selectedSaleIds.add(key)
     refreshDisplay()
   })
 
