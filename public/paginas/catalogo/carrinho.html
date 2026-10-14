@@ -63,6 +63,10 @@
             <label for="buyer-email">E-mail (opcional)</label>
             <input id="buyer-email" type="email">
           </form>
+          <div class="order-honeypot" aria-hidden="true">
+            <label for="buyer-website">Site</label>
+            <input id="buyer-website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
           <label for="seller-select">Vendedora</label>
           <select id="seller-select"></select>
           <button id="check-stock-btn" type="button" class="btn-secondary">Validar estoque (opcional)</button>
@@ -86,6 +90,20 @@
           </div>
         </section>
       </div>
+
+      <section id="order-confirmation" class="cart-card order-confirmation" hidden>
+        <h2 id="order-title">Pedido</h2>
+        <p id="order-reservation" class="order-reservation"></p>
+        <div id="order-lines" class="cart-lines"></div>
+        <div class="cart-summary">
+          <span>Total</span>
+          <strong id="order-total">R$ 0,00</strong>
+        </div>
+        <div class="cart-summary">
+          <span>Total no Pix</span>
+          <strong id="order-pix">R$ 0,00</strong>
+        </div>
+      </section>
     </main>
 
     <aside id="cart-bar" class="cart-bar" aria-label="Cesta">
@@ -99,7 +117,9 @@
     </aside>
 
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
+    <script type="module" src="/paginas/catalogo/pedido.logic.js"></script>
     <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>
+    <script defer src="/paginas/catalogo/cesta-link.js"></script>
     <script defer src="/paginas/catalogo/carrinho.js"></script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

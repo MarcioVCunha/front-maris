@@ -77,11 +77,45 @@ Deno.test("colunas públicas não incluem custo", () => {
   assertEquals(Read.SELLER_COLUMNS, "id, name")
 })
 
-Deno.test("selectProducts usa a relação e a lista explícita", () => {
-  const client = new FakeClient()
-  const chain = Read.selectProducts(client)
-  assertEquals(client.relation, "products_public")
-  assertEquals(chain.ops[0], ["select", Read.PRODUCT_COLUMNS])
+Deno.test("a leitura pública pede preco_pix e preco_efetivo e ignora nome vazio", () => {
+  assertEquals(Read.PIX_PRICE_FIELD, "preco_pix")
+  assertEquals(Read.EFFECTIVE_PRICE_FIELD, "preco_efetivo")
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, ""), Read.PRODUCT_COLUMNS)
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "  "), Read.PRODUCT_COLUMNS)
+  assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "custo"), Read.PRODUCT_COLUMNS)
+  assertEquals(Read.productColumns(), `${Read.PRODUCT_COLUMNS}, preco_pix, preco_efetivo`)
+})
+
+Deno.test("selectProducts pede o preço do banco e repete sem a coluna se ela ainda não existir", async () => {
+  const selects: string[] = []
+  const orders: unknown[][] = []
+  const client = {
+    from() {
+      return {
+        select(cols: string) {
+          selects.push(cols)
+          const chain = {
+            order(...args: unknown[]) {
+              orders.push(args)
+              return chain
+            },
+            then(resolve: (value: unknown) => void) {
+              const missing = cols.includes("preco_pix") || cols.includes("preco_efetivo")
+              resolve(missing
+                ? { data: null, error: { code: "PGRST204", message: "Could not find the 'preco_efetivo' column of 'products_public' in the schema cache" } }
+                : { data: [{ code: "AN651-R" }], error: null })
+            }
+          }
+          return chain
+        }
+      }
+    }
+  }
+  const result = await Read.selectProducts(client as unknown as FakeClient).order("name")
+  assertEquals(selects, [`${Read.PRODUCT_COLUMNS}, preco_pix, preco_efetivo`, Read.PRODUCT_COLUMNS])
+  assertEquals(orders.length, 2)
+  assertEquals(result, { data: [{ code: "AN651-R" }], error: null })
+  assertEquals(Read.missingOptionalPriceColumn({ message: "Could not find the 'preco_pix' column" }), true)
 })
 
 Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
