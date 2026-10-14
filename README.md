@@ -95,4 +95,4 @@ A página da peça mostra o texto de cuidados aprovado. Peças de aço e aço do
 
 O selo "Novo" aparece até 30 dias depois do cadastro (`NEW_DAYS`). O selo "Última unidade" só valeria para estoque exatamente 1, desde que o cadastro tivesse 3 ou mais. Essa quantidade inicial não existe na view pública, então a flag `LAST_UNIT_BADGE_ENABLED` deixa o selo desligado.
 
-"Mais vendidas" está desligada pela flag `BESTSELLERS_ENABLED`. Quando ligada, lê a view `product_sales_counts` (`code` com a cor e `total_vendido`), soma as cores de cada cartão e, no empate, mostra primeiro o `created_at` mais recente. Se a view não existir, o catálogo continua normal.
+"Mais vendidas" está ligada pela flag `BESTSELLERS_ENABLED`. Lê a view `product_sales_counts` (`code` com a cor e `total_vendido`), soma as cores de cada cartão e, no empate, mostra primeiro o `created_at` mais recente. Se a view falhar ou vier vazia, a opção some e o catálogo continua normal.

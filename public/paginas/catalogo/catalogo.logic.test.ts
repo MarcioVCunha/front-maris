@@ -517,4 +517,6 @@ Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () =
     { code: "Y-O", total_vendido: 2 },
   ])
   assertEquals(sortGroupsByBestsellers(tied, tiedTotals).map((group) => group.base), ["X", "Y"])
+  assertEquals(totalsByProductCode([]).size, 0)
+  assertEquals(totalsByProductCode(null).size, 0)
 })

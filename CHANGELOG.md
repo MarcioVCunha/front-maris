@@ -10,6 +10,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - A chamada `create-order` fica num módulo só, atrás da flag `ORDERS_ENABLED` desligada. Com a flag desligada, a cesta segue como hoje. Com ela ligada, o link de compartilhar a cesta some. Esse código fica isolado para ser apagado nesse dia.
 - O Pix do catálogo lê `products_public.preco_pix` quando o valor vem preenchido. A coluna já traz a promoção e 2 casas decimais. Se ela ainda não existir, ou vier nula, o preço no Pix continua o cálculo local.
 - O preço com promoção lê `products_public.preco_efetivo` quando o valor vem preenchido. Isso vale para o cartão, o de/por, a ordenação e a cesta. Se a coluna ainda não existir, ou vier nula, o desconto continua o cálculo local.
+- Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
+
+## [1.1.0] - 2026-10-09
+
+### Adicionado
+
 - Fotos maiores no cartão, com fundo único, e segunda foto ao deslizar.
 - Filtros de categoria, preço, cor (dourado, ródio, aço e aço dourado) e só disponíveis. No celular ficam numa gaveta.
 - Ordenação por menor preço, maior preço e novidades.
@@ -34,4 +40,5 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - A importação espera o processamento das fotos e avisa que pode levar até 2 minutos.
 - Testes em Deno e build de verificação em todo pull request e na `main`.
 
+[1.1.0]: https://github.com/MarcioVCunha/front-maris/commit/690694e
 [1.0.0]: https://github.com/MarcioVCunha/front-maris/commit/ffa162d
