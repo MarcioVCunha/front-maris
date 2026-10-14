@@ -6,15 +6,23 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
-- A cesta pode virar pedido. A cliente informa nome e WhatsApp e escolhe a vendedora se quiser. A confirmação mostra os itens, o `subtotal` e o `total_pix` da resposta pública de `create-order`, e a frase com o prazo lido de `reserved_until`. A reserva é de 7 dias. Um envio repetido devolve o mesmo corpo, sem a marca `duplicate`, e a tela mostra o pedido. Peça esgotada sai da cesta com `name`, quantidade disponível e `reason`. Peça composta esgotada cita o componente (`component_id`) e sai só essa linha.
-- A chamada `create-order` fica num módulo só, atrás da flag `ORDERS_ENABLED`, agora ligada.
-- O Pix do catálogo lê `products_public.preco_pix` quando o valor vem preenchido. A coluna já traz a promoção e 2 casas decimais. Se ela ainda não existir, ou vier nula, o preço no Pix continua o cálculo local.
-- O preço com promoção lê `products_public.preco_efetivo` quando o valor vem preenchido. Isso vale para o cartão, o de/por, a ordenação e a cesta. Se a coluna ainda não existir, ou vier nula, o desconto continua o cálculo local.
 - Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
 
 ### Removido
 
 - Saem as cestas compartilhadas. O site não chama mais `create-shared-basket`, `customer-cart-share`, `list-shared-carts`, `discard-shared-cart` nem `mark-cart-converted`. Somem o link de compartilhar na cesta, a página `/catalog/cesta` e as telas `/carrinhos-clientes` e `/carrinho-cliente`.
+
+## [1.2.0] - 2026-10-14
+
+### Adicionado
+
+- A cesta vira pedido. A cliente informa nome e WhatsApp e pode escolher a vendedora. A confirmação mostra os itens, o `subtotal`, o total no Pix (`total_pix`) e a frase com o prazo lido de `reserved_until`.
+- Peça esgotada sai da cesta, com o nome e a quantidade disponível. Peça composta esgotada cita o componente (`component_id`) e sai só essa linha.
+- O preço com promoção lê `products_public.preco_efetivo` e o Pix do catálogo lê `products_public.preco_pix` quando o valor vem preenchido. Se a coluna não existir ou vier nula, continua o cálculo local.
+
+### Alterado
+
+- O link de compartilhar a cesta sai da tela. A flag `ORDERS_ENABLED` está ligada.
 
 ## [1.1.0] - 2026-10-09
 
@@ -44,5 +52,6 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - A importação espera o processamento das fotos e avisa que pode levar até 2 minutos.
 - Testes em Deno e build de verificação em todo pull request e na `main`.
 
+[1.2.0]: https://github.com/MarcioVCunha/front-maris/commit/0b26bf8
 [1.1.0]: https://github.com/MarcioVCunha/front-maris/commit/690694e
 [1.0.0]: https://github.com/MarcioVCunha/front-maris/commit/ffa162d
