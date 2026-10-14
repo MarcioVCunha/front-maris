@@ -1,5 +1,4 @@
-// Chamadas da tela nova de venda, no formato do back-maris (PR #11).
-// NEW_SALE_ENABLED continua desligada até essas funções estarem publicadas.
+// Chamadas da tela de venda, no formato do back-maris (PR #11).
 
 export const NEW_SALE_API = {
   monthSummary: "seller-month-summary",

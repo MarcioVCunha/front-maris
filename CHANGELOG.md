@@ -6,19 +6,26 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
-- Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
-- Tela nova de registrar venda em `/vendas/nova`, desligada (`NEW_SALE_ENABLED`). Card do mês com 30% de comissão só sobre vendas pagas (zero para Marcio e Marineide), fluxo em três passos e as vendas recentes da própria vendedora. A tela atual em `/vendas` não muda.
-- Toque numa venda recente abre o detalhe só de leitura: data, peças, cliente, WhatsApp, pagamento e total, com desconto no Pix quando for o caso. Sem editar nem cancelar.
-
 ### Alterado
-
-- A tela nova de venda segue o contrato do servidor: comissão do mês, preço Pix (`preco_pix`), WhatsApp sem o 55 e o total devolvido depois de criar. Peça esgotada (409) mostra a mensagem e deixa ajustar. A flag continua desligada.
-- Nas vendas recentes e no detalhe, a venda pode estar paga, parcial ou a receber. A linha mostra "X de Y peças pagas" e o parcial tem um selo próprio. Cada peça do detalhe indica paga (com a data) ou a receber. Pedido ainda a receber entra na lista quando alguma peça já foi paga.
-- O card do mês diz quantas peças foram pagas e em quantas vendas. A comissão mostrada é o `commission_amount` do servidor.
-- A venda nova manda só `piece_id` e quantidade, sem preço. O detalhe usa o total do servidor: subtotal das linhas, desconto do Pix e o `total` recebido.
 
 ### Removido
 
+## [1.3.0] - 2026-10-14
+
+### Adicionado
+
+- Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
+- Tela de registrar venda em `/vendas/nova`, ligada (`NEW_SALE_ENABLED`). Card do mês com a comissão do servidor, fluxo em três passos (peças, cliente e pagamento) e as vendas recentes da própria vendedora. Toque numa venda abre o detalhe só de leitura.
+
+### Alterado
+
+- A venda segue o contrato do servidor: preço Pix (`preco_pix`), WhatsApp nacional sem o 55, e o total devolvido depois de criar. O card diz quantas peças foram pagas e em quantas vendas. A lista mostra paga, parcial ou a receber. Peça esgotada (409) mostra a mensagem e deixa ajustar.
+- Quem entra em `/equipe` com papel `vendedora` (sem ser admin) cai direto em `/vendas/nova`. O `seller_id` sai do perfil da equipe, como a Marineide ligada à vendedora 2.
+- A venda manda só `piece_id` e quantidade, sem preço. O detalhe usa o total do servidor: subtotal das linhas, desconto do Pix e o `total` recebido.
+
+### Removido
+
+- Sai a tela antiga de registrar venda, que chamava `register-sale`, com o formulário, os testes e o atalho. `/vendas`, `/sales/sales.html` e `/paginas/vendas/vendas.html` redirecionam para `/vendas/nova`.
 - Saem as cestas compartilhadas. O site não chama mais `create-shared-basket`, `customer-cart-share`, `list-shared-carts`, `discard-shared-cart` nem `mark-cart-converted`. Somem o link de compartilhar na cesta, a página `/catalog/cesta` e as telas `/carrinhos-clientes` e `/carrinho-cliente`.
 - Links antigos `/catalog/cesta` (com qualquer query, como `?id=`) e `/catalog/cesta-compartilhada.html` redirecionam para `/catalog`.
 
@@ -62,6 +69,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - A importação espera o processamento das fotos e avisa que pode levar até 2 minutos.
 - Testes em Deno e build de verificação em todo pull request e na `main`.
 
+[1.3.0]: https://github.com/MarcioVCunha/front-maris/compare/545c35d...cursor/liga-venda-nova-9fa9
 [1.2.0]: https://github.com/MarcioVCunha/front-maris/commit/0b26bf8
 [1.1.0]: https://github.com/MarcioVCunha/front-maris/commit/690694e
 [1.0.0]: https://github.com/MarcioVCunha/front-maris/commit/ffa162d

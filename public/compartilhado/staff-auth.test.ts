@@ -126,11 +126,11 @@ const Auth = (win as Record<string, unknown>).MarisStaffAuth as {
   isValid: () => boolean
   authHeaders: () => Record<string, string>
   safeNextPath: (raw: string | null) => string
+  landingPath: (user: { role?: string } | null, rawNext: string | null) => string
   normalizeStaffUser: (raw: unknown) => { role: string; name: string; email: string } | null
   accessDecision: (input: { pathname: string; role: string | null; hasSession: boolean; optional: boolean }) => string
   menuFor: (role: string) => Record<string, boolean>
   isAdminOnlyPath: (pathname: string) => boolean
-  saleSellerChoice: (user: { role?: string; seller_id?: number | null } | null) => { mode: string; sellerId: number | null; message: string }
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   signInAndLoadProfile: (email: string, password: string) => Promise<{ ok: boolean; error?: string; user?: { role: string } }>
   requestPasswordReset: (email: string) => Promise<{ ok: boolean }>
@@ -188,7 +188,7 @@ Deno.test("a sessão fica na chave do Supabase e ignora o token antigo", () => {
 
 Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
   pinWindow()
-  const sellerPages = ["/", "/vendedoras", "/vendas", "/tipos-produto"]
+  const sellerPages = ["/", "/vendedoras", "/vendas", "/vendas/nova", "/tipos-produto"]
   const adminPages = ["/admin", "/importar", "/adicionar-peca", "/promocoes", "/contas-vendedoras", "/lista-espera"]
   for (const pathname of sellerPages) {
     assertEquals(
@@ -224,22 +224,6 @@ Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
     Auth.accessDecision({ pathname: "/equipe/nova-senha", role: null, hasSession: false, optional: false }),
     "allow"
   )
-})
-
-Deno.test("a vendedora vende só pela própria conta", () => {
-  pinWindow()
-  assertEquals(Auth.saleSellerChoice({ role: "seller", seller_id: 7 }), {
-    mode: "locked",
-    sellerId: 7,
-    message: ""
-  })
-  assertEquals(Auth.saleSellerChoice({ role: "seller", seller_id: null }), {
-    mode: "unlinked",
-    sellerId: null,
-    message: "Esta conta não está ligada a uma vendedora. Peça para completar o cadastro."
-  })
-  assertEquals(Auth.saleSellerChoice({ role: "admin", seller_id: null }).mode, "pick")
-  assertEquals(Auth.saleSellerChoice({ role: "admin", seller_id: 4 }).mode, "pick")
 })
 
 Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração", () => {
@@ -297,6 +281,7 @@ Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
     seller_id: "7"
   })
   assertEquals(linked?.seller_id, 7)
+  assertEquals(Auth.normalizeStaffUser({ id: "1", email: "a@b.c", role: "vendedora" })?.role, "seller")
   assertEquals(Auth.safeNextPath("/vendas?id=1"), "/vendas?id=1")
   assertEquals(Auth.safeNextPath("//evil.test"), "/")
   assertEquals(Auth.safeNextPath("https://evil.test"), "/")
@@ -304,6 +289,39 @@ Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
   assertEquals(Auth.safeNextPath("/%2F%2Fevil"), "/")
   assertEquals(Auth.safeNextPath("/equipe"), "/")
   assertEquals(Auth.safeNextPath("/equipe/nova-senha"), "/")
+})
+
+Deno.test("vendedora sem ser admin entra direto na venda nova com o seller_id do perfil", async () => {
+  pinWindow()
+  const marineide = Auth.normalizeStaffUser({
+    id: "marineide",
+    email: "marineide@loja.test",
+    name: "Marineide",
+    role: "vendedora",
+    seller_id: 2
+  })
+  assertEquals(marineide?.role, "seller")
+  assertEquals(marineide?.seller_id, 2)
+  assertEquals(Auth.accessDecision({ pathname: "/vendas/nova", role: marineide?.role, hasSession: true, optional: false }), "allow")
+  assertEquals(Auth.accessDecision({ pathname: "/admin", role: marineide?.role, hasSession: true, optional: false }), "deny")
+  assertEquals(Auth.landingPath(marineide, null), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/vendedoras"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/vendas"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/tipos-produto"), "/tipos-produto")
+
+  const admin = Auth.normalizeStaffUser({
+    id: "1",
+    email: "marcio@loja.test",
+    name: "Marcio",
+    role: "admin",
+    seller_id: null
+  })
+  assertEquals(Auth.landingPath(admin, null), "/")
+  assertEquals(Auth.landingPath(admin, "/admin"), "/admin")
+  const gate = await Deno.readTextFile(new URL("../paginas/admin/equipe.html", import.meta.url))
+  assertEquals(gate.includes("Auth.landingPath"), true)
+  assertEquals(gate.includes("location.replace(nextUrl)"), false)
 })
 
 Deno.test("entrar confirma o perfil e recusa quem não é da equipe", async () => {
@@ -421,7 +439,8 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assertEquals(index.includes("clearToken"), false)
 
   const hub = await readPublic("paginas/admin/vendedoras.html")
-  assertEquals(anchor(hub, "/vendas").includes("data-staff-min"), false)
+  assertEquals(anchor(hub, "/vendas/nova").includes("data-staff-min"), false)
+  assertEquals(hub.includes('href="/vendas"'), false)
   assertEquals(hub.includes('href="/carrinhos-clientes"'), false)
   assertEquals(hub.includes('href="/carrinho-cliente"'), false)
   assert(anchor(hub, "/lista-espera").includes('data-staff-min="admin"'))
@@ -436,10 +455,11 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assertEquals(equipe.includes("verify-staff-access"), false)
   assertEquals(equipe.includes("signUp("), false)
 
-  const vendas = await readPublic("paginas/vendas/vendas.js")
-  assert(vendas.includes("saleSellerChoice"))
+  const vendas = await readPublic("paginas/vendas/nova-venda.api.js")
+  assertEquals(vendas.includes("saleSellerChoice"), false)
   assert(vendas.includes('auth: "staff"'))
-  assert(vendas.includes("error.message"))
+  const page = await readPublic("paginas/vendas/nova-venda.js")
+  assertEquals(page.includes("saleSellerChoice"), false)
 })
 
 Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo público não muda", async () => {
@@ -457,7 +477,6 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/nova-senha.html",
     "paginas/admin/admin.html",
     "paginas/admin/vendedoras.html",
-    "paginas/vendas/vendas.html",
     "paginas/vendas/nova-venda.html",
     "paginas/vendas/lista-espera.html",
     "paginas/vendedoras/contas.html",

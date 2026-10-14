@@ -23,26 +23,14 @@
     </header>
 
     <nav class="cards cards--sub" aria-label="Ferramentas de vendedoras">
-      <a class="menu-card menu-card--sub menu-card--vendedoras" href="/vendas">
-        <span class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-            <rect x="9" y="3" width="6" height="4" rx="1" />
-            <path d="M9 12h6M9 16h4" />
-          </svg>
-        </span>
-        <h2>Registrar vendas</h2>
-        <p>Venda avulsa na loja. Informe vendedora, método de pagamento e itens — baixa no estoque.</p>
-      </a>
-
-      <a class="menu-card menu-card--sub menu-card--vendedoras" href="/vendas/nova" id="nova-venda-link" hidden>
+      <a class="menu-card menu-card--sub menu-card--vendedoras" href="/vendas/nova" id="nova-venda-link">
         <span class="menu-card-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
         </span>
-        <h2>Registrar venda</h2>
-        <p>Tela nova: peças, cliente e pagamento. Ainda desligada.</p>
+        <h2>Nova venda</h2>
+        <p>Peças, cliente e pagamento. A comissão do mês fica no topo da tela.</p>
       </a>
 
       <a class="menu-card menu-card--sub menu-card--admin" href="/tipos-produto" data-staff-only="seller" hidden>
@@ -88,9 +76,9 @@
   </div>
   <script type="module">
     import { NEW_SALE_ENABLED } from "/paginas/vendas/nova-venda.logic.js"
-    if (NEW_SALE_ENABLED) {
+    if (!NEW_SALE_ENABLED) {
       const link = document.getElementById("nova-venda-link")
-      if (link) link.hidden = false
+      if (link) link.hidden = true
     }
   </script>
   <script>
