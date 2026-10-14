@@ -1,7 +1,7 @@
-// Painel do admin. Nasce desligado: /admin continua o hub atual.
+// Painel do admin. Ligado: /admin abre este painel. Promoções continua em /promocoes.
 import { ADD_PRODUCT_CATEGORIES, parseImageUrlLines, parseMoneyBRL } from "../estoque/adicionar-peca/adicionar-peca.logic.js"
 
-export const ADMIN_DASHBOARD_ENABLED = false
+export const ADMIN_DASHBOARD_ENABLED = true
 export const NCM_DEFAULT = "71171900"
 export const ORIGEM_DEFAULT = 0
 
@@ -9,7 +9,8 @@ export const DASHBOARD_VIEWS = [
   { id: "inicio", href: "/admin/inicio", label: "Início" },
   { id: "estoque", href: "/admin/estoque", label: "Estoque" },
   { id: "vendas", href: "/admin/vendas", label: "Vendas" },
-  { id: "vendedoras", href: "/admin/vendedoras", label: "Vendedoras" }
+  { id: "vendedoras", href: "/admin/vendedoras", label: "Vendedoras" },
+  { id: "promocoes", href: "/promocoes", label: "Promoções" }
 ]
 
 export const STOCK_LINKS = [
