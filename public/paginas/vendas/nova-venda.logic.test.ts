@@ -28,6 +28,8 @@ Deno.test("a flag da venda nova está ligada", async () => {
   const page = await Deno.readTextFile(new URL("./nova-venda.js", import.meta.url))
   assertEquals(page.includes('location.replace("/vendas")'), false)
   assertEquals(page.includes('location.replace("/vendedoras")'), true)
+  const css = await Deno.readTextFile(new URL("./nova-venda.css", import.meta.url))
+  assertEquals(css.includes(".nova-venda [hidden]"), true)
 })
 
 Deno.test("a venda antiga redireciona para a tela nova", async () => {

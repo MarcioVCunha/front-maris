@@ -5,6 +5,10 @@
   background: var(--maris-bg);
 }
 
+.nova-venda [hidden] {
+  display: none !important;
+}
+
 .nova-venda header {
   text-align: left;
   padding: 20px 16px 16px;
