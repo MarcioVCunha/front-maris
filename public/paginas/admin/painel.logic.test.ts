@@ -3,8 +3,14 @@ import {
   ADMIN_DASHBOARD_ENABLED,
   NCM_DEFAULT,
   ORIGEM_DEFAULT,
+  NO_DATA,
+  STOCK_PAGE_SIZE,
   archiveConfirmText,
   archivePayload,
+  channelLabel,
+  currentMonthKey,
+  filterStock,
+  isPanelLink,
   buildAddProductPayload,
   buildProductUpdatePayload,
   componentSku,
@@ -17,10 +23,15 @@ import {
   pieceFormState,
   renderAddForm,
   renderArchiveDialog,
+  renderInicio,
   renderPieceForm,
+  renderVendas,
+  renderVendedoras,
   navHtml,
   renderStockList,
   renderTipos,
+  sellersFromDirectory,
+  visibleStock,
   shouldShowDashboard,
 } from "./painel.logic.js"
 
@@ -41,11 +52,18 @@ Deno.test("o painel está ligado e Promoções continua no menu", async () => {
   assertEquals(source.includes("export const ADMIN_DASHBOARD_ENABLED = true"), true)
   const page = await Deno.readTextFile(new URL("./painel.js", import.meta.url))
   assertEquals(page.includes('location.replace("/admin/inicio")'), false)
+  assertEquals(page.includes("location.reload"), false)
+  assert(page.includes("history.pushState"))
   assert(page.includes("settleAdminGate"))
   const hub = await Deno.readTextFile(new URL("./admin.html", import.meta.url))
   const redirectAt = hub.indexOf('location.replace("/admin/inicio")')
-  const profileAt = hub.indexOf("MarisStaffAuth.loadProfile()")
-  assert(profileAt > 0 && redirectAt > profileAt)
+  const legacyAt = hub.indexOf('id="legacy-admin"')
+  assert(redirectAt > 0 && legacyAt > redirectAt)
+  assert(hub.includes("Carregando…"))
+  assert(hub.includes("#legacy-admin { display: none"))
+  assertEquals(hub.includes("MarisStaffAuth.loadProfile()"), false)
+  const flag = await Deno.readTextFile(new URL("./painel.flag.js", import.meta.url))
+  assert(flag.includes("window.MARIS_ADMIN_DASHBOARD = true"))
   assert(hub.includes('href="/promocoes"'))
   const menu = navHtml("inicio")
   assert(menu.includes('href="/promocoes"'))
@@ -54,7 +72,7 @@ Deno.test("o painel está ligado e Promoções continua no menu", async () => {
   const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
   assertEquals(
     vercel.rewrites.find((item: { source: string }) => item.source === "/admin").destination,
-    "/paginas/admin/admin.html",
+    "/paginas/admin/painel.html",
   )
   assertEquals(
     vercel.rewrites.find((item: { source: string }) => item.source === "/promocoes").destination,
@@ -169,7 +187,85 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
     unit_price: 120,
     quantity: null,
     categoria: "Anel",
+    image_url: "https://exemplo.test/anel.jpg",
   }])
   assert(list.includes("0 un."))
+  assert(list.includes('loading="lazy"'))
   assert(list.includes("/admin/peca?code=AN581-R"))
+})
+
+Deno.test("o estoque busca e pagina sem pedir a lista de novo", () => {
+  const products = [
+    { code: "AN581-R", name: "Anel rosa", categoria: "Anel" },
+    { code: "BR10", name: "Brinco orquídea", categoria: "Brinco" },
+    { code: "CO2", name: "Colar", categoria: "Colar" },
+  ]
+  assertEquals(filterStock(products, "rosa").map((item) => item.code), ["AN581-R"])
+  assertEquals(filterStock(products, "brinco").map((item) => item.code), ["BR10"])
+  const page = visibleStock(products, "", 2)
+  assertEquals(page.total, 3)
+  assertEquals(page.rows.length, 2)
+  assertEquals(STOCK_PAGE_SIZE, 20)
+  assertEquals(isPanelLink("/admin/estoque"), true)
+  assertEquals(isPanelLink("/promocoes"), false)
+})
+
+Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () => {
+  assertEquals(currentMonthKey(new Date("2026-10-14T15:00:00Z")), "2026-10")
+  assertEquals(channelLabel("site"), "Site")
+  assertEquals(channelLabel("equipe"), "Equipe")
+  assertEquals(channelLabel("marketplace"), "Marketplace")
+  const inicio = renderInicio({
+    month: "2026-10",
+    charged_total: 2400,
+    paid_count: 12,
+    paid_orders_count: 7,
+    channels: [
+      { channel: "site", orders: 2, charged_total: 400 },
+      { channel: "equipe", orders: 4, charged_total: 1600 },
+      { channel: "marketplace", orders: 1, charged_total: 400 },
+    ],
+    best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5 }],
+  })
+  assert(inicio.includes("Vendas do mês"))
+  assert(inicio.includes("Site"))
+  assert(inicio.includes("Equipe"))
+  assert(inicio.includes("Marketplace"))
+  assert(inicio.includes("Anel rosa"))
+  assert(inicio.includes("5 un."))
+  assertEquals(renderInicio(null).includes(NO_DATA), true)
+
+  const vendas = renderVendas([{
+    id: 10,
+    created_at: "2026-10-14T15:00:00Z",
+    seller_name: "Marineide",
+    channel: "equipe",
+    customer_name: "Lia",
+    total: 190,
+    payment_status: "paid",
+    payment_method: "pix",
+  }])
+  assert(vendas.includes("Lia"))
+  assert(vendas.includes("Marineide"))
+  assert(vendas.includes("Equipe"))
+  assert(vendas.includes("Paga"))
+  assertEquals(renderVendas(null).includes(NO_DATA), true)
+
+  const team = renderVendedoras([{
+    name: "Marineide",
+    month_ready: true,
+    paid_count: 4,
+    paid_orders_count: 3,
+    charged_total: 890,
+    commission_amount: 89,
+    commission_percent: 10,
+    balance: 120,
+  }])
+  assert(team.includes("Marineide"))
+  assert(team.includes("Saldo a receber"))
+  assert(team.includes("10%"))
+  const waiting = renderVendedoras(sellersFromDirectory([{ id: 2, name: "Marineide" }]))
+  assert(waiting.includes("Marineide"))
+  assert(waiting.includes(NO_DATA))
+  assertEquals(renderVendedoras(null).includes(NO_DATA), true)
 })

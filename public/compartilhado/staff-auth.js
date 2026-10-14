@@ -235,6 +235,7 @@
   }
 
   let pageUnloading = false
+  let profileFlight = null
 
   function notePageUnloading() {
     pageUnloading = true
@@ -260,6 +261,47 @@
   function redirectHomeDenied() {
     if (pageUnloading) return
     window.location.replace("/?aviso=sem-permissao")
+  }
+
+  function sessionSubject(session) {
+    const sub = decodeJwtPayload(session?.access_token)?.sub
+    return sub == null || sub === "" ? "" : String(sub)
+  }
+
+  function profileStore() {
+    return window.sessionStorage || null
+  }
+
+  function readCachedUser() {
+    const session = readStoredSession()
+    const store = profileStore()
+    if (!sessionIsUsable(session) || !store) return null
+    const sub = sessionSubject(session)
+    if (!sub) return null
+    try {
+      const parsed = JSON.parse(store.getItem(PROFILE_KEY) || "")
+      if (!parsed || parsed.sub !== sub) return null
+      return normalizeStaffUser(parsed.user)
+    } catch {
+      return null
+    }
+  }
+
+  function writeCachedUser(user) {
+    const store = profileStore()
+    const sub = sessionSubject(readStoredSession())
+    if (!store || !sub || !user) return
+    try {
+      store.setItem(PROFILE_KEY, JSON.stringify({ sub, user }))
+    } catch {
+      /* o perfil ainda vale nesta chamada */
+    }
+  }
+
+  function freshDeniesAdmin(fresh) {
+    if (!fresh || fresh.aborted || fresh.cached) return false
+    if (fresh.ok) return fresh.user?.role !== "admin"
+    return /permiss|equipe|papel/i.test(String(fresh.error || ""))
   }
 
   function setPageHidden(hidden) {
@@ -368,30 +410,35 @@
     },
 
     async loadProfile() {
-      try {
-        const result = window.MarisStaffData?.fetchStaffProfile
-          ? await window.MarisStaffData.fetchStaffProfile()
-          : await fetchStaffProfileDirect()
-        if (result?.error || !result?.user) {
-          const error = result?.error?.message || "Não foi possível confirmar seu acesso."
-          return { ok: false, aborted: profileWasAborted({ error }) || pageUnloading, error }
-        }
-        const user = normalizeStaffUser(result.user)
-        if (!user) return { ok: false, error: "Seu acesso não tem um papel reconhecido." }
-        try {
-          sessionStorage.setItem(PROFILE_KEY, JSON.stringify(user))
-        } catch {
-          /* o perfil ainda vale nesta chamada */
-        }
-        return { ok: true, user }
-      } catch (e) {
-        const error = e?.message || "Erro de conexão."
-        return {
-          ok: false,
-          aborted: e?.name === "AbortError" || profileWasAborted({ error }) || pageUnloading,
-          error
-        }
+      const cached = readCachedUser()
+      if (cached) {
+        this.refreshProfile()
+        return { ok: true, user: cached, cached: true }
       }
+      return this.refreshProfile()
+    },
+
+    refreshProfile() {
+      if (!profileFlight) {
+        profileFlight = fetchProfileOnce().finally(() => {
+          profileFlight = null
+        })
+      }
+      const flight = profileFlight
+      flight.then((fresh) => {
+        const path = normalizePath(window.location?.pathname)
+        if (!isAdminOnlyPath(path) || !freshDeniesAdmin(fresh)) {
+          if (fresh?.ok && fresh.user) applyMenus(fresh.user)
+          return
+        }
+        try {
+          profileStore()?.removeItem(PROFILE_KEY)
+        } catch {
+          /* segue para a saída */
+        }
+        redirectHomeDenied()
+      })
+      return flight
     },
 
     async signIn(email, password) {
@@ -498,12 +545,8 @@
         /* segue limpando o que ficou no navegador */
       }
       try {
-        sessionStorage.removeItem(PROFILE_KEY)
-      } catch {
-        /* ignore */
-      }
-      try {
-        sessionStorage.removeItem(LEGACY_TOKEN_KEY)
+        profileStore()?.removeItem(PROFILE_KEY)
+        profileStore()?.removeItem(LEGACY_TOKEN_KEY)
       } catch {
         /* ignore */
       }
@@ -529,8 +572,38 @@
     sb.auth.onAuthStateChange(() => {})
   }
 
+  async function fetchProfileOnce() {
+    try {
+      const result = window.MarisStaffData?.fetchStaffProfile
+        ? await window.MarisStaffData.fetchStaffProfile()
+        : await fetchStaffProfileDirect()
+      if (result?.error || !result?.user) {
+        const error = result?.error?.message || "Não foi possível confirmar seu acesso."
+        return { ok: false, aborted: profileWasAborted({ error }) || pageUnloading, error }
+      }
+      const user = normalizeStaffUser(result.user)
+      if (!user) return { ok: false, error: "Seu acesso não tem um papel reconhecido." }
+      writeCachedUser(user)
+      return { ok: true, user }
+    } catch (e) {
+      const error = e?.message || "Erro de conexão."
+      return {
+        ok: false,
+        aborted: e?.name === "AbortError" || profileWasAborted({ error }) || pageUnloading,
+        error
+      }
+    }
+  }
+
   function enforceRole() {
     const path = normalizePath(window.location.pathname)
+    const cached = readCachedUser()
+    if (cached && (!isAdminOnlyPath(path) || cached.role === "admin")) {
+      setPageHidden(false)
+      applyMenus(cached)
+      window.MarisStaffAuth.loadProfile()
+      return
+    }
     if (!isAdminOnlyPath(path)) {
       window.MarisStaffAuth.loadProfile().then((profile) => {
         if (profile.ok) applyMenus(profile.user)

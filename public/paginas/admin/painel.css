@@ -223,6 +223,74 @@
   color: var(--maris-text-muted);
 }
 
+.boot-loading {
+  margin: 24px 16px;
+  color: var(--maris-text-muted);
+}
+
+.stock-tools {
+  margin-bottom: 12px;
+}
+
+.report h2,
+.seller-card h2 {
+  margin: 18px 0 8px;
+  font-family: var(--maris-font-display);
+  font-size: 1.45rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.stat {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.channel-row,
+.best-row,
+.sale-row,
+.seller-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 12px;
+}
+
+.seller-card {
+  display: block;
+}
+
+.seller-card p {
+  margin: 4px 0;
+}
+
+.channel-row span,
+.best-row span,
+.sale-row span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.channel-row small,
+.best-row small,
+.sale-row small {
+  color: var(--maris-text-muted);
+}
+
 dialog {
   width: min(360px, calc(100% - 32px));
   border: 0;

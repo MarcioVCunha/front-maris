@@ -40,7 +40,7 @@
     { "source": "/admin/tipos", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/adicionar", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/importar", "destination": "/paginas/admin/painel.html" },
-    { "source": "/admin", "destination": "/paginas/admin/admin.html" },
+    { "source": "/admin", "destination": "/paginas/admin/painel.html" },
     { "source": "/vendedoras", "destination": "/paginas/admin/vendedoras.html" },
     { "source": "/catalogo", "destination": "/paginas/admin/catalogo.html" },
     { "source": "/importar", "destination": "/paginas/estoque/importar/importar.html" },

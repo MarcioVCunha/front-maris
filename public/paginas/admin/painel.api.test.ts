@@ -4,6 +4,9 @@ import {
   addProduct,
   archiveProduct,
   fetchCategoryDefaults,
+  fetchMonthOverview,
+  fetchRecentSales,
+  fetchSellersMonth,
   importProducts,
   listProducts,
   updateComponentSku,
@@ -11,10 +14,10 @@ import {
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
-  const calls: Array<{ name: string; options: { method?: string; body?: unknown; timeoutMs?: number } }> = []
+  const calls: Array<{ name: string; options: { method?: string; body?: unknown; timeoutMs?: number; query?: unknown } }> = []
   return {
     calls,
-    call(name: string, options: { method?: string; body?: unknown; timeoutMs?: number }) {
+    call(name: string, options: { method?: string; body?: unknown; timeoutMs?: number; query?: unknown }) {
       calls.push({ name, options })
       return { ok: true, data }
     },
@@ -29,6 +32,9 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.componentUpdate, "admin-component-update")
   assertEquals(ADMIN_DASHBOARD_API.addProduct, "add-product")
   assertEquals(ADMIN_DASHBOARD_API.importProducts, "import-products")
+  assertEquals(ADMIN_DASHBOARD_API.monthOverview, "admin-month-overview")
+  assertEquals(ADMIN_DASHBOARD_API.recentSales, "admin-recent-sales")
+  assertEquals(ADMIN_DASHBOARD_API.sellersMonth, "admin-sellers-month")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -73,4 +79,28 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(imported.calls[0].name, "import-products")
   assertEquals(imported.calls[0].options.timeoutMs, 150000)
   assertEquals(imported.calls[0].options.body, [{ code: "BM1786-O" }])
+
+  const month = client({
+    ok: true,
+    month: "2026-10",
+    charged_total: 10,
+    channels: [{ channel: "site", orders: 1, charged_total: 10 }],
+    best_sellers: [],
+  })
+  const overview = await fetchMonthOverview({ month: "2026-10" }, month)
+  assertEquals(overview.ok, true)
+  assertEquals(month.calls[0].name, "admin-month-overview")
+  assertEquals(month.calls[0].options.method, "GET")
+  assertEquals(month.calls[0].options.query, { month: "2026-10" })
+
+  const recent = client({ ok: true, sales: [{ id: 1, seller_name: "Marineide" }] })
+  await fetchRecentSales({ limit: 20 }, recent)
+  assertEquals(recent.calls[0].name, "admin-recent-sales")
+  assertEquals(recent.calls[0].options.query, { limit: 20 })
+
+  const sellers = client({ ok: true, sellers: [{ seller_id: 2, name: "Marineide", balance: 0 }] })
+  const team = await fetchSellersMonth({ month: "2026-10" }, sellers)
+  assertEquals(team.ok, true)
+  assertEquals(sellers.calls[0].name, "admin-sellers-month")
+  assertEquals(sellers.calls[0].options.method, "GET")
 })

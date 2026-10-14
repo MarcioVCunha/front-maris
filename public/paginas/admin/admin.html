@@ -5,75 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Administração — Maris Semijoias</title>
   <link rel="stylesheet" href="/assets/home.css">
-  <script src="/env.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-  <script src="/compartilhado/utils.js"></script>
-  <script src="/compartilhado/api.js"></script>
-  <script src="/compartilhado/staff-data.js"></script>
-  <script src="/compartilhado/staff-auth.js"></script>
+  <style>
+    .boot-loading { margin: 24px 16px; font: 1rem/1.4 system-ui, sans-serif; color: #5c4a44; }
+    #legacy-admin { display: none; }
+    body.legacy-ready #legacy-admin { display: block; }
+    body.legacy-ready .boot-loading { display: none; }
+  </style>
+  <script src="/paginas/admin/painel.flag.js"></script>
+  <script>
+    if (window.MARIS_ADMIN_DASHBOARD) {
+      location.replace("/admin/inicio")
+    } else {
+      document.write(
+        '<script src="/env.js"><\/script>' +
+        '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"><\/script>' +
+        '<script src="/compartilhado/utils.js"><\/script>' +
+        '<script src="/compartilhado/api.js"><\/script>' +
+        '<script src="/compartilhado/staff-data.js"><\/script>' +
+        '<script src="/compartilhado/staff-auth.js"><\/script>'
+      )
+    }
+  </script>
 </head>
 <body>
-  <div class="dashboard">
-    <a class="hub-back" href="/">← Voltar ao início</a>
-    <header class="dashboard-header" style="text-align: left; margin-bottom: 32px;">
-      <h1 class="hub-section-title">Administração</h1>
-      <p class="hub-section-lead">
-        Ferramentas para manter o catálogo atualizado: importação em lote, cadastro de peças e configuração dos tipos de cada produto.
-      </p>
-    </header>
+  <p class="boot-loading">Carregando…</p>
+  <div id="legacy-admin">
+    <div class="dashboard">
+      <a class="hub-back" href="/">← Voltar ao início</a>
+      <header class="dashboard-header" style="text-align: left; margin-bottom: 32px;">
+        <h1 class="hub-section-title">Administração</h1>
+        <p class="hub-section-lead">
+          Ferramentas para manter o catálogo atualizado: importação em lote, cadastro de peças e configuração dos tipos de cada produto.
+        </p>
+      </header>
 
-    <nav class="cards cards--sub" aria-label="Ferramentas de administração">
-      <a class="menu-card menu-card--sub menu-card--admin" href="/importar">
-        <span class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 4v12M8 8l4-4 4 4" />
-            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-          </svg>
-        </span>
-        <h2>Importar produtos</h2>
-        <p>Envie um arquivo JSON para criar ou atualizar vários itens de uma vez.</p>
-      </a>
+      <nav class="cards cards--sub" aria-label="Ferramentas de administração">
+        <a class="menu-card menu-card--sub menu-card--admin" href="/importar">
+          <span class="menu-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4v12M8 8l4-4 4 4" />
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            </svg>
+          </span>
+          <h2>Importar produtos</h2>
+          <p>Envie um arquivo JSON para criar ou atualizar vários itens de uma vez.</p>
+        </a>
 
-      <a class="menu-card menu-card--sub menu-card--admin" href="/adicionar-peca">
-        <span class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-            <rect x="4" y="4" width="16" height="16" rx="3" />
-          </svg>
-        </span>
-        <h2>Adicionar peça</h2>
-        <p>Cadastre uma peça avulsa com código, nome, preço, imagem e quantidade.</p>
-      </a>
+        <a class="menu-card menu-card--sub menu-card--admin" href="/adicionar-peca">
+          <span class="menu-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+              <rect x="4" y="4" width="16" height="16" rx="3" />
+            </svg>
+          </span>
+          <h2>Adicionar peça</h2>
+          <p>Cadastre uma peça avulsa com código, nome, preço, imagem e quantidade.</p>
+        </a>
 
-      <a class="menu-card menu-card--sub menu-card--admin" href="/tipos-produto">
-        <span class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 3 4 7v2l8 4 8-4V7l-8-4z" />
-            <path d="M4 12v2l8 4 8-4v-2" />
-            <path d="M4 17v2l8 4 8-4v-2" />
-          </svg>
-        </span>
-        <h2>Tipos dos produtos</h2>
-        <p>Defina os tipos de cada produto (ex.: brinco, colar) e o estoque de cada um.</p>
-      </a>
+        <a class="menu-card menu-card--sub menu-card--admin" href="/tipos-produto">
+          <span class="menu-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 4 7v2l8 4 8-4V7l-8-4z" />
+              <path d="M4 12v2l8 4 8-4v-2" />
+              <path d="M4 17v2l8 4 8-4v-2" />
+            </svg>
+          </span>
+          <h2>Tipos dos produtos</h2>
+          <p>Defina os tipos de cada produto (ex.: brinco, colar) e o estoque de cada um.</p>
+        </a>
 
-      <a class="menu-card menu-card--sub menu-card--admin" href="/promocoes">
-        <span class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 9h.01M15 15h.01M16 8 8 16" />
-            <rect x="3" y="3" width="18" height="18" rx="4" />
-          </svg>
-        </span>
-        <h2>Promoções</h2>
-        <p>Ative descontos por produto ou tipo sem alterar o preço base.</p>
-      </a>
-    </nav>
+        <a class="menu-card menu-card--sub menu-card--admin" href="/promocoes">
+          <span class="menu-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 9h.01M15 15h.01M16 8 8 16" />
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+            </svg>
+          </span>
+          <h2>Promoções</h2>
+          <p>Ative descontos por produto ou tipo sem alterar o preço base.</p>
+        </a>
+      </nav>
 
-    <div class="dashboard-session">
-      <p id="staff-who" class="staff-who" hidden></p>
-      <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+      <div class="dashboard-session">
+        <p id="staff-who" class="staff-who" hidden></p>
+        <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+      </div>
     </div>
   </div>
+  <script>
+    if (!window.MARIS_ADMIN_DASHBOARD) document.body.classList.add("legacy-ready")
+  </script>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
@@ -82,12 +103,5 @@
     window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
   </script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
-  <script type="module">
-    import { shouldShowDashboard } from "/paginas/admin/painel.logic.js"
-    if (shouldShowDashboard()) {
-      const profile = await window.MarisStaffAuth.loadProfile()
-      if (profile?.ok && profile.user?.role === "admin") location.replace("/admin/inicio")
-    }
-  </script>
 </body>
 </html>
