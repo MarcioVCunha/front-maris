@@ -1,10 +1,32 @@
 // Regras da tela de venda. A flag está ligada: /vendas/nova é a tela da equipe.
+// Marketplace (Shopee / ML / TikTok) fica atrás de MARKETPLACE_SALE_ENABLED.
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
 
 export const NEW_SALE_ENABLED = true
+/** Liga o fluxo de venda marketplace. Off até o front ligar após o contrato no ar. */
+export const MARKETPLACE_SALE_ENABLED = false
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
 export { newClientRequestId }
+
+export const MARKETPLACE_PLATFORMS = [
+  { id: "shopee", label: "Shopee" },
+  { id: "mercado_livre", label: "Mercado Livre" },
+  { id: "tiktok", label: "TikTok" }
+]
+
+export function shouldShowMarketplaceSale(enabled = MARKETPLACE_SALE_ENABLED) {
+  return enabled === true
+}
+
+export function marketplaceLabel(id) {
+  const found = MARKETPLACE_PLATFORMS.find((item) => item.id === id)
+  return found?.label || ""
+}
+
+export function isMarketplacePlatform(id) {
+  return MARKETPLACE_PLATFORMS.some((item) => item.id === id)
+}
 
 const ZERO_COMMISSION_NAMES = ["marcio", "marineide"]
 
@@ -215,6 +237,23 @@ function saleLine(piece) {
   return { piece_id: pieceId, quantity }
 }
 
+/** Item no formato create-order / register-marketplace-order. */
+export function marketplaceLine(piece) {
+  const quantity = Number(piece.quantity) || 0
+  const fromField = Number(piece?.component_id)
+  const fromId = String(piece?.id ?? "").trim()
+  const fromPrefixed = /^c:(\d+)$/.exec(fromId)
+  const componentId = Number.isInteger(fromField) && fromField > 0
+    ? fromField
+    : (fromPrefixed ? Number(fromPrefixed[1]) : NaN)
+  const asComponent = piece?.item_type === "component"
+    || (Number.isInteger(componentId) && componentId > 0)
+  if (asComponent && Number.isInteger(componentId) && componentId > 0) {
+    return { component_id: componentId, quantity }
+  }
+  return { product_code: String(piece?.code || "").trim(), quantity }
+}
+
 export function buildCreateSaleBody({ sellerId, customer, paymentStatus, paymentMethod, pieces, clientRequestId }) {
   const seller = Number(sellerId)
   if (!Number.isInteger(seller) || seller <= 0) {
@@ -239,6 +278,57 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
   const requestId = String(clientRequestId || "").trim()
   if (requestId) body.client_request_id = requestId
   return { ok: true, body }
+}
+
+/**
+ * Corpo de register-marketplace-order (back-maris PR #15).
+ * Sem seller, cliente, pagamento ou comissão. Ver docs/contratos/venda-marketplace.md.
+ */
+export function buildMarketplaceSaleBody({ channel, pieces, clientRequestId, notes }) {
+  const platform = String(channel || "").trim()
+  if (!isMarketplacePlatform(platform)) {
+    return { ok: false, error: "Escolha Shopee, Mercado Livre ou TikTok." }
+  }
+  if (!pieces?.length) return { ok: false, error: "Escolha pelo menos uma peça." }
+  const items = pieces.map(marketplaceLine)
+  if (items.some((item) => !item.product_code && !item.component_id)) {
+    return { ok: false, error: "Cada peça precisa do código ou do componente." }
+  }
+  const body = { channel: platform, items }
+  const requestId = String(clientRequestId || "").trim()
+  if (requestId) body.client_request_id = requestId
+  const note = String(notes || "").trim()
+  if (note) {
+    if (note.length > 500) return { ok: false, error: "Observação longa demais." }
+    body.notes = note
+  }
+  return { ok: true, body }
+}
+
+/** Payload de cancel-marketplace-order: { order_id, reason? }. */
+export function cancelMarketplaceOrderPayload(orderId, reason) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Pedido inválido." }
+  const body = { order_id: id }
+  const text = String(reason || "").trim()
+  if (text) {
+    if (text.length > 500) return { ok: false, error: "Motivo longo demais." }
+    body.reason = text
+  }
+  return { ok: true, body }
+}
+
+export function marketplacePlatformOf(sale) {
+  if (isMarketplacePlatform(sale?.channel)) return sale.channel
+  if (isMarketplacePlatform(sale?.marketplace)) return sale.marketplace
+  return ""
+}
+
+export function isMarketplaceSale(sale) {
+  if (!sale || typeof sale !== "object") return false
+  if (sale.source === "marketplace") return true
+  if (sale.channel === "marketplace") return true
+  return Boolean(marketplacePlatformOf(sale))
 }
 
 function countOrZero(value) {
@@ -387,14 +477,19 @@ export function renderRecentSales(sales, formatMoney) {
   return rows.map((sale) => {
     const view = salePaymentView(sale)
     const method = METHOD_LABEL[sale.payment_method] || ""
-    const side = view.pieces
-      ? `${method ? `${method} · ` : ""}${view.pieces}`
-      : [method, view.label].filter(Boolean).join(" · ")
+    const platform = marketplacePlatformOf(sale)
+    const market = isMarketplaceSale(sale) ? marketplaceLabel(platform) || "Marketplace" : ""
+    const title = market || sale.customer_name || "Cliente"
+    const sideBits = view.pieces
+      ? [method, view.pieces]
+      : [method, view.label]
+    if (market && sale.customer_name) sideBits.push(market)
+    const side = sideBits.filter(Boolean).join(" · ")
     const when = formatSaleWhen(sale.created_at)
-    const label = `Ver venda de ${sale.customer_name || "cliente"}`
+    const label = `Ver venda de ${title}`
     return `<button type="button" class="recent-sale" data-sale-id="${escapeHtml(sale.id)}" aria-label="${escapeHtml(label)}">
       <div class="recent-sale-main">
-        <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
+        <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(when)}</span>
       </div>
       <div class="recent-sale-side">
@@ -415,10 +510,12 @@ function detailPhoto(item) {
   return `<img class="piece-photo" src="${escapeHtml(url)}" alt="">`
 }
 
-export function renderSaleDetail(sale, formatMoney) {
+export function renderSaleDetail(sale, formatMoney, options = {}) {
   const view = salePaymentView(sale)
   const method = METHOD_LABEL[sale?.payment_method] || ""
   const totals = saleDetailTotals(sale)
+  const market = isMarketplaceSale(sale)
+  const marketName = marketplaceLabel(marketplacePlatformOf(sale)) || "Marketplace"
   const link = whatsappLink(sale?.customer_whatsapp)
   const whatsapp = formatWhatsapp(sale?.customer_whatsapp)
   const contact = link
@@ -441,25 +538,45 @@ export function renderSaleDetail(sale, formatMoney) {
     ? `<div><span>Desconto Pix</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
     : ""
   const payLine = [method, view.pieces].filter(Boolean).join(" · ")
+  const title = market
+    ? `${marketName}${sale?.customer_name ? ` · ${sale.customer_name}` : ""}`
+    : (sale?.customer_name || "Cliente")
+  const canCancel = options.allowCancel === true && market && sale?.id != null
+  const cancelBtn = canCancel
+    ? `<button type="button" class="btn-cancel-market" data-cancel-order="${escapeHtml(sale.id)}">Cancelar e devolver ao estoque</button>`
+    : ""
+  const commissionNote = market
+    ? `<p class="detail-commission">Marketplace · sem comissão de vendedora.</p>`
+    : ""
   return `<p class="flow-kicker">Venda</p>
     <h2 id="sale-modal-title">${escapeHtml(formatSaleDate(sale?.created_at))}</h2>
     <div class="detail-pieces">${pieces || `<p class="recent-empty">Sem peças nesta venda.</p>`}</div>
     <div class="detail-customer">
-      <strong>${escapeHtml(sale?.customer_name || "Cliente")}</strong>
-      ${contact}
+      <strong>${escapeHtml(title)}</strong>
+      ${market ? "" : contact}
     </div>
+    ${commissionNote}
     <p class="detail-pay">${statusBadge(view.status, view.label)} <span>${escapeHtml(payLine)}</span></p>
     <div class="pay-summary">
       <div><span>Subtotal</span><strong>${escapeHtml(formatMoney(totals.subtotal))}</strong></div>
       ${discount}
       <div><span>Total</span><strong>${escapeHtml(formatMoney(totals.total))}</strong></div>
-    </div>`
+    </div>
+    ${cancelBtn}`
 }
 
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisNovaVenda = {
     NEW_SALE_ENABLED,
+    MARKETPLACE_SALE_ENABLED,
+    MARKETPLACE_PLATFORMS,
     shouldShowNewSale,
+    shouldShowMarketplaceSale,
+    marketplaceLabel,
+    isMarketplacePlatform,
+    marketplacePlatformOf,
+    isMarketplaceSale,
+    marketplaceLine,
     roundMoney,
     commissionRateFor,
     monthCard,
@@ -477,6 +594,8 @@ if (typeof globalThis.window !== "undefined") {
     customerPayload,
     saleTotals,
     buildCreateSaleBody,
+    buildMarketplaceSaleBody,
+    cancelMarketplaceOrderPayload,
     escapeHtml,
     renderRecentSales,
     renderSaleDetail,

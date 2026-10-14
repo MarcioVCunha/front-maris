@@ -6,7 +6,10 @@ export const NEW_SALE_API = {
   searchPieces: "sale-piece-search",
   searchCustomers: "sale-customer-search",
   saveCustomer: "sale-customer-save",
-  createSale: "sale-create"
+  createSale: "sale-create",
+  /** Contrato em docs/contratos/venda-marketplace.md (back-maris PR #15). Flag off no front. */
+  registerMarketplaceOrder: "register-marketplace-order",
+  cancelMarketplaceOrder: "cancel-marketplace-order"
 }
 
 function withQuery(url, query) {
@@ -191,6 +194,68 @@ export async function createSale(body, client) {
   }
 }
 
+/**
+ * POST register-marketplace-order
+ * Corpo: { channel, items: [{ product_code|component_id, quantity }], client_request_id?, notes? }
+ * Resposta: order_payload + { channel, duplicate }. Sem seller/comissão; status sempre pago.
+ */
+export async function registerMarketplaceOrder(body, client) {
+  const result = await call(NEW_SALE_API.registerMarketplaceOrder, {
+    method: "POST",
+    body
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível registrar a venda do marketplace.")
+  }
+  const data = result.data || {}
+  return {
+    ok: true,
+    order: {
+      order_id: data.order_id ?? null,
+      source: data.source ?? "marketplace",
+      status: data.status ?? "pago",
+      channel: data.channel ?? body?.channel ?? null,
+      total: data.total,
+      subtotal: data.subtotal,
+      total_pix: data.total_pix,
+      items: Array.isArray(data.items) ? data.items : [],
+      customer_name: data.customer_name ?? null,
+      customer_whatsapp: data.customer_whatsapp ?? null,
+      seller_id: data.seller_id ?? null,
+      commission_percent: data.commission_percent ?? 0,
+      payment_method: data.payment_method ?? null,
+      duplicate: data.duplicate === true
+    }
+  }
+}
+
+/**
+ * POST cancel-marketplace-order
+ * Corpo: { order_id, reason? }. Devolve peças ao estoque.
+ * Resposta: order_payload + { channel, duplicate: false }.
+ */
+export async function cancelMarketplaceOrder(body, client) {
+  const result = await call(NEW_SALE_API.cancelMarketplaceOrder, {
+    method: "POST",
+    body
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível cancelar a venda.")
+  }
+  const data = result.data || {}
+  return {
+    ok: true,
+    order: {
+      order_id: data.order_id ?? body?.order_id ?? null,
+      source: data.source ?? "marketplace",
+      status: data.status ?? "cancelado",
+      channel: data.channel ?? null,
+      items: Array.isArray(data.items) ? data.items : [],
+      duplicate: data.duplicate === true
+    }
+  }
+}
+
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisNovaVendaApi = {
     NEW_SALE_API,
@@ -200,6 +265,8 @@ if (typeof globalThis.window !== "undefined") {
     searchCustomers,
     saveCustomer,
     createSale,
+    registerMarketplaceOrder,
+    cancelMarketplaceOrder,
     recentSalesLimit,
     messageForSaleError
   }
