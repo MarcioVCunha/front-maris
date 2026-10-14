@@ -1,10 +1,32 @@
 // Regras da tela de venda. A flag está ligada: /vendas/nova é a tela da equipe.
+// Marketplace (Shopee / ML / TikTok) fica atrás de MARKETPLACE_SALE_ENABLED.
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
 
 export const NEW_SALE_ENABLED = true
+/** Liga o fluxo de venda marketplace. Off até o back publicar o contrato. */
+export const MARKETPLACE_SALE_ENABLED = false
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
 export { newClientRequestId }
+
+export const MARKETPLACE_PLATFORMS = [
+  { id: "shopee", label: "Shopee" },
+  { id: "mercado_livre", label: "Mercado Livre" },
+  { id: "tiktok", label: "TikTok" }
+]
+
+export function shouldShowMarketplaceSale(enabled = MARKETPLACE_SALE_ENABLED) {
+  return enabled === true
+}
+
+export function marketplaceLabel(id) {
+  const found = MARKETPLACE_PLATFORMS.find((item) => item.id === id)
+  return found?.label || ""
+}
+
+export function isMarketplacePlatform(id) {
+  return MARKETPLACE_PLATFORMS.some((item) => item.id === id)
+}
 
 const ZERO_COMMISSION_NAMES = ["marcio", "marineide"]
 
@@ -241,6 +263,72 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
   return { ok: true, body }
 }
 
+/**
+ * Corpo de marketplace-sale-create. Sem seller_id e sem comissão.
+ * Ver docs/contratos/venda-marketplace.md.
+ */
+export function buildMarketplaceSaleBody({
+  marketplace,
+  paymentStatus,
+  paymentMethod,
+  pieces,
+  clientRequestId,
+  externalOrderId,
+  customer
+}) {
+  if (!isMarketplacePlatform(marketplace)) {
+    return { ok: false, error: "Escolha Shopee, Mercado Livre ou TikTok." }
+  }
+  if (!pieces?.length) return { ok: false, error: "Escolha pelo menos uma peça." }
+  if (paymentStatus !== "paid" && paymentStatus !== "receivable") {
+    return { ok: false, error: "Informe se está pago ou a receber." }
+  }
+  if (!["pix", "dinheiro", "cartao"].includes(paymentMethod)) {
+    return { ok: false, error: "Escolha Pix, dinheiro ou cartão." }
+  }
+  const body = {
+    marketplace,
+    payment_status: paymentStatus,
+    payment_method: paymentMethod,
+    items: pieces.map(saleLine),
+    customer: null
+  }
+  const name = String(customer?.name || "").trim()
+  const whatsapp = String(customer?.whatsapp || "").trim()
+  if (customer?.id != null && String(customer.id).trim() !== "") {
+    body.customer = { id: customer.id }
+  } else if (name || whatsapp) {
+    const who = customerPayload({ name, whatsapp })
+    if (!who.ok) return who
+    body.customer = who.customer
+  }
+  const requestId = String(clientRequestId || "").trim()
+  if (requestId) body.client_request_id = requestId
+  const external = String(externalOrderId || "").trim()
+  if (external) body.external_order_id = external
+  return { ok: true, body }
+}
+
+/** Payload preferido para cancelar pedido marketplace (opção B do contrato). */
+export function cancelMarketplaceOrderPayload(orderId) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Pedido inválido." }
+  return { ok: true, body: { order_id: id } }
+}
+
+/** Payload por linha, compatível com o cancel-sale já usado em Contas. */
+export function cancelMarketplaceSalePayload(saleId) {
+  const id = Number(saleId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Venda inválida." }
+  return { ok: true, body: { sale_id: id } }
+}
+
+export function isMarketplaceSale(sale) {
+  if (!sale || typeof sale !== "object") return false
+  if (sale.channel === "marketplace") return true
+  return isMarketplacePlatform(sale.marketplace)
+}
+
 function countOrZero(value) {
   const number = Number(value)
   return Number.isInteger(number) && number >= 0 ? number : 0
@@ -387,14 +475,18 @@ export function renderRecentSales(sales, formatMoney) {
   return rows.map((sale) => {
     const view = salePaymentView(sale)
     const method = METHOD_LABEL[sale.payment_method] || ""
-    const side = view.pieces
-      ? `${method ? `${method} · ` : ""}${view.pieces}`
-      : [method, view.label].filter(Boolean).join(" · ")
+    const market = isMarketplaceSale(sale) ? marketplaceLabel(sale.marketplace) || "Marketplace" : ""
+    const title = market || sale.customer_name || "Cliente"
+    const sideBits = view.pieces
+      ? [method, view.pieces]
+      : [method, view.label]
+    if (market && sale.customer_name) sideBits.push(market)
+    const side = sideBits.filter(Boolean).join(" · ")
     const when = formatSaleWhen(sale.created_at)
-    const label = `Ver venda de ${sale.customer_name || "cliente"}`
+    const label = `Ver venda de ${title}`
     return `<button type="button" class="recent-sale" data-sale-id="${escapeHtml(sale.id)}" aria-label="${escapeHtml(label)}">
       <div class="recent-sale-main">
-        <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
+        <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(when)}</span>
       </div>
       <div class="recent-sale-side">
@@ -415,10 +507,12 @@ function detailPhoto(item) {
   return `<img class="piece-photo" src="${escapeHtml(url)}" alt="">`
 }
 
-export function renderSaleDetail(sale, formatMoney) {
+export function renderSaleDetail(sale, formatMoney, options = {}) {
   const view = salePaymentView(sale)
   const method = METHOD_LABEL[sale?.payment_method] || ""
   const totals = saleDetailTotals(sale)
+  const market = isMarketplaceSale(sale)
+  const marketName = marketplaceLabel(sale?.marketplace) || "Marketplace"
   const link = whatsappLink(sale?.customer_whatsapp)
   const whatsapp = formatWhatsapp(sale?.customer_whatsapp)
   const contact = link
@@ -441,25 +535,43 @@ export function renderSaleDetail(sale, formatMoney) {
     ? `<div><span>Desconto Pix</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
     : ""
   const payLine = [method, view.pieces].filter(Boolean).join(" · ")
+  const title = market
+    ? `${marketName}${sale?.customer_name ? ` · ${sale.customer_name}` : ""}`
+    : (sale?.customer_name || "Cliente")
+  const canCancel = options.allowCancel === true && market && sale?.id != null
+  const cancelBtn = canCancel
+    ? `<button type="button" class="btn-cancel-market" data-cancel-order="${escapeHtml(sale.id)}">Cancelar e devolver ao estoque</button>`
+    : ""
+  const commissionNote = market
+    ? `<p class="detail-commission">Marketplace · sem comissão de vendedora.</p>`
+    : ""
   return `<p class="flow-kicker">Venda</p>
     <h2 id="sale-modal-title">${escapeHtml(formatSaleDate(sale?.created_at))}</h2>
     <div class="detail-pieces">${pieces || `<p class="recent-empty">Sem peças nesta venda.</p>`}</div>
     <div class="detail-customer">
-      <strong>${escapeHtml(sale?.customer_name || "Cliente")}</strong>
-      ${contact}
+      <strong>${escapeHtml(title)}</strong>
+      ${market ? "" : contact}
     </div>
+    ${commissionNote}
     <p class="detail-pay">${statusBadge(view.status, view.label)} <span>${escapeHtml(payLine)}</span></p>
     <div class="pay-summary">
       <div><span>Subtotal</span><strong>${escapeHtml(formatMoney(totals.subtotal))}</strong></div>
       ${discount}
       <div><span>Total</span><strong>${escapeHtml(formatMoney(totals.total))}</strong></div>
-    </div>`
+    </div>
+    ${cancelBtn}`
 }
 
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisNovaVenda = {
     NEW_SALE_ENABLED,
+    MARKETPLACE_SALE_ENABLED,
+    MARKETPLACE_PLATFORMS,
     shouldShowNewSale,
+    shouldShowMarketplaceSale,
+    marketplaceLabel,
+    isMarketplacePlatform,
+    isMarketplaceSale,
     roundMoney,
     commissionRateFor,
     monthCard,
@@ -477,6 +589,9 @@ if (typeof globalThis.window !== "undefined") {
     customerPayload,
     saleTotals,
     buildCreateSaleBody,
+    buildMarketplaceSaleBody,
+    cancelMarketplaceOrderPayload,
+    cancelMarketplaceSalePayload,
     escapeHtml,
     renderRecentSales,
     renderSaleDetail,

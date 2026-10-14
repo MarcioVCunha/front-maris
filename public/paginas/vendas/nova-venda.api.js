@@ -6,7 +6,11 @@ export const NEW_SALE_API = {
   searchPieces: "sale-piece-search",
   searchCustomers: "sale-customer-search",
   saveCustomer: "sale-customer-save",
-  createSale: "sale-create"
+  createSale: "sale-create",
+  /** Contrato em docs/contratos/venda-marketplace.md — ainda não publicado. */
+  marketplaceCreate: "marketplace-sale-create",
+  /** Já usado em Contas; marketplace precisa aceitar order_id ou sale_ids. */
+  cancelSale: "cancel-sale"
 }
 
 function withQuery(url, query) {
@@ -191,6 +195,59 @@ export async function createSale(body, client) {
   }
 }
 
+/**
+ * POST marketplace-sale-create
+ * Corpo: { marketplace, payment_status, payment_method, items, client_request_id?,
+ *   external_order_id?, customer? } — sem seller_id. Ver contrato.
+ */
+export async function createMarketplaceSale(body, client) {
+  const result = await call(NEW_SALE_API.marketplaceCreate, {
+    method: "POST",
+    body
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível registrar a venda do marketplace.")
+  }
+  const data = result.data || {}
+  return {
+    ok: true,
+    order: {
+      order_id: data.order_id ?? null,
+      sale_ids: Array.isArray(data.sale_ids) ? data.sale_ids : [],
+      channel: "marketplace",
+      marketplace: data.marketplace ?? body?.marketplace ?? null,
+      total: data.total,
+      subtotal: data.subtotal,
+      total_pix: data.total_pix,
+      items: Array.isArray(data.items) ? data.items : [],
+      customer: data.customer ?? null,
+      paid_at: data.paid_at ?? null,
+      created_at: data.created_at ?? null,
+      duplicate: data.duplicate === true,
+      stock_updated: data.stock_updated === true,
+      payment_method: data.payment_method ?? null,
+      payment_status: data.payment_status ?? null,
+      commission_amount: 0,
+      sem_comissao: true
+    }
+  }
+}
+
+/**
+ * POST cancel-sale — devolve peça ao estoque.
+ * Contas usa { sale_id }. Marketplace prefere { order_id } (contrato).
+ */
+export async function cancelSale(body, client) {
+  const result = await call(NEW_SALE_API.cancelSale, {
+    method: "POST",
+    body
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível cancelar a venda.")
+  }
+  return { ok: true, stockRestored: result.data?.stock_restored !== false }
+}
+
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisNovaVendaApi = {
     NEW_SALE_API,
@@ -200,6 +257,8 @@ if (typeof globalThis.window !== "undefined") {
     searchCustomers,
     saveCustomer,
     createSale,
+    createMarketplaceSale,
+    cancelSale,
     recentSalesLimit,
     messageForSaleError
   }

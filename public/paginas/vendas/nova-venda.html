@@ -33,6 +33,7 @@
   </section>
 
   <button id="new-sale-btn" class="btn-nova" type="button">Nova venda</button>
+  <button id="marketplace-sale-btn" class="btn-market" type="button" hidden>Venda marketplace</button>
   <p id="home-message" class="step-message" hidden></p>
 
   <section class="recent-block" aria-labelledby="recent-heading">
@@ -56,6 +57,18 @@
     <li data-step-pill="3">3 Pagamento</li>
   </ol>
 
+  <section id="step-channel" hidden>
+    <p class="flow-kicker">Marketplace</p>
+    <p class="flow-help">Shopee, Mercado Livre ou TikTok. Sem comissão de vendedora. O estoque baixa no servidor.</p>
+    <div class="choice-grid" role="group" aria-label="Marketplace">
+      <button type="button" class="choice" data-marketplace="shopee">Shopee</button>
+      <button type="button" class="choice" data-marketplace="mercado_livre">Mercado Livre</button>
+      <button type="button" class="choice" data-marketplace="tiktok">TikTok</button>
+    </div>
+    <label for="external-order-id">Nº do pedido no marketplace (opcional)</label>
+    <input id="external-order-id" type="text" autocomplete="off">
+  </section>
+
   <section id="step-pieces">
     <p class="flow-kicker">Peças</p>
     <p class="flow-help">Busque por código ou nome. Só entram peças em estoque.</p>
@@ -67,7 +80,7 @@
 
   <section id="step-customer" hidden>
     <p class="flow-kicker">Cliente</p>
-    <p class="flow-help">Escolha uma cliente ou cadastre nome e WhatsApp.</p>
+    <p id="customer-help" class="flow-help">Escolha uma cliente ou cadastre nome e WhatsApp.</p>
     <label for="customer-search" class="visually-hidden">Buscar cliente</label>
     <input id="customer-search" type="search" placeholder="Nome ou WhatsApp" autocomplete="off">
     <div id="customer-results" class="customer-list"></div>

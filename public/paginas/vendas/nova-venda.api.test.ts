@@ -1,6 +1,8 @@
 import { assertEquals } from "jsr:@std/assert@1"
 import {
   NEW_SALE_API,
+  cancelSale,
+  createMarketplaceSale,
   createSale,
   fetchMonthSummary,
   fetchRecentSales,
@@ -199,6 +201,49 @@ Deno.test("erro da função provisória volta mensagem e não segue", async () =
   const result = await fetchMonthSummary({ sellerId: 3, month: "2026-10" }, client)
   assertEquals(result.ok, false)
   assertEquals(result.error, "Função ainda não publicada.")
+})
+
+Deno.test("marketplace-sale-create e cancel-sale usam os nomes do contrato", async () => {
+  assertEquals(NEW_SALE_API.marketplaceCreate, "marketplace-sale-create")
+  assertEquals(NEW_SALE_API.cancelSale, "cancel-sale")
+
+  const body = {
+    marketplace: "mercado_livre",
+    payment_status: "paid",
+    payment_method: "pix",
+    items: [{ piece_id: 3, quantity: 1 }],
+    customer: null,
+    client_request_id: "abc"
+  }
+  const created = fakeClient({
+    ok: true,
+    order_id: 55,
+    sale_ids: [101],
+    marketplace: "mercado_livre",
+    total: 90,
+    subtotal: 90,
+    total_pix: 85.5,
+    stock_updated: true,
+    payment_method: "pix",
+    payment_status: "paid",
+    commission_amount: 0,
+    sem_comissao: true
+  })
+  const sale = await createMarketplaceSale(body, created)
+  assertEquals(created.calls[0].name, "marketplace-sale-create")
+  assertEquals(created.calls[0].options.body, body)
+  assertEquals(sale.ok, true)
+  assertEquals(sale.order?.channel, "marketplace")
+  assertEquals(sale.order?.commission_amount, 0)
+  assertEquals(sale.order?.sem_comissao, true)
+  assertEquals(sale.order?.sale_ids, [101])
+
+  const cancelled = fakeClient({ ok: true, stock_restored: true })
+  const result = await cancelSale({ order_id: 55 }, cancelled)
+  assertEquals(cancelled.calls[0].name, "cancel-sale")
+  assertEquals(cancelled.calls[0].options.body, { order_id: 55 })
+  assertEquals(result.ok, true)
+  assertEquals(result.stockRestored, true)
 })
 
 Deno.test("login, outra vendedora e conta sem vendedora têm aviso", async () => {
