@@ -1,5 +1,6 @@
 @import url("/assets/maris-theme.css");
 @import url("/assets/maris-internal.css");
+@import url("/compartilhado/loading.css");
 
 .painel {
   background: var(--maris-bg);
@@ -241,9 +242,8 @@
   color: var(--maris-text-muted);
 }
 
-.boot-loading {
-  margin: 24px 16px;
-  color: var(--maris-text-muted);
+.boot-loading .empty {
+  text-align: center;
 }
 
 .stock-tools {

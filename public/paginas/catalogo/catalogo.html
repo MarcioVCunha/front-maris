@@ -6,6 +6,7 @@
     <title>Catálogo — Maris Semijoias</title>
 
     <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/compartilhado/loading.css">
     <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
     <script src="/env.js"></script>
     <script src="/compartilhado/utils.js"></script>
@@ -121,7 +122,14 @@
       </section>
 
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
-      <div id="catalog" class="catalog"></div>
+      <div id="catalog" class="catalog catalog--loading">
+        <div class="maris-loading maris-loading--md" role="status" aria-label="Carregando">
+          <svg class="maris-loading__spark" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true" focusable="false">
+            <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
+            <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
+          </svg>
+        </div>
+      </div>
 
       <section id="unavailable-products-section" class="unavailable-products" hidden>
         <h2 class="section-heading">Esgotadas</h2>
@@ -192,6 +200,7 @@
       </div>
     </div>
 
+    <script type="module" src="/compartilhado/loading.js"></script>
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
     <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>
     <script defer src="/paginas/catalogo/catalogo.js"></script>

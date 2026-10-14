@@ -46,12 +46,17 @@ import {
   updateComponentSku,
   updateProduct
 } from "./painel.api.js"
+import { loadingHtml } from "../../compartilhado/loading.js"
 import {
   formatImageFailuresWarning,
   formatImportErrorMessage,
   formatImportSuccessMessage,
   parseImportJsonText
 } from "../estoque/importar/importar.logic.js"
+
+function viewLoading() {
+  return loadingHtml({ block: true, size: "md" })
+}
 
 const TITLES = {
   inicio: "Início",
@@ -402,28 +407,28 @@ async function render(view, token) {
   showMessage("")
   const stale = () => token !== renderToken
   if (view === "inicio") {
-    if (state.overview === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    if (state.overview === undefined) viewEl.innerHTML = viewLoading()
     const overview = await loadOverview()
     if (stale()) return
     viewEl.innerHTML = renderInicio(overview)
     return
   }
   if (view === "vendas") {
-    if (state.recent === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    if (state.recent === undefined) viewEl.innerHTML = viewLoading()
     const sales = await loadRecent()
     if (stale()) return
     viewEl.innerHTML = renderVendas(sales)
     return
   }
   if (view === "vendedoras") {
-    if (state.sellers === undefined) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    if (state.sellers === undefined) viewEl.innerHTML = viewLoading()
     const sellers = await loadSellers()
     if (stale()) return
     viewEl.innerHTML = renderVendedoras(sellers)
     return
   }
   if (view === "estoque") {
-    if (!document.getElementById("stock-search")) viewEl.innerHTML = `<p class="empty">Carregando…</p>`
+    if (!document.getElementById("stock-search")) viewEl.innerHTML = viewLoading()
     await loadProducts()
     if (stale()) return
     paintStock()
@@ -431,6 +436,7 @@ async function render(view, token) {
   }
   if (view === "peca") {
     const code = new URLSearchParams(location.search).get("code")
+    if (!state.productsLoaded || !state.defaultsLoaded) viewEl.innerHTML = viewLoading()
     await Promise.all([loadProducts(), loadDefaults()])
     if (stale()) return
     state.piece = state.products.find((item) => item.code === code) || null
@@ -443,6 +449,7 @@ async function render(view, token) {
     return
   }
   if (view === "tipos") {
+    if (!state.productsLoaded) viewEl.innerHTML = viewLoading()
     await loadProducts()
     if (stale()) return
     viewEl.innerHTML = renderTipos(state.products)
@@ -450,6 +457,7 @@ async function render(view, token) {
     return
   }
   if (view === "adicionar") {
+    if (!state.defaultsLoaded) viewEl.innerHTML = viewLoading()
     await loadDefaults()
     if (stale()) return
     viewEl.innerHTML = renderAddForm()
@@ -492,7 +500,7 @@ async function boot() {
     const loading = document.getElementById("staff-loading")
     if (loading) {
       loading.hidden = false
-      loading.textContent = "Só o administrador entra neste painel."
+      loading.innerHTML = `<p class="empty">Só o administrador entra neste painel.</p>`
     }
     return
   }

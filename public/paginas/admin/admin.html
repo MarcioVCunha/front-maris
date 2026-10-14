@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Administração — Maris Semijoias</title>
   <link rel="stylesheet" href="/assets/home.css">
+  <link rel="stylesheet" href="/compartilhado/loading.css">
   <style>
-    .boot-loading { margin: 24px 16px; font: 1rem/1.4 system-ui, sans-serif; color: #5c4a44; }
     #legacy-admin { display: none; }
     body.legacy-ready #legacy-admin { display: block; }
     body.legacy-ready .boot-loading { display: none; }
@@ -28,7 +28,14 @@
   </script>
 </head>
 <body>
-  <p class="boot-loading">Carregando…</p>
+  <div class="boot-loading">
+    <div class="maris-loading maris-loading--lg" role="status" aria-label="Carregando">
+      <svg class="maris-loading__spark" viewBox="0 0 32 32" width="52" height="52" aria-hidden="true" focusable="false">
+        <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
+        <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
+      </svg>
+    </div>
+  </div>
   <div id="legacy-admin">
     <div class="dashboard">
       <a class="hub-back" href="/">← Voltar ao início</a>
