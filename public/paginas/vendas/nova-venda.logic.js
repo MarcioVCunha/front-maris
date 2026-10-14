@@ -177,7 +177,7 @@ export function customerPayload({ id, name, whatsapp } = {}) {
   const digits = normalizeWhatsapp(whatsapp)
   if (!cleanName) return { ok: false, error: "Informe o nome." }
   if (digits.length < 10) return { ok: false, error: "Informe o WhatsApp com DDD." }
-  return { ok: true, customer: { name: cleanName, whatsapp: digits } }
+  return { ok: true, customer: { name: cleanName, whatsapp: formatWhatsapp(digits) } }
 }
 
 export function saleTotals(pieces, paymentMethod) {
@@ -204,15 +204,15 @@ export function saleTotals(pieces, paymentMethod) {
 
 function saleLine(piece) {
   const quantity = Number(piece.quantity) || 0
-  const fromId = /^c:(\d+)$/.exec(String(piece.id ?? ""))
-  const componentId = Number(piece.component_id ?? (fromId ? fromId[1] : NaN))
-  if (Number.isInteger(componentId) && componentId > 0) {
-    return { piece_id: piece.id, component_id: componentId, quantity }
-  }
-  const line = { piece_id: piece.id, quantity }
-  const code = String(piece.code || "").trim()
-  if (code) line.product_code = code
-  return line
+  const raw = piece?.id
+  const asText = String(raw ?? "").trim()
+  const asNumber = Number(raw)
+  let pieceId = raw
+  if (typeof raw === "number" && Number.isInteger(raw)) pieceId = raw
+  else if (/^c:\d+$/.test(asText)) pieceId = asText
+  else if (asText && Number.isInteger(asNumber) && String(asNumber) === asText) pieceId = asNumber
+  else pieceId = String(piece?.code || asText).trim()
+  return { piece_id: pieceId, quantity }
 }
 
 export function buildCreateSaleBody({ sellerId, customer, paymentStatus, paymentMethod, pieces, clientRequestId }) {
@@ -342,16 +342,13 @@ export function whatsappLink(value) {
 
 export function saleDetailTotals(sale) {
   const items = Array.isArray(sale?.items) ? sale.items : []
-  const priced = saleTotals(items, sale?.payment_method)
-  const charged = Number.isFinite(Number(sale?.total)) ? roundMoney(sale.total) : priced.total
+  const subtotal = roundMoney(items.reduce((sum, item) => {
+    return sum + roundMoney(item?.unit_price) * (Number(item?.quantity) || 0)
+  }, 0))
+  const total = Number.isFinite(Number(sale?.total)) ? roundMoney(sale.total) : subtotal
   const pix = sale?.payment_method === "pix"
-  const discount = pix ? roundMoney(Math.max(0, priced.subtotal - charged)) : 0
-  return {
-    subtotal: priced.subtotal,
-    discount,
-    total: charged,
-    pix
-  }
+  const discount = pix ? roundMoney(Math.max(0, subtotal - total)) : 0
+  return { subtotal, discount, total, pix }
 }
 
 const STATUS_LABEL = { paid: "Pago", partial: "Parcial", receivable: "A receber" }
@@ -441,7 +438,7 @@ export function renderSaleDetail(sale, formatMoney) {
     </article>`
   }).join("")
   const discount = totals.pix
-    ? `<div><span>Desconto Pix (5%)</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
+    ? `<div><span>Desconto Pix</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
     : ""
   const payLine = [method, view.pieces].filter(Boolean).join(" · ")
   return `<p class="flow-kicker">Venda</p>

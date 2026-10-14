@@ -44,23 +44,34 @@ export function recentSalesLimit(limit = RECENT_SALES_LIMIT) {
   return Math.min(value, RECENT_SALES_MAX)
 }
 
+export function messageForSaleError(status, error) {
+  const text = String(error || "").trim()
+  if (status === 401) return "Entre de novo para ver suas vendas."
+  if (status === 403) return text || "Você só vê as próprias vendas."
+  if (status === 400 && (!text || /vendedora|seller/i.test(text))) {
+    return "Esta conta não está ligada a uma vendedora."
+  }
+  return text
+}
+
 function failed(result, fallback) {
+  const status = result?.status || 0
+  const raw = result?.data?.error || ""
   return {
     ok: false,
-    error: result?.data?.error || fallback,
-    status: result?.status || 0,
+    error: messageForSaleError(status, raw) || fallback,
+    status,
     stockIssues: Array.isArray(result?.data?.stock_issues) ? result.data.stock_issues : []
   }
 }
 
 /**
  * GET seller-month-summary?seller_id=&month=YYYY-MM
- * Resposta: { ok, month, paid_count, paid_orders_count, charged_total,
- *   commission_percent, commission_amount, sem_comissao }
- * paid_count é o número de peças pagas no mês.
- * paid_orders_count é o número de pedidos com alguma peça paga nesse mês.
- * commission_amount já vem por peça, com o desconto do Pix dividido entre elas.
- * A tela mostra esse valor e não recalcula.
+ * Resposta: { ok, month, timezone, paid_count, paid_orders_count, sem_comissao,
+ *   charged_total, commission_amount, commission_percent }
+ * paid_count é o número de peças. paid_orders_count é o de pedidos com alguma
+ * peça paga no mês. timezone é America/Sao_Paulo.
+ * A tela mostra commission_amount e não recalcula.
  */
 export async function fetchMonthSummary({ sellerId, month }, client) {
   const result = await call(NEW_SALE_API.monthSummary, {
@@ -94,15 +105,16 @@ export async function fetchRecentSales({ sellerId, limit = RECENT_SALES_LIMIT },
 }
 
 /**
- * GET sale-piece-search?q=&seller_id=
- * pieces[]: { id, code, name, image_url, quantity, unit_price, preco_pix,
- *   item_type, component_id }
- * id de componente é "c:N". unit_price é o preço efetivo. A tela descarta quantity <= 0.
+ * GET sale-piece-search?q=
+ * pieces[]: { id (número ou "c:N"), code, name, quantity, image_url,
+ *   item_type: product|component, preco_pix, unit_price, component_id, preco_efetivo }
+ * quantity é o estoque. unit_price e preco_efetivo são o preço efetivo.
+ * A tela mostra o Pix de preco_pix e descarta quantity <= 0.
  */
-export async function searchPieces({ sellerId, query }, client) {
+export async function searchPieces({ query }, client) {
   const result = await call(NEW_SALE_API.searchPieces, {
     method: "GET",
-    query: { seller_id: sellerId, q: query }
+    query: { q: query }
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível buscar as peças.")
   const pieces = Array.isArray(result.data?.pieces) ? result.data.pieces : []
@@ -126,7 +138,8 @@ export async function searchCustomers({ query }, client) {
 
 /**
  * POST sale-customer-save
- * Corpo e resposta: { id, name, whatsapp } com WhatsApp nacional, sem 55.
+ * Corpo: { name, whatsapp } com WhatsApp formatado, como "(11) 98888-7777".
+ * Resposta: { ok, customer: { id, name, whatsapp } }
  */
 export async function saveCustomer({ name, whatsapp }, client) {
   const result = await call(NEW_SALE_API.saveCustomer, {
@@ -141,11 +154,17 @@ export async function saveCustomer({ name, whatsapp }, client) {
 
 /**
  * POST sale-create
- * Corpo: { seller_id, customer, payment_status, payment_method,
- *   client_request_id, items: [{ piece_id, quantity, product_code|component_id }] }
- * O preço da tela é ignorado. payment_method: pix | dinheiro | cartao.
- * Resposta: { ok, order_id, total, stock_updated, duplicate }
- * 409: { ok: false, error, stock_issues } no mesmo formato da etapa 2.
+ * Corpo: { seller_id, payment_status: paid|receivable, payment_method,
+ *   customer: { id } ou { name, whatsapp },
+ *   items: [{ piece_id, quantity }], client_request_id }
+ * piece_id é número, "c:N" ou o código. Não manda preço.
+ * client_request_id é um UUID por tentativa; a mesma tentativa reusa a chave.
+ * Resposta: { ok, order_id, total, subtotal, total_pix, items, customer,
+ *   paid_at, created_at, duplicate, stock_updated, payment_method, payment_status }
+ * O total mostrado é o total do servidor. duplicate true é a mesma venda.
+ * 401 sem login. 403 { error: "Você só vê as próprias vendas." }.
+ * 400 sem vendedora vira um aviso. 400 de validação mostra o erro.
+ * 409: { ok: false, error: "Algumas peças esgotaram.", stock_issues }
  */
 export async function createSale(body, client) {
   const result = await call(NEW_SALE_API.createSale, {
@@ -159,8 +178,16 @@ export async function createSale(body, client) {
     order: {
       order_id: data.order_id ?? null,
       total: data.total,
+      subtotal: data.subtotal,
+      total_pix: data.total_pix,
+      items: Array.isArray(data.items) ? data.items : [],
+      customer: data.customer ?? null,
+      paid_at: data.paid_at ?? null,
+      created_at: data.created_at ?? null,
+      duplicate: data.duplicate === true,
       stock_updated: data.stock_updated === true,
-      duplicate: data.duplicate === true
+      payment_method: data.payment_method ?? null,
+      payment_status: data.payment_status ?? null
     }
   }
 }
@@ -174,6 +201,7 @@ if (typeof globalThis.window !== "undefined") {
     searchCustomers,
     saveCustomer,
     createSale,
-    recentSalesLimit
+    recentSalesLimit,
+    messageForSaleError
   }
 }

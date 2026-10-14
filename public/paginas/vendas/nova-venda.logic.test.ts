@@ -13,6 +13,7 @@ import {
   paidPiecesLabel,
   renderRecentSales,
   renderSaleDetail,
+  saleDetailTotals,
   saleTotals,
   setPieceQuantity,
   sumPaidChargesInMonth,
@@ -95,8 +96,8 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
 
 Deno.test("cliente existente ou novo, com WhatsApp", () => {
   assertEquals(customerPayload({ id: 4, name: "", whatsapp: "" }), { ok: true, customer: { id: 4 } })
-  assertEquals(customerPayload({ name: "Lia", whatsapp: "(11) 98888-7777" }).customer?.whatsapp, "11988887777")
-  assertEquals(customerPayload({ name: "Lia", whatsapp: "5511988887777" }).customer?.whatsapp, "11988887777")
+  assertEquals(customerPayload({ name: "Lia", whatsapp: "(11) 98888-7777" }).customer?.whatsapp, "(11) 98888-7777")
+  assertEquals(customerPayload({ name: "Lia", whatsapp: "5511988887777" }).customer?.whatsapp, "(11) 98888-7777")
   assertEquals(customerPayload({ name: "", whatsapp: "11988887777" }).ok, false)
   assertEquals(customerPayload({ name: "Lia", whatsapp: "123" }).ok, false)
   assertEquals(filterCustomers([
@@ -130,12 +131,21 @@ Deno.test("Pix tira 5% e o corpo da venda não manda preço", () => {
   })
   assertEquals(built.ok, true)
   assertEquals(built.body?.items, [
-    { piece_id: "c:12", component_id: 12, quantity: 1 },
-    { piece_id: 9, product_code: "BR1", quantity: 2 }
+    { piece_id: "c:12", quantity: 1 },
+    { piece_id: 9, quantity: 2 }
   ])
   assertEquals(built.body?.client_request_id, "11111111-1111-4111-8111-111111111111")
   assertEquals(JSON.stringify(built.body).includes("unit_price"), false)
   assertEquals(JSON.stringify(built.body).includes("preco_pix"), false)
+  assertEquals(JSON.stringify(built.body).includes("product_code"), false)
+  assertEquals(JSON.stringify(built.body).includes("component_id"), false)
+  assertEquals(buildCreateSaleBody({
+    sellerId: 3,
+    customer: { id: 9 },
+    paymentStatus: "paid",
+    paymentMethod: "pix",
+    pieces: [{ code: "BR1", quantity: 1, unit_price: 50 }]
+  }).body?.items, [{ piece_id: "BR1", quantity: 1 }])
   assertEquals(buildCreateSaleBody({
     sellerId: 3,
     customer: { name: "Lia", whatsapp: "11988887777" },
@@ -184,7 +194,7 @@ Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", (
   assertEquals(html.includes("Lia Souza"), true)
   assertEquals(html.includes("Pix"), true)
   assertEquals(html.includes("Pago"), true)
-  assertEquals(html.includes("Desconto Pix (5%)"), true)
+  assertEquals(html.includes("Desconto Pix"), true)
   assertEquals(html.includes("R$ 6"), true)
   assertEquals(html.includes("R$ 114"), true)
   assertEquals(/editar|cancelar/i.test(html), false)
@@ -200,6 +210,29 @@ Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", (
   assertEquals(cash.includes("A receber"), true)
   assertEquals(cash.includes("Desconto Pix"), false)
   assertEquals(cash.includes("Sem WhatsApp"), true)
+
+  const pix = {
+    payment_method: "pix",
+    payment_status: "paid",
+    paid_items_count: 2,
+    items_count: 2,
+    total: 142.5,
+    customer_name: "Lia",
+    customer_whatsapp: "11988887777",
+    created_at: "2026-10-14T15:00:00Z",
+    items: [
+      { code: "AN", name: "Anel", image_url: "", quantity: 1, unit_price: 100, paid_at: "2026-10-14T15:00:00Z" },
+      { code: "BR", name: "Brinco", image_url: "", quantity: 1, unit_price: 50, paid_at: "2026-10-14T15:00:00Z" }
+    ]
+  }
+  assertEquals(saleDetailTotals(pix), { subtotal: 150, discount: 7.5, total: 142.5, pix: true })
+  assertEquals(saleDetailTotals({ ...pix, total: 140 }).total, 140)
+  const pixHtml = renderSaleDetail(pix, (value) => `R$ ${value}`)
+  assertEquals(pixHtml.includes("R$ 150"), true)
+  assertEquals(pixHtml.includes("Desconto Pix"), true)
+  assertEquals(pixHtml.includes("R$ 7.5"), true)
+  assertEquals(pixHtml.includes("R$ 142.5"), true)
+  assertEquals(whatsappLink(pix.customer_whatsapp), "https://wa.me/5511988887777")
 })
 
 Deno.test("venda parcial mostra quantas peças já foram pagas", () => {
@@ -244,20 +277,29 @@ Deno.test("o resumo do mês mostra peças, vendas e a comissão do servidor", ()
   const month = {
     ok: true,
     month: "2026-10",
-    paid_count: 5,
-    paid_orders_count: 2,
-    charged_total: 1000,
-    commission_percent: 30,
-    commission_amount: 285,
-    sem_comissao: false
+    timezone: "America/Sao_Paulo",
+    paid_count: 2,
+    paid_orders_count: 1,
+    sem_comissao: false,
+    charged_total: 0.11,
+    commission_amount: 0.03,
+    commission_percent: 30.00
   }
   const card = monthCardFromSummary(month, { name: "Ana Souza" })
-  assertEquals(card.chargedTotal, 1000)
-  assertEquals(card.commission, 285)
-  assertEquals(card.paidCount, 5)
-  assertEquals(card.paidOrdersCount, 2)
-  assertEquals(card.piecesLabel, "5 peças pagas em 2 vendas")
+  assertEquals(card.chargedTotal, 0.11)
+  assertEquals(card.commission, 0.03)
+  assertEquals(card.paidCount, 2)
+  assertEquals(card.paidOrdersCount, 1)
+  assertEquals(card.piecesLabel, "2 peças pagas em 1 venda")
   assertEquals(card.note, "30% de cada peça paga.")
+  assertEquals(monthCardFromSummary({
+    charged_total: 1000,
+    commission_amount: 285,
+    commission_percent: 30,
+    sem_comissao: false,
+    paid_count: 5,
+    paid_orders_count: 2
+  }, { name: "Ana Souza" }).commission, 285)
 
   const none = monthCardFromSummary({
     month: "2026-10",

@@ -4,6 +4,7 @@ import {
   createSale,
   fetchMonthSummary,
   fetchRecentSales,
+  messageForSaleError,
   recentSalesLimit,
   saveCustomer,
   searchCustomers,
@@ -25,12 +26,13 @@ Deno.test("o resumo do mês pede seller e o mês, sem calcular comissão na fun�
   const payload = {
     ok: true,
     month: "2026-10",
-    paid_count: 5,
-    paid_orders_count: 2,
-    charged_total: 1000,
-    commission_percent: 30,
-    commission_amount: 285,
-    sem_comissao: false
+    timezone: "America/Sao_Paulo",
+    paid_count: 2,
+    paid_orders_count: 1,
+    sem_comissao: false,
+    charged_total: 0.11,
+    commission_amount: 0.03,
+    commission_percent: 30.00
   }
   const client = fakeClient(payload)
   const result = await fetchMonthSummary({ sellerId: 3, month: "2026-10" }, client)
@@ -46,17 +48,18 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
     id: "c:12",
     code: "AN581-R",
     name: "Anel rosa",
-    image_url: "https://loja.test/anel.jpg",
     quantity: 2,
-    unit_price: 120,
-    preco_pix: 114,
+    image_url: "https://loja.test/anel.jpg",
     item_type: "component",
-    component_id: 12
+    preco_pix: 114,
+    unit_price: 120,
+    component_id: 12,
+    preco_efetivo: 120
   }
   const pieces = fakeClient({ ok: true, pieces: [piece] })
-  const found = await searchPieces({ sellerId: 3, query: "anel" }, pieces)
+  const found = await searchPieces({ query: "anel" }, pieces)
   assertEquals(pieces.calls[0].name, "sale-piece-search")
-  assertEquals(pieces.calls[0].options.query, { seller_id: 3, q: "anel" })
+  assertEquals(pieces.calls[0].options.query, { q: "anel" })
   assertEquals(found.pieces, [piece])
 
   const customers = fakeClient({ ok: true, customers: [] })
@@ -65,23 +68,19 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
 
   const sale = {
     id: 8,
-    items: [{
-      code: "AN581-R",
-      name: "Anel rosa",
-      image_url: "a.jpg",
-      quantity: 1,
-      unit_price: 120,
-      paid_at: "2026-10-12T15:00:00Z"
-    }],
-    total: 114,
-    paid_at: "2026-10-12T15:00:00Z",
     created_at: "2026-10-12T15:00:00Z",
+    paid_at: "2026-10-12T15:00:00Z",
     customer_name: "Lia Souza",
     customer_whatsapp: "11988887777",
     payment_method: "pix",
     payment_status: "paid",
-    paid_items_count: 1,
-    items_count: 1
+    paid_items_count: 2,
+    items_count: 2,
+    total: 142.5,
+    items: [
+      { code: "AN", name: "Anel", image_url: "", quantity: 1, unit_price: 100, paid_at: "2026-10-12T15:00:00Z" },
+      { code: "BR", name: "Brinco", image_url: "", quantity: 1, unit_price: 50, paid_at: "2026-10-12T15:00:00Z" }
+    ]
   }
   const partial = {
     id: 9,
@@ -117,35 +116,58 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
 })
 
 Deno.test("cadastrar cliente e criar a venda mandam o corpo combinado", async () => {
-  const saved = fakeClient({ ok: true, customer: { id: 4, name: "Lia", whatsapp: "11988887777" } })
-  const customer = await saveCustomer({ name: "Lia", whatsapp: "11988887777" }, saved)
+  const saved = fakeClient({
+    ok: true,
+    customer: { id: 4, name: "Lia", whatsapp: "11988887777" }
+  })
+  const customer = await saveCustomer({ name: "Lia", whatsapp: "(11) 98888-7777" }, saved)
   assertEquals(saved.calls[0].name, "sale-customer-save")
   assertEquals(saved.calls[0].options.method, "POST")
-  assertEquals(customer.customer?.id, 4)
+  assertEquals(saved.calls[0].options.body, { name: "Lia", whatsapp: "(11) 98888-7777" })
+  assertEquals(customer.customer, { id: 4, name: "Lia", whatsapp: "11988887777" })
 
   const body = {
     seller_id: 3,
-    customer: { id: 4 },
-    payment_status: "paid",
+    payment_status: "receivable",
     payment_method: "pix",
-    items: [{ piece_id: 1, quantity: 1 }]
+    customer: { id: 4 },
+    items: [{ piece_id: 1, quantity: 1 }, { piece_id: "c:2", quantity: 1 }],
+    client_request_id: "11111111-1111-4111-8111-111111111111"
   }
-  const created = fakeClient({
+  const createdPayload = {
     ok: true,
     order_id: 15,
-    total: 190,
+    total: 142.5,
+    subtotal: 150,
+    total_pix: 142.5,
+    items: [
+      { piece_id: 1, quantity: 1, line_total: 100 },
+      { piece_id: "c:2", quantity: 1, line_total: 50 }
+    ],
+    customer: { id: 4, name: "Lia", whatsapp: "11988887777" },
+    paid_at: null,
+    created_at: "2026-10-14T15:00:00Z",
+    duplicate: false,
     stock_updated: true,
-    duplicate: false
-  })
+    payment_method: "pix",
+    payment_status: "receivable"
+  }
+  const created = fakeClient(createdPayload)
   const sale = await createSale(body, created)
   assertEquals(created.calls[0].name, "sale-create")
   assertEquals(created.calls[0].options.body, body)
-  assertEquals(sale.order, { order_id: 15, total: 190, stock_updated: true, duplicate: false })
+  assertEquals(JSON.stringify(body).includes("unit_price"), false)
+  assertEquals(sale.order?.total, 142.5)
+  assertEquals(sale.order?.subtotal, 150)
+  assertEquals(sale.order?.total_pix, 142.5)
+  assertEquals(sale.order?.duplicate, false)
+  assertEquals(sale.order?.stock_updated, true)
+  assertEquals(sale.order?.items[0].line_total, 100)
 
-  const again = fakeClient({ ok: true, order_id: 15, total: 190, stock_updated: false, duplicate: true })
+  const again = fakeClient({ ...createdPayload, stock_updated: false, duplicate: true })
   const replay = await createSale(body, again)
   assertEquals(replay.order?.duplicate, true)
-  assertEquals(replay.order?.total, 190)
+  assertEquals(replay.order?.total, 142.5)
 })
 
 Deno.test("409 devolve stock_issues no formato da etapa 2", async () => {
@@ -177,4 +199,21 @@ Deno.test("erro da função provisória volta mensagem e não segue", async () =
   const result = await fetchMonthSummary({ sellerId: 3, month: "2026-10" }, client)
   assertEquals(result.ok, false)
   assertEquals(result.error, "Função ainda não publicada.")
+})
+
+Deno.test("login, outra vendedora e conta sem vendedora têm aviso", async () => {
+  assertEquals(messageForSaleError(401, ""), "Entre de novo para ver suas vendas.")
+  assertEquals(messageForSaleError(403, "Você só vê as próprias vendas."), "Você só vê as próprias vendas.")
+  assertEquals(messageForSaleError(400, "Conta sem vendedora."), "Esta conta não está ligada a uma vendedora.")
+  assertEquals(messageForSaleError(400, ""), "Esta conta não está ligada a uma vendedora.")
+  assertEquals(messageForSaleError(400, "Quantidade inválida."), "Quantidade inválida.")
+
+  const denied = fakeClient({ ok: false, error: "Você só vê as próprias vendas." }, false, 403)
+  const recent = await fetchRecentSales({ sellerId: 9 }, denied)
+  assertEquals(recent.ok, false)
+  assertEquals(recent.error, "Você só vê as próprias vendas.")
+
+  const anon = fakeClient({}, false, 401)
+  const month = await fetchMonthSummary({ sellerId: 3, month: "2026-10" }, anon)
+  assertEquals(month.error, "Entre de novo para ver suas vendas.")
 })

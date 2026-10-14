@@ -137,12 +137,13 @@ function renderPieces() {
   }
   pieceResultsEl.innerHTML = visible.map((piece) => {
     const picked = state.selected.some((item) => String(item.id) === String(piece.id))
+    const price = Number.isFinite(Number(piece.preco_efetivo)) ? piece.preco_efetivo : piece.unit_price
     const pix = Number.isFinite(Number(piece.preco_pix)) ? ` · Pix ${money(piece.preco_pix)}` : ""
     return `<button type="button" class="piece" data-piece="${escapeHtml(piece.id)}" aria-pressed="${picked ? "true" : "false"}">
       ${piecePhoto(piece)}
       <span class="piece-copy">
         <strong>${escapeHtml(piece.name)}</strong>
-        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(piece.unit_price))}${escapeHtml(pix)} · ${Number(piece.quantity) || 0} em estoque</small>
+        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(price))}${escapeHtml(pix)} · ${Number(piece.quantity) || 0} em estoque</small>
       </span>
     </button>`
   }).join("")
@@ -229,7 +230,7 @@ async function onPieceSearch() {
     renderPieces()
     return
   }
-  const result = await searchPieces({ sellerId: state.seller.seller_id, query })
+  const result = await searchPieces({ query })
   state.pieceHits = result.ok ? result.pieces : []
   if (!result.ok) setNote(flowMessageEl, result.error, "error")
   renderPieces()
