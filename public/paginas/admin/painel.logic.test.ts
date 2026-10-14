@@ -22,8 +22,10 @@ import {
   isComponentSku,
   isDashboardAdmin,
   nextPackagingValues,
+  normalizeCategoryDefaults,
   packagingValues,
   pieceFormState,
+  defaultsFor,
   renderAddForm,
   renderArchiveDialog,
   renderInicio,
@@ -162,6 +164,12 @@ Deno.test("adicionar peça repete os campos novos e o arquivamento pede confirma
 })
 
 Deno.test("a embalagem ao adicionar começa no padrão e a categoria só troca o que não foi editado", () => {
+  assertEquals(PACKAGING_DEFAULTS, {
+    peso_g: "80",
+    comprimento_cm: "20",
+    largura_cm: "17",
+    altura_cm: "5",
+  })
   assertEquals(packagingValues({}), { ...PACKAGING_DEFAULTS })
   assertEquals(packagingValues({ peso_g: 90, largura_cm: 22 }), {
     peso_g: "90",
@@ -199,9 +207,28 @@ Deno.test("a embalagem ao adicionar começa no padrão e a categoria só troca o
   const addWithDefaults = renderAddForm(withCategory)
   assert(addWithDefaults.includes('id="peso" inputmode="decimal" value="12"'))
   assert(addWithDefaults.includes('id="comprimento" inputmode="decimal" value="15"'))
+  assert(addWithDefaults.includes(`value="${PACKAGING_DEFAULTS.largura_cm}"`) || addWithDefaults.includes('value="10"'))
   const page = Deno.readTextFileSync(new URL("./painel.js", import.meta.url))
   assert(page.includes("nextPackagingValues"))
   assert(page.includes("applyAddPackagingForCategory"))
+})
+
+Deno.test("os padrões de categoria do servidor viram mapa por nome Anel/Brinco", () => {
+  const map = normalizeCategoryDefaults([
+    { category: "Anel", peso_g: 80, largura_cm: 17, comprimento_cm: 20, altura_cm: 5, ncm: "71171900" },
+    { category: "Brinco", peso_g: 80, largura_cm: 17, comprimento_cm: 20, altura_cm: 5, ncm: "71171900" },
+  ])
+  assertEquals(map.Anel.peso_g, 80)
+  assertEquals(map.Anel.largura_cm, 17)
+  assertEquals(map.Anel.comprimento_cm, 20)
+  assertEquals(defaultsFor({ defaults: map }, "Anel").comprimento_cm, 20)
+  assertEquals(defaultsFor({ defaults: map }, "brinco").category, "Brinco")
+  assertEquals(packagingValues(defaultsFor({ defaults: map }, "Anel")), {
+    peso_g: "80",
+    comprimento_cm: "20",
+    largura_cm: "17",
+    altura_cm: "5",
+  })
 })
 
 Deno.test("o SKU do tipo segue código-TIPO", () => {

@@ -11,8 +11,8 @@ export const NO_DATA = "sem dados ainda"
 export const PACKAGING_FIELDS = ["peso_g", "largura_cm", "comprimento_cm", "altura_cm"]
 export const PACKAGING_DEFAULTS = {
   peso_g: "80",
-  largura_cm: "20",
-  comprimento_cm: "17",
+  comprimento_cm: "20",
+  largura_cm: "17",
   altura_cm: "5"
 }
 
@@ -92,12 +92,37 @@ export function formatPrice(value) {
   return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
 
+// A função category-defaults devolve um array [{ category, peso_g, ... }].
+// O painel usa um mapa por nome (Anel, Brinco…).
+export function normalizeCategoryDefaults(raw) {
+  if (Array.isArray(raw)) {
+    const map = {}
+    for (const row of raw) {
+      if (!row || typeof row !== "object") continue
+      const name = String(row.category || row.categoria || "").trim()
+      if (!name) continue
+      map[name] = row
+    }
+    return map
+  }
+  if (raw && typeof raw === "object") return raw
+  return {}
+}
+
 export function defaultsFor(data, categoria) {
   const name = String(categoria || "").trim()
-  const bag = data?.defaults && typeof data.defaults === "object" ? data.defaults : data
+  const bag = normalizeCategoryDefaults(
+    data?.defaults && typeof data.defaults === "object" ? data.defaults : data
+  )
   if (!bag || typeof bag !== "object") return {}
   if (name && bag[name] && typeof bag[name] === "object") return bag[name]
-  if (name && bag.categoria === name && bag.defaults && typeof bag.defaults === "object") return bag.defaults
+  if (name) {
+    const match = Object.keys(bag).find((key) => key.toLowerCase() === name.toLowerCase())
+    if (match && bag[match] && typeof bag[match] === "object") return bag[match]
+  }
+  if (name && bag.categoria === name && bag.defaults && typeof bag.defaults === "object") {
+    return normalizeCategoryDefaults(bag.defaults)
+  }
   const direct = ["descricao", "peso_g", "largura_cm", "altura_cm", "comprimento_cm", "ncm", "origem"]
   if (direct.some((key) => bag[key] != null && bag[key] !== "")) return bag
   return {}
