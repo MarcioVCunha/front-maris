@@ -130,7 +130,6 @@ const Auth = (win as Record<string, unknown>).MarisStaffAuth as {
   accessDecision: (input: { pathname: string; role: string | null; hasSession: boolean; optional: boolean }) => string
   menuFor: (role: string) => Record<string, boolean>
   isAdminOnlyPath: (pathname: string) => boolean
-  saleSellerChoice: (user: { role?: string; seller_id?: number | null } | null) => { mode: string; sellerId: number | null; message: string }
   signIn: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   signInAndLoadProfile: (email: string, password: string) => Promise<{ ok: boolean; error?: string; user?: { role: string } }>
   requestPasswordReset: (email: string) => Promise<{ ok: boolean }>
@@ -188,7 +187,7 @@ Deno.test("a sessão fica na chave do Supabase e ignora o token antigo", () => {
 
 Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
   pinWindow()
-  const sellerPages = ["/", "/vendedoras", "/vendas", "/tipos-produto"]
+  const sellerPages = ["/", "/vendedoras", "/vendas", "/vendas/nova", "/tipos-produto"]
   const adminPages = ["/admin", "/importar", "/adicionar-peca", "/promocoes", "/contas-vendedoras", "/lista-espera"]
   for (const pathname of sellerPages) {
     assertEquals(
@@ -224,22 +223,6 @@ Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
     Auth.accessDecision({ pathname: "/equipe/nova-senha", role: null, hasSession: false, optional: false }),
     "allow"
   )
-})
-
-Deno.test("a vendedora vende só pela própria conta", () => {
-  pinWindow()
-  assertEquals(Auth.saleSellerChoice({ role: "seller", seller_id: 7 }), {
-    mode: "locked",
-    sellerId: 7,
-    message: ""
-  })
-  assertEquals(Auth.saleSellerChoice({ role: "seller", seller_id: null }), {
-    mode: "unlinked",
-    sellerId: null,
-    message: "Esta conta não está ligada a uma vendedora. Peça para completar o cadastro."
-  })
-  assertEquals(Auth.saleSellerChoice({ role: "admin", seller_id: null }).mode, "pick")
-  assertEquals(Auth.saleSellerChoice({ role: "admin", seller_id: 4 }).mode, "pick")
 })
 
 Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração", () => {
@@ -421,7 +404,8 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assertEquals(index.includes("clearToken"), false)
 
   const hub = await readPublic("paginas/admin/vendedoras.html")
-  assertEquals(anchor(hub, "/vendas").includes("data-staff-min"), false)
+  assertEquals(anchor(hub, "/vendas/nova").includes("data-staff-min"), false)
+  assertEquals(hub.includes('href="/vendas"'), false)
   assertEquals(hub.includes('href="/carrinhos-clientes"'), false)
   assertEquals(hub.includes('href="/carrinho-cliente"'), false)
   assert(anchor(hub, "/lista-espera").includes('data-staff-min="admin"'))
@@ -436,10 +420,11 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assertEquals(equipe.includes("verify-staff-access"), false)
   assertEquals(equipe.includes("signUp("), false)
 
-  const vendas = await readPublic("paginas/vendas/vendas.js")
-  assert(vendas.includes("saleSellerChoice"))
+  const vendas = await readPublic("paginas/vendas/nova-venda.api.js")
+  assertEquals(vendas.includes("saleSellerChoice"), false)
   assert(vendas.includes('auth: "staff"'))
-  assert(vendas.includes("error.message"))
+  const page = await readPublic("paginas/vendas/nova-venda.js")
+  assertEquals(page.includes("saleSellerChoice"), false)
 })
 
 Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo público não muda", async () => {
@@ -457,7 +442,6 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/nova-senha.html",
     "paginas/admin/admin.html",
     "paginas/admin/vendedoras.html",
-    "paginas/vendas/vendas.html",
     "paginas/vendas/nova-venda.html",
     "paginas/vendas/lista-espera.html",
     "paginas/vendedoras/contas.html",

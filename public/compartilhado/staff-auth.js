@@ -136,16 +136,6 @@
     }
   }
 
-  const UNLINKED_SELLER_MESSAGE =
-    "Esta conta não está ligada a uma vendedora. Peça para completar o cadastro."
-
-  // Vendedora só vende pela própria conta. Administradora escolhe.
-  function saleSellerChoice(user) {
-    if (user?.role !== "seller") return { mode: "pick", sellerId: null, message: "" }
-    if (user.seller_id == null) return { mode: "unlinked", sellerId: null, message: UNLINKED_SELLER_MESSAGE }
-    return { mode: "locked", sellerId: user.seller_id, message: "" }
-  }
-
   function roleLabel(role) {
     if (role === "admin") return "Administradora"
     if (role === "seller") return "Vendedora"
@@ -309,7 +299,6 @@
     isAdminOnlyPath,
     safeNextPath,
     normalizeStaffUser,
-    saleSellerChoice,
     roleLabel,
     accessDecision,
     menuFor,

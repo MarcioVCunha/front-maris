@@ -1,7 +1,7 @@
-// Regras da tela nova de venda. A flag nasce desligada: /vendas segue a tela atual.
+// Regras da tela de venda. A flag está ligada: /vendas/nova é a tela da equipe.
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
 
-export const NEW_SALE_ENABLED = false
+export const NEW_SALE_ENABLED = true
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
 export { newClientRequestId }

@@ -434,7 +434,7 @@ window.MarisUI.bindDebouncedSearch(pieceSearchEl, onPieceSearch, { debounceMs: 2
 window.MarisUI.bindDebouncedSearch(customerSearchEl, onCustomerSearch, { debounceMs: 200 })
 
 if (!shouldShowNewSale(NEW_SALE_ENABLED)) {
-  window.location.replace("/vendas")
+  window.location.replace("/vendedoras")
 } else {
   document.body.hidden = false
   const profile = await window.MarisStaffAuth.loadProfile()

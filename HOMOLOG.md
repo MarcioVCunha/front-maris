@@ -57,7 +57,7 @@ No build, `npm run build` → `node scripts/generate-env.js` sobrescreve `/env.j
 - [ ] Catálogo: produto com tipos (HOMO-002) mostra **Ver tipos**, não adiciona o pai
 - [ ] Cesta compartilhada: merge + clamp de estoque; link sem id / inválido / vazio distintos
 - [ ] Detalhe carrinho: venda parcial **não** remove o carrinho inteiro; confirmação; Pix; UI trava após sucesso
-- [ ] `/vendas`: Enter na busca **não** registra venda; confirmação com total; faixa de selecionados
+- [ ] `/vendas` abre `/vendas/nova`. Enter na busca de peças não confirma a venda
 - [ ] `/tipos-produto`: HOMO-002 aparece disponível via tipos; wipe de tipos pede confirmação
 - [ ] Contas: marcar pago pede confirmação (com 70% se repasse)
 

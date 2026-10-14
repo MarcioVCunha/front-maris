@@ -21,20 +21,37 @@ import {
   whatsappLink,
 } from "./nova-venda.logic.js"
 
-Deno.test("a flag da venda nova nasce desligada", async () => {
-  assertEquals(NEW_SALE_ENABLED, false)
+Deno.test("a flag da venda nova está ligada", async () => {
+  assertEquals(NEW_SALE_ENABLED, true)
   const source = await Deno.readTextFile(new URL("./nova-venda.logic.js", import.meta.url))
-  assertEquals(source.includes("export const NEW_SALE_ENABLED = false"), true)
+  assertEquals(source.includes("export const NEW_SALE_ENABLED = true"), true)
   const page = await Deno.readTextFile(new URL("./nova-venda.js", import.meta.url))
-  assertEquals(page.includes('location.replace("/vendas")'), true)
+  assertEquals(page.includes('location.replace("/vendas")'), false)
+  assertEquals(page.includes('location.replace("/vendedoras")'), true)
 })
 
-Deno.test("a tela atual de venda continua em /vendas", async () => {
-  const html = await Deno.readTextFile(new URL("./vendas.html", import.meta.url))
-  assertEquals(html.includes('id="sale-form"'), true)
-  assertEquals(html.includes('id="submit-btn"'), true)
-  assertEquals(html.includes("nova-venda"), false)
-  assertEquals(html.includes("NEW_SALE_ENABLED"), false)
+Deno.test("a venda antiga redireciona para a tela nova", async () => {
+  const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
+  for (const source of ["/vendas", "/sales/sales.html", "/paginas/vendas/vendas.html"]) {
+    const rule = vercel.redirects.find((item: { source: string }) => item.source === source)
+    assert(rule, source)
+    assertEquals(rule.destination, "/vendas/nova")
+    assertEquals(rule.permanent, true)
+  }
+  assertEquals(vercel.rewrites.some((item: { source: string; destination: string }) => {
+    return item.source === "/vendas" || item.destination.endsWith("/vendas.html")
+  }), false)
+  const rewrite = vercel.rewrites.find((item: { source: string }) => item.source === "/vendas/nova")
+  assertEquals(rewrite.destination, "/paginas/vendas/nova-venda.html")
+  for (const name of ["vendas.html", "vendas.js", "vendas.logic.js", "vendas.logic.test.ts"]) {
+    let missing = false
+    try {
+      await Deno.stat(new URL(`./${name}`, import.meta.url))
+    } catch {
+      missing = true
+    }
+    assertEquals(missing, true, name)
+  }
 })
 
 Deno.test("comissão é 30% das pagas e zero para Marcio e Marineide", () => {
@@ -347,14 +364,35 @@ Deno.test("409 de estoque avisa e deixa ajustar a quantidade", () => {
   assertEquals(adjusted.message.includes("Anel Liso Vazado Ajustável não tem essa quantidade. Disponível: 1."), true)
 })
 
-Deno.test("o atalho da tela nova fica escondido enquanto a flag está desligada", async () => {
+Deno.test("o atalho da equipe abre a venda nova", async () => {
   const hub = await Deno.readTextFile(new URL("../admin/vendedoras.html", import.meta.url))
   const link = hub.match(/<a\b[^>]*href="\/vendas\/nova"[^>]*>/)
   assert(link, "falta o link /vendas/nova")
-  assertEquals(link[0].includes("hidden"), true)
-  const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
-  const rewrite = vercel.rewrites.find((item: { source: string }) => item.source === "/vendas/nova")
-  assertEquals(rewrite.destination, "/paginas/vendas/nova-venda.html")
-  const current = vercel.rewrites.find((item: { source: string }) => item.source === "/vendas")
-  assertEquals(current.destination, "/paginas/vendas/vendas.html")
+  assertEquals(link[0].includes("hidden"), false)
+  assertEquals(hub.includes('href="/vendas"'), false)
+  assertEquals(hub.includes("Venda avulsa"), false)
+  assertEquals(hub.includes("Nova venda"), true)
+  assertEquals(hub.includes("Ainda desligada"), false)
+})
+
+Deno.test("a função antiga de venda fica só no changelog", async () => {
+  const retired = ["register", "sale"].join("-")
+  const root = new URL("../../../", import.meta.url)
+  const hits: string[] = []
+  async function walk(dir: URL) {
+    for await (const entry of Deno.readDir(dir)) {
+      if (entry.name === ".git" || entry.name === "node_modules") continue
+      const next = new URL(entry.name + (entry.isDirectory ? "/" : ""), dir)
+      if (entry.isDirectory) {
+        await walk(next)
+        continue
+      }
+      if (!/\.(js|ts|html|css|md|json|yml)$/.test(entry.name)) continue
+      if (next.pathname.endsWith("/CHANGELOG.md")) continue
+      const text = await Deno.readTextFile(next)
+      if (text.includes(retired)) hits.push(next.pathname)
+    }
+  }
+  await walk(root)
+  assertEquals(hits, [])
 })
