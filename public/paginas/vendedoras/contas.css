@@ -298,6 +298,13 @@ input {
   color: var(--maris-text-muted);
 }
 
+.sale-order-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #8b6a78;
+}
+
 .sale-card-meta {
   margin: 0;
   display: grid;

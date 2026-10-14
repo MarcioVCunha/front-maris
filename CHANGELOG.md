@@ -8,6 +8,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 - Ordenação e coleção "Mais vendidas", ligadas na view `product_sales_counts`. Se a view falhar ou vier vazia, a opção some e o catálogo segue.
 
+### Alterado
+
+- Em Contas vendedoras, "A receber" continua peça a peça. Marcar uma venda como paga não marca as outras do mesmo pedido. A peça paga some na hora e as que ainda estão a receber ficam na lista. A frase "pedido #N: 1 de 3 peças pagas" só aparece se a listagem já trouxer o pedido e as contagens.
+
 ### Removido
 
 - Saem as cestas compartilhadas. O site não chama mais `create-shared-basket`, `customer-cart-share`, `list-shared-carts`, `discard-shared-cart` nem `mark-cart-converted`. Somem o link de compartilhar na cesta, a página `/catalog/cesta` e as telas `/carrinhos-clientes` e `/carrinho-cliente`.
