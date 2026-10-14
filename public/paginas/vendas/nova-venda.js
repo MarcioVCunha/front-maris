@@ -56,7 +56,7 @@ const customerResultsEl = document.getElementById("customer-results")
 const customerNameEl = document.getElementById("customer-name")
 const customerWhatsappEl = document.getElementById("customer-whatsapp")
 const customerHelpEl = document.getElementById("customer-help")
-const externalOrderEl = document.getElementById("external-order-id")
+const marketplaceNotesEl = document.getElementById("marketplace-notes")
 const flowMessageEl = document.getElementById("flow-message")
 const flowNextEl = document.getElementById("flow-next")
 const flowBackEl = document.getElementById("flow-back")
@@ -84,8 +84,9 @@ const state = {
 }
 
 function flowSteps() {
+  // Marketplace: canal + peças → confirma (sempre pago, sem cliente/pagamento).
   return state.channel === "marketplace"
-    ? ["channel", "pieces", "customer", "payment"]
+    ? ["channel", "pieces"]
     : ["pieces", "customer", "payment"]
 }
 
@@ -101,7 +102,7 @@ function resetFlowState(channel = "equipe") {
   if (customerNameEl) customerNameEl.value = ""
   if (customerWhatsappEl) customerWhatsappEl.value = ""
   if (pieceSearchEl) pieceSearchEl.value = ""
-  if (externalOrderEl) externalOrderEl.value = ""
+  if (marketplaceNotesEl) marketplaceNotesEl.value = ""
 }
 
 function setNote(el, text, type) {
@@ -137,9 +138,7 @@ function showFlow(step) {
     else pill.removeAttribute("aria-current")
   })
   if (customerHelpEl) {
-    customerHelpEl.textContent = state.channel === "marketplace"
-      ? "Cliente é opcional no marketplace. Pode seguir sem cadastrar."
-      : "Escolha uma cliente ou cadastre nome e WhatsApp."
+    customerHelpEl.textContent = "Escolha uma cliente ou cadastre nome e WhatsApp."
   }
   document.querySelectorAll("[data-marketplace]").forEach((button) => {
     button.setAttribute(
@@ -147,7 +146,8 @@ function showFlow(step) {
       button.getAttribute("data-marketplace") === state.marketplace ? "true" : "false"
     )
   })
-  flowNextEl.textContent = current === "payment" ? "Confirmar venda" : "Continuar"
+  const confirmStep = current === "payment" || (state.channel === "marketplace" && current === "pieces")
+  flowNextEl.textContent = confirmStep ? "Confirmar venda" : "Continuar"
   setNote(flowMessageEl, "")
   if (current === "payment") renderPayment()
   if (current === "pieces") renderPieces()
@@ -323,12 +323,9 @@ async function confirmSale() {
   let built
   if (market) {
     built = buildMarketplaceSaleBody({
-      marketplace: state.marketplace,
-      paymentStatus: state.paymentStatus,
-      paymentMethod: state.paymentMethod,
+      channel: state.marketplace,
       pieces: state.selected,
-      externalOrderId: externalOrderEl?.value || "",
-      customer: chosenCustomer()
+      notes: marketplaceNotesEl?.value || ""
     })
   } else {
     built = buildCreateSaleBody({
@@ -352,14 +349,6 @@ async function confirmSale() {
     }
     body = { ...body, customer: { id: saved.customer.id } }
   }
-  if (market && body.customer && !body.customer.id && body.customer.name) {
-    const saved = await saveCustomer(body.customer)
-    if (!saved.ok) {
-      setNote(flowMessageEl, saved.error, "error")
-      return
-    }
-    body = { ...body, customer: { id: saved.customer.id } }
-  }
   body = { ...body, client_request_id: saleRequestId(body) }
   flowNextEl.disabled = true
   const result = market ? await registerMarketplaceOrder(body) : await createSale(body)
@@ -369,7 +358,7 @@ async function confirmSale() {
       const adjusted = applyStockIssues(state.selected, result.stockIssues)
       state.selected = adjusted.pieces
       renderPieces()
-      renderPayment()
+      if (!market) renderPayment()
       setNote(flowMessageEl, adjusted.message, "error")
       return
     }
@@ -380,7 +369,7 @@ async function confirmSale() {
   const totalText = Number.isFinite(charged) ? ` Total ${money(charged)}.` : ""
   const lead = result.order?.duplicate
     ? "Esta venda já estava registrada."
-    : (result.order?.stock_updated === false ? "Venda registrada, mas o estoque não atualizou." : "Venda registrada.")
+    : "Venda registrada."
   resetFlowState("equipe")
   showHome()
   setNote(homeMessageEl, `${lead}${totalText}`, "success")
@@ -403,27 +392,18 @@ function onNext() {
       setNote(flowMessageEl, "Escolha pelo menos uma peça.", "error")
       return
     }
+    if (state.channel === "marketplace") {
+      confirmSale()
+      return
+    }
     showFlow(state.step + 1)
     return
   }
   if (current === "customer") {
-    if (state.channel !== "marketplace") {
-      const who = customerPayload(chosenCustomer())
-      if (!who.ok) {
-        setNote(flowMessageEl, who.error, "error")
-        return
-      }
-    } else {
-      const picked = chosenCustomer()
-      const name = String(picked?.name || "").trim()
-      const whatsapp = String(picked?.whatsapp || "").trim()
-      if ((name || whatsapp) && !(name && whatsapp)) {
-        const who = customerPayload(picked)
-        if (!who.ok) {
-          setNote(flowMessageEl, who.error, "error")
-          return
-        }
-      }
+    const who = customerPayload(chosenCustomer())
+    if (!who.ok) {
+      setNote(flowMessageEl, who.error, "error")
+      return
     }
     showFlow(state.step + 1)
     return

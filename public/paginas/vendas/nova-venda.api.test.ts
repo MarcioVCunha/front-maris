@@ -208,42 +208,54 @@ Deno.test("register-marketplace-order e cancel-marketplace-order usam os nomes d
   assertEquals(NEW_SALE_API.cancelMarketplaceOrder, "cancel-marketplace-order")
 
   const body = {
-    marketplace: "mercado_livre",
-    payment_status: "paid",
-    payment_method: "pix",
-    items: [{ piece_id: 3, quantity: 1 }],
-    customer: null,
-    client_request_id: "abc"
+    channel: "mercado_livre",
+    items: [{ product_code: "AN581-R", quantity: 1 }],
+    client_request_id: "11111111-1111-1111-1111-111111111111",
+    notes: "pedido ML"
   }
   const created = fakeClient({
     ok: true,
     order_id: 55,
-    sale_ids: [101],
-    marketplace: "mercado_livre",
+    source: "marketplace",
+    status: "pago",
+    channel: "mercado_livre",
     total: 90,
     subtotal: 90,
     total_pix: 85.5,
-    stock_updated: true,
-    payment_method: "pix",
-    payment_status: "paid",
-    commission_amount: 0,
-    sem_comissao: true
+    payment_method: null,
+    seller_id: null,
+    commission_percent: 0,
+    customer_name: null,
+    customer_whatsapp: null,
+    items: [],
+    duplicate: false
   })
   const sale = await registerMarketplaceOrder(body, created)
   assertEquals(created.calls[0].name, "register-marketplace-order")
   assertEquals(created.calls[0].options.body, body)
   assertEquals(sale.ok, true)
-  assertEquals(sale.order?.channel, "marketplace")
-  assertEquals(sale.order?.commission_amount, 0)
-  assertEquals(sale.order?.sem_comissao, true)
-  assertEquals(sale.order?.sale_ids, [101])
+  assertEquals(sale.order?.source, "marketplace")
+  assertEquals(sale.order?.status, "pago")
+  assertEquals(sale.order?.channel, "mercado_livre")
+  assertEquals(sale.order?.commission_percent, 0)
+  assertEquals(sale.order?.seller_id, null)
+  assertEquals(sale.order?.duplicate, false)
 
-  const cancelled = fakeClient({ ok: true, stock_restored: true })
-  const result = await cancelMarketplaceOrder({ order_id: 55 }, cancelled)
+  const cancelled = fakeClient({
+    ok: true,
+    order_id: 55,
+    source: "marketplace",
+    status: "cancelado",
+    channel: "mercado_livre",
+    items: [],
+    duplicate: false
+  })
+  const result = await cancelMarketplaceOrder({ order_id: 55, reason: "teste" }, cancelled)
   assertEquals(cancelled.calls[0].name, "cancel-marketplace-order")
-  assertEquals(cancelled.calls[0].options.body, { order_id: 55 })
+  assertEquals(cancelled.calls[0].options.body, { order_id: 55, reason: "teste" })
   assertEquals(result.ok, true)
-  assertEquals(result.stockRestored, true)
+  assertEquals(result.order?.status, "cancelado")
+  assertEquals(result.order?.channel, "mercado_livre")
 })
 
 Deno.test("login, outra vendedora e conta sem vendedora têm aviso", async () => {

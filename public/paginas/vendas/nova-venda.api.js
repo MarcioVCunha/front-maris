@@ -7,7 +7,7 @@ export const NEW_SALE_API = {
   searchCustomers: "sale-customer-search",
   saveCustomer: "sale-customer-save",
   createSale: "sale-create",
-  /** Contrato assumido em docs/contratos/venda-marketplace.md — ainda não no ar. */
+  /** Contrato em docs/contratos/venda-marketplace.md (back-maris PR #15). Flag off no front. */
   registerMarketplaceOrder: "register-marketplace-order",
   cancelMarketplaceOrder: "cancel-marketplace-order"
 }
@@ -195,9 +195,9 @@ export async function createSale(body, client) {
 }
 
 /**
- * POST register-marketplace-order (ainda não no ar)
- * Corpo: { marketplace, payment_status, payment_method, items, client_request_id?,
- *   external_order_id?, customer? } — sem seller_id. Ver contrato.
+ * POST register-marketplace-order
+ * Corpo: { channel, items: [{ product_code|component_id, quantity }], client_request_id?, notes? }
+ * Resposta: order_payload + { channel, duplicate }. Sem seller/comissão; status sempre pago.
  */
 export async function registerMarketplaceOrder(body, client) {
   const result = await call(NEW_SALE_API.registerMarketplaceOrder, {
@@ -212,29 +212,27 @@ export async function registerMarketplaceOrder(body, client) {
     ok: true,
     order: {
       order_id: data.order_id ?? null,
-      sale_ids: Array.isArray(data.sale_ids) ? data.sale_ids : [],
-      channel: "marketplace",
-      marketplace: data.marketplace ?? body?.marketplace ?? null,
+      source: data.source ?? "marketplace",
+      status: data.status ?? "pago",
+      channel: data.channel ?? body?.channel ?? null,
       total: data.total,
       subtotal: data.subtotal,
       total_pix: data.total_pix,
       items: Array.isArray(data.items) ? data.items : [],
-      customer: data.customer ?? null,
-      paid_at: data.paid_at ?? null,
-      created_at: data.created_at ?? null,
-      duplicate: data.duplicate === true,
-      stock_updated: data.stock_updated === true,
+      customer_name: data.customer_name ?? null,
+      customer_whatsapp: data.customer_whatsapp ?? null,
+      seller_id: data.seller_id ?? null,
+      commission_percent: data.commission_percent ?? 0,
       payment_method: data.payment_method ?? null,
-      payment_status: data.payment_status ?? null,
-      commission_amount: 0,
-      sem_comissao: true
+      duplicate: data.duplicate === true
     }
   }
 }
 
 /**
- * POST cancel-marketplace-order (ainda não no ar)
- * Corpo preferido: { order_id }. Devolve peças ao estoque.
+ * POST cancel-marketplace-order
+ * Corpo: { order_id, reason? }. Devolve peças ao estoque.
+ * Resposta: order_payload + { channel, duplicate: false }.
  */
 export async function cancelMarketplaceOrder(body, client) {
   const result = await call(NEW_SALE_API.cancelMarketplaceOrder, {
@@ -244,7 +242,18 @@ export async function cancelMarketplaceOrder(body, client) {
   if (!result?.ok || result.data?.ok === false) {
     return failed(result, "Não foi possível cancelar a venda.")
   }
-  return { ok: true, stockRestored: result.data?.stock_restored !== false }
+  const data = result.data || {}
+  return {
+    ok: true,
+    order: {
+      order_id: data.order_id ?? body?.order_id ?? null,
+      source: data.source ?? "marketplace",
+      status: data.status ?? "cancelado",
+      channel: data.channel ?? null,
+      items: Array.isArray(data.items) ? data.items : [],
+      duplicate: data.duplicate === true
+    }
+  }
 }
 
 if (typeof globalThis.window !== "undefined") {

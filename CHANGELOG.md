@@ -8,7 +8,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 - Painel do administrador em `/admin`, ligado (`ADMIN_DASHBOARD_ENABLED`). O menu é Início, Estoque, Vendas, Vendedoras e Promoções. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel, e a aba Tipos grava o SKU no padrão código-TIPO. Os nomes e os corpos ficam em `painel.api.js`.
 - Brilho de carregamento (`compartilhado/loading.js`): estrela de 4 pontas ✦ que enche e esvazia nas cores da Maris. Usado no catálogo, na cesta e no painel (boot e troca de aba), com `role="status"`, `aria-label="Carregando"` e sem animação quando `prefers-reduced-motion`.
-- Venda de marketplace (Shopee, Mercado Livre, TikTok) preparada em `/vendas/nova` atrás de `MARKETPLACE_SALE_ENABLED` (desligada). Contrato assumido em `docs/contratos/venda-marketplace.md`: `register-marketplace-order` sem comissão e `cancel-marketplace-order` devolvendo estoque (endpoints ainda não no ar).
+- Venda de marketplace (Shopee, Mercado Livre, TikTok) preparada em `/vendas/nova` atrás de `MARKETPLACE_SALE_ENABLED` (desligada). Contrato em `docs/contratos/venda-marketplace.md` (back-maris PR #15): `register-marketplace-order` com `channel` + itens `product_code`/`component_id`, sempre pago e sem comissão; `cancel-marketplace-order` com `order_id` e `reason?` devolvendo estoque.
 
 ### Alterado
 

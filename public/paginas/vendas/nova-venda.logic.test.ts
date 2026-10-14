@@ -5,7 +5,6 @@ import {
   buildCreateSaleBody,
   buildMarketplaceSaleBody,
   cancelMarketplaceOrderPayload,
-  cancelMarketplaceSaleIdsPayload,
   chargedTotalFromSummary,
   commissionRateFor,
   customerPayload,
@@ -14,6 +13,8 @@ import {
   applyStockIssues,
   isMarketplaceSale,
   marketplaceLabel,
+  marketplaceLine,
+  marketplacePlatformOf,
   monthCard,
   monthCardFromSummary,
   paidPiecesLabel,
@@ -409,47 +410,57 @@ Deno.test("o atalho da equipe abre a venda nova", async () => {
   assertEquals(hub.includes("Ainda desligada"), false)
 })
 
-Deno.test("marketplace fica desligado e monta o corpo sem seller_id", async () => {
+Deno.test("marketplace fica desligado e monta o corpo do contrato real", async () => {
   assertEquals(MARKETPLACE_SALE_ENABLED, false)
   assertEquals(shouldShowMarketplaceSale(), false)
   assertEquals(marketplaceLabel("shopee"), "Shopee")
   assertEquals(marketplaceLabel("mercado_livre"), "Mercado Livre")
   assertEquals(marketplaceLabel("tiktok"), "TikTok")
 
+  assertEquals(marketplaceLine({ id: 12, code: "AN581-R", quantity: 1 }), {
+    product_code: "AN581-R",
+    quantity: 1
+  })
+  assertEquals(marketplaceLine({ id: "c:9", component_id: 9, item_type: "component", quantity: 2 }), {
+    component_id: 9,
+    quantity: 2
+  })
+
   const built = buildMarketplaceSaleBody({
-    marketplace: "shopee",
-    paymentStatus: "paid",
-    paymentMethod: "pix",
+    channel: "shopee",
     pieces: [{ id: 12, code: "AN581-R", quantity: 1 }],
-    clientRequestId: "req-1",
-    externalOrderId: "SP-99"
+    clientRequestId: "11111111-1111-1111-1111-111111111111",
+    notes: "SP-99"
   })
   assertEquals(built.ok, true)
   assertEquals(built.body.seller_id, undefined)
-  assertEquals(built.body.marketplace, "shopee")
-  assertEquals(built.body.customer, null)
-  assertEquals(built.body.external_order_id, "SP-99")
-  assertEquals(built.body.items, [{ piece_id: 12, quantity: 1 }])
-  assertEquals(built.body.client_request_id, "req-1")
+  assertEquals(built.body.channel, "shopee")
+  assertEquals(built.body.customer, undefined)
+  assertEquals(built.body.payment_status, undefined)
+  assertEquals(built.body.notes, "SP-99")
+  assertEquals(built.body.items, [{ product_code: "AN581-R", quantity: 1 }])
+  assertEquals(built.body.client_request_id, "11111111-1111-1111-1111-111111111111")
 
   assertEquals(buildMarketplaceSaleBody({
-    marketplace: "outro",
-    paymentStatus: "paid",
-    paymentMethod: "pix",
-    pieces: [{ id: 1, quantity: 1 }]
+    channel: "outro",
+    pieces: [{ id: 1, code: "X", quantity: 1 }]
   }).ok, false)
 
   assertEquals(cancelMarketplaceOrderPayload(55), { ok: true, body: { order_id: 55 } })
-  assertEquals(cancelMarketplaceSaleIdsPayload([101, 102]), { ok: true, body: { sale_ids: [101, 102] } })
-  assertEquals(isMarketplaceSale({ channel: "marketplace", marketplace: "tiktok" }), true)
+  assertEquals(cancelMarketplaceOrderPayload(55, "erro"), {
+    ok: true,
+    body: { order_id: 55, reason: "erro" }
+  })
+  assertEquals(isMarketplaceSale({ channel: "marketplace" }), true)
+  assertEquals(isMarketplaceSale({ source: "marketplace", channel: "tiktok" }), true)
+  assertEquals(marketplacePlatformOf({ channel: "tiktok" }), "tiktok")
   assertEquals(isMarketplaceSale({ channel: "equipe" }), false)
 
   const html = renderSaleDetail({
     id: 55,
-    channel: "marketplace",
-    marketplace: "shopee",
-    payment_status: "paid",
-    payment_method: "pix",
+    source: "marketplace",
+    channel: "shopee",
+    status: "pago",
     total: 100,
     created_at: "2026-10-14T15:00:00Z",
     items: [{ code: "AN581-R", name: "Anel", quantity: 1, unit_price: 100 }]
@@ -461,10 +472,15 @@ Deno.test("marketplace fica desligado e monta o corpo sem seller_id", async () =
   const page = await Deno.readTextFile(new URL("./nova-venda.html", import.meta.url))
   assert(page.includes('id="marketplace-sale-btn"'))
   assert(page.includes('data-marketplace="shopee"'))
+  assert(page.includes('id="marketplace-notes"'))
+  assertEquals(page.includes("external-order-id"), false)
   const contract = await Deno.readTextFile(new URL("../../../docs/contratos/venda-marketplace.md", import.meta.url))
   assert(contract.includes("register-marketplace-order"))
   assert(contract.includes("cancel-marketplace-order"))
+  assert(contract.includes('"channel"'))
+  assert(contract.includes("product_code"))
   assertEquals(contract.includes("marketplace-sale-create"), false)
+  assertEquals(contract.includes("payment_status"), false)
 })
 
 Deno.test("a função antiga de venda fica só no changelog", async () => {

@@ -3,7 +3,7 @@
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
 
 export const NEW_SALE_ENABLED = true
-/** Liga o fluxo de venda marketplace. Off até o back publicar o contrato. */
+/** Liga o fluxo de venda marketplace. Off até o front ligar após o contrato no ar. */
 export const MARKETPLACE_SALE_ENABLED = false
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
@@ -237,6 +237,23 @@ function saleLine(piece) {
   return { piece_id: pieceId, quantity }
 }
 
+/** Item no formato create-order / register-marketplace-order. */
+export function marketplaceLine(piece) {
+  const quantity = Number(piece.quantity) || 0
+  const fromField = Number(piece?.component_id)
+  const fromId = String(piece?.id ?? "").trim()
+  const fromPrefixed = /^c:(\d+)$/.exec(fromId)
+  const componentId = Number.isInteger(fromField) && fromField > 0
+    ? fromField
+    : (fromPrefixed ? Number(fromPrefixed[1]) : NaN)
+  const asComponent = piece?.item_type === "component"
+    || (Number.isInteger(componentId) && componentId > 0)
+  if (asComponent && Number.isInteger(componentId) && componentId > 0) {
+    return { component_id: componentId, quantity }
+  }
+  return { product_code: String(piece?.code || "").trim(), quantity }
+}
+
 export function buildCreateSaleBody({ sellerId, customer, paymentStatus, paymentMethod, pieces, clientRequestId }) {
   const seller = Number(sellerId)
   if (!Number.isInteger(seller) || seller <= 0) {
@@ -264,71 +281,54 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
 }
 
 /**
- * Corpo de register-marketplace-order. Sem seller_id e sem comissão.
- * Ver docs/contratos/venda-marketplace.md.
+ * Corpo de register-marketplace-order (back-maris PR #15).
+ * Sem seller, cliente, pagamento ou comissão. Ver docs/contratos/venda-marketplace.md.
  */
-export function buildMarketplaceSaleBody({
-  marketplace,
-  paymentStatus,
-  paymentMethod,
-  pieces,
-  clientRequestId,
-  externalOrderId,
-  customer
-}) {
-  if (!isMarketplacePlatform(marketplace)) {
+export function buildMarketplaceSaleBody({ channel, pieces, clientRequestId, notes }) {
+  const platform = String(channel || "").trim()
+  if (!isMarketplacePlatform(platform)) {
     return { ok: false, error: "Escolha Shopee, Mercado Livre ou TikTok." }
   }
   if (!pieces?.length) return { ok: false, error: "Escolha pelo menos uma peça." }
-  if (paymentStatus !== "paid" && paymentStatus !== "receivable") {
-    return { ok: false, error: "Informe se está pago ou a receber." }
+  const items = pieces.map(marketplaceLine)
+  if (items.some((item) => !item.product_code && !item.component_id)) {
+    return { ok: false, error: "Cada peça precisa do código ou do componente." }
   }
-  if (!["pix", "dinheiro", "cartao"].includes(paymentMethod)) {
-    return { ok: false, error: "Escolha Pix, dinheiro ou cartão." }
-  }
-  const body = {
-    marketplace,
-    payment_status: paymentStatus,
-    payment_method: paymentMethod,
-    items: pieces.map(saleLine),
-    customer: null
-  }
-  const name = String(customer?.name || "").trim()
-  const whatsapp = String(customer?.whatsapp || "").trim()
-  if (customer?.id != null && String(customer.id).trim() !== "") {
-    body.customer = { id: customer.id }
-  } else if (name || whatsapp) {
-    const who = customerPayload({ name, whatsapp })
-    if (!who.ok) return who
-    body.customer = who.customer
-  }
+  const body = { channel: platform, items }
   const requestId = String(clientRequestId || "").trim()
   if (requestId) body.client_request_id = requestId
-  const external = String(externalOrderId || "").trim()
-  if (external) body.external_order_id = external
+  const note = String(notes || "").trim()
+  if (note) {
+    if (note.length > 500) return { ok: false, error: "Observação longa demais." }
+    body.notes = note
+  }
   return { ok: true, body }
 }
 
-/** Payload de cancel-marketplace-order: { order_id }. */
-export function cancelMarketplaceOrderPayload(orderId) {
+/** Payload de cancel-marketplace-order: { order_id, reason? }. */
+export function cancelMarketplaceOrderPayload(orderId, reason) {
   const id = Number(orderId)
   if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Pedido inválido." }
-  return { ok: true, body: { order_id: id } }
+  const body = { order_id: id }
+  const text = String(reason || "").trim()
+  if (text) {
+    if (text.length > 500) return { ok: false, error: "Motivo longo demais." }
+    body.reason = text
+  }
+  return { ok: true, body }
 }
 
-/** Alternativa do contrato: { sale_ids }. */
-export function cancelMarketplaceSaleIdsPayload(saleIds) {
-  const ids = (Array.isArray(saleIds) ? saleIds : [])
-    .map((value) => Number(value))
-    .filter((id) => Number.isInteger(id) && id > 0)
-  if (!ids.length) return { ok: false, error: "Venda inválida." }
-  return { ok: true, body: { sale_ids: ids } }
+export function marketplacePlatformOf(sale) {
+  if (isMarketplacePlatform(sale?.channel)) return sale.channel
+  if (isMarketplacePlatform(sale?.marketplace)) return sale.marketplace
+  return ""
 }
 
 export function isMarketplaceSale(sale) {
   if (!sale || typeof sale !== "object") return false
+  if (sale.source === "marketplace") return true
   if (sale.channel === "marketplace") return true
-  return isMarketplacePlatform(sale.marketplace)
+  return Boolean(marketplacePlatformOf(sale))
 }
 
 function countOrZero(value) {
@@ -477,7 +477,8 @@ export function renderRecentSales(sales, formatMoney) {
   return rows.map((sale) => {
     const view = salePaymentView(sale)
     const method = METHOD_LABEL[sale.payment_method] || ""
-    const market = isMarketplaceSale(sale) ? marketplaceLabel(sale.marketplace) || "Marketplace" : ""
+    const platform = marketplacePlatformOf(sale)
+    const market = isMarketplaceSale(sale) ? marketplaceLabel(platform) || "Marketplace" : ""
     const title = market || sale.customer_name || "Cliente"
     const sideBits = view.pieces
       ? [method, view.pieces]
@@ -514,7 +515,7 @@ export function renderSaleDetail(sale, formatMoney, options = {}) {
   const method = METHOD_LABEL[sale?.payment_method] || ""
   const totals = saleDetailTotals(sale)
   const market = isMarketplaceSale(sale)
-  const marketName = marketplaceLabel(sale?.marketplace) || "Marketplace"
+  const marketName = marketplaceLabel(marketplacePlatformOf(sale)) || "Marketplace"
   const link = whatsappLink(sale?.customer_whatsapp)
   const whatsapp = formatWhatsapp(sale?.customer_whatsapp)
   const contact = link
@@ -573,7 +574,9 @@ if (typeof globalThis.window !== "undefined") {
     shouldShowMarketplaceSale,
     marketplaceLabel,
     isMarketplacePlatform,
+    marketplacePlatformOf,
     isMarketplaceSale,
+    marketplaceLine,
     roundMoney,
     commissionRateFor,
     monthCard,
@@ -593,7 +596,6 @@ if (typeof globalThis.window !== "undefined") {
     buildCreateSaleBody,
     buildMarketplaceSaleBody,
     cancelMarketplaceOrderPayload,
-    cancelMarketplaceSaleIdsPayload,
     escapeHtml,
     renderRecentSales,
     renderSaleDetail,
