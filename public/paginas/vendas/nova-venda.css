@@ -1,0 +1,341 @@
+@import url("/assets/maris-theme.css");
+@import url("/assets/maris-internal.css");
+
+.nova-venda {
+  background: var(--maris-bg);
+}
+
+.nova-venda header {
+  text-align: left;
+  padding: 20px 16px 16px;
+}
+
+.nova-venda header h1 {
+  font-size: 1.7rem;
+}
+
+.nova-venda .sale-main {
+  width: min(480px, 100%);
+  margin: 0 auto;
+  padding: 16px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.month-card {
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 16px;
+  padding: 20px 18px 16px;
+  box-shadow: var(--maris-shadow);
+}
+
+.month-card .eyebrow,
+.flow-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--maris-gold-dark);
+}
+
+.month-card h2,
+.total-figure {
+  margin: 6px 0 0;
+  font-family: var(--maris-font-display);
+  font-size: 2.6rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--maris-black);
+}
+
+.month-card .month-label,
+.commission-note,
+.flow-help,
+.recent-empty,
+.step-message {
+  margin: 8px 0 0;
+  color: var(--maris-text-muted);
+  font-size: 0.95rem;
+}
+
+.commission-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--maris-border-soft);
+  font-size: 1rem;
+}
+
+.commission-line strong {
+  font-size: 1.35rem;
+}
+
+.nova-venda .btn-nova,
+.nova-venda .btn-next,
+.nova-venda .btn-confirm {
+  min-height: 64px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+
+.nova-venda .btn-back,
+.nova-venda .qty-btn,
+.nova-venda .piece,
+.nova-venda .customer-hit,
+.nova-venda .choice {
+  background: var(--maris-surface);
+  color: var(--maris-text);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  border: 1px solid var(--maris-border);
+}
+
+.recent-block h2,
+.results-title {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--maris-text-muted);
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.recent-sale {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border-soft);
+  border-radius: 12px;
+}
+
+.recent-sale-main,
+.recent-sale-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recent-sale-side {
+  text-align: right;
+}
+
+.recent-sale span {
+  color: var(--maris-text-muted);
+  font-size: 0.85rem;
+}
+
+.step-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-bar li {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  color: var(--maris-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.step-bar li[aria-current="step"] {
+  background: var(--maris-black);
+  color: #fff;
+  border-color: var(--maris-black);
+}
+
+.nova-venda input[type="search"],
+.nova-venda input[type="text"],
+.nova-venda input[type="tel"] {
+  min-height: 52px;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
+.piece-list,
+.customer-list,
+.choice-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nova-venda .piece,
+.nova-venda .customer-hit {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 14px;
+  text-align: left;
+}
+
+.nova-venda .piece[aria-pressed="true"],
+.nova-venda .customer-hit[aria-pressed="true"],
+.nova-venda .choice[aria-pressed="true"] {
+  border-color: var(--maris-gold-dark);
+  background: var(--maris-gold-light);
+}
+
+.piece-photo,
+.piece-photo--empty {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: var(--maris-gold-light);
+}
+
+.piece-photo--empty {
+  display: grid;
+  place-items: center;
+  color: var(--maris-gold-dark);
+  font-weight: 700;
+}
+
+.piece-copy,
+.customer-hit span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.piece-copy small,
+.customer-hit small {
+  color: var(--maris-text-muted);
+  font-weight: 500;
+}
+
+.selected-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nova-venda .qty-btn {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.qty-control strong {
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.choice-grid.methods {
+  grid-template-columns: 1fr;
+}
+
+.nova-venda .choice {
+  min-height: 56px;
+  border-radius: 14px;
+}
+
+.pay-summary {
+  background: var(--maris-surface);
+  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid var(--maris-border-soft);
+}
+
+.pay-summary div {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.flow-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 4px;
+  background: linear-gradient(to top, var(--maris-bg) 70%, rgba(252, 247, 250, 0));
+}
+
+.nova-venda .btn-back {
+  min-height: 48px;
+  border-radius: 12px;
+}
+
+.step-message.error {
+  color: #a94442;
+}
+
+.pay-summary .total-figure {
+  font-size: 1.8rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.register-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--maris-surface);
+  border: 1px dashed var(--maris-border);
+}

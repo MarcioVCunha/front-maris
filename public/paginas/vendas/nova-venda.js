@@ -1,0 +1,385 @@
+import {
+  NEW_SALE_ENABLED,
+  buildCreateSaleBody,
+  chargedTotalFromSummary,
+  currentYearMonth,
+  customerPayload,
+  escapeHtml,
+  filterCustomers,
+  filterPieces,
+  formatWhatsapp,
+  monthCard,
+  renderRecentSales,
+  saleTotals,
+  setPieceQuantity,
+  shouldShowNewSale,
+  togglePiece
+} from "./nova-venda.logic.js"
+import {
+  createSale,
+  fetchMonthSummary,
+  fetchRecentSales,
+  saveCustomer,
+  searchCustomers,
+  searchPieces
+} from "./nova-venda.api.js"
+
+const money = (value) => window.MarisUtils.formatMoneyBRL(value)
+
+const homeEl = document.getElementById("sale-home")
+const flowEl = document.getElementById("sale-flow")
+const sellerNameEl = document.getElementById("seller-name")
+const monthTotalEl = document.getElementById("month-total")
+const monthCommissionEl = document.getElementById("month-commission")
+const commissionNoteEl = document.getElementById("commission-note")
+const recentEl = document.getElementById("recent-sales")
+const newSaleBtn = document.getElementById("new-sale-btn")
+const homeMessageEl = document.getElementById("home-message")
+const pieceSearchEl = document.getElementById("piece-search")
+const selectedEl = document.getElementById("selected-pieces")
+const pieceResultsEl = document.getElementById("piece-results")
+const customerSearchEl = document.getElementById("customer-search")
+const customerResultsEl = document.getElementById("customer-results")
+const customerNameEl = document.getElementById("customer-name")
+const customerWhatsappEl = document.getElementById("customer-whatsapp")
+const flowMessageEl = document.getElementById("flow-message")
+const flowNextEl = document.getElementById("flow-next")
+const flowBackEl = document.getElementById("flow-back")
+const paySubtotalEl = document.getElementById("pay-subtotal")
+const payDiscountRowEl = document.getElementById("pay-discount-row")
+const payDiscountEl = document.getElementById("pay-discount")
+const payTotalEl = document.getElementById("pay-total")
+
+const state = {
+  seller: null,
+  step: 1,
+  pieceHits: [],
+  selected: [],
+  customerHits: [],
+  pickedCustomer: null,
+  paymentStatus: "",
+  paymentMethod: ""
+}
+
+function setNote(el, text, type) {
+  if (!el) return
+  el.hidden = !text
+  el.textContent = text || ""
+  el.className = type ? `step-message ${type}` : "step-message"
+}
+
+function showHome() {
+  homeEl.hidden = false
+  flowEl.hidden = true
+}
+
+function showFlow(step) {
+  state.step = step
+  homeEl.hidden = true
+  flowEl.hidden = false
+  document.getElementById("step-pieces").hidden = step !== 1
+  document.getElementById("step-customer").hidden = step !== 2
+  document.getElementById("step-payment").hidden = step !== 3
+  document.querySelectorAll("[data-step-pill]").forEach((pill) => {
+    const current = Number(pill.getAttribute("data-step-pill")) === step
+    if (current) pill.setAttribute("aria-current", "step")
+    else pill.removeAttribute("aria-current")
+  })
+  flowNextEl.textContent = step === 3 ? "Confirmar venda" : "Continuar"
+  setNote(flowMessageEl, "")
+  if (step === 3) renderPayment()
+}
+
+function piecePhoto(piece) {
+  const url = String(piece.image_url || "").trim()
+  if (!url) {
+    const letters = String(piece.code || piece.name || "?").slice(0, 2)
+    return `<span class="piece-photo piece-photo--empty">${escapeHtml(letters)}</span>`
+  }
+  return `<img class="piece-photo" src="${escapeHtml(url)}" alt="">`
+}
+
+function renderSelected() {
+  if (!state.selected.length) {
+    selectedEl.innerHTML = ""
+    return
+  }
+  selectedEl.innerHTML = state.selected.map((piece) => `
+    <div class="selected-row">
+      <span>${escapeHtml(piece.name)} · ${escapeHtml(piece.code)}</span>
+      <span class="qty-control">
+        <button type="button" class="qty-btn" data-qty="${escapeHtml(piece.id)}" data-dir="-1" aria-label="Diminuir">−</button>
+        <strong>${piece.quantity}</strong>
+        <button type="button" class="qty-btn" data-qty="${escapeHtml(piece.id)}" data-dir="1" aria-label="Aumentar">+</button>
+      </span>
+    </div>
+  `).join("")
+}
+
+function renderPieces() {
+  renderSelected()
+  const visible = filterPieces(state.pieceHits, pieceSearchEl.value)
+  if (!pieceSearchEl.value.trim()) {
+    pieceResultsEl.innerHTML = `<p class="recent-empty">Digite um código ou um nome.</p>`
+    return
+  }
+  if (!visible.length) {
+    pieceResultsEl.innerHTML = `<p class="recent-empty">Nenhuma peça em estoque para essa busca.</p>`
+    return
+  }
+  pieceResultsEl.innerHTML = visible.map((piece) => {
+    const picked = state.selected.some((item) => String(item.id) === String(piece.id))
+    return `<button type="button" class="piece" data-piece="${escapeHtml(piece.id)}" aria-pressed="${picked ? "true" : "false"}">
+      ${piecePhoto(piece)}
+      <span class="piece-copy">
+        <strong>${escapeHtml(piece.name)}</strong>
+        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(piece.unit_price))} · ${Number(piece.quantity) || 0} em estoque</small>
+      </span>
+    </button>`
+  }).join("")
+}
+
+function renderCustomers() {
+  const term = customerSearchEl.value.trim()
+  const visible = term ? filterCustomers(state.customerHits, term) : []
+  if (!term) {
+    customerResultsEl.innerHTML = ""
+    return
+  }
+  if (!visible.length) {
+    customerResultsEl.innerHTML = `<p class="recent-empty">Nenhuma cliente encontrada. Cadastre abaixo.</p>`
+    return
+  }
+  customerResultsEl.innerHTML = visible.map((customer) => {
+    const picked = state.pickedCustomer && String(state.pickedCustomer.id) === String(customer.id)
+    return `<button type="button" class="customer-hit" data-customer="${escapeHtml(customer.id)}" aria-pressed="${picked ? "true" : "false"}">
+      <span>
+        <strong>${escapeHtml(customer.name)}</strong>
+        <small>${escapeHtml(formatWhatsapp(customer.whatsapp))}</small>
+      </span>
+    </button>`
+  }).join("")
+}
+
+function renderPayment() {
+  document.querySelectorAll("[data-status]").forEach((button) => {
+    button.setAttribute("aria-pressed", button.getAttribute("data-status") === state.paymentStatus ? "true" : "false")
+  })
+  document.querySelectorAll("[data-method]").forEach((button) => {
+    button.setAttribute("aria-pressed", button.getAttribute("data-method") === state.paymentMethod ? "true" : "false")
+  })
+  const totals = saleTotals(state.selected, state.paymentMethod)
+  paySubtotalEl.textContent = money(totals.subtotal)
+  payDiscountEl.textContent = money(totals.discount)
+  payDiscountRowEl.hidden = state.paymentMethod !== "pix"
+  payTotalEl.textContent = money(totals.total)
+}
+
+function chosenCustomer() {
+  if (state.pickedCustomer?.id != null) return { id: state.pickedCustomer.id }
+  return {
+    name: customerNameEl.value,
+    whatsapp: customerWhatsappEl.value
+  }
+}
+
+async function loadHome() {
+  const month = currentYearMonth().key
+  const sellerId = state.seller?.seller_id
+  if (!sellerId) {
+    monthTotalEl.textContent = money(0)
+    monthCommissionEl.textContent = money(0)
+    commissionNoteEl.textContent = "Sem comissão nesta conta."
+    recentEl.innerHTML = renderRecentSales([], money)
+    newSaleBtn.disabled = true
+    return
+  }
+  const [summary, recent] = await Promise.all([
+    fetchMonthSummary({ sellerId, month }),
+    fetchRecentSales({ sellerId })
+  ])
+  const charged = summary.ok ? chargedTotalFromSummary(summary.data, currentYearMonth()) : 0
+  const card = monthCard({ chargedTotal: charged, seller: state.seller })
+  monthTotalEl.textContent = money(card.chargedTotal)
+  monthCommissionEl.textContent = money(card.commission)
+  commissionNoteEl.textContent = card.note
+  if (!summary.ok) setNote(homeMessageEl, summary.error, "error")
+  recentEl.innerHTML = renderRecentSales(recent.ok ? recent.sales : [], money)
+  if (!recent.ok) setNote(homeMessageEl, recent.error, "error")
+}
+
+async function onPieceSearch() {
+  const query = pieceSearchEl.value.trim()
+  if (!query || !state.seller?.seller_id) {
+    state.pieceHits = []
+    renderPieces()
+    return
+  }
+  const result = await searchPieces({ sellerId: state.seller.seller_id, query })
+  state.pieceHits = result.ok ? result.pieces : []
+  if (!result.ok) setNote(flowMessageEl, result.error, "error")
+  renderPieces()
+}
+
+async function onCustomerSearch() {
+  const query = customerSearchEl.value.trim()
+  if (!query) {
+    state.customerHits = []
+    renderCustomers()
+    return
+  }
+  const result = await searchCustomers({ query })
+  state.customerHits = result.ok ? result.customers : []
+  if (!result.ok) setNote(flowMessageEl, result.error, "error")
+  renderCustomers()
+}
+
+async function confirmSale() {
+  const built = buildCreateSaleBody({
+    sellerId: state.seller?.seller_id,
+    customer: chosenCustomer(),
+    paymentStatus: state.paymentStatus,
+    paymentMethod: state.paymentMethod,
+    pieces: state.selected
+  })
+  if (!built.ok) {
+    setNote(flowMessageEl, built.error, "error")
+    return
+  }
+  let body = built.body
+  if (!body.customer.id) {
+    const saved = await saveCustomer(body.customer)
+    if (!saved.ok) {
+      setNote(flowMessageEl, saved.error, "error")
+      return
+    }
+    body = { ...body, customer: { id: saved.customer.id } }
+  }
+  flowNextEl.disabled = true
+  const result = await createSale(body)
+  flowNextEl.disabled = false
+  if (!result.ok) {
+    setNote(flowMessageEl, result.error, "error")
+    return
+  }
+  state.selected = []
+  state.pickedCustomer = null
+  state.paymentStatus = ""
+  state.paymentMethod = ""
+  customerNameEl.value = ""
+  customerWhatsappEl.value = ""
+  pieceSearchEl.value = ""
+  showHome()
+  setNote(homeMessageEl, "Venda registrada.", "success")
+  await loadHome()
+}
+
+function onNext() {
+  if (state.step === 1) {
+    if (!state.selected.length) {
+      setNote(flowMessageEl, "Escolha pelo menos uma peça.", "error")
+      return
+    }
+    showFlow(2)
+    return
+  }
+  if (state.step === 2) {
+    const who = customerPayload(chosenCustomer())
+    if (!who.ok) {
+      setNote(flowMessageEl, who.error, "error")
+      return
+    }
+    showFlow(3)
+    return
+  }
+  confirmSale()
+}
+
+newSaleBtn.addEventListener("click", () => {
+  setNote(homeMessageEl, "")
+  showFlow(1)
+  renderPieces()
+})
+flowNextEl.addEventListener("click", onNext)
+flowBackEl.addEventListener("click", () => {
+  if (state.step === 1) showHome()
+  else showFlow(state.step - 1)
+})
+
+pieceResultsEl.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-piece]")
+  if (!button) return
+  const piece = state.pieceHits.find((item) => String(item.id) === button.getAttribute("data-piece"))
+  if (!piece) return
+  state.selected = togglePiece(state.selected, piece)
+  renderPieces()
+})
+
+selectedEl.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-qty]")
+  if (!button) return
+  const id = button.getAttribute("data-qty")
+  const current = state.selected.find((item) => String(item.id) === String(id))
+  if (!current) return
+  const next = current.quantity + Number(button.getAttribute("data-dir"))
+  if (next < 1) state.selected = togglePiece(state.selected, current)
+  else state.selected = setPieceQuantity(state.selected, id, next)
+  renderPieces()
+})
+
+customerResultsEl.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-customer]")
+  if (!button) return
+  const customer = state.customerHits.find((item) => String(item.id) === button.getAttribute("data-customer"))
+  state.pickedCustomer = customer || null
+  if (customer) {
+    customerNameEl.value = customer.name || ""
+    customerWhatsappEl.value = formatWhatsapp(customer.whatsapp)
+  }
+  renderCustomers()
+})
+
+customerNameEl.addEventListener("input", () => {
+  state.pickedCustomer = null
+  renderCustomers()
+})
+customerWhatsappEl.addEventListener("input", () => {
+  customerWhatsappEl.value = formatWhatsapp(customerWhatsappEl.value)
+  state.pickedCustomer = null
+  renderCustomers()
+})
+
+document.querySelectorAll("[data-status]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.paymentStatus = button.getAttribute("data-status")
+    renderPayment()
+  })
+})
+document.querySelectorAll("[data-method]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.paymentMethod = button.getAttribute("data-method")
+    renderPayment()
+  })
+})
+
+window.MarisUI.bindDebouncedSearch(pieceSearchEl, onPieceSearch, { debounceMs: 200 })
+window.MarisUI.bindDebouncedSearch(customerSearchEl, onCustomerSearch, { debounceMs: 200 })
+
+if (!shouldShowNewSale(NEW_SALE_ENABLED)) {
+  window.location.replace("/vendas")
+} else {
+  document.body.hidden = false
+  const profile = await window.MarisStaffAuth.loadProfile()
+  if (!profile.ok) {
+    setNote(homeMessageEl, profile.error || "Não foi possível confirmar seu acesso.", "error")
+  } else {
+    state.seller = profile.user
+    if (sellerNameEl) sellerNameEl.textContent = profile.user.name || "Sua conta"
+    if (!profile.user.seller_id) {
+      newSaleBtn.disabled = true
+      setNote(homeMessageEl, "Esta conta não está ligada a uma vendedora.", "error")
+    }
+  }
+  recentEl.innerHTML = renderRecentSales([], money)
+  await loadHome()
+}

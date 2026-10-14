@@ -39,6 +39,7 @@
     { "source": "/promocoes", "destination": "/paginas/estoque/promocoes/promocoes.html" },
     { "source": "/contas-vendedoras", "destination": "/paginas/vendedoras/contas.html" },
     { "source": "/vendas", "destination": "/paginas/vendas/vendas.html" },
+    { "source": "/vendas/nova", "destination": "/paginas/vendas/nova-venda.html" },
     { "source": "/lista-espera", "destination": "/paginas/vendas/lista-espera.html" },
     { "source": "/catalog", "destination": "/paginas/catalogo/catalogo.html" },
     { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
