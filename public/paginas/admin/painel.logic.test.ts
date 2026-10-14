@@ -18,6 +18,7 @@ import {
   renderAddForm,
   renderArchiveDialog,
   renderPieceForm,
+  navHtml,
   renderStockList,
   renderTipos,
   shouldShowDashboard,
@@ -33,26 +34,28 @@ const anelDefaults = {
   origem: 0,
 }
 
-Deno.test("o painel nasce desligado e o hub atual continua no lugar", async () => {
-  assertEquals(ADMIN_DASHBOARD_ENABLED, false)
-  assertEquals(shouldShowDashboard(), false)
+Deno.test("o painel está ligado e Promoções continua no menu", async () => {
+  assertEquals(ADMIN_DASHBOARD_ENABLED, true)
+  assertEquals(shouldShowDashboard(), true)
   const source = await Deno.readTextFile(new URL("./painel.logic.js", import.meta.url))
-  assertEquals(source.includes("export const ADMIN_DASHBOARD_ENABLED = false"), true)
+  assertEquals(source.includes("export const ADMIN_DASHBOARD_ENABLED = true"), true)
   const page = await Deno.readTextFile(new URL("./painel.js", import.meta.url))
-  assertEquals(page.includes('location.replace("/admin")'), true)
+  assertEquals(page.includes('location.replace("/admin/inicio")'), false)
   const hub = await Deno.readTextFile(new URL("./admin.html", import.meta.url))
-  assert(hub.includes('href="/importar"'))
-  assert(hub.includes('href="/adicionar-peca"'))
+  assert(hub.includes('location.replace("/admin/inicio")'))
   assert(hub.includes('href="/promocoes"'))
-  assert(hub.includes("shouldShowDashboard()"))
+  const menu = navHtml("inicio")
+  assert(menu.includes('href="/promocoes"'))
+  assert(menu.includes("Promoções"))
+  assert(menu.includes('href="/admin/inicio" aria-current="page"'))
   const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
   assertEquals(
     vercel.rewrites.find((item: { source: string }) => item.source === "/admin").destination,
     "/paginas/admin/admin.html",
   )
   assertEquals(
-    vercel.rewrites.find((item: { source: string }) => item.source === "/admin/estoque").destination,
-    "/paginas/admin/painel.html",
+    vercel.rewrites.find((item: { source: string }) => item.source === "/promocoes").destination,
+    "/paginas/estoque/promocoes/promocoes.html",
   )
 })
 

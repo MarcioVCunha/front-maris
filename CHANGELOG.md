@@ -6,9 +6,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
-- Painel do administrador, desligado por `ADMIN_DASHBOARD_ENABLED`. Com a flag ligada, `/admin` abre Início, Estoque, Vendas e Vendedoras. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel, e a aba Tipos grava o SKU no padrão código-TIPO. As funções do servidor ainda não estão no ar; os nomes e os corpos ficam em `painel.api.js`.
+- Painel do administrador em `/admin`, ligado (`ADMIN_DASHBOARD_ENABLED`). O menu é Início, Estoque, Vendas, Vendedoras e Promoções. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel, e a aba Tipos grava o SKU no padrão código-TIPO. Os nomes e os corpos ficam em `painel.api.js`.
 
 ### Alterado
+
+- `/admin` abre o painel. Promoções continua em `/promocoes`, com atalho no menu.
 
 ### Alterado
 
