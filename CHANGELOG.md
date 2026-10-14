@@ -13,7 +13,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Alterado
 
 - A tela nova de venda segue o contrato do servidor: comissão do mês, preço Pix (`preco_pix`), WhatsApp sem o 55 e o total devolvido depois de criar. Peça esgotada (409) mostra a mensagem e deixa ajustar. A flag continua desligada.
-- Nas vendas recentes e no detalhe, a venda pode estar paga, parcial ou a receber. A linha mostra "X de Y peças pagas" e o parcial tem um selo próprio. Cada peça do detalhe indica paga (com a data) ou a receber. O card de comissão não muda: o valor continua o do servidor.
+- Nas vendas recentes e no detalhe, a venda pode estar paga, parcial ou a receber. A linha mostra "X de Y peças pagas" e o parcial tem um selo próprio. Cada peça do detalhe indica paga (com a data) ou a receber. Pedido ainda a receber entra na lista quando alguma peça já foi paga.
+- O card do mês diz quantas peças foram pagas e em quantas vendas ("5 peças pagas em 2 vendas"). A comissão mostrada é o `commission_amount` do servidor.
 
 ### Removido
 

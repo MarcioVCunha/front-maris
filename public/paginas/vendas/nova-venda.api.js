@@ -55,10 +55,12 @@ function failed(result, fallback) {
 
 /**
  * GET seller-month-summary?seller_id=&month=YYYY-MM
- * Resposta: { ok, month, paid_count, charged_total, commission_percent,
- *   commission_amount, sem_comissao }
- * charged_total soma só vendas pagas, pela data de pagamento (paid_at).
- * A comissão exibida é a do servidor (commission_amount / sem_comissao).
+ * Resposta: { ok, month, paid_count, paid_orders_count, charged_total,
+ *   commission_percent, commission_amount, sem_comissao }
+ * paid_count é o número de peças pagas no mês.
+ * paid_orders_count é o número de pedidos com alguma peça paga nesse mês.
+ * commission_amount já vem por peça, com o desconto do Pix dividido entre elas.
+ * A tela mostra esse valor e não recalcula.
  */
 export async function fetchMonthSummary({ sellerId, month }, client) {
   const result = await call(NEW_SALE_API.monthSummary, {
@@ -77,7 +79,8 @@ export async function fetchMonthSummary({ sellerId, month }, client) {
  *   paid_items_count, items_count }
  * items: { code, name, image_url, quantity, unit_price, paid_at }
  * paid_at do item é null quando a peça ainda está a receber.
- * O card de comissão não muda: o valor continua o do servidor, por peça paga no mês.
+ * A lista inclui pedido ainda a receber quando alguma peça dele já foi paga
+ * (payment_status partial).
  * limit padrão 20, máximo 50. A tela só lê.
  */
 export async function fetchRecentSales({ sellerId, limit = RECENT_SALES_LIMIT }, client) {

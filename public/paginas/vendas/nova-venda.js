@@ -32,6 +32,7 @@ const homeEl = document.getElementById("sale-home")
 const flowEl = document.getElementById("sale-flow")
 const sellerNameEl = document.getElementById("seller-name")
 const monthTotalEl = document.getElementById("month-total")
+const monthLabelEl = document.getElementById("month-heading")
 const monthCommissionEl = document.getElementById("month-commission")
 const commissionNoteEl = document.getElementById("commission-note")
 const recentEl = document.getElementById("recent-sales")
@@ -196,6 +197,7 @@ async function loadHome() {
   const sellerId = state.seller?.seller_id
   if (!sellerId) {
     monthTotalEl.textContent = money(0)
+    if (monthLabelEl) monthLabelEl.textContent = "0 peças pagas em 0 vendas"
     monthCommissionEl.textContent = money(0)
     commissionNoteEl.textContent = "Sem comissão nesta conta."
     state.recentSales = []
@@ -211,6 +213,7 @@ async function loadHome() {
     ? monthCardFromSummary(summary.data, state.seller)
     : monthCardFromSummary({ charged_total: 0 }, state.seller)
   monthTotalEl.textContent = money(card.chargedTotal)
+  if (monthLabelEl) monthLabelEl.textContent = card.piecesLabel
   monthCommissionEl.textContent = money(card.commission)
   commissionNoteEl.textContent = card.note
   if (!summary.ok) setNote(homeMessageEl, summary.error, "error")

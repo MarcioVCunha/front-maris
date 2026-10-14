@@ -25,10 +25,11 @@ Deno.test("o resumo do mês pede seller e o mês, sem calcular comissão na fun�
   const payload = {
     ok: true,
     month: "2026-10",
-    paid_count: 4,
-    charged_total: 1240,
+    paid_count: 5,
+    paid_orders_count: 2,
+    charged_total: 1000,
     commission_percent: 30,
-    commission_amount: 372,
+    commission_amount: 285,
     sem_comissao: false
   }
   const client = fakeClient(payload)
@@ -104,11 +105,15 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
   assertEquals(recentSalesLimit(80), 50)
   assertEquals(recent.calls[0].options.query, { seller_id: 3, limit: 50 })
   assertEquals(listed.sales, [sale, partial])
+  assertEquals(partial.payment_status, "partial")
+  assertEquals(partial.items.some((item) => item.paid_at), true)
+  assertEquals(partial.items.some((item) => item.paid_at == null), true)
   const source = await Deno.readTextFile(new URL("./nova-venda.api.js", import.meta.url))
   assertEquals(source.includes("customer_whatsapp"), true)
   assertEquals(source.includes("unit_price"), true)
   assertEquals(source.includes("paid|partial|receivable"), true)
   assertEquals(source.includes("paid_items_count"), true)
+  assertEquals(source.includes("paid_orders_count"), true)
 })
 
 Deno.test("cadastrar cliente e criar a venda mandam o corpo combinado", async () => {

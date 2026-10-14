@@ -47,6 +47,14 @@ export function monthCard({ chargedTotal, seller }) {
   }
 }
 
+export function paidPiecesLabel(pieces, orders) {
+  const pieceCount = Number.isInteger(pieces) && pieces >= 0 ? pieces : 0
+  const orderCount = Number.isInteger(orders) && orders >= 0 ? orders : 0
+  const piecesText = pieceCount === 1 ? "1 peça paga" : `${pieceCount} peças pagas`
+  const ordersText = orderCount === 1 ? "1 venda" : `${orderCount} vendas`
+  return `${piecesText} em ${ordersText}`
+}
+
 function saoPauloYearMonth(iso) {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ""
@@ -233,32 +241,36 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
   return { ok: true, body }
 }
 
+function countOrZero(value) {
+  const number = Number(value)
+  return Number.isInteger(number) && number >= 0 ? number : 0
+}
+
 export function monthCardFromSummary(data, seller) {
   const chargedTotal = chargedTotalFromSummary(data, currentYearMonth())
-  const sent = data != null && (
-    Object.prototype.hasOwnProperty.call(data, "commission_amount")
-    || Object.prototype.hasOwnProperty.call(data, "sem_comissao")
-    || Object.prototype.hasOwnProperty.call(data, "commission_percent")
-  )
+  const paidCount = countOrZero(data?.paid_count)
+  const paidOrdersCount = countOrZero(data?.paid_orders_count)
+  const piecesLabel = paidPiecesLabel(paidCount, paidOrdersCount)
   const base = monthCard({ chargedTotal, seller })
-  if (!sent) {
-    return { ...base, month: data?.month || "", paidCount: Number(data?.paid_count) || 0 }
+  const hasAmount = data != null && Object.prototype.hasOwnProperty.call(data, "commission_amount")
+  if (!hasAmount) {
+    return { ...base, month: data?.month || "", paidCount, paidOrdersCount, piecesLabel }
   }
+  const amount = Number(data.commission_amount)
+  const commission = Number.isFinite(amount) ? roundMoney(amount) : 0
   const percent = Number(data.commission_percent)
   const sem = data.sem_comissao === true || percent === 0
-  const amount = Number(data.commission_amount)
   const shown = Number.isFinite(percent) ? percent : Math.round((base.rate || 0) * 100)
-  const commission = sem
-    ? 0
-    : (Number.isFinite(amount) ? roundMoney(amount) : roundMoney(chargedTotal * (shown / 100)))
   return {
-    month: data.month || "",
-    paidCount: Number(data.paid_count) || 0,
+    month: data?.month || "",
+    paidCount,
+    paidOrdersCount,
+    piecesLabel,
     chargedTotal,
     commission,
-    rate: sem ? 0 : shown / 100,
+    rate: sem ? 0 : (Number.isFinite(percent) ? percent / 100 : base.rate),
     zeroCommission: sem,
-    note: sem ? "Sem comissão nesta conta." : `${shown}% do valor cobrado nas vendas pagas.`
+    note: sem ? "Sem comissão nesta conta." : `${shown}% de cada peça paga.`
   }
 }
 

@@ -10,6 +10,7 @@ import {
   applyStockIssues,
   monthCard,
   monthCardFromSummary,
+  paidPiecesLabel,
   renderRecentSales,
   renderSaleDetail,
   saleTotals,
@@ -237,31 +238,38 @@ Deno.test("venda parcial mostra quantas peças já foram pagas", () => {
   assertEquals(/editar|cancelar/i.test(html), false)
 })
 
-Deno.test("o resumo do mês usa a comissão do servidor", () => {
+Deno.test("o resumo do mês mostra peças, vendas e a comissão do servidor", () => {
+  assertEquals(paidPiecesLabel(5, 2), "5 peças pagas em 2 vendas")
+  assertEquals(paidPiecesLabel(1, 1), "1 peça paga em 1 venda")
   const month = {
     ok: true,
     month: "2026-10",
-    paid_count: 4,
-    charged_total: 1240,
+    paid_count: 5,
+    paid_orders_count: 2,
+    charged_total: 1000,
     commission_percent: 30,
-    commission_amount: 372,
+    commission_amount: 285,
     sem_comissao: false
   }
   const card = monthCardFromSummary(month, { name: "Ana Souza" })
-  assertEquals(card.chargedTotal, 1240)
-  assertEquals(card.commission, 372)
-  assertEquals(card.paidCount, 4)
-  assertEquals(card.note, "30% do valor cobrado nas vendas pagas.")
+  assertEquals(card.chargedTotal, 1000)
+  assertEquals(card.commission, 285)
+  assertEquals(card.paidCount, 5)
+  assertEquals(card.paidOrdersCount, 2)
+  assertEquals(card.piecesLabel, "5 peças pagas em 2 vendas")
+  assertEquals(card.note, "30% de cada peça paga.")
 
   const none = monthCardFromSummary({
     month: "2026-10",
     paid_count: 2,
+    paid_orders_count: 1,
     charged_total: 800,
     commission_percent: 0,
     commission_amount: 0,
     sem_comissao: true
   }, { name: "Ana Souza" })
   assertEquals(none.commission, 0)
+  assertEquals(none.piecesLabel, "2 peças pagas em 1 venda")
   assertEquals(none.note, "Sem comissão nesta conta.")
 })
 
