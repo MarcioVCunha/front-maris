@@ -342,13 +342,45 @@ export function saleDetailTotals(sale) {
   }
 }
 
+const STATUS_LABEL = { paid: "Pago", partial: "Parcial", receivable: "A receber" }
+
+export function salePaymentView(sale) {
+  const known = sale?.payment_status
+  const status = known === "paid" || known === "partial" || known === "receivable"
+    ? known
+    : (isPaidSale(sale) ? "paid" : "receivable")
+  const paid = Number(sale?.paid_items_count)
+  const total = Number(sale?.items_count)
+  const pieces = Number.isInteger(paid) && Number.isInteger(total) && total > 0 && paid >= 0 && paid <= total
+    ? `${paid} de ${total} peças pagas`
+    : ""
+  return { status, label: STATUS_LABEL[status], pieces }
+}
+
+function statusBadge(status, label) {
+  return `<span class="pay-badge pay-badge--${status}">${escapeHtml(label)}</span>`
+}
+
+function itemPayView(item, saleStatus) {
+  if (item && Object.prototype.hasOwnProperty.call(item, "paid_at")) {
+    const raw = item.paid_at
+    if (raw == null || String(raw).trim() === "") return { kind: "open", text: "A receber" }
+    const when = formatSaleDate(raw)
+    return { kind: "paid", text: when ? `Paga em ${when}` : "Paga" }
+  }
+  if (saleStatus === "paid") return { kind: "paid", text: "Paga" }
+  return { kind: "open", text: "A receber" }
+}
+
 export function renderRecentSales(sales, formatMoney) {
   const rows = sales || []
   if (!rows.length) return `<p class="recent-empty">Nenhuma venda recente.</p>`
   return rows.map((sale) => {
-    const paid = isPaidSale(sale)
-    const status = paid ? "Pago" : "A receber"
+    const view = salePaymentView(sale)
     const method = METHOD_LABEL[sale.payment_method] || ""
+    const side = view.pieces
+      ? `${method ? `${method} · ` : ""}${view.pieces}`
+      : [method, view.label].filter(Boolean).join(" · ")
     const when = formatSaleWhen(sale.created_at)
     const label = `Ver venda de ${sale.customer_name || "cliente"}`
     return `<button type="button" class="recent-sale" data-sale-id="${escapeHtml(sale.id)}" aria-label="${escapeHtml(label)}">
@@ -358,7 +390,8 @@ export function renderRecentSales(sales, formatMoney) {
       </div>
       <div class="recent-sale-side">
         <b>${escapeHtml(formatMoney(sale.total))}</b>
-        <span>${escapeHtml(method)} · ${status}</span>
+        ${statusBadge(view.status, view.label)}
+        <span>${escapeHtml(side)}</span>
       </div>
     </button>`
   }).join("")
@@ -374,8 +407,7 @@ function detailPhoto(item) {
 }
 
 export function renderSaleDetail(sale, formatMoney) {
-  const paid = isPaidSale(sale)
-  const status = paid ? "Pago" : "A receber"
+  const view = salePaymentView(sale)
   const method = METHOD_LABEL[sale?.payment_method] || ""
   const totals = saleDetailTotals(sale)
   const link = whatsappLink(sale?.customer_whatsapp)
@@ -385,11 +417,13 @@ export function renderSaleDetail(sale, formatMoney) {
     : `<span>Sem WhatsApp</span>`
   const pieces = (sale?.items || []).map((item) => {
     const line = roundMoney((Number(item.unit_price) || 0) * (Number(item.quantity) || 0))
+    const pay = itemPayView(item, view.status)
     return `<article class="detail-piece">
       ${detailPhoto(item)}
       <span class="piece-copy">
         <strong>${escapeHtml(item.name || "Peça")}</strong>
         <small>${escapeHtml(item.code || "")} · Qtd ${Number(item.quantity) || 0}</small>
+        <small class="piece-pay piece-pay--${pay.kind}">${escapeHtml(pay.text)}</small>
       </span>
       <b>${escapeHtml(formatMoney(line))}</b>
     </article>`
@@ -397,6 +431,7 @@ export function renderSaleDetail(sale, formatMoney) {
   const discount = totals.pix
     ? `<div><span>Desconto Pix (5%)</span><strong>${escapeHtml(formatMoney(totals.discount))}</strong></div>`
     : ""
+  const payLine = [method, view.pieces].filter(Boolean).join(" · ")
   return `<p class="flow-kicker">Venda</p>
     <h2 id="sale-modal-title">${escapeHtml(formatSaleDate(sale?.created_at))}</h2>
     <div class="detail-pieces">${pieces || `<p class="recent-empty">Sem peças nesta venda.</p>`}</div>
@@ -404,7 +439,7 @@ export function renderSaleDetail(sale, formatMoney) {
       <strong>${escapeHtml(sale?.customer_name || "Cliente")}</strong>
       ${contact}
     </div>
-    <p class="detail-pay">${escapeHtml(method)} · ${status}</p>
+    <p class="detail-pay">${statusBadge(view.status, view.label)} <span>${escapeHtml(payLine)}</span></p>
     <div class="pay-summary">
       <div><span>Subtotal</span><strong>${escapeHtml(formatMoney(totals.subtotal))}</strong></div>
       ${discount}

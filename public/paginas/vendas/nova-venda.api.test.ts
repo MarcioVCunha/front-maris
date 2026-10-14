@@ -64,24 +64,51 @@ Deno.test("peças, clientes e vendas recentes usam os nomes provisórios", async
 
   const sale = {
     id: 8,
-    items: [{ code: "AN581-R", name: "Anel rosa", image_url: "a.jpg", quantity: 1, unit_price: 120 }],
+    items: [{
+      code: "AN581-R",
+      name: "Anel rosa",
+      image_url: "a.jpg",
+      quantity: 1,
+      unit_price: 120,
+      paid_at: "2026-10-12T15:00:00Z"
+    }],
     total: 114,
     paid_at: "2026-10-12T15:00:00Z",
     created_at: "2026-10-12T15:00:00Z",
     customer_name: "Lia Souza",
     customer_whatsapp: "11988887777",
     payment_method: "pix",
-    payment_status: "paid"
+    payment_status: "paid",
+    paid_items_count: 1,
+    items_count: 1
   }
-  const recent = fakeClient({ ok: true, sales: [sale] })
+  const partial = {
+    id: 9,
+    items: [
+      { code: "AN581-R", name: "Anel rosa", image_url: "a.jpg", quantity: 1, unit_price: 120, paid_at: "2026-10-12T15:00:00Z" },
+      { code: "BR200", name: "Brinco gota", image_url: "", quantity: 1, unit_price: 80, paid_at: null }
+    ],
+    total: 200,
+    paid_at: null,
+    created_at: "2026-10-13T15:00:00Z",
+    customer_name: "Bia",
+    customer_whatsapp: "11977776666",
+    payment_method: "dinheiro",
+    payment_status: "partial",
+    paid_items_count: 1,
+    items_count: 2
+  }
+  const recent = fakeClient({ ok: true, sales: [sale, partial] })
   const listed = await fetchRecentSales({ sellerId: 3, limit: 80 }, recent)
   assertEquals(recent.calls[0].name, "seller-recent-sales")
   assertEquals(recentSalesLimit(80), 50)
   assertEquals(recent.calls[0].options.query, { seller_id: 3, limit: 50 })
-  assertEquals(listed.sales, [sale])
+  assertEquals(listed.sales, [sale, partial])
   const source = await Deno.readTextFile(new URL("./nova-venda.api.js", import.meta.url))
   assertEquals(source.includes("customer_whatsapp"), true)
   assertEquals(source.includes("unit_price"), true)
+  assertEquals(source.includes("paid|partial|receivable"), true)
+  assertEquals(source.includes("paid_items_count"), true)
 })
 
 Deno.test("cadastrar cliente e criar a venda mandam o corpo combinado", async () => {

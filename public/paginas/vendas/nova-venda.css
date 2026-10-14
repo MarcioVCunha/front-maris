@@ -148,6 +148,48 @@
   font-size: 0.85rem;
 }
 
+.nova-venda .pay-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.recent-sale-side .pay-badge {
+  align-self: flex-end;
+}
+
+.nova-venda .pay-badge--paid {
+  background: #d4f5e3;
+  color: #1e6b45;
+}
+
+.nova-venda .pay-badge--receivable {
+  background: #ffe8d4;
+  color: #8b4a12;
+}
+
+.nova-venda .pay-badge--partial {
+  background: #efe4ff;
+  color: #5b2d8e;
+}
+
+.piece-copy .piece-pay--paid {
+  color: #1e6b45;
+  font-weight: 700;
+}
+
+.piece-copy .piece-pay--open {
+  color: #8b4a12;
+  font-weight: 700;
+}
+
 .step-bar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -390,6 +432,13 @@
 .detail-customer,
 .detail-pay {
   margin: 14px 0 0;
+}
+
+.detail-pay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .nova-venda .whatsapp-link {

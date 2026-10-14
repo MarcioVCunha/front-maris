@@ -59,7 +59,8 @@ Deno.test("o mês soma só venda paga pela data de pagamento", () => {
     { total: 99, payment_status: "paid", paid_at: "2026-10-01T02:00:00Z" },
     { total: 40, payment_status: "receivable", paid_at: "2026-10-15T15:00:00Z" },
     { total: 7, is_paid: true, paid_at: "2026-10-20T18:00:00Z" },
-    { total: 5, payment_status: "paid", paid_at: "2026-09-30T15:00:00Z" }
+    { total: 5, payment_status: "paid", paid_at: "2026-09-30T15:00:00Z" },
+    { total: 500, payment_status: "partial", paid_at: null, paid_items_count: 1, items_count: 3 }
   ]
   assertEquals(sumPaidChargesInMonth(sales, 2026, 10), 17)
   assertEquals(chargedTotalFromSummary({ charged_total: 1240 }, { year: 2026, month: 10 }), 1240)
@@ -198,6 +199,42 @@ Deno.test("o detalhe da venda é só leitura, com WhatsApp e desconto no Pix", (
   assertEquals(cash.includes("A receber"), true)
   assertEquals(cash.includes("Desconto Pix"), false)
   assertEquals(cash.includes("Sem WhatsApp"), true)
+})
+
+Deno.test("venda parcial mostra quantas peças já foram pagas", () => {
+  const sale = {
+    id: 9,
+    created_at: "2026-10-13T18:00:00Z",
+    customer_name: "Bia",
+    customer_whatsapp: "11977776666",
+    payment_method: "dinheiro",
+    payment_status: "partial",
+    paid_items_count: 1,
+    items_count: 3,
+    total: 290,
+    items: [
+      { code: "AN581-R", name: "Anel rosa", quantity: 1, unit_price: 120, paid_at: "2026-10-12T15:00:00Z" },
+      { code: "BR200", name: "Brinco gota", quantity: 1, unit_price: 80, paid_at: null },
+      { code: "CO300", name: "Colar", quantity: 1, unit_price: 90, paid_at: null }
+    ]
+  }
+  const list = renderRecentSales([sale], (value) => `R$ ${value}`)
+  assertEquals(list.includes("pay-badge--partial"), true)
+  assertEquals(list.includes("Parcial"), true)
+  assertEquals(list.includes("1 de 3 peças pagas"), true)
+  assertEquals(list.includes(">Pago<"), false)
+
+  const html = renderSaleDetail(sale, (value) => `R$ ${value}`)
+  assertEquals(html.includes("pay-badge--partial"), true)
+  assertEquals(html.includes("1 de 3 peças pagas"), true)
+  assertEquals(html.includes("piece-pay--paid"), true)
+  assertEquals(html.includes("Paga em"), true)
+  assertEquals(html.includes("12/10/2026"), true)
+  assertEquals(html.includes("piece-pay--open"), true)
+  assertEquals(html.includes("A receber"), true)
+  assertEquals(html.includes("Anel rosa"), true)
+  assertEquals(html.includes("Brinco gota"), true)
+  assertEquals(/editar|cancelar/i.test(html), false)
 })
 
 Deno.test("o resumo do mês usa a comissão do servidor", () => {

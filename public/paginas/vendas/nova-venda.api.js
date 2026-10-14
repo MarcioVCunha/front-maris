@@ -73,8 +73,11 @@ export async function fetchMonthSummary({ sellerId, month }, client) {
  * GET seller-recent-sales?seller_id=&limit=20
  * Cada venda: { id, items, total, paid_at, created_at, customer_name,
  *   customer_whatsapp, payment_method: pix|dinheiro|cartao,
- *   payment_status: paid|receivable }
- * items: { code, name, image_url, quantity, unit_price }
+ *   payment_status: paid|partial|receivable,
+ *   paid_items_count, items_count }
+ * items: { code, name, image_url, quantity, unit_price, paid_at }
+ * paid_at do item é null quando a peça ainda está a receber.
+ * O card de comissão não muda: o valor continua o do servidor, por peça paga no mês.
  * limit padrão 20, máximo 50. A tela só lê.
  */
 export async function fetchRecentSales({ sellerId, limit = RECENT_SALES_LIMIT }, client) {
