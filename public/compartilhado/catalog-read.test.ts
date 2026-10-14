@@ -11,12 +11,10 @@ const Read = win.MarisCatalogRead as {
   COMPONENT_COLUMNS: string
   IMAGE_COLUMNS: string
   SELLER_COLUMNS: string
-  BASKET_COLUMNS: string
   selectProducts: (client: FakeClient) => FakeChain
   selectPricedComponents: (client: FakeClient) => FakeChain
   selectImages: (client: FakeClient) => FakeChain
   selectActiveSellers: (client: FakeClient) => FakeChain
-  selectSharedBasket: (client: FakeClient, id: string) => FakeChain
   BESTSELLERS_ENABLED: boolean
   BESTSELLERS_RELATION: string
   BESTSELLER_COLUMNS: string
@@ -65,7 +63,6 @@ Deno.test("colunas públicas não incluem custo", () => {
     Read.COMPONENT_COLUMNS,
     Read.IMAGE_COLUMNS,
     Read.SELLER_COLUMNS,
-    Read.BASKET_COLUMNS,
     Read.BESTSELLER_COLUMNS
   ]) {
     assertEquals(columnsOf(columns).includes("custo"), false)
@@ -118,7 +115,7 @@ Deno.test("selectProducts pede o preço do banco e repete sem a coluna se ela ai
   assertEquals(Read.missingOptionalPriceColumn({ message: "Could not find the 'preco_pix' column" }), true)
 })
 
-Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
+Deno.test("componentes com preço, imagens e vendedoras", () => {
   const components = new FakeClient()
   const componentChain = Read.selectPricedComponents(components)
   assertEquals(components.relation, "product_components_priced")
@@ -134,12 +131,6 @@ Deno.test("componentes com preço, imagens, vendedoras e cesta", () => {
   assertEquals(sellers.relation, "sellers")
   assertEquals(sellers.chain.ops[0][1], "id, name")
   assertEquals(sellers.chain.ops[1], ["eq", "is_active", true])
-
-  const baskets = new FakeClient()
-  Read.selectSharedBasket(baskets, "abc")
-  assertEquals(baskets.relation, "shared_baskets")
-  assertEquals(baskets.chain.ops[1], ["eq", "id", "abc"])
-  assertEquals(baskets.chain.ops[2], ["maybeSingle"])
 })
 
 Deno.test("mais vendidas ligada consulta a view e desligada não consulta", () => {

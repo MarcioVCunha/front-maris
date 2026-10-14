@@ -1,6 +1,5 @@
 // Lógica pura de resolução de linhas de carrinho/cesta, reutilizada por
-// `catalogo-carrinho.js` (carrinho local) e `cesta-compartilhada.js` (cesta vinda
-// de link). Mantida sem DOM para ser testável no Deno.
+// `catalogo-carrinho.js` (carrinho local). Mantida sem DOM para ser testável no Deno.
 
 window.MarisCart = {
   /** Chave estável de uma linha (componente tem prioridade sobre produto). */

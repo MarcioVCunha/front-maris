@@ -37,3 +37,36 @@ Deno.test("páginas não leem custo nem gravam tabelas direto", async () => {
   }
   assertEquals(hits, [])
 })
+
+const repoRoot = new URL("../../", import.meta.url)
+const retiredCartFunctions = [
+  ["create", "shared", "basket"].join("-"),
+  ["customer", "cart", "share"].join("-"),
+  ["list", "shared", "carts"].join("-"),
+  ["discard", "shared", "cart"].join("-"),
+  ["mark", "cart", "converted"].join("-")
+]
+
+async function listRepoText(dir: URL): Promise<URL[]> {
+  const out: URL[] = []
+  for await (const entry of Deno.readDir(dir)) {
+    if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "cov") continue
+    const next = new URL(entry.name + (entry.isDirectory ? "/" : ""), dir)
+    if (entry.isDirectory) out.push(...(await listRepoText(next)))
+    else if (/\.(js|ts|html|css|md|json|yml)$/.test(entry.name)) out.push(next)
+  }
+  return out
+}
+
+Deno.test("as funções antigas de cesta compartilhada ficam só no changelog", async () => {
+  const files = await listRepoText(repoRoot)
+  const hits: string[] = []
+  for (const file of files) {
+    if (file.pathname.endsWith("/CHANGELOG.md")) continue
+    const text = await Deno.readTextFile(file)
+    for (const name of retiredCartFunctions) {
+      if (text.includes(name)) hits.push(`${file.pathname}: ${name}`)
+    }
+  }
+  assertEquals(hits, [])
+})
