@@ -82,5 +82,9 @@
     window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
   </script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
+  <script type="module">
+    import { shouldShowDashboard } from "/paginas/admin/painel.logic.js"
+    if (shouldShowDashboard()) location.replace("/admin/inicio")
+  </script>
 </body>
 </html>

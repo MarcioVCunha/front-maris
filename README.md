@@ -12,7 +12,7 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/catalog/carrinho` | Visitante | Revisão da cesta e pedido |
 | `/equipe` | Equipe | Login com e-mail e senha |
 | `/equipe/nova-senha` | Equipe | Nova senha a partir do e-mail |
-| `/admin` | Administração | Atalhos da administração |
+| `/admin` | Administração | Atalhos da administração. O painel novo (Início, Estoque, Vendas, Vendedoras) fica desligado em `ADMIN_DASHBOARD_ENABLED` |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Redireciona para `/vendas/nova` |
 | `/vendas/nova` | Equipe | Registrar venda: peças, cliente, pagamento e comissão do mês |

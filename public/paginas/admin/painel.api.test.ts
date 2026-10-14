@@ -1,0 +1,76 @@
+import { assertEquals } from "jsr:@std/assert@1"
+import {
+  ADMIN_DASHBOARD_API,
+  addProduct,
+  archiveProduct,
+  fetchCategoryDefaults,
+  importProducts,
+  listProducts,
+  updateComponentSku,
+  updateProduct,
+} from "./painel.api.js"
+
+function client(data: unknown = { ok: true }) {
+  const calls: Array<{ name: string; options: { method?: string; body?: unknown; timeoutMs?: number } }> = []
+  return {
+    calls,
+    call(name: string, options: { method?: string; body?: unknown; timeoutMs?: number }) {
+      calls.push({ name, options })
+      return { ok: true, data }
+    },
+  }
+}
+
+Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
+  assertEquals(ADMIN_DASHBOARD_API.productList, "admin-product-list")
+  assertEquals(ADMIN_DASHBOARD_API.productUpdate, "admin-product-update")
+  assertEquals(ADMIN_DASHBOARD_API.productArchive, "admin-product-archive")
+  assertEquals(ADMIN_DASHBOARD_API.categoryDefaults, "category-defaults")
+  assertEquals(ADMIN_DASHBOARD_API.componentUpdate, "admin-component-update")
+  assertEquals(ADMIN_DASHBOARD_API.addProduct, "add-product")
+  assertEquals(ADMIN_DASHBOARD_API.importProducts, "import-products")
+  const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
+  assertEquals(source.includes('auth: "staff"'), true)
+})
+
+Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinados", async () => {
+  const listed = client({ ok: true, products: [{ code: "AN581-R" }] })
+  const products = await listProducts(listed)
+  assertEquals(products.products[0].code, "AN581-R")
+  assertEquals(listed.calls[0].name, "admin-product-list")
+  assertEquals(listed.calls[0].options.method, "GET")
+
+  const saved = client({ ok: true, product: { code: "AN581-R" } })
+  const body = { code: "AN581-R", quantity: 0, ncm: "71171900", origem: 0, gtin: null }
+  await updateProduct(body, saved)
+  assertEquals(saved.calls[0].name, "admin-product-update")
+  assertEquals(saved.calls[0].options.method, "POST")
+  assertEquals(saved.calls[0].options.body, body)
+
+  const archived = client({ ok: true })
+  await archiveProduct({ code: "AN581-R" }, archived)
+  assertEquals(archived.calls[0].name, "admin-product-archive")
+  assertEquals(archived.calls[0].options.body, { code: "AN581-R" })
+
+  const defaults = client({ ok: true, defaults: { Anel: { descricao: "Anel" } } })
+  const bag = await fetchCategoryDefaults(defaults)
+  assertEquals(defaults.calls[0].name, "category-defaults")
+  assertEquals(defaults.calls[0].options.method, "GET")
+  assertEquals(bag.defaults.Anel.descricao, "Anel")
+
+  const sku = client({ ok: true })
+  const skuBody = { component_id: 13, product_code: "AN581-R", sku: "AN581-R-PEDRA" }
+  await updateComponentSku(skuBody, sku)
+  assertEquals(sku.calls[0].name, "admin-component-update")
+  assertEquals(sku.calls[0].options.body, skuBody)
+
+  const added = client({ ok: true })
+  await addProduct({ code: "BM1786-O", name: "Brinco" }, added)
+  assertEquals(added.calls[0].name, "add-product")
+
+  const imported = client({ ok: true, created: 1 })
+  await importProducts([{ code: "BM1786-O" }], imported)
+  assertEquals(imported.calls[0].name, "import-products")
+  assertEquals(imported.calls[0].options.timeoutMs, 150000)
+  assertEquals(imported.calls[0].options.body, [{ code: "BM1786-O" }])
+})
