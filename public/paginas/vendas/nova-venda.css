@@ -81,12 +81,36 @@
 }
 
 .nova-venda .btn-nova,
+.nova-venda .btn-market,
 .nova-venda .btn-next,
-.nova-venda .btn-confirm {
+.nova-venda .btn-confirm,
+.nova-venda .btn-cancel-market {
   min-height: 64px;
   border-radius: 14px;
   font-size: 1.05rem;
   letter-spacing: 0.06em;
+}
+
+.nova-venda .btn-market {
+  background: var(--maris-surface);
+  color: var(--maris-gold-dark);
+  border: 1px solid var(--maris-gold);
+}
+
+.nova-venda .btn-cancel-market {
+  width: 100%;
+  margin-top: 16px;
+  background: transparent;
+  color: var(--maris-danger, #9b3b4a);
+  border: 1px solid var(--maris-danger, #9b3b4a);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.nova-venda .detail-commission {
+  margin: 8px 0 0;
+  color: var(--maris-text-muted);
+  font-size: 0.9rem;
 }
 
 .nova-venda .btn-back,
