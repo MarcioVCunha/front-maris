@@ -3,7 +3,7 @@
 // O papel (admin ou seller) vem de GET staff-me, não do JWT decodificado aqui.
 //
 // Páginas só de administração: ADMIN_ONLY_PATHS.
-// Vendedora entra em vendas, carrinhos de clientes e tipos do produto.
+// Vendedora entra em vendas e tipos do produto.
 // O restante exige papel admin.
 // staff-me também devolve seller_id. Na vendedora, a venda usa esse id.
 
@@ -170,7 +170,6 @@
       homeVendedoras: admin || seller,
       homeCatalogo: true,
       vendas: admin || seller,
-      carrinhos: admin || seller,
       tipos: admin || seller,
       listaEspera: admin,
       contas: admin,

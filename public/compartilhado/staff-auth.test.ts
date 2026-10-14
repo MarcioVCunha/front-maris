@@ -186,9 +186,9 @@ Deno.test("a sessão fica na chave do Supabase e ignora o token antigo", () => {
   assertEquals(Auth.authHeaders(), {})
 })
 
-Deno.test("vendedora entra em vendas, carrinhos e tipos; o resto é admin", () => {
+Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
   pinWindow()
-  const sellerPages = ["/", "/vendedoras", "/vendas", "/carrinhos-clientes", "/carrinho-cliente", "/tipos-produto"]
+  const sellerPages = ["/", "/vendedoras", "/vendas", "/tipos-produto"]
   const adminPages = ["/admin", "/importar", "/adicionar-peca", "/promocoes", "/contas-vendedoras", "/lista-espera"]
   for (const pathname of sellerPages) {
     assertEquals(
@@ -250,7 +250,6 @@ Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração
     homeVendedoras: true,
     homeCatalogo: true,
     vendas: true,
-    carrinhos: true,
     tipos: true,
     listaEspera: false,
     contas: false,
@@ -264,7 +263,6 @@ Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração
     homeVendedoras: true,
     homeCatalogo: true,
     vendas: true,
-    carrinhos: true,
     tipos: true,
     listaEspera: true,
     contas: true,
@@ -424,7 +422,8 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
 
   const hub = await readPublic("paginas/admin/vendedoras.html")
   assertEquals(anchor(hub, "/vendas").includes("data-staff-min"), false)
-  assertEquals(anchor(hub, "/carrinhos-clientes").includes("data-staff-min"), false)
+  assertEquals(hub.includes('href="/carrinhos-clientes"'), false)
+  assertEquals(hub.includes('href="/carrinho-cliente"'), false)
   assert(anchor(hub, "/lista-espera").includes('data-staff-min="admin"'))
   assert(anchor(hub, "/contas-vendedoras").includes('data-staff-min="admin"'))
   assert(anchor(hub, "/tipos-produto").includes('data-staff-only="seller"'))
@@ -438,10 +437,8 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assertEquals(equipe.includes("signUp("), false)
 
   const vendas = await readPublic("paginas/vendas/vendas.js")
-  const vendaCarrinho = await readPublic("paginas/vendas/carrinho-cliente.js")
   assert(vendas.includes("saleSellerChoice"))
   assert(vendas.includes('auth: "staff"'))
-  assert(vendaCarrinho.includes('auth: "staff"'))
   assert(vendas.includes("error.message"))
 })
 
@@ -461,8 +458,6 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/admin.html",
     "paginas/admin/vendedoras.html",
     "paginas/vendas/vendas.html",
-    "paginas/vendas/carrinhos-clientes.html",
-    "paginas/vendas/carrinho-cliente.html",
     "paginas/vendas/lista-espera.html",
     "paginas/vendedoras/contas.html",
     "paginas/estoque/tipos-produto/tipos-produto.html",
@@ -482,8 +477,7 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
 
   for (const page of [
     "paginas/catalogo/catalogo.html",
-    "paginas/catalogo/carrinho.html",
-    "paginas/catalogo/cesta-compartilhada.html"
+    "paginas/catalogo/carrinho.html"
   ]) {
     const html = await readPublic(page)
     assertEquals(html.includes("staff-auth.js"), false, page)

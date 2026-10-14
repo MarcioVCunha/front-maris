@@ -18,8 +18,6 @@ window.MarisCatalogRead = {
   IMAGE_COLUMNS: "product_id, image_url, sort_order",
   SELLERS_RELATION: "sellers",
   SELLER_COLUMNS: "id, name",
-  BASKETS_RELATION: "shared_baskets",
-  BASKET_COLUMNS: "items",
   // Mesmos nomes de MarisCatalogLogic. A view ainda pode não ter as colunas.
   PIX_PRICE_FIELD: "preco_pix",
   EFFECTIVE_PRICE_FIELD: "preco_efetivo",
@@ -108,10 +106,6 @@ window.MarisCatalogRead = {
     return this._select(client, this.SELLERS_RELATION, this.SELLER_COLUMNS)
       .eq("is_active", true)
       .order("name")
-  },
-
-  selectSharedBasket(client, id) {
-    return this._select(client, this.BASKETS_RELATION, this.BASKET_COLUMNS).eq("id", id).maybeSingle()
   },
 
   selectBestsellers(client) {

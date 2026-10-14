@@ -7,10 +7,9 @@ const cartTotalEl = document.getElementById("cart-total")
 const cartPixEl = document.getElementById("cart-pix")
 const buyerNameEl = document.getElementById("buyer-name")
 const buyerWhatsappEl = document.getElementById("buyer-whatsapp")
-const buyerEmailEl = document.getElementById("buyer-email")
 const sellerSelectEl = document.getElementById("seller-select")
 const checkStockBtn = document.getElementById("check-stock-btn")
-const shareCartBtn = document.getElementById("share-cart-btn")
+const placeOrderBtn = document.getElementById("place-order-btn")
 const stockIssuesEl = document.getElementById("stock-issues")
 const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
@@ -18,10 +17,6 @@ const orderConfirmationEl = document.getElementById("order-confirmation")
 const websiteEl = document.getElementById("buyer-website")
 let pendingRequestId = null
 let orderConfirmed = false
-
-function ordersEnabled() {
-  return window.MarisPedido?.ORDERS_ENABLED === true
-}
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -39,9 +34,8 @@ function setActiveStep(stepNumber) {
 function getBuyerPayload() {
   const name = String(buyerNameEl?.value || "").trim()
   const whatsapp = onlyDigits(buyerWhatsappEl?.value || "")
-  const email = String(buyerEmailEl?.value || "").trim()
   if (!name || whatsapp.length < 10) return null
-  return { name, whatsapp, email }
+  return { name, whatsapp, email: "" }
 }
 
 function saveBuyer() {
@@ -66,13 +60,13 @@ function renderCart() {
     cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
     cartTotalEl.textContent = formatMoneyBRL(0)
     if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(0)
-    if (shareCartBtn) shareCartBtn.disabled = true
+    if (placeOrderBtn) placeOrderBtn.disabled = true
     if (checkStockBtn) checkStockBtn.disabled = true
     setActiveStep(1)
     return
   }
 
-  if (shareCartBtn) shareCartBtn.disabled = false
+  if (placeOrderBtn) placeOrderBtn.disabled = false
   if (checkStockBtn) checkStockBtn.disabled = false
   setActiveStep(2)
   let total = 0
@@ -138,57 +132,11 @@ async function loadCatalogData() {
 async function loadSellers() {
   if (!sellerSelectEl) return
   const { data } = await window.MarisCatalogRead.selectActiveSellers(sbClient)
-  sellerSelectEl.innerHTML = '<option value="">Selecione</option>' + (data || []).map((s) => `<option value="${window.MarisUI.escapeHtml(s.id)}">${window.MarisUI.escapeHtml(s.name)}</option>`).join("")
-}
-
-function getSharePayload() {
-  const buyer = getBuyerPayload()
-  if (!buyer) return { error: "Preencha nome e WhatsApp v\u00e1lidos." }
-  const sellerId = Number(sellerSelectEl?.value)
-  if (!sellerId) return { error: "Selecione uma vendedora." }
-  const lines = window.MarisCatalogCart.getItems().map((line) => ({
-    product_code: line.product_code || null,
-    component_id: line.component_id || null,
-    quantity: Number(line.quantity) || 0,
-    unit_price: Number(line.unit_price) || undefined
-  }))
-  if (!lines.length) return { error: "Sua cesta est\u00e1 vazia." }
-  return {
-    payload: {
-      buyer_name: buyer.name,
-      buyer_whatsapp: buyer.whatsapp,
-      buyer_email: buyer.email,
-      seller_id: sellerId,
-      lines
-    }
-  }
+  sellerSelectEl.innerHTML = '<option value="">Sem vendedora</option>' + (data || []).map((s) => `<option value="${window.MarisUI.escapeHtml(s.id)}">${window.MarisUI.escapeHtml(s.name)}</option>`).join("")
 }
 
 function callCreateOrder(functionName, body) {
   return window.MarisApi.callFunction(window.ENV.fn(functionName), { body })
-}
-
-function applyOrderMode() {
-  const title = document.querySelector(".cart-card--primary-path h2")
-  if (title) title.textContent = "Finalizar pedido"
-  const help = document.querySelector(".cart-card--primary-path .cart-help")
-  if (help) help.textContent = "Informe seu nome e WhatsApp. A vendedora é opcional."
-  if (shareCartBtn) shareCartBtn.textContent = "Finalizar pedido"
-  const emailLabel = document.querySelector("label[for='buyer-email']")
-  if (emailLabel) emailLabel.hidden = true
-  if (buyerEmailEl) buyerEmailEl.hidden = true
-  const sellerLabel = document.querySelector("label[for='seller-select']")
-  if (sellerLabel) sellerLabel.textContent = "Vendedora (opcional)"
-  if (sellerSelectEl?.options?.[0]) sellerSelectEl.options[0].textContent = "Sem vendedora"
-  const labels = ["Revise os itens", "Seus dados", "Pedido feito"]
-  stepEls.forEach((el, index) => {
-    const badge = el.querySelector("span")
-    const number = badge ? badge.textContent : String(index + 1)
-    el.textContent = ""
-    const span = document.createElement("span")
-    span.textContent = number
-    el.append(span, ` ${labels[index]}`)
-  })
 }
 
 function renderOrderConfirmation(order) {
@@ -245,7 +193,7 @@ function showStockIssues(result) {
 async function placeOrder(dryRun) {
   setMessage("")
   if (!pendingRequestId) pendingRequestId = window.MarisPedido.newClientRequestId()
-  const button = dryRun ? checkStockBtn : shareCartBtn
+  const button = dryRun ? checkStockBtn : placeOrderBtn
   if (button) button.disabled = true
   try {
     const result = await window.MarisPedido.submitCreateOrder(callCreateOrder, {
@@ -288,78 +236,12 @@ async function placeOrder(dryRun) {
   }
 }
 
-async function checkStock() {
-  if (ordersEnabled()) {
-    await placeOrder(true)
-    return
-  }
-  setMessage("")
-  const parsed = getSharePayload()
-  if (parsed.error) {
-    setMessage(parsed.error, "error")
-    return
-  }
-  saveBuyer()
-  const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-cart-share"), {
-    body: { ...parsed.payload, dry_run: true }
-  })
-  if (!ok) {
-    setMessage(data.error || "N\u00e3o foi poss\u00edvel validar o estoque.", "error")
-    return
-  }
-  const issues = data.stock_issues || []
-  if (!issues.length) {
-    stockIssuesEl.hidden = true
-    stockIssuesEl.innerHTML = ""
-    setMessage("Estoque validado. Voc\u00ea j\u00e1 pode compartilhar.", "success")
-    setActiveStep(3)
-    return
-  }
-  stockIssuesEl.hidden = false
-  stockIssuesEl.innerHTML = issues.map((issue) => {
-    if (issue.reason === "out_of_stock") {
-      return `<li><strong>${issue.product_name}</strong> (${issue.product_code}) \u2014 sem estoque</li>`
-    }
-    return `<li><strong>${issue.product_name}</strong> \u2014 pedido ${issue.requested}, dispon\u00edvel ${issue.available}</li>`
-  }).join("")
-  setMessage("Alguns itens t\u00eam estoque limitado. Voc\u00ea ainda pode compartilhar para a vendedora ajustar.", "error")
+function checkStock() {
+  return placeOrder(true)
 }
 
-async function shareCart() {
-  if (ordersEnabled()) {
-    await placeOrder(false)
-    return
-  }
-  setMessage("")
-  const parsed = getSharePayload()
-  if (parsed.error) {
-    setMessage(parsed.error, "error")
-    return
-  }
-  shareCartBtn.disabled = true
-  try {
-    saveBuyer()
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-cart-share"), {
-      body: parsed.payload
-    })
-    if (!ok) {
-      setMessage(data.error || "N\u00e3o foi poss\u00edvel enviar a cesta.", "error")
-      return
-    }
-    window.MarisCatalogCart.clear()
-    renderCart()
-    stockIssuesEl.hidden = true
-    stockIssuesEl.innerHTML = ""
-    hideShareResult()
-    setMessage("Cesta enviada \u00e0 vendedora. Ela entrar\u00e1 em contato pelo WhatsApp.", "success")
-    setActiveStep(3)
-  } finally {
-    shareCartBtn.disabled = false
-  }
-}
-
-function hideShareResult() {
-  window.MarisCestaLink?.hide()
+function submitOrder() {
+  return placeOrder(false)
 }
 
 cartLinesEl.addEventListener("click", (event) => {
@@ -376,7 +258,6 @@ cartLinesEl.addEventListener("click", (event) => {
   }
   if (action === "minus") window.MarisCatalogCart.setQuantityByKey(key, line.quantity - 1)
   pendingRequestId = null
-  hideShareResult()
   renderCart()
 })
 
@@ -387,9 +268,8 @@ if (buyerWhatsappEl) {
   })
   buyerWhatsappEl.addEventListener("blur", saveBuyer)
 }
-if (buyerEmailEl) buyerEmailEl.addEventListener("blur", saveBuyer)
 if (checkStockBtn) checkStockBtn.addEventListener("click", checkStock)
-if (shareCartBtn) shareCartBtn.addEventListener("click", shareCart)
+if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitOrder)
 
 window.addEventListener("maris-cart-updated", renderCart)
 
@@ -398,12 +278,10 @@ window.addEventListener("maris-cart-updated", renderCart)
     await window.MarisCatalogCart.init()
     await loadCatalogData()
     await loadSellers()
-    if (ordersEnabled()) applyOrderMode()
     const buyer = window.MarisCatalogCart.getBuyerProfile()
     if (buyer && buyerNameEl) {
       buyerNameEl.value = buyer.name || ""
       buyerWhatsappEl.value = formatWhatsappMask(buyer.whatsapp || "")
-      buyerEmailEl.value = buyer.email || ""
     }
     renderCart()
   } catch (error) {

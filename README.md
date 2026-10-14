@@ -9,15 +9,12 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | Endereço | Quem usa | O que faz |
 |---|---|---|
 | `/catalog` | Visitante | Catálogo, filtros, cesta |
-| `/catalog/carrinho` | Visitante | Revisão da cesta e envio à vendedora |
-| `/catalog/cesta` | Visitante | Cesta compartilhada por link |
+| `/catalog/carrinho` | Visitante | Revisão da cesta e pedido |
 | `/equipe` | Equipe | Login com e-mail e senha |
 | `/equipe/nova-senha` | Equipe | Nova senha a partir do e-mail |
 | `/admin` | Administração | Atalhos da administração |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Registrar venda |
-| `/carrinhos-clientes` | Equipe | Cestas enviadas pelas clientes |
-| `/carrinho-cliente` | Equipe | Detalhe de uma cesta |
 | `/lista-espera` | Administração | Lista de espera |
 | `/adicionar-peca` | Administração | Cadastrar uma peça |
 | `/importar` | Administração | Importar várias peças por JSON |
