@@ -58,11 +58,18 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(archived.calls[0].name, "admin-product-archive")
   assertEquals(archived.calls[0].options.body, { code: "AN581-R" })
 
-  const defaults = client({ ok: true, defaults: { Anel: { descricao: "Anel" } } })
+  const defaults = client({
+    ok: true,
+    defaults: [
+      { category: "Anel", peso_g: 80, largura_cm: 17, comprimento_cm: 20, altura_cm: 5, ncm: "71171900" },
+    ],
+  })
   const bag = await fetchCategoryDefaults(defaults)
   assertEquals(defaults.calls[0].name, "category-defaults")
   assertEquals(defaults.calls[0].options.method, "GET")
-  assertEquals(bag.defaults.Anel.descricao, "Anel")
+  assertEquals(bag.defaults.Anel.peso_g, 80)
+  assertEquals(bag.defaults.Anel.comprimento_cm, 20)
+  assertEquals(bag.defaults.Anel.largura_cm, 17)
 
   const sku = client({ ok: true })
   const skuBody = { component_id: 13, product_code: "AN581-R", sku: "AN581-R-PEDRA" }

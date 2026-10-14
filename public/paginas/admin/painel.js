@@ -11,9 +11,11 @@ import {
   isDashboardAdmin,
   isPanelLink,
   navHtml,
+  nextPackagingValues,
   normalizeOverview,
   normalizeRecentSales,
   normalizeSellersMonth,
+  packagingValues,
   renderAddForm,
   renderArchiveDialog,
   renderImportHelp,
@@ -70,6 +72,15 @@ const PLACEHOLDER_IDS = [
   ["comprimento", "comprimento_cm"]
 ]
 
+const PACKAGING_IDS = [
+  ["peso", "peso_g"],
+  ["largura", "largura_cm"],
+  ["altura", "altura_cm"],
+  ["comprimento", "comprimento_cm"]
+]
+
+let addPackagingSuggested = packagingValues({})
+
 const viewEl = document.getElementById("view")
 const messageEl = document.getElementById("message")
 const stockNav = document.getElementById("stock-nav")
@@ -115,6 +126,28 @@ function refreshPlaceholders(categoria) {
     const input = document.getElementById(id)
     if (input) input.placeholder = fieldPlaceholder(field, defaults)
   }
+}
+
+function readPackagingFields() {
+  return Object.fromEntries(PACKAGING_IDS.map(([id, field]) => [field, document.getElementById(id)?.value ?? ""]))
+}
+
+function writePackagingFields(values) {
+  for (const [id, field] of PACKAGING_IDS) {
+    const input = document.getElementById(id)
+    if (input) input.value = values[field] ?? ""
+  }
+}
+
+function applyAddPackagingForCategory(categoria) {
+  const nextSuggested = packagingValues(categoryBag(categoria))
+  const next = nextPackagingValues({
+    current: readPackagingFields(),
+    previousSuggested: addPackagingSuggested,
+    nextSuggested
+  })
+  writePackagingFields(next)
+  addPackagingSuggested = nextSuggested
 }
 
 function readFields(code, name) {
@@ -190,8 +223,10 @@ function bindPieceForm() {
 }
 
 function bindAddForm() {
+  addPackagingSuggested = packagingValues(categoryBag(document.getElementById("categoria")?.value))
   document.getElementById("categoria").addEventListener("change", (event) => {
     refreshPlaceholders(event.target.value)
+    applyAddPackagingForCategory(event.target.value)
   })
   document.getElementById("add-form").addEventListener("submit", async (event) => {
     event.preventDefault()

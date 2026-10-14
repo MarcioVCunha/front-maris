@@ -1,4 +1,5 @@
 // Funções do painel. Ainda não estão publicadas. Os nomes e os corpos ficam aqui.
+import { normalizeCategoryDefaults } from "./painel.logic.js"
 
 export const ADMIN_DASHBOARD_API = {
   productList: "admin-product-list",
@@ -82,14 +83,16 @@ export async function archiveProduct(body, client) {
 }
 
 /**
- * GET category-defaults
- * Resposta: { ok, defaults: { Anel: { descricao, peso_g, largura_cm, altura_cm,
- *   comprimento_cm, ncm, origem } } }
+ * GET category-defaults (staff). Lê public.category_defaults no servidor.
+ * Resposta bruta: { ok, defaults: [{ category, peso_g, largura_cm, altura_cm,
+ *   comprimento_cm, ncm }] }
+ * Aqui vira mapa { Anel: {...}, Brinco: {...} }. Sem a função, a tabela tem RLS
+ * e o front cai no fallback fixo de embalagem.
  */
 export async function fetchCategoryDefaults(client) {
   const result = await call(ADMIN_DASHBOARD_API.categoryDefaults, { method: "GET" }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível ler os padrões da categoria.")
-  return { ok: true, defaults: result.data?.defaults || {} }
+  return { ok: true, defaults: normalizeCategoryDefaults(result.data?.defaults) }
 }
 
 /**

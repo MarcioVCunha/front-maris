@@ -4,6 +4,7 @@ import {
   NCM_DEFAULT,
   ORIGEM_DEFAULT,
   NO_DATA,
+  PACKAGING_DEFAULTS,
   STOCK_PAGE_SIZE,
   archiveConfirmText,
   archivePayload,
@@ -20,7 +21,11 @@ import {
   fieldPlaceholder,
   isComponentSku,
   isDashboardAdmin,
+  nextPackagingValues,
+  normalizeCategoryDefaults,
+  packagingValues,
   pieceFormState,
+  defaultsFor,
   renderAddForm,
   renderArchiveDialog,
   renderInicio,
@@ -148,10 +153,82 @@ Deno.test("adicionar peça repete os campos novos e o arquivamento pede confirma
   assertEquals(add.includes("Adicionar peça"), true)
   assertEquals(add.includes(`value="${NCM_DEFAULT}"`), true)
   assertEquals(add.includes(`value="${ORIGEM_DEFAULT}"`), true)
+  assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.peso_g}"`), true)
+  assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.largura_cm}"`), true)
+  assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.comprimento_cm}"`), true)
+  assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.altura_cm}"`), true)
   const piece = { code: "AN581-R", name: "Anel rosa" }
   assertEquals(archivePayload(piece.code), { code: "AN581-R" })
   assertEquals(archiveConfirmText(piece), "Arquivar Anel rosa (AN581-R)? Ela sai da lista do estoque.")
   assert(renderArchiveDialog(piece).includes("archive-confirm"))
+})
+
+Deno.test("a embalagem ao adicionar começa no padrão e a categoria só troca o que não foi editado", () => {
+  assertEquals(PACKAGING_DEFAULTS, {
+    peso_g: "80",
+    comprimento_cm: "20",
+    largura_cm: "17",
+    altura_cm: "5",
+  })
+  assertEquals(packagingValues({}), { ...PACKAGING_DEFAULTS })
+  assertEquals(packagingValues({ peso_g: 90, largura_cm: 22 }), {
+    peso_g: "90",
+    largura_cm: "22",
+    comprimento_cm: PACKAGING_DEFAULTS.comprimento_cm,
+    altura_cm: PACKAGING_DEFAULTS.altura_cm,
+  })
+  const withCategory = packagingValues({
+    peso_g: 12,
+    largura_cm: 10,
+    comprimento_cm: 15,
+    altura_cm: 4,
+  })
+  assertEquals(withCategory, {
+    peso_g: "12",
+    largura_cm: "10",
+    comprimento_cm: "15",
+    altura_cm: "4",
+  })
+  const untouched = nextPackagingValues({
+    current: { ...PACKAGING_DEFAULTS },
+    previousSuggested: { ...PACKAGING_DEFAULTS },
+    nextSuggested: withCategory,
+  })
+  assertEquals(untouched, withCategory)
+  const edited = nextPackagingValues({
+    current: { ...PACKAGING_DEFAULTS, peso_g: "95" },
+    previousSuggested: { ...PACKAGING_DEFAULTS },
+    nextSuggested: withCategory,
+  })
+  assertEquals(edited.peso_g, "95")
+  assertEquals(edited.largura_cm, withCategory.largura_cm)
+  assertEquals(edited.comprimento_cm, withCategory.comprimento_cm)
+  assertEquals(edited.altura_cm, withCategory.altura_cm)
+  const addWithDefaults = renderAddForm(withCategory)
+  assert(addWithDefaults.includes('id="peso" inputmode="decimal" value="12"'))
+  assert(addWithDefaults.includes('id="comprimento" inputmode="decimal" value="15"'))
+  assert(addWithDefaults.includes(`value="${PACKAGING_DEFAULTS.largura_cm}"`) || addWithDefaults.includes('value="10"'))
+  const page = Deno.readTextFileSync(new URL("./painel.js", import.meta.url))
+  assert(page.includes("nextPackagingValues"))
+  assert(page.includes("applyAddPackagingForCategory"))
+})
+
+Deno.test("os padrões de categoria do servidor viram mapa por nome Anel/Brinco", () => {
+  const map = normalizeCategoryDefaults([
+    { category: "Anel", peso_g: 80, largura_cm: 17, comprimento_cm: 20, altura_cm: 5, ncm: "71171900" },
+    { category: "Brinco", peso_g: 80, largura_cm: 17, comprimento_cm: 20, altura_cm: 5, ncm: "71171900" },
+  ])
+  assertEquals(map.Anel.peso_g, 80)
+  assertEquals(map.Anel.largura_cm, 17)
+  assertEquals(map.Anel.comprimento_cm, 20)
+  assertEquals(defaultsFor({ defaults: map }, "Anel").comprimento_cm, 20)
+  assertEquals(defaultsFor({ defaults: map }, "brinco").category, "Brinco")
+  assertEquals(packagingValues(defaultsFor({ defaults: map }, "Anel")), {
+    peso_g: "80",
+    comprimento_cm: "20",
+    largura_cm: "17",
+    altura_cm: "5",
+  })
 })
 
 Deno.test("o SKU do tipo segue código-TIPO", () => {
