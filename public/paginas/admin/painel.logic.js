@@ -1,10 +1,10 @@
 // Painel do admin. Ligado: /admin abre este painel. Promoções continua em /promocoes.
-// Fase 2 Passo 1 (canais + preco_marketplace) fica atrás de ADMIN_HOME_CHANNELS_ENABLED.
+// Fase 2 Passo 1 (canais + preco_marketplace): ADMIN_HOME_CHANNELS_ENABLED ligada.
 import { ADD_PRODUCT_CATEGORIES, parseImageUrlLines, parseMoneyBRL } from "../estoque/adicionar-peca/adicionar-peca.logic.js"
 
 export const ADMIN_DASHBOARD_ENABLED = true
-/** Início com canais site/equipe/shopee/ML/tiktok, mês anterior e preço marketplace. Off até o back PR #16. */
-export const ADMIN_HOME_CHANNELS_ENABLED = false
+/** Início com canais site/equipe/shopee/ML/tiktok, mês anterior e preço marketplace. Ligada (back-maris PR #16). */
+export const ADMIN_HOME_CHANNELS_ENABLED = true
 export const NCM_DEFAULT = "71171900"
 export const ORIGEM_DEFAULT = 0
 export const STOCK_PAGE_SIZE = 20
