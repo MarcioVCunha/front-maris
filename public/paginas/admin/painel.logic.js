@@ -656,6 +656,7 @@ export function normalizeRecentSales(data) {
     return {
       id: sale.id,
       created_at: sale.created_at || sale.paid_at || "",
+      seller_id: sale.seller_id == null || sale.seller_id === "" ? null : Number(sale.seller_id),
       seller_name: sale.seller_name || "",
       channel: sale.channel || "",
       customer_name: sale.customer_name || "",
@@ -790,27 +791,31 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
   </section>`
 }
 
-export function renderVendas(sales, formatMoney = formatPrice) {
+export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
   const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
   if (!rows) return `<p class="empty">${NO_DATA}</p>`
   if (!rows.length) return `<p class="empty">Nenhuma venda recente.</p>`
-  return `<section class="report"><h2>Vendas recentes</h2>${rows.map((sale) => {
-    const who = [sale.seller_name, channelLabel(sale.channel)].filter(Boolean).join(" · ")
-    const pay = [statusLabel(sale.payment_status), paymentLabel(sale.payment_method)].filter(Boolean).join(" · ")
-    return `<article class="sale-row">
-      <span><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
-        <small>${escapeHtml(who)}</small></span>
-      <span class="piece-side"><b>${escapeHtml(money(sale.total, formatMoney))}</b>
-        <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
-    </article>`
-  }).join("")}</section>`
+  const body = typeof options.renderSales === "function"
+    ? options.renderSales(rows, formatMoney)
+    : rows.map((sale) => {
+      const who = [sale.seller_name, channelLabel(sale.channel)].filter(Boolean).join(" · ")
+      const pay = [statusLabel(sale.payment_status), paymentLabel(sale.payment_method)].filter(Boolean).join(" · ")
+      return `<article class="sale-row">
+        <span><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
+          <small>${escapeHtml(who)}</small></span>
+        <span class="piece-side"><b>${escapeHtml(money(sale.total, formatMoney))}</b>
+          <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
+      </article>`
+    }).join("")
+  return `<section class="report"><h2>Vendas recentes</h2>${body}</section>`
 }
 
-export function renderVendedoras(sellers, formatMoney = formatPrice) {
+export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {
   const rows = Array.isArray(sellers) ? sellers : normalizeSellersMonth(sellers)
   if (!rows) return `<p class="empty">${NO_DATA}</p>`
   if (!rows.length) return `<p class="empty">Nenhuma vendedora ativa.</p>`
-  return rows.map((seller) => {
+  const selectedId = options.selectedSellerId
+  const cards = rows.map((seller) => {
     const month = seller.month_ready
       ? `${seller.paid_count} peças em ${seller.paid_orders_count} pedidos · ${money(seller.charged_total, formatMoney)}`
       : NO_DATA
@@ -820,13 +825,37 @@ export function renderVendedoras(sellers, formatMoney = formatPrice) {
     const balance = seller.balance == null || Number.isNaN(Number(seller.balance))
       ? NO_DATA
       : money(seller.balance, formatMoney)
-    return `<article class="seller-card">
+    const pressed = selectedId != null && String(seller.seller_id) === String(selectedId)
+    return `<button type="button" class="seller-card${pressed ? " seller-card--active" : ""}" data-seller-id="${escapeHtml(seller.seller_id)}" aria-pressed="${pressed ? "true" : "false"}">
       <h2>${escapeHtml(seller.name || "Vendedora")}</h2>
       <p>Mês: ${escapeHtml(month)}</p>
       <p>Comissão: ${escapeHtml(commission)}</p>
       <p>Saldo a receber: ${escapeHtml(balance)}</p>
-    </article>`
+    </button>`
   }).join("")
+
+  let salesBlock = ""
+  if (selectedId != null && selectedId !== "") {
+    const seller = rows.find((row) => String(row.seller_id) === String(selectedId))
+    const name = seller?.name || "Vendedora"
+    const sales = Array.isArray(options.sales) ? options.sales : []
+    const filtered = typeof options.filterSales === "function"
+      ? options.filterSales(sales, seller || { seller_id: selectedId })
+      : sales.filter((sale) => String(sale?.seller_id) === String(selectedId)
+        || (seller?.name && String(sale?.seller_name || "").trim() === String(seller.name).trim()))
+    const body = typeof options.renderSales === "function"
+      ? options.renderSales(filtered, formatMoney)
+      : (filtered.length
+        ? filtered.map((sale) => `<article class="sale-row"><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong></article>`).join("")
+        : `<p class="empty">Nenhuma venda desta vendedora.</p>`)
+    salesBlock = `<section class="report report--seller-sales">
+      <h2>Vendas · ${escapeHtml(name)}</h2>
+      <p class="hint">Toque de novo na vendedora para fechar.</p>
+      ${body}
+    </section>`
+  }
+
+  return `${cards}${salesBlock}`
 }
 
 export { ADD_PRODUCT_CATEGORIES }

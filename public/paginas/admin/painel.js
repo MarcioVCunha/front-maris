@@ -36,6 +36,7 @@ import {
 } from "./painel.logic.js"
 import {
   ADMIN_SALE_EDIT_ENABLED,
+  filterSalesBySeller,
   normalizeAdminSale,
   readSaleEditForm,
   renderSaleCards,
@@ -133,6 +134,7 @@ const state = {
   recent: undefined,
   sellers: undefined,
   selectedChannel: null,
+  selectedSellerId: null,
   conjuntoQuery: ""
 }
 
@@ -577,6 +579,16 @@ function paintInicio() {
   bindInicio()
 }
 
+function bindSaleCards() {
+  viewEl.querySelectorAll(".sale-card[data-sale-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-sale-id")
+      const sale = (state.recent || []).find((row) => String(row.id) === String(id))
+      openSaleDialog(sale)
+    })
+  })
+}
+
 function bindInicio() {
   viewEl.querySelectorAll("[data-origin]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -585,13 +597,41 @@ function bindInicio() {
       paintInicio()
     })
   })
-  viewEl.querySelectorAll(".sale-card[data-sale-id]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-sale-id")
-      const sale = (state.recent || []).find((row) => String(row.id) === String(id))
-      openSaleDialog(sale)
+  bindSaleCards()
+}
+
+function paintVendas() {
+  viewEl.classList.remove("view--inicio")
+  viewEl.innerHTML = renderVendas(state.recent, formatPrice, {
+    renderSales: (rows, formatMoney) => renderSaleCards(rows, formatMoney, {
+      clickable: true,
+      empty: "Nenhuma venda recente."
     })
   })
+  bindSaleCards()
+}
+
+function paintVendedoras() {
+  viewEl.classList.remove("view--inicio")
+  viewEl.innerHTML = renderVendedoras(state.sellers, formatPrice, {
+    selectedSellerId: state.selectedSellerId,
+    sales: state.recent || [],
+    filterSales: filterSalesBySeller,
+    renderSales: (rows, formatMoney) => renderSaleCards(rows, formatMoney, {
+      clickable: true,
+      empty: "Nenhuma venda desta vendedora."
+    })
+  })
+  viewEl.querySelectorAll(".seller-card[data-seller-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-seller-id")
+      state.selectedSellerId = state.selectedSellerId != null && String(state.selectedSellerId) === String(id)
+        ? null
+        : id
+      paintVendedoras()
+    })
+  })
+  bindSaleCards()
 }
 
 async function loadSellers() {
@@ -638,20 +678,16 @@ async function render(view, token) {
   viewEl.classList.remove("view--inicio")
   if (view === "vendas") {
     if (state.recent === undefined) viewEl.innerHTML = viewLoading()
-    const sales = await loadRecent()
+    await loadRecent()
     if (stale()) return
-    viewEl.innerHTML = renderVendas(sales)
-    viewEl.querySelectorAll(".sale-row").forEach((row) => {
-      // Vendas ainda é lista; a edição reutilizável entra quando a flag ligar.
-      row.classList.add("sale-row--static")
-    })
+    paintVendas()
     return
   }
   if (view === "vendedoras") {
-    if (state.sellers === undefined) viewEl.innerHTML = viewLoading()
-    const sellers = await loadSellers()
+    if (state.sellers === undefined || state.recent === undefined) viewEl.innerHTML = viewLoading()
+    await Promise.all([loadSellers(), loadRecent()])
     if (stale()) return
-    viewEl.innerHTML = renderVendedoras(sellers)
+    paintVendedoras()
     return
   }
   if (view === "estoque") {

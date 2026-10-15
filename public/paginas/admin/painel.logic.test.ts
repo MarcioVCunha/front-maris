@@ -366,7 +366,22 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(vendas.includes("Paga"))
   assertEquals(renderVendas(null).includes(NO_DATA), true)
 
+  const vendasCards = renderVendas([{
+    id: 10,
+    created_at: "2026-10-14T15:00:00Z",
+    seller_name: "Marineide",
+    channel: "equipe",
+    customer_name: "Lia",
+    total: 190,
+    payment_status: "paid",
+  }], undefined, {
+    renderSales: (rows) => `<ul class="sale-card-list"><li><button type="button" class="sale-card" data-sale-id="${rows[0].id}">${rows[0].customer_name}</button></li></ul>`,
+  })
+  assert(vendasCards.includes('data-sale-id="10"'))
+  assert(vendasCards.includes("Lia"))
+
   const team = renderVendedoras([{
+    seller_id: 2,
     name: "Marineide",
     month_ready: true,
     paid_count: 4,
@@ -379,6 +394,32 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(team.includes("Marineide"))
   assert(team.includes("Saldo a receber"))
   assert(team.includes("10%"))
+  assert(team.includes('data-seller-id="2"'))
+  assert(team.includes('aria-pressed="false"'))
+
+  const sellerSales = renderVendedoras([{
+    seller_id: 2,
+    name: "Marineide",
+    month_ready: true,
+    paid_count: 1,
+    paid_orders_count: 1,
+    charged_total: 190,
+    commission_amount: 19,
+    commission_percent: 10,
+    balance: 0,
+  }], undefined, {
+    selectedSellerId: 2,
+    sales: [
+      { id: 10, seller_id: 2, seller_name: "Marineide", customer_name: "Lia", total: 190, payment_status: "paid" },
+      { id: 11, seller_id: 3, seller_name: "Outra", customer_name: "Ana", total: 80, payment_status: "paid" },
+    ],
+    renderSales: (rows) => rows.map((sale) => `<button class="sale-card" data-sale-id="${sale.id}">${sale.customer_name}</button>`).join(""),
+  })
+  assert(sellerSales.includes("Vendas · Marineide"))
+  assert(sellerSales.includes('aria-pressed="true"'))
+  assert(sellerSales.includes("Lia"))
+  assertEquals(sellerSales.includes("Ana"), false)
+
   const waiting = renderVendedoras(sellersFromDirectory([{ id: 2, name: "Marineide" }]))
   assert(waiting.includes("Marineide"))
   assert(waiting.includes(NO_DATA))

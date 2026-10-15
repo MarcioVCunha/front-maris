@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1"
 import {
   ADMIN_SALE_EDIT_ENABLED,
   filterSalesByChannel,
+  filterSalesBySeller,
   normalizeAdminSale,
   normalizeSaleItems,
   readSaleEditForm,
@@ -29,12 +30,13 @@ Deno.test("a edição de venda no painel fica ligada ao contrato do back #18", a
   assertEquals(saleChannelLabel("tiktok"), "TikTok Shop")
 })
 
-Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () => {
+Deno.test("filtra vendas por canal ou vendedora e monta cards com chip de status", () => {
   const sales = [
     {
       id: 1,
       channel: "shopee",
       customer_name: "Ana",
+      seller_id: null,
       seller_name: "",
       total: 200,
       payment_status: "paid",
@@ -46,6 +48,7 @@ Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () =>
       id: 2,
       channel: "equipe",
       customer_name: "Lia",
+      seller_id: 2,
       seller_name: "Marineide",
       total: 190,
       payment_status: "receivable",
@@ -56,6 +59,8 @@ Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () =>
   ]
   assertEquals(filterSalesByChannel(sales, "shopee").map((s) => s.id), [1])
   assertEquals(filterSalesByChannel(sales, "").length, 2)
+  assertEquals(filterSalesBySeller(sales, { seller_id: 2, name: "Marineide" }).map((s) => s.id), [2])
+  assertEquals(filterSalesBySeller(sales, { name: "Marineide" }).map((s) => s.id), [2])
   assertEquals(salePrimaryPhoto(sales[0]), "https://exemplo.test/a.jpg")
   assertEquals(salePrimaryPhoto(sales[1]), "")
 

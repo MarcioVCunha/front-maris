@@ -155,6 +155,20 @@ export function filterSalesByChannel(sales, channel) {
   return (sales || []).filter((sale) => String(sale?.channel || "").toLowerCase() === key)
 }
 
+/** Filtra vendas de uma vendedora (seller_id; cai no nome se o id faltar). */
+export function filterSalesBySeller(sales, seller) {
+  if (!seller) return Array.isArray(sales) ? sales : []
+  const id = seller.seller_id ?? seller.id
+  const name = String(seller.name || seller.seller_name || "").trim().toLowerCase()
+  return (sales || []).filter((sale) => {
+    if (id != null && id !== "" && sale.seller_id != null && sale.seller_id !== "") {
+      return String(sale.seller_id) === String(id)
+    }
+    if (name) return String(sale.seller_name || "").trim().toLowerCase() === name
+    return false
+  })
+}
+
 export function normalizeSaleItems(raw) {
   if (!Array.isArray(raw)) return []
   return raw.map((item) => ({
@@ -234,10 +248,12 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
   </div>`
 }
 
-/** Cards de venda para Início / listas. */
+/** Cards de venda para Início / Vendas / Vendedoras. */
 export function renderSaleCards(sales, formatMoney, options = {}) {
   const rows = Array.isArray(sales) ? sales : []
-  if (!rows.length) return `<p class="empty">Nenhuma venda neste canal.</p>`
+  if (!rows.length) {
+    return `<p class="empty">${escapeHtml(options.empty || "Nenhuma venda neste canal.")}</p>`
+  }
   const clickable = options.clickable !== false
   return `<ul class="sale-card-list">${rows.map((sale) => {
     const status = saleStatusLabel(sale.payment_status)
