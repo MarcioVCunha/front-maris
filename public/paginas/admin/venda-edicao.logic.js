@@ -1,6 +1,8 @@
 // Edição de venda reutilizável (Início, Vendas, Vendedoras).
-// ADMIN_SALE_EDIT_ENABLED ligada ao contrato back-maris PR #18
-// (admin-sale-get / update / cancel / mark-paid). Ver docs/contratos/painel-venda-edicao.md.
+// ADMIN_SALE_EDIT_ENABLED ligada ao back-maris PR #18 publicado:
+// admin-recent-sales v3, admin-sale-get / admin-sale-update /
+// admin-sale-cancel / admin-sale-mark-paid v1
+// (orders.read_all / orders.write_all). Ver docs/contratos/painel-venda-edicao.md.
 
 export const ADMIN_SALE_EDIT_ENABLED = true
 

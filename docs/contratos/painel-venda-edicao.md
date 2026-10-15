@@ -2,7 +2,7 @@
 
 Componente reutilizável em `public/paginas/admin/venda-edicao.logic.js` (Início; Vendas e Vendedoras na Fase 2 passos 3–4).
 
-Flag: `ADMIN_SALE_EDIT_ENABLED` (**ligada**). Contrato alinhado ao back-maris PR #18.
+Flag: `ADMIN_SALE_EDIT_ENABLED` (**ligada**). Back-maris PR #18 **publicado**.
 
 ## Campos separados (não misturar)
 
@@ -10,24 +10,22 @@ Flag: `ADMIN_SALE_EDIT_ENABLED` (**ligada**). Contrato alinhado ao back-maris PR
 - `payment_status` — status (`paid` | `partial` | `receivable` | …)
 - `payment_method` — método (`pix` | `dinheiro` | `cartao` | …)
 
-## Edges / RPCs (back #18)
+## Edges (nomes exatos)
 
-| Edge | Método | Corpo / query | Uso no front |
-| --- | --- | --- | --- |
-| `admin-recent-sales` | GET `?limit=` | — | Lista com `items[]` (foto por peça) |
-| `admin-sale-get` | GET `?order_id=` | — | Detalhe ao abrir o diálogo |
-| `admin-sale-update` | POST | `{ order_id, total?, items?: [{ id?, code, component_id?, quantity, unit_price? }] }` | Salvar |
-| `admin-sale-cancel` | POST | `{ order_id }` | Cancelar (qualquer canal) |
-| `admin-sale-mark-paid` | POST | `{ order_id }` | Marcar como paga |
+| Edge | Versão | Método | Query / corpo | Permissão |
+| --- | --- | --- | --- | --- |
+| `admin-recent-sales` | **v3** | GET | `limit`, `p_channel?` | `orders.read_all` |
+| `admin-sale-get` | **v1** | GET | `order_id` | `orders.read_all` |
+| `admin-sale-update` | **v1** | POST | `{ order_id, total?, items?: [{ id?, code, component_id?, quantity, unit_price? }] }` | `orders.write_all` |
+| `admin-sale-cancel` | **v1** | POST | `{ order_id }` | `orders.write_all` |
+| `admin-sale-mark-paid` | **v1** | POST | `{ order_id }` | `orders.write_all` |
 
-### `items[]` (lista e detalhe)
+### `admin-recent-sales` v3
 
-Cada item: `{ id, code, name, quantity, unit_price, line_total, image_url, component_id?, legacy_sale_id? }`.
+Cada venda traz `seller_name`, `payment_status` e `payment_method` **separados**, mais `items[]`:
 
-Capa da venda: primeira `image_url` dos itens, ou `image_url` no nível da venda.
+`{ id, code, name, quantity, unit_price, line_total, image_url, component_id?, legacy_sale_id? }`
 
-### Auth
+Query opcional `p_channel` filtra no servidor (`site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`).
 
-Staff admin (`orders.read_all` / `orders.write_all` conforme o back).
-
-Sem o deploy do back #18, as mutações falham na rede; a UI e os payloads já estão prontos para aprovação.
+Capa da venda no front: primeira `image_url` dos itens (ou `image_url` no nível da venda, se vier).

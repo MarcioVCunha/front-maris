@@ -152,21 +152,24 @@ export async function fetchMonthOverview({ month }, client) {
 }
 
 /**
- * GET admin-recent-sales?limit=20
- * Resposta (back PR #18): sales com seller_name, payment_status, payment_method separados
- * e items[] { id, code, name, quantity, unit_price, line_total, image_url, legacy_sale_id? }.
+ * GET admin-recent-sales v3 (back-maris PR #18) — auth orders.read_all
+ * Query: limit, p_channel? (site|equipe|shopee|mercado_livre|tiktok)
+ * Sales: seller_name, payment_status, payment_method separados;
+ * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }.
  * Ver docs/contratos/painel-venda-edicao.md.
  */
-export async function fetchRecentSales({ limit = 20 }, client) {
+export async function fetchRecentSales({ limit = 20, channel } = {}, client) {
+  const query = { limit }
+  if (channel) query.p_channel = channel
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {
     method: "GET",
-    query: { limit }
+    query
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as vendas.")
   return { ok: true, data: result.data || {} }
 }
 
-/** GET admin-sale-get?order_id= — detalhe completo da venda (PR #18). */
+/** GET admin-sale-get v1?order_id= — orders.read_all (PR #18). */
 export async function fetchAdminSale({ orderId }, client) {
   const result = await call(ADMIN_DASHBOARD_API.saleGet, {
     method: "GET",
@@ -176,21 +179,21 @@ export async function fetchAdminSale({ orderId }, client) {
   return { ok: true, data: result.data || {} }
 }
 
-/** POST admin-sale-update — { order_id, total?, items? } (PR #18). */
+/** POST admin-sale-update v1 — { order_id, total?, items? }; orders.write_all (PR #18). */
 export async function updateAdminSale(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.saleUpdate, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar a venda.")
   return { ok: true, data: result.data || {} }
 }
 
-/** POST admin-sale-cancel — { order_id } (PR #18). */
+/** POST admin-sale-cancel v1 — { order_id }; orders.write_all (PR #18). */
 export async function cancelAdminSale(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.saleCancel, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível cancelar a venda.")
   return { ok: true, data: result.data || {} }
 }
 
-/** POST admin-sale-mark-paid — { order_id } (PR #18). */
+/** POST admin-sale-mark-paid v1 — { order_id }; orders.write_all (PR #18). */
 export async function markAdminSalePaid(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.saleMarkPaid, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível marcar a venda como paga.")
