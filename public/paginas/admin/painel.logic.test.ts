@@ -239,7 +239,7 @@ Deno.test("os padrões de categoria do servidor viram mapa por nome Anel/Brinco"
   })
 })
 
-Deno.test("o SKU do tipo segue código-TIPO", () => {
+Deno.test("o SKU da divisão segue código-DIVISAO", () => {
   assertEquals(componentSku("AN581-R", "Pedra"), "AN581-R-PEDRA")
   assertEquals(isComponentSku("AN581-R-PEDRA", "AN581-R"), true)
   assertEquals(isComponentSku("OUTRO-PEDRA", "AN581-R"), false)
@@ -256,6 +256,7 @@ Deno.test("o SKU do tipo segue código-TIPO", () => {
     components: [{ id: 13, name: "Pedra", sku: "AN581-R-PEDRA" }],
   }])
   assert(html.includes("AN581-R-PEDRA"))
+  assert(html.includes("DIVISAO"))
   assert(html.includes('data-component-id="13"'))
 })
 
@@ -265,7 +266,9 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(isDashboardAdmin(null), false)
   assertEquals(dashboardView("/admin/estoque"), "estoque")
   assertEquals(dashboardView("/admin/peca", "?code=AN581-R"), "peca")
-  assertEquals(dashboardView("/paginas/admin/painel.html", "?view=tipos"), "tipos")
+  assertEquals(dashboardView("/admin/conjuntos"), "conjuntos")
+  assertEquals(dashboardView("/admin/tipos"), "conjuntos")
+  assertEquals(dashboardView("/paginas/admin/painel.html", "?view=tipos"), "conjuntos")
   const list = renderStockList([{
     code: "AN581-R",
     name: "Anel rosa",
