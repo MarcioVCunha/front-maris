@@ -52,7 +52,10 @@ function failed(result, fallback) {
  * GET admin-product-list
  * Resposta: { ok, products: [{ code, name, unit_price, quantity, categoria,
  *   image_url, image_urls, descricao, peso_g, largura_cm, altura_cm,
- *   comprimento_cm, ncm, origem, gtin, components: [{ id, name, sku }] }] }
+ *   comprimento_cm, ncm, origem, gtin, components: [{ id, name, sku }],
+ *   preco_marketplace? }] }
+ * preco_marketplace (back-maris PR #16): só leitura; fórmula no contrato painel-admin-inicio.
+ * O front só mostra com ADMIN_HOME_CHANNELS_ENABLED.
  */
 export async function listProducts(client) {
   const result = await call(ADMIN_DASHBOARD_API.productList, { method: "GET" }, client)
@@ -129,9 +132,10 @@ export async function addProduct(body, client) {
 
 /**
  * GET admin-month-overview?month=YYYY-MM
- * Resposta: { ok, month, timezone, paid_count, paid_orders_count, charged_total,
- *   channels: [{ channel: site|equipe|marketplace, orders, charged_total }],
- *   best_sellers: [{ code, name, quantity, charged_total }] }
+ * Formato atual: channels site|equipe|marketplace; best_sellers sem channels.
+ * Fase 2 (back-maris PR #16, docs/contratos/painel-admin-inicio.md): previous,
+ *   channels site|equipe|shopee|mercado_livre|tiktok (+ previous_*),
+ *   best_sellers[].channels. Front atrás de ADMIN_HOME_CHANNELS_ENABLED.
  * Só administrador. Se a função ainda não existe, a tela mostra "sem dados ainda".
  */
 export async function fetchMonthOverview({ month }, client) {
