@@ -37,19 +37,28 @@ import {
 } from "./painel.logic.js"
 import {
   ADMIN_SALE_EDIT_ENABLED,
+  normalizeAdminSale,
+  readSaleEditForm,
   renderSaleCards,
   renderSaleEditDialog,
+  saleCancelPayload,
+  saleMarkPaidPayload,
+  saleUpdatePayload,
   shouldShowSaleEdit
 } from "./venda-edicao.logic.js"
 import {
   addProduct,
   archiveProduct,
+  cancelAdminSale,
+  fetchAdminSale,
   fetchCategoryDefaults,
   fetchMonthOverview,
   fetchRecentSales,
   fetchSellersMonth,
   importProducts,
   listProducts,
+  markAdminSalePaid,
+  updateAdminSale,
   updateComponentSku,
   updateProduct
 } from "./painel.api.js"
@@ -382,22 +391,74 @@ async function loadRecent() {
   return state.recent
 }
 
-function openSaleDialog(sale) {
-  if (!saleDialog || !sale) return
-  saleDialog.innerHTML = renderSaleEditDialog(sale, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
-  saleDialog.showModal()
+function bindSaleEditActions(sale) {
   saleDialog.querySelector("#sale-edit-close")?.addEventListener("click", () => saleDialog.close())
-  if (!shouldShowSaleEdit()) return
-  // Ações reais ficam para quando as RPCs existirem e a flag ligar.
-  saleDialog.querySelector("#sale-edit-save")?.addEventListener("click", () => {
-    showMessage("Salvar venda ainda depende do back (ver contrato de edição).", "error")
+  if (!shouldShowSaleEdit(ADMIN_SALE_EDIT_ENABLED)) return
+
+  saleDialog.querySelector("#sale-edit-save")?.addEventListener("click", async () => {
+    const form = readSaleEditForm(saleDialog.querySelector(".sale-edit"))
+    const body = saleUpdatePayload(sale.id, form)
+    showMessage("Salvando…")
+    const result = await updateAdminSale(body)
+    if (!result.ok) {
+      showMessage(result.error, "error")
+      return
+    }
+    state.recent = undefined
+    state.overview = undefined
+    saleDialog.close()
+    showMessage("Venda salva.")
+    showView()
   })
-  saleDialog.querySelector("#sale-edit-paid")?.addEventListener("click", () => {
-    showMessage("Marcar como paga no painel ainda depende do back unificado.", "error")
+
+  saleDialog.querySelector("#sale-edit-paid")?.addEventListener("click", async () => {
+    showMessage("Marcando como paga…")
+    const result = await markAdminSalePaid(saleMarkPaidPayload(sale.id))
+    if (!result.ok) {
+      showMessage(result.error, "error")
+      return
+    }
+    state.recent = undefined
+    state.overview = undefined
+    saleDialog.close()
+    showMessage("Venda marcada como paga.")
+    showView()
   })
-  saleDialog.querySelector("#sale-edit-cancel")?.addEventListener("click", () => {
-    showMessage("Cancelar venda no painel ainda depende do back unificado.", "error")
+
+  saleDialog.querySelector("#sale-edit-cancel")?.addEventListener("click", async () => {
+    if (!window.confirm("Cancelar esta venda e devolver o estoque?")) return
+    showMessage("Cancelando…")
+    const result = await cancelAdminSale(saleCancelPayload(sale.id))
+    if (!result.ok) {
+      showMessage(result.error, "error")
+      return
+    }
+    state.recent = undefined
+    state.overview = undefined
+    saleDialog.close()
+    showMessage("Venda cancelada.")
+    showView()
   })
+}
+
+async function openSaleDialog(sale) {
+  if (!saleDialog || !sale) return
+  let detail = sale
+  saleDialog.innerHTML = renderSaleEditDialog(detail, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
+  if (!saleDialog.open) saleDialog.showModal()
+  bindSaleEditActions(detail)
+
+  if (shouldShowSaleEdit(ADMIN_SALE_EDIT_ENABLED)) {
+    const loaded = await fetchAdminSale({ orderId: sale.id })
+    if (loaded.ok) {
+      const normalized = normalizeAdminSale(loaded.data)
+      if (normalized) {
+        detail = normalized
+        saleDialog.innerHTML = renderSaleEditDialog(detail, formatPrice, { enabled: true })
+        bindSaleEditActions(detail)
+      }
+    }
+  }
 }
 
 function paintInicio() {

@@ -3,12 +3,16 @@ import {
   ADMIN_DASHBOARD_API,
   addProduct,
   archiveProduct,
+  cancelAdminSale,
+  fetchAdminSale,
   fetchCategoryDefaults,
   fetchMonthOverview,
   fetchRecentSales,
   fetchSellersMonth,
   importProducts,
   listProducts,
+  markAdminSalePaid,
+  updateAdminSale,
   updateComponentSku,
   updateProduct,
 } from "./painel.api.js"
@@ -35,6 +39,10 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.monthOverview, "admin-month-overview")
   assertEquals(ADMIN_DASHBOARD_API.recentSales, "admin-recent-sales")
   assertEquals(ADMIN_DASHBOARD_API.sellersMonth, "admin-sellers-month")
+  assertEquals(ADMIN_DASHBOARD_API.saleGet, "admin-sale-get")
+  assertEquals(ADMIN_DASHBOARD_API.saleUpdate, "admin-sale-update")
+  assertEquals(ADMIN_DASHBOARD_API.saleCancel, "admin-sale-cancel")
+  assertEquals(ADMIN_DASHBOARD_API.saleMarkPaid, "admin-sale-mark-paid")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -130,4 +138,27 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(team.ok, true)
   assertEquals(sellers.calls[0].name, "admin-sellers-month")
   assertEquals(sellers.calls[0].options.method, "GET")
+
+  const saleGet = client({ ok: true, sale: { id: 55, items: [] } })
+  await fetchAdminSale({ orderId: 55 }, saleGet)
+  assertEquals(saleGet.calls[0].name, "admin-sale-get")
+  assertEquals(saleGet.calls[0].options.method, "GET")
+  assertEquals(saleGet.calls[0].options.query, { order_id: 55 })
+
+  const saleUpdate = client({ ok: true })
+  const updateBody = { order_id: 55, total: 200, items: [{ code: "AN581-R", quantity: 1 }] }
+  await updateAdminSale(updateBody, saleUpdate)
+  assertEquals(saleUpdate.calls[0].name, "admin-sale-update")
+  assertEquals(saleUpdate.calls[0].options.method, "POST")
+  assertEquals(saleUpdate.calls[0].options.body, updateBody)
+
+  const saleCancel = client({ ok: true })
+  await cancelAdminSale({ order_id: 55 }, saleCancel)
+  assertEquals(saleCancel.calls[0].name, "admin-sale-cancel")
+  assertEquals(saleCancel.calls[0].options.body, { order_id: 55 })
+
+  const salePaid = client({ ok: true })
+  await markAdminSalePaid({ order_id: 55 }, salePaid)
+  assertEquals(salePaid.calls[0].name, "admin-sale-mark-paid")
+  assertEquals(salePaid.calls[0].options.body, { order_id: 55 })
 })
