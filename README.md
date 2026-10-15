@@ -15,7 +15,7 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início (mês, origem e mais vendidas), Estoque, Vendas, Vendedoras e o atalho de Promoções |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Redireciona para `/vendas/nova` |
-| `/vendas/nova` | Equipe | Registrar venda: peças, cliente, pagamento e comissão do mês |
+| `/vendas/nova` | Equipe | Registrar venda (equipe) e venda de marketplace (Shopee, Mercado Livre, TikTok Shop) |
 | `/lista-espera` | Administração | Lista de espera |
 | `/adicionar-peca` | Administração | Cadastrar uma peça |
 | `/importar` | Administração | Importar várias peças por JSON |

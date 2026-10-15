@@ -1,5 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@1"
 import {
+  MARKETPLACE_PLATFORMS,
   MARKETPLACE_SALE_ENABLED,
   NEW_SALE_ENABLED,
   buildCreateSaleBody,
@@ -410,12 +411,20 @@ Deno.test("o atalho da equipe abre a venda nova", async () => {
   assertEquals(hub.includes("Ainda desligada"), false)
 })
 
-Deno.test("marketplace fica desligado e monta o corpo do contrato real", async () => {
-  assertEquals(MARKETPLACE_SALE_ENABLED, false)
-  assertEquals(shouldShowMarketplaceSale(), false)
+Deno.test("marketplace fica ligado e monta o corpo do contrato real", async () => {
+  assertEquals(MARKETPLACE_SALE_ENABLED, true)
+  assertEquals(shouldShowMarketplaceSale(), true)
   assertEquals(marketplaceLabel("shopee"), "Shopee")
   assertEquals(marketplaceLabel("mercado_livre"), "Mercado Livre")
-  assertEquals(marketplaceLabel("tiktok"), "TikTok")
+  assertEquals(marketplaceLabel("tiktok"), "TikTok Shop")
+  assertEquals(
+    MARKETPLACE_PLATFORMS.map((item) => item.id),
+    ["shopee", "mercado_livre", "tiktok"]
+  )
+  assertEquals(
+    MARKETPLACE_PLATFORMS.map((item) => item.label),
+    ["Shopee", "Mercado Livre", "TikTok Shop"]
+  )
 
   assertEquals(marketplaceLine({ id: 12, code: "AN581-R", quantity: 1 }), {
     product_code: "AN581-R",
@@ -426,9 +435,16 @@ Deno.test("marketplace fica desligado e monta o corpo do contrato real", async (
     quantity: 2
   })
 
+  const pieces = [{ id: 12, code: "AN581-R", quantity: 1 }]
+  for (const channel of ["shopee", "mercado_livre", "tiktok"]) {
+    const builtChannel = buildMarketplaceSaleBody({ channel, pieces })
+    assertEquals(builtChannel.ok, true)
+    assertEquals(builtChannel.body.channel, channel)
+  }
+
   const built = buildMarketplaceSaleBody({
     channel: "shopee",
-    pieces: [{ id: 12, code: "AN581-R", quantity: 1 }],
+    pieces,
     clientRequestId: "11111111-1111-1111-1111-111111111111",
     notes: "SP-99"
   })
@@ -443,6 +459,10 @@ Deno.test("marketplace fica desligado e monta o corpo do contrato real", async (
 
   assertEquals(buildMarketplaceSaleBody({
     channel: "outro",
+    pieces: [{ id: 1, code: "X", quantity: 1 }]
+  }).ok, false)
+  assertEquals(buildMarketplaceSaleBody({
+    channel: "TikTok Shop",
     pieces: [{ id: 1, code: "X", quantity: 1 }]
   }).ok, false)
 
@@ -471,7 +491,9 @@ Deno.test("marketplace fica desligado e monta o corpo do contrato real", async (
 
   const page = await Deno.readTextFile(new URL("./nova-venda.html", import.meta.url))
   assert(page.includes('id="marketplace-sale-btn"'))
-  assert(page.includes('data-marketplace="shopee"'))
+  assert(page.includes('data-marketplace="shopee">Shopee<'))
+  assert(page.includes('data-marketplace="mercado_livre">Mercado Livre<'))
+  assert(page.includes('data-marketplace="tiktok">TikTok Shop<'))
   assert(page.includes('id="marketplace-notes"'))
   assertEquals(page.includes("external-order-id"), false)
   const contract = await Deno.readTextFile(new URL("../../../docs/contratos/venda-marketplace.md", import.meta.url))

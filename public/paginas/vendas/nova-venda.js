@@ -381,7 +381,7 @@ function onNext() {
   const current = steps[state.step - 1]
   if (current === "channel") {
     if (!state.marketplace) {
-      setNote(flowMessageEl, "Escolha Shopee, Mercado Livre ou TikTok.", "error")
+      setNote(flowMessageEl, "Escolha Shopee, Mercado Livre ou TikTok Shop.", "error")
       return
     }
     showFlow(state.step + 1)
