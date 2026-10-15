@@ -12,7 +12,7 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/catalog/carrinho` | Visitante | Revisão da cesta e pedido |
 | `/equipe` | Equipe | Login com e-mail e senha |
 | `/equipe/nova-senha` | Equipe | Nova senha a partir do e-mail |
-| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início com totais por origem em faixa (filtra vendas ao tocar), Estoque (peças, **Conjuntos**/divisões com `ADMIN_CONJUNTOS_ENABLED` ligada ao back PR #17, preço do site + marketplace), Vendas, Vendedoras e Promoções. Edição de venda (`ADMIN_SALE_EDIT_ENABLED`) desligada até o back |
+| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início com totais por origem em faixa (filtra vendas ao tocar), Estoque (peças, **Conjuntos**/divisões com `ADMIN_CONJUNTOS_ENABLED` ligada ao back PR #17, preço do site + marketplace), Vendas, Vendedoras e Promoções. Edição de venda (`ADMIN_SALE_EDIT_ENABLED`) ligada ao back-maris PR #18 |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Redireciona para `/vendas/nova` |
 | `/vendas/nova` | Equipe | Registrar venda (equipe) e venda de marketplace (Shopee, Mercado Livre, TikTok Shop) |

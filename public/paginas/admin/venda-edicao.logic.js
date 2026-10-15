@@ -1,10 +1,11 @@
 // Edição de venda reutilizável (Início, Vendas, Vendedoras).
-// Chips/foto leem admin-recent-sales v3 (items[].image_url; seller_name,
-// payment_status e payment_method separados). ADMIN_SALE_EDIT_ENABLED fica
-// desligada aqui; mutações admin-sale-* v1 no PR que liga a flag.
-// Ver docs/contratos/painel-venda-edicao.md (back-maris PR #18).
+// ADMIN_SALE_EDIT_ENABLED ligada ao back-maris PR #18 publicado:
+// admin-recent-sales v3 (chips/foto: items[].image_url; seller_name,
+// payment_status e payment_method separados), admin-sale-get /
+// admin-sale-update / admin-sale-cancel / admin-sale-mark-paid v1
+// (orders.read_all / orders.write_all). Ver docs/contratos/painel-venda-edicao.md.
 
-export const ADMIN_SALE_EDIT_ENABLED = false
+export const ADMIN_SALE_EDIT_ENABLED = true
 
 export function shouldShowSaleEdit(enabled = ADMIN_SALE_EDIT_ENABLED) {
   return enabled === true
@@ -164,6 +165,9 @@ export function normalizeSaleItems(raw) {
     unit_price: item?.unit_price == null ? null : Number(item.unit_price),
     line_total: item?.line_total == null ? null : Number(item.line_total),
     image_url: String(item?.image_url || "").trim(),
+    component_id: item?.component_id == null || item?.component_id === ""
+      ? null
+      : Number(item.component_id),
     legacy_sale_id: item?.legacy_sale_id == null ? null : Number(item.legacy_sale_id)
   }))
 }
@@ -191,7 +195,7 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
           <b>${escapeHtml(money(line, formatMoney))}</b>
         </article>`
       }
-      return `<article class="sale-edit__piece" data-item-index="${index}">
+      return `<article class="sale-edit__piece" data-item-index="${index}" data-item-id="${escapeHtml(item.id ?? "")}" data-code="${escapeHtml(item.code || "")}" data-component-id="${escapeHtml(item.component_id ?? "")}">
         ${piecePhotoHtml(item)}
         <label class="field"><span>Peça</span>
           <input data-edit="name" value="${escapeHtml(item.name || "")}" readonly></label>
@@ -267,6 +271,9 @@ export function readSaleEditForm(root) {
   if (!root) return null
   const totalRaw = root.querySelector("#sale-edit-total")?.value
   const pieces = [...root.querySelectorAll(".sale-edit__piece[data-item-index]")].map((node) => ({
+    id: node.getAttribute("data-item-id") || null,
+    code: node.getAttribute("data-code") || "",
+    component_id: node.getAttribute("data-component-id") || null,
     name: node.querySelector('[data-edit="name"]')?.value ?? "",
     quantity: node.querySelector('[data-edit="quantity"]')?.value ?? "",
     unit_price: node.querySelector('[data-edit="unit_price"]')?.value ?? ""
@@ -275,5 +282,65 @@ export function readSaleEditForm(root) {
     id: root.getAttribute("data-sale-id"),
     total: totalRaw,
     pieces
+  }
+}
+
+function parseMoneyInput(raw) {
+  if (raw == null || raw === "") return null
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw
+  const text = String(raw).trim().replace(/\s/g, "").replace(/\./g, "").replace(",", ".")
+  const number = Number(text)
+  return Number.isFinite(number) ? number : null
+}
+
+/** Corpo de POST admin-sale-update (back PR #18). */
+export function saleUpdatePayload(orderId, form) {
+  const items = (form?.pieces || []).map((piece) => {
+    const item = {
+      code: String(piece.code || "").trim(),
+      quantity: Math.max(0, Math.trunc(Number(piece.quantity) || 0))
+    }
+    const id = Number(piece.id)
+    if (Number.isInteger(id) && id > 0) item.id = id
+    const componentId = Number(piece.component_id)
+    if (Number.isInteger(componentId) && componentId > 0) item.component_id = componentId
+    const unit = parseMoneyInput(piece.unit_price)
+    if (unit != null) item.unit_price = unit
+    return item
+  }).filter((item) => item.code || item.id || item.component_id)
+  const body = { order_id: Number(orderId) }
+  const total = parseMoneyInput(form?.total)
+  if (total != null) body.total = total
+  if (items.length) body.items = items
+  return body
+}
+
+export function saleCancelPayload(orderId) {
+  return { order_id: Number(orderId) }
+}
+
+export function saleMarkPaidPayload(orderId) {
+  return { order_id: Number(orderId) }
+}
+
+/** Normaliza a resposta de admin-sale-get. */
+export function normalizeAdminSale(data) {
+  const sale = data?.sale || data
+  if (!sale || sale.id == null) return null
+  return {
+    id: sale.id,
+    created_at: sale.created_at || "",
+    seller_name: sale.seller_name || "",
+    channel: sale.channel || "",
+    customer_name: sale.customer_name || "",
+    total: sale.total,
+    payment_status: sale.payment_status || "",
+    payment_method: sale.payment_method || "",
+    items_count: Number(sale.items_count) || (Array.isArray(sale.items) ? sale.items.length : 0),
+    image_url: String(sale.image_url || "").trim(),
+    items: normalizeSaleItems(sale.items).map((item, index) => ({
+      ...item,
+      component_id: sale.items?.[index]?.component_id ?? item.component_id ?? null
+    }))
   }
 }
