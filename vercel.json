@@ -34,6 +34,7 @@
     { "source": "/", "destination": "/index.html" },
     { "source": "/admin/inicio", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/estoque", "destination": "/paginas/admin/painel.html" },
+    { "source": "/admin/esgotadas", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/vendas", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/vendedoras", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/peca", "destination": "/paginas/admin/painel.html" },
