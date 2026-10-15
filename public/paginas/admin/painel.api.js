@@ -148,16 +148,17 @@ export async function fetchMonthOverview({ month }, client) {
 }
 
 /**
- * GET admin-recent-sales?limit=20
- * Resposta atual: { ok, sales: [{ id, created_at, seller_name, channel, customer_name,
- *   total, payment_status, payment_method, items_count }] }
- * Desejado (fotos/edição): items[] com code, name, quantity, unit_price, image_url.
- * Ver docs/contratos/painel-venda-edicao.md. Só administrador.
+ * GET admin-recent-sales v3 (back-maris PR #18) — auth orders.read_all
+ * Query: limit, p_channel? (site|equipe|shopee|mercado_livre|tiktok)
+ * Sales: seller_name, payment_status, payment_method separados;
+ * items[] com image_url (chips/foto no Início). Ver docs/contratos/painel-venda-edicao.md.
  */
-export async function fetchRecentSales({ limit = 20 }, client) {
+export async function fetchRecentSales({ limit = 20, channel } = {}, client) {
+  const query = { limit }
+  if (channel) query.p_channel = channel
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {
     method: "GET",
-    query: { limit }
+    query
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as vendas.")
   return { ok: true, data: result.data || {} }

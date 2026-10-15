@@ -1,6 +1,8 @@
 // Edição de venda reutilizável (Início, Vendas, Vendedoras).
-// ADMIN_SALE_EDIT_ENABLED fica desligada: o back ainda não tem RPC unificado
-// para alterar valor/peças nem detalhe admin com foto. Ver docs/contratos/painel-venda-edicao.md.
+// Chips/foto leem admin-recent-sales v3 (items[].image_url; seller_name,
+// payment_status e payment_method separados). ADMIN_SALE_EDIT_ENABLED fica
+// desligada aqui; mutações admin-sale-* v1 no PR que liga a flag.
+// Ver docs/contratos/painel-venda-edicao.md (back-maris PR #18).
 
 export const ADMIN_SALE_EDIT_ENABLED = false
 
