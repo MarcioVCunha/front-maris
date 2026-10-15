@@ -1,6 +1,6 @@
 # Edição de venda no painel admin
 
-Componente reutilizável em `public/paginas/admin/venda-edicao.logic.js` (Início; Vendas e Vendedoras na Fase 2 passos 3–4).
+Componente reutilizável em `public/paginas/admin/venda-edicao.logic.js` (Início, Vendas e Vendedoras — Fase 2 passos 3–4).
 
 Flag: `ADMIN_SALE_EDIT_ENABLED` (**ligada**). Back-maris PR #18 **publicado**.
 
