@@ -90,6 +90,11 @@
   padding: 16px;
 }
 
+.view.view--inicio {
+  width: min(100%, 1120px);
+  max-width: 1120px;
+}
+
 .stack,
 .piece-row,
 .sku-row {
@@ -306,7 +311,11 @@
 .channel-row small,
 .best-row small,
 .sale-row small,
-.delta {
+.delta,
+.origin-card__meta,
+.origin-card__delta,
+.sale-card small,
+.origin-hint {
   color: var(--maris-text-muted);
 }
 
@@ -318,6 +327,181 @@
   background: color-mix(in srgb, var(--maris-bg) 70%, var(--maris-surface));
   color: var(--maris-text-muted);
   cursor: default;
+}
+
+.inicio-hero {
+  margin-bottom: 8px;
+}
+
+.origin-hint {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.origin-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 12px;
+  margin: 0 -4px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.origin-card {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-width: 148px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.origin-card:hover {
+  border-color: var(--maris-gold-dark);
+}
+
+.origin-card:active {
+  transform: scale(0.98);
+}
+
+.origin-card[aria-pressed="true"] {
+  background: var(--maris-black);
+  color: #fff;
+  border-color: var(--maris-black);
+}
+
+.origin-card[aria-pressed="true"] .origin-card__meta,
+.origin-card[aria-pressed="true"] .delta {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.origin-card__name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.origin-card__total {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.sale-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sale-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sale-card--static {
+  cursor: default;
+}
+
+.sale-card__photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--maris-gold-light);
+  flex: 0 0 auto;
+}
+
+.sale-card__photo--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--maris-gold-dark);
+}
+
+.sale-card__copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.sale-card__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.sale-dialog {
+  width: min(440px, calc(100% - 32px));
+}
+
+.sale-edit .sale-card__photo,
+.sale-edit .sale-card__photo--empty {
+  margin: 8px 0 12px;
+}
+
+.sale-edit__pieces {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.sale-edit__piece {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--maris-border);
+  border-radius: 10px;
+  background: var(--maris-surface);
+}
+
+.sale-edit__piece .field {
+  flex: 1;
+  min-width: 0;
+}
+
+.sale-edit__actions {
+  flex-wrap: wrap;
+}
+
+.sale-edit__pending {
+  margin-top: 12px;
+}
+
+.best-list {
+  margin-top: 4px;
 }
 
 dialog {
@@ -423,6 +607,47 @@ dialog h2 {
     width: min(980px, 100%);
     margin: 0;
     padding: 28px 36px 40px;
+  }
+
+  .view.view--inicio {
+    width: min(1120px, 100%);
+    max-width: 1120px;
+    margin-inline: auto;
+    padding: 28px 36px 48px;
+  }
+
+  .origin-strip {
+    gap: 12px;
+    padding-bottom: 16px;
+  }
+
+  .origin-card {
+    min-width: 168px;
+    padding: 16px 18px;
+  }
+
+  .origin-card__total {
+    font-size: 1.4rem;
+  }
+
+  .sale-card-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .report--inicio .best-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .report--inicio .best-row {
+    margin-bottom: 0;
+    min-height: 88px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   .view:has(> .seller-card) {
@@ -556,6 +781,16 @@ dialog h2 {
   .note {
     width: min(1120px, 100%);
     padding: 36px 48px 56px;
+  }
+
+  .view.view--inicio {
+    width: min(1280px, 100%);
+    max-width: 1280px;
+    padding: 36px 48px 64px;
+  }
+
+  .sale-card-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .view:has(> .seller-card) {
