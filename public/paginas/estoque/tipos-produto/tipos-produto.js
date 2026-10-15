@@ -83,12 +83,12 @@ function renderProductCard(product) {
   const soldOut = hasTypes ? !availableViaTypes : parentQty <= 0
   const stockLabel = hasTypes
     ? (availableViaTypes
-      ? `Tipos com estoque: ${components.filter((c) => (Number(c.quantity) || 0) > 0).length}/${components.length}`
-      : "Tipos sem estoque")
+      ? `Divisões com estoque: ${components.filter((c) => (Number(c.quantity) || 0) > 0).length}/${components.length}`
+      : "Divisões sem estoque")
     : `Estoque: ${parentQty}`
   const splitInfo = hasTypes
-    ? `<div class="split-info">Tipos cadastrados: ${components.length}</div>`
-    : '<div class="split-info">Sem tipos cadastrados</div>'
+    ? `<div class="split-info">Divisões cadastradas: ${components.length}</div>`
+    : '<div class="split-info">Sem divisões cadastradas</div>'
 
   return `
     <div class="product" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
@@ -121,7 +121,7 @@ async function loadComponents() {
   const { data, error } = await window.MarisStaffData.listProductComponents()
 
   if (error) {
-    setMessage(error.message || "Erro ao carregar tipos cadastrados.", "error")
+    setMessage(error.message || "Erro ao carregar divisões cadastradas.", "error")
     return
   }
 
@@ -244,29 +244,29 @@ async function saveCurrentProductComponents() {
   if (willWipeAllExisting) {
     const ok = window.confirm(
       parsedRows.length === 0
-        ? "Isso remove todos os tipos deste produto. Deseja continuar?"
-        : "Isso remove todos os tipos atuais deste produto e salva apenas o que está na tela. Deseja continuar?"
+        ? "Isso remove todas as divisões deste produto. Deseja continuar?"
+        : "Isso remove todas as divisões atuais deste produto e salva apenas o que está na tela. Deseja continuar?"
     )
     if (!ok) return
   }
 
   for (const row of parsedRows) {
     if (row.id && !existingIds.has(row.id)) {
-      setMessage("Tipo inválido: atualize a página e tente de novo.", "error")
+      setMessage("Divisão inválida: atualize a página e tente de novo.", "error")
       return
     }
   }
 
   const { error: saveError } = await window.MarisStaffData.saveProductComponents(productCode, parsedRows)
   if (saveError) {
-    setMessage(saveError.message || "Erro ao salvar tipos.", "error")
+    setMessage(saveError.message || "Erro ao salvar divisões.", "error")
     return
   }
 
   await loadComponents()
   renderComponentRows(productCode)
   await loadCatalogProducts()
-  setMessage("Tipos salvos com sucesso.", "success")
+  setMessage("Divisões salvas com sucesso.", "success")
 }
 
 componentsList.addEventListener("click", (event) => {

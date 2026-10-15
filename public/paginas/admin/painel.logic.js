@@ -31,7 +31,7 @@ export const DASHBOARD_VIEWS = [
 
 export const STOCK_LINKS = [
   { id: "estoque", href: "/admin/estoque", label: "Peças" },
-  { id: "tipos", href: "/admin/tipos", label: "Tipos" },
+  { id: "conjuntos", href: "/admin/conjuntos", label: "Conjuntos" },
   { id: "adicionar", href: "/admin/adicionar", label: "Adicionar peça" },
   { id: "importar", href: "/admin/importar", label: "Importar" }
 ]
@@ -64,12 +64,14 @@ export function dashboardView(pathname, search = "") {
     "/admin/vendas": "vendas",
     "/admin/vendedoras": "vendedoras",
     "/admin/peca": "peca",
-    "/admin/tipos": "tipos",
+    "/admin/conjuntos": "conjuntos",
+    "/admin/tipos": "conjuntos",
     "/admin/adicionar": "adicionar",
     "/admin/importar": "importar"
   }
   if (known[path]) return known[path]
   const view = new URLSearchParams(search).get("view")
+  if (view === "tipos") return "conjuntos"
   return known[`/admin/${view}`] ? view : "inicio"
 }
 
@@ -440,6 +442,7 @@ export function renderAddForm(defaults = {}) {
   </form>`
 }
 
+/** @deprecated Use renderConjuntosPage em conjuntos.logic.js. Mantido para testes antigos. */
 export function renderTipos(products) {
   const blocks = []
   for (const piece of products || []) {
@@ -448,17 +451,17 @@ export function renderTipos(products) {
     const rows = components.map((item) => {
       const suggested = item.sku || componentSku(piece.code, item.name)
       return `<label class="sku-row">
-        <span>${escapeHtml(item.name || "Tipo")}</span>
+        <span>${escapeHtml(item.name || "Divisão")}</span>
         <input data-component-id="${escapeHtml(item.id)}" data-product-code="${escapeHtml(piece.code)}" value="${escapeHtml(suggested)}" placeholder="${escapeHtml(componentSku(piece.code, item.name))}">
       </label>`
     }).join("")
     blocks.push(`<section class="tipo-block">
       <h2>${escapeHtml(piece.name || piece.code)}</h2>
-      <p class="hint">${escapeHtml(piece.code)}-<span>TIPO</span></p>
+      <p class="hint">${escapeHtml(piece.code)}-<span>DIVISAO</span></p>
       ${rows}
     </section>`)
   }
-  if (!blocks.length) return `<p class="empty">Nenhuma peça com tipos.</p>`
+  if (!blocks.length) return `<p class="empty">Nenhuma peça com divisões.</p>`
   return `<form id="tipos-form" class="stack">${blocks.join("")}<button class="btn-primary" type="submit">Salvar SKUs</button></form>`
 }
 
