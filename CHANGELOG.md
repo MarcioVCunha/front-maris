@@ -16,6 +16,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Alterado
 
+- No detalhe da venda do Início: vendedora, status e método viram etiquetas coloridas (status no plano: A confirmar, A receber, Paga, Cancelada); some o aviso técnico da flag/`docs/contratos`; a foto da peça usa `items[].image_url` de `admin-recent-sales` v3 (back-maris PR #18; `seller_name` / `payment_status` / `payment_method` separados; iniciais só como fallback).
 - `/admin` abre o painel. Promoções continua em `/promocoes`, com atalho no menu.
 - Entrar em `/admin` espera o perfil do administrador. Um `staff-me` interrompido pela troca de página não manda mais para a mensagem de sem permissão.
 - `/admin` abre direto o painel, com o brilho de carregamento no lugar da página antiga. O perfil fica na sessão e as abas do painel trocam sem recarregar a página. O estoque busca e mostra as peças aos poucos. Início, Vendas e Vendedoras leem o resumo do mês quando o servidor responde.

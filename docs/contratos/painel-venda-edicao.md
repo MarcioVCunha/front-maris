@@ -1,41 +1,27 @@
 # Edição de venda no painel admin
 
-Componente reutilizável em `public/paginas/admin/venda-edicao.logic.js` (Início, depois Vendas e Vendedoras).
+Componente reutilizável em `public/paginas/admin/venda-edicao.logic.js` (Início; Vendas e Vendedoras na Fase 2 passos 3–4).
 
-Flag: `ADMIN_SALE_EDIT_ENABLED` (**desligada**). Com ela off, clicar numa venda abre o diálogo só em leitura e sem ações.
+Flag: `ADMIN_SALE_EDIT_ENABLED` (**desligada** neste PR de chips/foto). A liga fica no PR de edição. Back-maris PR #18 **publicado**.
 
-## O que o front já usa (sem edição)
+## Campos separados (não misturar)
 
-- `GET admin-month-overview` — totais e origens
-- `GET admin-recent-sales?limit=` — lista recente com `channel` (filtro de origem no cliente)
+- `seller_name` / `seller_id` — vendedora
+- `payment_status` — status (`paid` | `partial` | `receivable` | …)
+- `payment_method` — método (`pix` | `dinheiro` | `cartao` | …)
 
-## O que já existe no back, mas não cobre a edição completa
+## Edges (nomes exatos, back #18)
 
-| Edge / RPC | Serve para | Lacuna no painel |
-| --- | --- | --- |
-| `mark-sales-paid` (`sale_ids`) | Marcar peças legadas da equipe | Não recebe `order_id`; marketplace/site não entram |
-| `cancel-sale` (`sale_id`) | Cancelar peça legada não paga | Id de `sales`, não de `orders` |
-| `return-sale` (`sale_ids`) | Devolver peça paga | Mesmo modelo legado |
-| `cancel-marketplace-order` (`order_id`) | Cancelar Shopee/ML/TikTok | Só marketplace |
-| `mark_order_paid` (RPC) | Marcar pedido pago | Sem edge admin exposta no painel |
-| `order_payload` (RPC) | Detalhe do pedido com itens | Sem `image_url`; sem edge admin |
+| Edge | Versão | Método | Query / corpo | Permissão |
+| --- | --- | --- | --- | --- |
+| `admin-recent-sales` | **v3** | GET | `limit`, `p_channel?` | `orders.read_all` |
+| `admin-sale-get` | **v1** | GET | `order_id` | `orders.read_all` |
+| `admin-sale-update` | **v1** | POST | `{ order_id, total?, items?: […] }` | `orders.write_all` |
+| `admin-sale-cancel` | **v1** | POST | `{ order_id }` | `orders.write_all` |
+| `admin-sale-mark-paid` | **v1** | POST | `{ order_id }` | `orders.write_all` |
 
-## O que o Banco / back precisa criar
+### `admin-recent-sales` v3 (chips e foto)
 
-1. **`admin_recent_sales` (RPC + edge)** — enriquecer cada venda com:
-   - `items[]`: `{ id, code, name, quantity, unit_price, line_total, image_url, legacy_sale_id? }`
-   - opcional `image_url` de capa (primeira peça)
-   - opcional query `channel` / `p_channel` para filtrar no servidor
+Cada venda traz `seller_name`, `payment_status` e `payment_method` **separados**, mais `items[]` com `image_url` (capa = primeira foto das peças). Query opcional `p_channel` (`site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`).
 
-2. **`admin_sale_get(p_order_id)`** (RPC + edge `admin-sale-get`) — detalhe completo para o diálogo (itens com foto, status, método, vendedora, canal). Auth: staff admin (`orders.read_all`).
-
-3. **`admin_sale_update`** (RPC + edge) — alterar valor e/ou peças do pedido:
-   - corpo sugerido: `{ order_id, total?, items?: [{ id?, code, component_id?, quantity, unit_price? }] }`
-   - recalcular totais, estoque e comissão no servidor
-   - permissão admin dedicada (ex.: `orders.write_all`)
-
-4. **`admin_sale_cancel`** (RPC + edge) — cancelar **qualquer** canal (`site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`) por `order_id`, devolvendo estoque. Pode envelopar `cancel-sale` / `cancel-marketplace-order` / cancel de pedido do site.
-
-5. **`admin_sale_mark_paid`** (RPC + edge) — marcar pedido (ou peças) como pago por `order_id` / `item_ids`, cobrindo equipe, site e marketplace. Pode envelopar `mark-sales-paid` e `mark_order_paid`.
-
-Sem esses cinco itens, a flag permanece desligada: UI e testes do componente já existem, mas não chamam mutação.
+Neste PR o detalhe da venda no Início só lê essa lista (chips + foto). Mutações (`admin-sale-*`) entram quando a flag for ligada.

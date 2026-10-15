@@ -8,6 +8,8 @@ import {
   renderSaleEditDialog,
   saleChannelLabel,
   salePrimaryPhoto,
+  saleStatusLabel,
+  saleStatusTone,
   shouldShowSaleEdit,
 } from "./venda-edicao.logic.js"
 
@@ -61,6 +63,17 @@ Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () =>
   assert(cards.includes("Paga") || cards.includes("A receber"))
 })
 
+Deno.test("status do plano vira etiqueta com tom certo", () => {
+  assertEquals(saleStatusLabel("paid"), "Paga")
+  assertEquals(saleStatusLabel("receivable"), "A receber")
+  assertEquals(saleStatusLabel("partial"), "A confirmar")
+  assertEquals(saleStatusLabel("cancelled"), "Cancelada")
+  assertEquals(saleStatusTone("paid"), "paid")
+  assertEquals(saleStatusTone("receivable"), "receivable")
+  assertEquals(saleStatusTone("partial"), "confirm")
+  assertEquals(saleStatusTone("cancelled"), "cancelled")
+})
+
 Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
   const sale = {
     id: 10,
@@ -72,14 +85,37 @@ Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
     payment_method: "pix",
     created_at: "2026-10-14T15:00:00Z",
     items_count: 1,
-    items: [{ code: "AN581-R", name: "Anel rosa", quantity: 1, unit_price: 190, image_url: "" }],
+    items: [{
+      code: "AN581-R",
+      name: "Anel rosa",
+      quantity: 1,
+      unit_price: 190,
+      image_url: "https://exemplo.test/anel.jpg",
+    }],
   }
   const off = renderSaleEditDialog(sale, formatMoney)
   assert(off.includes("Lia"))
   assert(off.includes("Fechar"))
   assertEquals(off.includes("sale-edit-save"), false)
   assertEquals(off.includes("sale-edit-paid"), false)
-  assert(off.includes("ADMIN_SALE_EDIT_ENABLED"))
+  assertEquals(off.includes("ADMIN_SALE_EDIT_ENABLED"), false)
+  assertEquals(off.includes("docs/contratos"), false)
+  assertEquals(off.includes("detalhe ainda sem foto"), false)
+  assert(off.includes("sale-chip--seller"))
+  assert(off.includes("sale-chip--receivable"))
+  assert(off.includes("sale-chip--method"))
+  assert(off.includes("https://exemplo.test/anel.jpg"))
+  assert(off.includes("sale-edit__piece-photo"))
+
+  const withoutItems = renderSaleEditDialog({
+    ...sale,
+    items: [],
+    items_count: 2,
+    customer_name: "Flor",
+  }, formatMoney)
+  assert(withoutItems.includes("2 peça(s)."))
+  assertEquals(withoutItems.includes("detalhe ainda sem foto"), false)
+  assert(withoutItems.includes("FL") || withoutItems.includes("sale-card__photo--empty"))
 
   const on = renderSaleEditDialog(sale, formatMoney, { enabled: true })
   assert(on.includes("sale-edit-save"))
