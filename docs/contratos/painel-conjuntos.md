@@ -1,25 +1,29 @@
 # Painel Conjuntos (divisões de peça)
 
-Contrato alinhado ao back-maris PR #17 (`admin-product-list` + `admin-product-components`).
+Contrato alinhado ao back-maris PR #17 no ar:
+
+- `GET admin-product-list` **v3**
+- `POST admin-product-components` **v1** (`products.write`)
 
 Na Maris:
 
-| Termo antigo na UI | Significado |
+| Termo | Significado |
 | --- | --- |
-| Tipo | **Divisão** de uma peça de conjunto (ex.: brinco e colar vendidos separados) |
-| Categoria | Anel, Brinco, Colar… (campo `categoria` do produto) |
+| **Tipo** / divisão | Parte de uma peça de conjunto vendida separada (brinco, colar…) — `product_components` |
+| **Categoria** | Anel, Brinco, Colar… — campo `categoria` do produto |
 
-No front a tela **Conjuntos** (antes “Tipos”) fica atrás de `ADMIN_CONJUNTOS_ENABLED` (**desligada**) até o PR #17 estar no ar. Com a flag off, o painel mantém o editor legado de SKU (com textos de divisão).
+O front liga `ADMIN_CONJUNTOS_ENABLED`. O agrupamento **Estoque por tipo** soma quantidade por nome da divisão.
 
-## GET admin-product-list
+## GET admin-product-list (v3)
 
-Cada produto com divisões traz:
+Cada produto traz `components[]` ativos e mantém `preco_marketplace`:
 
 ```json
 {
   "code": "CJ100-O",
   "name": "Conjunto flor",
   "unit_price": 290,
+  "preco_marketplace": 730.9,
   "image_url": "https://…",
   "categoria": "Conjunto",
   "quantity": 0,
@@ -29,39 +33,39 @@ Cada produto com divisões traz:
       "name": "Brinco",
       "sku": "CJ100-O-BRINCO",
       "quantity": 3,
-      "price_percent": 45,
-      "is_active": true
+      "price_percent": 45
     },
     {
       "id": 13,
       "name": "Colar",
       "sku": "CJ100-O-COLAR",
       "quantity": 2,
-      "price_percent": 55,
-      "is_active": true
+      "price_percent": 55
     }
   ]
 }
 ```
 
-`sku` segue `<código>-<DIVISAO>` (ex.: `CJ100-O-BRINCO`). `price_percent` é a % do preço da peça-mãe.
+Campos por divisão: `id`, `name`, `sku`, `quantity`, `price_percent` (só ativos).
 
-## POST admin-product-components
+## POST admin-product-components (v1)
 
-Upsert das divisões de uma peça (equivalente ao `save-product-components` legado, no painel admin).
+Upsert das divisões de uma peça. Auth: staff admin (`products.write`).
 
 ```json
 {
   "product_code": "CJ100-O",
   "components": [
-    { "id": 12, "name": "Brinco", "sku": "CJ100-O-BRINCO", "quantity": 3, "price_percent": 45, "is_active": true },
-    { "name": "Colar", "sku": "CJ100-O-COLAR", "quantity": 2, "price_percent": 55, "is_active": true }
+    { "id": 12, "name": "Brinco", "quantity": 3, "price_percent": 45, "is_active": true },
+    { "name": "Colar", "quantity": 2, "price_percent": 55, "is_active": true }
   ]
 }
 ```
 
-- Itens com `id` atualizam; sem `id` criam; ids omitidos da lista são removidos.
-- Auth: staff admin (`products.write` / `components.write`).
-- Resposta: `{ ok, deleted_ids, updated_ids, inserted }`.
+Regras do servidor:
 
-Enquanto `admin-product-components` não existir, o front pode cair em `save-product-components` (sem `sku` no corpo legado) só para testes locais — a flag permanece off em produção até o #17.
+- `is_active` é **boolean** obrigatório
+- soma das `%` das divisões **ativas** = **100**
+- SKU gerado no servidor (`<código>-<NOME>`); o cliente não precisa enviar
+- itens omitidos da lista são **desativados** (`is_active: false`), não apagados
+- resposta: `{ ok, product_code, components: [...] }` (lista completa da peça)

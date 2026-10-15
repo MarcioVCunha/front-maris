@@ -1,9 +1,9 @@
 // Conjuntos = divisões de peça (ex.: brinco/colar vendidos separados).
-// Categoria = Anel/Brinco/Colar… ADMIN_CONJUNTOS_ENABLED off até back-maris PR #17.
+// Categoria = Anel/Brinco/Colar… ADMIN_CONJUNTOS_ENABLED ligada (back-maris PR #17).
 import { escapeEntityHtml, entityPhotoHtml, renderEntityCard } from "./painel-entity.logic.js"
-import { componentSku, isComponentSku } from "./painel.logic.js"
+import { componentSku } from "./painel.logic.js"
 
-export const ADMIN_CONJUNTOS_ENABLED = false
+export const ADMIN_CONJUNTOS_ENABLED = true
 
 export function shouldShowConjuntos(enabled = ADMIN_CONJUNTOS_ENABLED) {
   return enabled === true
@@ -46,18 +46,23 @@ export function filterPiecesByQuery(products, query) {
 
 export function divisionSkuPayload(productCode, division) {
   const name = String(division?.name || "").trim()
-  const sku = String(division?.sku || "").trim() || componentSku(productCode, name)
+  const quantityRaw = Number(division?.quantity)
+  const quantity = Number.isFinite(quantityRaw) ? Math.max(0, Math.trunc(quantityRaw)) : 0
+  const percentRaw = Number(division?.price_percent)
   return {
     id: division?.id == null ? null : Number(division.id),
     name,
-    sku,
-    quantity: Number.isInteger(Number(division?.quantity)) ? Number(division.quantity) : 0,
-    price_percent: Number(division?.price_percent),
+    sku: String(division?.sku || "").trim() || componentSku(productCode, name),
+    quantity,
+    price_percent: Number.isFinite(percentRaw) ? Math.round(percentRaw * 100) / 100 : NaN,
     is_active: division?.is_active !== false
   }
 }
 
-/** Corpo de admin-product-components (PR #17). */
+/**
+ * Corpo de POST admin-product-components (PR #17).
+ * O servidor gera o SKU; exige is_active boolean e soma 100% nas ativas.
+ */
 export function saveDivisionsPayload(productCode, divisions) {
   return {
     product_code: String(productCode || "").trim(),
@@ -65,15 +70,20 @@ export function saveDivisionsPayload(productCode, divisions) {
       const item = divisionSkuPayload(productCode, row)
       const body = {
         name: item.name,
-        sku: item.sku,
         quantity: item.quantity,
         price_percent: item.price_percent,
-        is_active: item.is_active
+        is_active: item.is_active === true
       }
       if (Number.isInteger(item.id) && item.id > 0) body.id = item.id
       return body
     })
   }
+}
+
+export function activePercentSum(components) {
+  return (components || [])
+    .filter((row) => row?.is_active !== false)
+    .reduce((sum, row) => sum + (Number(row.price_percent) || 0), 0)
 }
 
 export function validateDivisionsPayload(payload) {
@@ -88,11 +98,56 @@ export function validateDivisionsPayload(payload) {
     if (!Number.isInteger(row.quantity) || row.quantity < 0) {
       return `${row.name}: a quantidade precisa ser um inteiro ≥ 0.`
     }
-    if (row.sku && !isComponentSku(row.sku, payload.product_code)) {
-      return `${row.name}: o SKU precisa seguir ${payload.product_code}-DIVISAO.`
+    if (typeof row.is_active !== "boolean") {
+      return `${row.name}: informe se a divisão está ativa.`
     }
   }
+  const sum = activePercentSum(rows)
+  if (Math.abs(sum - 100) > 0.01) {
+    return "A soma das % das divisões ativas deve ser 100."
+  }
   return ""
+}
+
+/** Agrupa estoque por nome da divisão (tipo = divisão de conjunto). */
+export function stockByDivisionType(products) {
+  const map = new Map()
+  for (const piece of products || []) {
+    for (const row of divisionsOf(piece)) {
+      const key = row.name.toLocaleLowerCase("pt-BR")
+      if (!key) continue
+      const current = map.get(key) || {
+        name: row.name,
+        quantity: 0,
+        pieces: 0,
+        codes: []
+      }
+      current.quantity += Number(row.quantity) || 0
+      current.pieces += 1
+      if (piece?.code) current.codes.push(String(piece.code))
+      map.set(key, current)
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+}
+
+export function renderStockByType(products) {
+  const groups = stockByDivisionType(products)
+  if (!groups.length) {
+    return `<section class="stock-by-type">
+      <h3>Estoque por tipo</h3>
+      <p class="hint">Tipo = divisão de conjunto (brinco, colar…). Sem divisões ainda.</p>
+    </section>`
+  }
+  const rows = groups.map((group) => `<li class="stock-by-type__row">
+    <strong>${escapeEntityHtml(group.name)}</strong>
+    <span>${group.quantity} un. · ${group.pieces} peça(s)</span>
+  </li>`).join("")
+  return `<section class="stock-by-type">
+    <h3>Estoque por tipo</h3>
+    <p class="hint">Tipo = divisão de conjunto (não confundir com categoria Anel/Brinco/Colar).</p>
+    <ul class="stock-by-type__list">${rows}</ul>
+  </section>`
 }
 
 function divisionSummary(divisions) {
@@ -214,6 +269,7 @@ export function renderConjuntosPage(products, options = {}) {
       <p class="hint">Peças com divisões (brinco, colar…) vendidas separadas. A categoria da peça continua Anel, Brinco, Colar…</p>
       <button type="button" class="btn-primary" id="conjunto-create-open">Criar divisões</button>
     </header>
+    ${renderStockByType(products)}
     ${renderConjuntosList(products)}
   </section>`
 }

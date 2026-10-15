@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tipos dos produtos — Maris Semijoias</title>
+    <title>Divisões do conjunto — Maris Semijoias</title>
 
     <link rel="stylesheet" href="/paginas/estoque/tipos-produto/tipos-produto.css">
     <script src="/env.js"></script>
@@ -20,8 +20,8 @@
     <header>
       <a class="back-link" href="/admin" data-staff-min="admin" hidden>← Voltar à administração</a>
       <a class="back-link" href="/vendedoras" data-staff-only="seller" hidden>← Voltar às vendedoras</a>
-      <h1>Gerenciar Tipos do Produto</h1>
-      <p>Clique no produto para abrir os detalhes e separar em tipos.</p>
+      <h1>Divisões do conjunto</h1>
+      <p>Clique no produto para abrir os detalhes e separar em divisões (tipo = divisão de conjunto; Anel/Brinco etc. são categoria).</p>
     </header>
 
     <main class="container">
@@ -58,8 +58,8 @@
         <div id="product-modal-stock" class="modal-line"></div>
 
         <section class="modal-components">
-          <h4>Separar em tipos</h4>
-          <p class="modal-components-help">Defina nome, <strong>% do preço do produto</strong> e estoque para cada tipo (ex.: brinco, colar). O valor em reais é calculado automaticamente.</p>
+          <h4>Separar em divisões</h4>
+          <p class="modal-components-help">Defina nome, <strong>% do preço do produto</strong> e estoque para cada divisão (ex.: brinco, colar). O valor em reais é calculado automaticamente. A soma das % deve ser 100.</p>
           <div class="components-list-header" aria-hidden="true">
             <span>Nome</span>
             <span>%</span>
@@ -68,8 +68,8 @@
             <span></span>
           </div>
           <div id="components-list" class="components-list"></div>
-          <button id="add-component-btn" type="button" class="secondary-btn">Adicionar tipo</button>
-          <button id="save-components-btn" type="button">Salvar tipos</button>
+          <button id="add-component-btn" type="button" class="secondary-btn">Adicionar divisão</button>
+          <button id="save-components-btn" type="button">Salvar divisões</button>
           <div id="components-message" class="message"></div>
         </section>
       </div>

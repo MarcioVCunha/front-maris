@@ -133,12 +133,18 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(sellers.calls[0].name, "admin-sellers-month")
   assertEquals(sellers.calls[0].options.method, "GET")
 
-  const divisions = client({ ok: true, deleted_ids: [], updated_ids: [12], inserted: [] })
-  const saved = await saveProductDivisions({
+  const divisions = client({
+    ok: true,
     product_code: "CJ100-O",
-    components: [{ id: 12, name: "Brinco", quantity: 1, price_percent: 45, sku: "CJ100-O-BRINCO" }],
+    components: [{ id: 12, name: "Brinco", quantity: 1, price_percent: 45, sku: "CJ100-O-BRINCO", is_active: true }],
+  })
+  const divisionsSaved = await saveProductDivisions({
+    product_code: "CJ100-O",
+    components: [{ id: 12, name: "Brinco", quantity: 1, price_percent: 45, is_active: true }],
   }, divisions)
-  assertEquals(saved.ok, true)
+  assertEquals(divisionsSaved.ok, true)
+  assertEquals(divisionsSaved.product_code, "CJ100-O")
+  assertEquals(divisionsSaved.components[0].sku, "CJ100-O-BRINCO")
   assertEquals(divisions.calls[0].name, "admin-product-components")
   assertEquals(divisions.calls[0].options.method, "POST")
 })

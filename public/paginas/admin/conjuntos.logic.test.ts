@@ -4,6 +4,7 @@ import {
 } from "https://deno.land/std@0.224.0/assert/mod.ts"
 import {
   ADMIN_CONJUNTOS_ENABLED,
+  activePercentSum,
   divisionSkuPayload,
   divisionsOf,
   filterPiecesByQuery,
@@ -12,8 +13,10 @@ import {
   renderConjuntoCreatePicker,
   renderConjuntoEditDialog,
   renderConjuntosPage,
+  renderStockByType,
   saveDivisionsPayload,
   shouldShowConjuntos,
+  stockByDivisionType,
   validateDivisionsPayload,
 } from "./conjuntos.logic.js"
 import { renderEntityCard, entityPhotoHtml } from "./painel-entity.logic.js"
@@ -36,10 +39,10 @@ const plainPiece = {
   components: [],
 }
 
-Deno.test("ADMIN_CONJUNTOS_ENABLED começa desligada até o back PR #17", () => {
-  assertEquals(ADMIN_CONJUNTOS_ENABLED, false)
-  assertEquals(shouldShowConjuntos(), false)
-  assertEquals(shouldShowConjuntos(true), true)
+Deno.test("ADMIN_CONJUNTOS_ENABLED fica ligada com o back PR #17", () => {
+  assertEquals(ADMIN_CONJUNTOS_ENABLED, true)
+  assertEquals(shouldShowConjuntos(), true)
+  assertEquals(shouldShowConjuntos(false), false)
 })
 
 Deno.test("divisionsOf e filtros de peças com/sem divisões", () => {
@@ -49,21 +52,56 @@ Deno.test("divisionsOf e filtros de peças com/sem divisões", () => {
   assertEquals(filterPiecesByQuery([setPiece, plainPiece], "anel").map((p) => p.code), ["AN581-R"])
 })
 
-Deno.test("payload e validação das divisões usam % preço e SKU código-DIVISAO", () => {
+Deno.test("payload admin-product-components exige % 100 e is_active boolean", () => {
   const payload = saveDivisionsPayload("CJ100-O", setPiece.components)
   assertEquals(payload.product_code, "CJ100-O")
-  assertEquals(payload.components[0].sku, "CJ100-O-BRINCO")
+  assertEquals(payload.components[0].name, "Brinco")
   assertEquals(payload.components[0].price_percent, 45)
+  assertEquals(payload.components[0].is_active, true)
+  assertEquals("sku" in payload.components[0], false)
+  assertEquals(activePercentSum(payload.components), 100)
   assertEquals(validateDivisionsPayload(payload), "")
   assert(validateDivisionsPayload({ product_code: "CJ100-O", components: [] }))
   assert(
     validateDivisionsPayload({
       product_code: "CJ100-O",
-      components: [{ name: "Brinco", quantity: 1, price_percent: 0, sku: "CJ100-O-BRINCO" }],
-    }).includes("%"),
+      components: [
+        { name: "Brinco", quantity: 1, price_percent: 40, is_active: true },
+        { name: "Colar", quantity: 1, price_percent: 40, is_active: true },
+      ],
+    }).includes("100"),
   )
   const auto = divisionSkuPayload("CJ100-O", { name: "Brinco", quantity: 1, price_percent: 40 })
   assertEquals(auto.sku, "CJ100-O-BRINCO")
+})
+
+Deno.test("com flag on a página mostra cards, Estoque por tipo e criar divisões", () => {
+  const html = renderConjuntosPage([setPiece], { enabled: true })
+  assert(html.includes("conjunto-create-open"))
+  assert(html.includes("entity-card"))
+  assert(html.includes("CJ100-O-BRINCO"))
+  assert(html.includes("data-product-code=\"CJ100-O\""))
+  assert(html.includes("45%"))
+  assert(html.includes("Estoque por tipo"))
+  assert(html.includes("divisão de conjunto"))
+})
+
+Deno.test("Estoque por tipo agrupa quantidade por nome da divisão", () => {
+  const other = {
+    code: "CJ200-O",
+    name: "Conjunto folha",
+    components: [
+      { id: 20, name: "Brinco", quantity: 1, price_percent: 50 },
+      { id: 21, name: "Pulseira", quantity: 4, price_percent: 50 },
+    ],
+  }
+  const groups = stockByDivisionType([setPiece, other])
+  assertEquals(groups.find((g) => g.name === "Brinco")?.quantity, 4)
+  assertEquals(groups.find((g) => g.name === "Colar")?.quantity, 2)
+  assertEquals(groups.find((g) => g.name === "Pulseira")?.quantity, 4)
+  const html = renderStockByType([setPiece, other])
+  assert(html.includes("Brinco"))
+  assert(html.includes("4 un."))
 })
 
 Deno.test("com flag off a página Conjuntos usa o editor legado de SKU", () => {
@@ -73,15 +111,6 @@ Deno.test("com flag off a página Conjuntos usa o editor legado de SKU", () => {
   assert(html.includes("DIVISAO"))
   assert(!html.includes("conjunto-create-open"))
   assert(!html.includes("entity-card"))
-})
-
-Deno.test("com flag on a página mostra cards e criar divisões", () => {
-  const html = renderConjuntosPage([setPiece], { enabled: true })
-  assert(html.includes("conjunto-create-open"))
-  assert(html.includes("entity-card"))
-  assert(html.includes("CJ100-O-BRINCO"))
-  assert(html.includes("data-product-code=\"CJ100-O\""))
-  assert(html.includes("45%"))
 })
 
 Deno.test("diálogo de edição e busca para criar divisões", () => {

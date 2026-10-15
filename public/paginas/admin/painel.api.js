@@ -121,9 +121,9 @@ export async function updateComponentSku(body, client) {
 }
 
 /**
- * POST admin-product-components (back-maris PR #17)
- * Corpo: { product_code, components: [{ id?, name, sku?, quantity, price_percent, is_active? }] }
- * Upsert das divisões. Ver docs/contratos/painel-conjuntos.md.
+ * POST admin-product-components (back-maris PR #17, v1)
+ * Corpo: { product_code, components: [{ id?, name, quantity, price_percent, is_active }] }
+ * SKU gerado no servidor; % das ativas deve somar 100. Ver docs/contratos/painel-conjuntos.md.
  */
 export async function saveProductDivisions(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.productComponents, { method: "POST", body }, client)
@@ -132,9 +132,8 @@ export async function saveProductDivisions(body, client) {
   }
   return {
     ok: true,
-    deleted_ids: result.data?.deleted_ids || [],
-    updated_ids: result.data?.updated_ids || [],
-    inserted: result.data?.inserted || []
+    product_code: result.data?.product_code || body?.product_code || "",
+    components: Array.isArray(result.data?.components) ? result.data.components : []
   }
 }
 

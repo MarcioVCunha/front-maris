@@ -902,6 +902,38 @@ dialog h2 {
   margin-bottom: 16px;
 }
 
+.stock-by-type {
+  margin: 0 0 20px;
+}
+
+.stock-by-type h3 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.stock-by-type__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.stock-by-type__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--maris-border) 80%, transparent);
+  border-radius: 10px;
+  background: var(--maris-surface);
+}
+
+.stock-by-type__row span {
+  color: var(--maris-text-muted);
+  white-space: nowrap;
+}
+
 .conjuntos-hero h2 {
   margin: 0;
   flex: 1 1 100%;

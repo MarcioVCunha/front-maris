@@ -19,8 +19,8 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/lista-espera` | Administração | Lista de espera |
 | `/adicionar-peca` | Administração | Cadastrar uma peça |
 | `/importar` | Administração | Importar várias peças por JSON |
-| `/tipos-produto` | Equipe | Divisões (componentes) de uma peça de conjunto |
-| `/admin/conjuntos` | Administração | Conjuntos no painel (divisões; flag `ADMIN_CONJUNTOS_ENABLED`) |
+| `/tipos-produto` | Equipe | Divisões de conjunto (tipo = divisão; categoria = Anel/Brinco…) |
+| `/admin/conjuntos` | Administração | Conjuntos no painel: cards, edição e Estoque por tipo (`ADMIN_CONJUNTOS_ENABLED` ligada) |
 | `/promocoes` | Administração | Promoções |
 | `/contas-vendedoras` | Administração | Contas da equipe |
 | `/` | Equipe | Painel inicial |
