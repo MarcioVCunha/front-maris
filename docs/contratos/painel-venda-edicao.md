@@ -10,7 +10,7 @@ Flag: `ADMIN_SALE_EDIT_ENABLED` (**ligada**). Back-maris PR #18 **publicado**.
 - `payment_status` — status (`paid` | `partial` | `receivable` | …)
 - `payment_method` — método (`pix` | `dinheiro` | `cartao` | …)
 
-## Edges (nomes exatos)
+## Edges (nomes exatos, back #18)
 
 | Edge | Versão | Método | Query / corpo | Permissão |
 | --- | --- | --- | --- | --- |
@@ -28,4 +28,4 @@ Cada venda traz `seller_name`, `payment_status` e `payment_method` **separados**
 
 Query opcional `p_channel` filtra no servidor (`site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`).
 
-Capa da venda no front: primeira `image_url` dos itens (ou `image_url` no nível da venda, se vier).
+Capa da venda no front: primeira `image_url` dos itens (ou `image_url` no nível da venda, se vier). Chips de vendedora/status/método e foto por peça no diálogo usam esses campos.

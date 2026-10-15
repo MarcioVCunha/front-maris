@@ -38,6 +38,7 @@
     { "source": "/admin/vendedoras", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/peca", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/tipos", "destination": "/paginas/admin/painel.html" },
+    { "source": "/admin/conjuntos", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/adicionar", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/importar", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin", "destination": "/paginas/admin/painel.html" },

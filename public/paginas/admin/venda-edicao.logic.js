@@ -1,7 +1,8 @@
 // Edição de venda reutilizável (Início, Vendas, Vendedoras).
 // ADMIN_SALE_EDIT_ENABLED ligada ao back-maris PR #18 publicado:
-// admin-recent-sales v3, admin-sale-get / admin-sale-update /
-// admin-sale-cancel / admin-sale-mark-paid v1
+// admin-recent-sales v3 (chips/foto: items[].image_url; seller_name,
+// payment_status e payment_method separados), admin-sale-get /
+// admin-sale-update / admin-sale-cancel / admin-sale-mark-paid v1
 // (orders.read_all / orders.write_all). Ver docs/contratos/painel-venda-edicao.md.
 
 export const ADMIN_SALE_EDIT_ENABLED = true
@@ -38,8 +39,22 @@ function formatWhen(iso) {
 
 const STATUS_LABEL = {
   paid: "Paga",
-  partial: "Parcial",
-  receivable: "A receber"
+  partial: "A confirmar",
+  receivable: "A receber",
+  cancelled: "Cancelada",
+  canceled: "Cancelada",
+  to_confirm: "A confirmar",
+  pending: "A confirmar"
+}
+
+const STATUS_TONE = {
+  paid: "paid",
+  partial: "confirm",
+  receivable: "receivable",
+  cancelled: "cancelled",
+  canceled: "cancelled",
+  to_confirm: "confirm",
+  pending: "confirm"
 }
 
 const METHOD_LABEL = {
@@ -62,12 +77,23 @@ export function saleChannelLabel(channel) {
   return CHANNEL_LABEL[key] || String(channel || "")
 }
 
+export function saleStatusKey(status) {
+  return String(status || "").trim().toLowerCase()
+}
+
 export function saleStatusLabel(status) {
-  return STATUS_LABEL[status] || String(status || "")
+  const key = saleStatusKey(status)
+  return STATUS_LABEL[key] || String(status || "")
+}
+
+export function saleStatusTone(status) {
+  const key = saleStatusKey(status)
+  return STATUS_TONE[key] || "neutral"
 }
 
 export function saleMethodLabel(method) {
-  return METHOD_LABEL[method] || ""
+  const key = String(method || "").trim().toLowerCase()
+  return METHOD_LABEL[key] || ""
 }
 
 export function salePrimaryPhoto(sale) {
@@ -79,13 +105,47 @@ export function salePrimaryPhoto(sale) {
   return String(sale?.image_url || "").trim()
 }
 
-export function salePhotoHtml(sale) {
+function initialsFrom(value) {
+  return String(value || "?").trim().slice(0, 2).toUpperCase() || "?"
+}
+
+export function salePhotoHtml(sale, options = {}) {
   const url = salePrimaryPhoto(sale)
+  const klass = options.className || "sale-card__photo"
   if (url) {
-    return `<img class="sale-card__photo" src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async" width="56" height="56">`
+    return `<img class="${klass}" src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async" width="56" height="56">`
   }
-  const letters = String(sale?.customer_name || sale?.channel || "?").trim().slice(0, 2).toUpperCase() || "?"
-  return `<span class="sale-card__photo sale-card__photo--empty">${escapeHtml(letters)}</span>`
+  const letters = initialsFrom(sale?.customer_name || sale?.channel)
+  return `<span class="${klass} ${klass}--empty">${escapeHtml(letters)}</span>`
+}
+
+export function piecePhotoHtml(item) {
+  const url = String(item?.image_url || item?.imageUrl || "").trim()
+  if (url) {
+    return `<img class="sale-edit__piece-photo" src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async" width="44" height="44">`
+  }
+  const letters = initialsFrom(item?.code || item?.name)
+  return `<span class="sale-edit__piece-photo sale-edit__piece-photo--empty">${escapeHtml(letters)}</span>`
+}
+
+export function saleMetaChipsHtml(sale) {
+  const chips = []
+  const seller = String(sale?.seller_name || "").trim()
+  if (seller) {
+    chips.push(`<span class="sale-chip sale-chip--seller">${escapeHtml(seller)}</span>`)
+  }
+  const status = saleStatusLabel(sale?.payment_status)
+  if (status) {
+    chips.push(
+      `<span class="sale-chip sale-chip--status sale-chip--${saleStatusTone(sale?.payment_status)}">${escapeHtml(status)}</span>`
+    )
+  }
+  const method = saleMethodLabel(sale?.payment_method)
+  if (method) {
+    chips.push(`<span class="sale-chip sale-chip--method">${escapeHtml(method)}</span>`)
+  }
+  if (!chips.length) return ""
+  return `<div class="sale-edit__chips" role="list">${chips.join("")}</div>`
 }
 
 /** Lista filtrável por canal (site|equipe|shopee|mercado_livre|tiktok). */
@@ -113,14 +173,12 @@ export function normalizeSaleItems(raw) {
 }
 
 /**
- * Diálogo de venda. Com a flag off: só leitura + aviso.
+ * Diálogo de venda. Com a flag off: só leitura.
  * Com a flag on: campos para valor, peças, cancelar e marcar como paga.
  */
 export function renderSaleEditDialog(sale, formatMoney, options = {}) {
   if (!sale) return `<p class="empty">Venda não encontrada.</p>`
   const editable = shouldShowSaleEdit(options.enabled)
-  const status = saleStatusLabel(sale.payment_status)
-  const method = saleMethodLabel(sale.payment_method)
   const channel = saleChannelLabel(sale.channel)
   const when = formatWhen(sale.created_at)
   const items = normalizeSaleItems(sale.items)
@@ -131,12 +189,14 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
         : (Number(item.unit_price) || 0) * (Number(item.quantity) || 0)
       if (!editable) {
         return `<article class="sale-edit__piece">
-          <span><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
+          ${piecePhotoHtml(item)}
+          <span class="sale-edit__piece-copy"><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
             <small>${escapeHtml(item.code || "")} · ${Number(item.quantity) || 0} un.</small></span>
           <b>${escapeHtml(money(line, formatMoney))}</b>
         </article>`
       }
       return `<article class="sale-edit__piece" data-item-index="${index}" data-item-id="${escapeHtml(item.id ?? "")}" data-code="${escapeHtml(item.code || "")}" data-component-id="${escapeHtml(item.component_id ?? "")}">
+        ${piecePhotoHtml(item)}
         <label class="field"><span>Peça</span>
           <input data-edit="name" value="${escapeHtml(item.name || "")}" readonly></label>
         <label class="field"><span>Qtd</span>
@@ -163,16 +223,10 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
         <button type="button" class="btn-ghost" id="sale-edit-close">Fechar</button>
       </div>`
 
-  const metaParts = [
-    sale.seller_name ? `Vendedora: ${sale.seller_name}` : "",
-    status ? `Status: ${status}` : "",
-    method ? `Método: ${method}` : ""
-  ].filter(Boolean)
-
   return `<div class="sale-edit" data-sale-id="${escapeHtml(sale.id)}">
     <p class="kicker">${escapeHtml([channel, when].filter(Boolean).join(" · "))}</p>
     <h2>${escapeHtml(sale.customer_name || "Cliente")}</h2>
-    <p class="hint sale-edit__meta">${escapeHtml(metaParts.join(" · "))}</p>
+    ${saleMetaChipsHtml(sale)}
     ${salePhotoHtml(sale)}
     ${totalField}
     <div class="sale-edit__pieces">${itemRows}</div>
@@ -187,18 +241,23 @@ export function renderSaleCards(sales, formatMoney, options = {}) {
   const clickable = options.clickable !== false
   return `<ul class="sale-card-list">${rows.map((sale) => {
     const status = saleStatusLabel(sale.payment_status)
+    const tone = saleStatusTone(sale.payment_status)
     const who = [sale.seller_name, saleChannelLabel(sale.channel)].filter(Boolean).join(" · ")
     const when = formatWhen(sale.created_at)
     const tag = clickable ? "button" : "article"
     const attrs = clickable
       ? ` type="button" class="sale-card" data-sale-id="${escapeHtml(sale.id)}"`
       : ` class="sale-card sale-card--static"`
+    const statusChip = status
+      ? `<span class="sale-chip sale-chip--status sale-chip--${tone}">${escapeHtml(status)}</span>`
+      : ""
     return `<li><${tag}${attrs}>
       ${salePhotoHtml(sale)}
       <span class="sale-card__copy">
         <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
         <small>${escapeHtml(who)}</small>
-        <small>${escapeHtml([when, status].filter(Boolean).join(" · "))}</small>
+        <small>${escapeHtml(when)}</small>
+        ${statusChip}
       </span>
       <span class="sale-card__side">
         <b>${escapeHtml(money(sale.total, formatMoney))}</b>

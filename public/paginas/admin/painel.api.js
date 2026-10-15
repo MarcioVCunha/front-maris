@@ -7,6 +7,7 @@ export const ADMIN_DASHBOARD_API = {
   productArchive: "admin-product-archive",
   categoryDefaults: "category-defaults",
   componentUpdate: "admin-component-update",
+  productComponents: "admin-product-components",
   addProduct: "add-product",
   importProducts: "import-products",
   monthOverview: "admin-month-overview",
@@ -56,10 +57,9 @@ function failed(result, fallback) {
  * GET admin-product-list
  * Resposta: { ok, products: [{ code, name, unit_price, quantity, categoria,
  *   image_url, image_urls, descricao, peso_g, largura_cm, altura_cm,
- *   comprimento_cm, ncm, origem, gtin, components: [{ id, name, sku }],
- *   preco_marketplace? }] }
- * preco_marketplace (back-maris PR #16): só leitura; fórmula no contrato painel-admin-inicio.
- * O front mostra com ADMIN_HOME_CHANNELS_ENABLED ligada.
+ *   comprimento_cm, ncm, origem, gtin, preco_marketplace?,
+ *   components?: [{ id, name, sku, quantity, price_percent, is_active }] }] }
+ * components (back-maris PR #17): divisões do conjunto. Ver painel-conjuntos.md.
  */
 export async function listProducts(client) {
   const result = await call(ADMIN_DASHBOARD_API.productList, { method: "GET" }, client)
@@ -115,13 +115,30 @@ export async function fetchCategoryDefaults(client) {
 
 /**
  * POST admin-component-update
- * Corpo: { component_id, product_code, sku }
- * sku segue o padrão <código>-<TIPO>.
+ * Corpo legado do painel: { component_id, product_code, sku } (SKU de uma divisão).
+ * sku segue <código>-<DIVISAO>.
  */
 export async function updateComponentSku(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.componentUpdate, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar o SKU.")
   return { ok: true, component: result.data?.component || null }
+}
+
+/**
+ * POST admin-product-components (back-maris PR #17, v1)
+ * Corpo: { product_code, components: [{ id?, name, quantity, price_percent, is_active }] }
+ * SKU gerado no servidor; % das ativas deve somar 100. Ver docs/contratos/painel-conjuntos.md.
+ */
+export async function saveProductDivisions(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.productComponents, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível salvar as divisões.")
+  }
+  return {
+    ok: true,
+    product_code: result.data?.product_code || body?.product_code || "",
+    components: Array.isArray(result.data?.components) ? result.data.components : []
+  }
 }
 
 /**
@@ -155,8 +172,8 @@ export async function fetchMonthOverview({ month }, client) {
  * GET admin-recent-sales v3 (back-maris PR #18) — auth orders.read_all
  * Query: limit, p_channel? (site|equipe|shopee|mercado_livre|tiktok)
  * Sales: seller_name, payment_status, payment_method separados;
- * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }.
- * Ver docs/contratos/painel-venda-edicao.md.
+ * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }
+ * (chips/foto no Início). Ver docs/contratos/painel-venda-edicao.md.
  */
 export async function fetchRecentSales({ limit = 20, channel } = {}, client) {
   const query = { limit }

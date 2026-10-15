@@ -11,6 +11,8 @@ import {
   saleChannelLabel,
   saleMarkPaidPayload,
   salePrimaryPhoto,
+  saleStatusLabel,
+  saleStatusTone,
   saleUpdatePayload,
   shouldShowSaleEdit,
 } from "./venda-edicao.logic.js"
@@ -63,7 +65,19 @@ Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () =>
   assert(cards.includes('data-sale-id="1"'))
   assert(cards.includes("https://exemplo.test/a.jpg"))
   assert(cards.includes("Marineide"))
-  assert(cards.includes("Paga") || cards.includes("A receber"))
+  assert(cards.includes("sale-chip--paid"))
+  assert(cards.includes("sale-chip--receivable"))
+})
+
+Deno.test("status do plano vira etiqueta com tom certo", () => {
+  assertEquals(saleStatusLabel("paid"), "Paga")
+  assertEquals(saleStatusLabel("receivable"), "A receber")
+  assertEquals(saleStatusLabel("partial"), "A confirmar")
+  assertEquals(saleStatusLabel("cancelled"), "Cancelada")
+  assertEquals(saleStatusTone("paid"), "paid")
+  assertEquals(saleStatusTone("receivable"), "receivable")
+  assertEquals(saleStatusTone("partial"), "confirm")
+  assertEquals(saleStatusTone("cancelled"), "cancelled")
 })
 
 Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
@@ -84,7 +98,7 @@ Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
       quantity: 1,
       unit_price: 190,
       component_id: 13,
-      image_url: "",
+      image_url: "https://exemplo.test/anel.jpg",
     }],
   }
   const off = renderSaleEditDialog(sale, formatMoney, { enabled: false })
@@ -92,11 +106,24 @@ Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
   assert(off.includes("Fechar"))
   assertEquals(off.includes("sale-edit-save"), false)
   assertEquals(off.includes("sale-edit-paid"), false)
-  assert(off.includes("Vendedora: Marineide"))
-  assert(off.includes("Status: A receber"))
-  assert(off.includes("Método: Pix"))
   assertEquals(off.includes("ADMIN_SALE_EDIT_ENABLED"), false)
   assertEquals(off.includes("docs/contratos"), false)
+  assertEquals(off.includes("detalhe ainda sem foto"), false)
+  assert(off.includes("sale-chip--seller"))
+  assert(off.includes("sale-chip--receivable"))
+  assert(off.includes("sale-chip--method"))
+  assert(off.includes("https://exemplo.test/anel.jpg"))
+  assert(off.includes("sale-edit__piece-photo"))
+
+  const withoutItems = renderSaleEditDialog({
+    ...sale,
+    items: [],
+    items_count: 2,
+    customer_name: "Flor",
+  }, formatMoney, { enabled: false })
+  assert(withoutItems.includes("2 peça(s)."))
+  assertEquals(withoutItems.includes("detalhe ainda sem foto"), false)
+  assert(withoutItems.includes("FL") || withoutItems.includes("sale-card__photo--empty"))
 
   const on = renderSaleEditDialog(sale, formatMoney, { enabled: true })
   assert(on.includes("sale-edit-save"))
@@ -106,6 +133,7 @@ Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
   assert(on.includes('data-item-id="7"'))
   assert(on.includes('data-code="AN581-R"'))
   assert(on.includes('data-component-id="13"'))
+  assert(on.includes("sale-edit__piece-photo"))
   assertEquals(normalizeSaleItems(sale.items)[0].code, "AN581-R")
 })
 
