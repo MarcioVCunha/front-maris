@@ -7,6 +7,7 @@ export const ADMIN_DASHBOARD_API = {
   productArchive: "admin-product-archive",
   categoryDefaults: "category-defaults",
   componentUpdate: "admin-component-update",
+  productComponents: "admin-product-components",
   addProduct: "add-product",
   importProducts: "import-products",
   monthOverview: "admin-month-overview",
@@ -52,10 +53,9 @@ function failed(result, fallback) {
  * GET admin-product-list
  * Resposta: { ok, products: [{ code, name, unit_price, quantity, categoria,
  *   image_url, image_urls, descricao, peso_g, largura_cm, altura_cm,
- *   comprimento_cm, ncm, origem, gtin, components: [{ id, name, sku }],
- *   preco_marketplace? }] }
- * preco_marketplace (back-maris PR #16): só leitura; fórmula no contrato painel-admin-inicio.
- * O front mostra com ADMIN_HOME_CHANNELS_ENABLED ligada.
+ *   comprimento_cm, ncm, origem, gtin, preco_marketplace?,
+ *   components?: [{ id, name, sku, quantity, price_percent, is_active }] }] }
+ * components (back-maris PR #17): divisões do conjunto. Ver painel-conjuntos.md.
  */
 export async function listProducts(client) {
   const result = await call(ADMIN_DASHBOARD_API.productList, { method: "GET" }, client)
@@ -111,13 +111,31 @@ export async function fetchCategoryDefaults(client) {
 
 /**
  * POST admin-component-update
- * Corpo: { component_id, product_code, sku }
- * sku segue o padrão <código>-<TIPO>.
+ * Corpo legado do painel: { component_id, product_code, sku } (SKU de uma divisão).
+ * sku segue <código>-<DIVISAO>.
  */
 export async function updateComponentSku(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.componentUpdate, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar o SKU.")
   return { ok: true, component: result.data?.component || null }
+}
+
+/**
+ * POST admin-product-components (back-maris PR #17)
+ * Corpo: { product_code, components: [{ id?, name, sku?, quantity, price_percent, is_active? }] }
+ * Upsert das divisões. Ver docs/contratos/painel-conjuntos.md.
+ */
+export async function saveProductDivisions(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.productComponents, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível salvar as divisões.")
+  }
+  return {
+    ok: true,
+    deleted_ids: result.data?.deleted_ids || [],
+    updated_ids: result.data?.updated_ids || [],
+    inserted: result.data?.inserted || []
+  }
 }
 
 /**

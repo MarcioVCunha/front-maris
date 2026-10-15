@@ -9,6 +9,7 @@ import {
   fetchSellersMonth,
   importProducts,
   listProducts,
+  saveProductDivisions,
   updateComponentSku,
   updateProduct,
 } from "./painel.api.js"
@@ -30,6 +31,7 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.productArchive, "admin-product-archive")
   assertEquals(ADMIN_DASHBOARD_API.categoryDefaults, "category-defaults")
   assertEquals(ADMIN_DASHBOARD_API.componentUpdate, "admin-component-update")
+  assertEquals(ADMIN_DASHBOARD_API.productComponents, "admin-product-components")
   assertEquals(ADMIN_DASHBOARD_API.addProduct, "add-product")
   assertEquals(ADMIN_DASHBOARD_API.importProducts, "import-products")
   assertEquals(ADMIN_DASHBOARD_API.monthOverview, "admin-month-overview")
@@ -130,4 +132,13 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(team.ok, true)
   assertEquals(sellers.calls[0].name, "admin-sellers-month")
   assertEquals(sellers.calls[0].options.method, "GET")
+
+  const divisions = client({ ok: true, deleted_ids: [], updated_ids: [12], inserted: [] })
+  const saved = await saveProductDivisions({
+    product_code: "CJ100-O",
+    components: [{ id: 12, name: "Brinco", quantity: 1, price_percent: 45, sku: "CJ100-O-BRINCO" }],
+  }, divisions)
+  assertEquals(saved.ok, true)
+  assertEquals(divisions.calls[0].name, "admin-product-components")
+  assertEquals(divisions.calls[0].options.method, "POST")
 })
