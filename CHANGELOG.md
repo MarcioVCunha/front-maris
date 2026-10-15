@@ -20,6 +20,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Alterado
 
+- Layout do painel e páginas avulsas centralizados: container único com largura máxima e centralização automática em todas as abas do admin (Início, Estoque, Vendas, Vendedoras, Conjuntos e formulários), sem saltos de largura entre abas; cabeçalhos e páginas avulsas (/vendas/nova, /contas-vendedoras e tema interno) alinhados com o mesmo padrão.
 - No detalhe da venda do Início: vendedora, status e método viram etiquetas coloridas (status no plano: A confirmar, A receber, Paga, Cancelada); some o aviso técnico da flag/`docs/contratos`; a foto da peça usa `items[].image_url` de `admin-recent-sales` v3 (back-maris PR #18; `seller_name` / `payment_status` / `payment_method` separados; iniciais só como fallback).
 - `/admin` abre o painel. Promoções continua em `/promocoes`, com atalho no menu.
 - Entrar em `/admin` espera o perfil do administrador. Um `staff-me` interrompido pela troca de página não manda mais para a mensagem de sem permissão.

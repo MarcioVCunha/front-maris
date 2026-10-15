@@ -21,6 +21,11 @@ header {
   color: var(--maris-black);
 }
 
+header > * {
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
 .back-link,
 .hub-back {
   display: inline-block;
@@ -55,7 +60,11 @@ header p {
 }
 
 .container {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
   padding: 24px;
+  box-sizing: border-box;
 }
 
 .card {

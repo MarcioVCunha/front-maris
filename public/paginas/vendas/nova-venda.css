@@ -11,7 +11,10 @@
 
 .nova-venda header {
   text-align: left;
+  width: min(520px, 100%);
+  margin: 0 auto;
   padding: 20px 16px 16px;
+  box-sizing: border-box;
 }
 
 .nova-venda header h1 {
@@ -19,12 +22,13 @@
 }
 
 .nova-venda .sale-main {
-  width: min(480px, 100%);
+  width: min(520px, 100%);
   margin: 0 auto;
   padding: 16px 16px 32px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .month-card {
