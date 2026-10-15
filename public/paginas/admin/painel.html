@@ -26,10 +26,17 @@
     </aside>
     <div class="panel-body">
       <main id="view" class="view"></main>
-      <p id="message" class="note" hidden></p>
+      <p id="message" class="note" hidden role="status"></p>
     </div>
     <div class="session">
       <button type="button" id="staff-logout-btn" class="btn-sair">Sair</button>
+    </div>
+    <div id="fab-root" class="fab-root">
+      <div class="fab-menu" id="fab-menu" hidden>
+        <a class="fab-menu__item" href="/admin/adicionar" data-fab="peca">Nova peça</a>
+        <a class="fab-menu__item" href="/vendas/nova" data-fab="venda">Nova venda</a>
+      </div>
+      <button type="button" id="fab-toggle" class="fab-btn" aria-expanded="false" aria-controls="fab-menu" aria-label="Atalhos">+</button>
     </div>
     <dialog id="archive-dialog"></dialog>
     <dialog id="sale-dialog" class="sale-dialog"></dialog>

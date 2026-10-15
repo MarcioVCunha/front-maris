@@ -879,4 +879,33 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
   return `${cards}${salesBlock}`
 }
 
+/** Atalho flutuante (+) do painel — esconde na tela de adicionar peça. */
+export function shouldShowFab(view) {
+  return view !== "adicionar"
+}
+
+export function fabMenuHtml() {
+  return `<div class="fab-menu" id="fab-menu" hidden>
+    <a class="fab-menu__item" href="/admin/adicionar" data-fab="peca">Nova peça</a>
+    <a class="fab-menu__item" href="/vendas/nova" data-fab="venda">Nova venda</a>
+  </div>`
+}
+
+/** Mensagem com botão Desfazer (HTML seguro: texto escapado; botão via JS). */
+export function feedbackParts(text, options = {}) {
+  return {
+    text: String(text || ""),
+    undoLabel: options.undo ? String(options.undo.label || "Desfazer") : "",
+    undoMs: options.undo?.ms == null ? 8000 : Number(options.undo.ms)
+  }
+}
+
+/** Rotas antigas de admin que o Vercel manda para as telas novas do painel. */
+export const LEGACY_ADMIN_REDIRECTS = [
+  { from: "/adicionar-peca", to: "/admin/adicionar" },
+  { from: "/importar", to: "/admin/importar" },
+  { from: "/addProduct/add-product.html", to: "/admin/adicionar" },
+  { from: "/importJson/import.html", to: "/admin/importar" }
+]
+
 export { ADD_PRODUCT_CATEGORIES }
