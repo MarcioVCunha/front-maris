@@ -86,6 +86,10 @@ Auth: staff admin (`orders.read_all`).
 
 Formato antigo (flag off / back ainda sem PR #16): `channels` com `site` \| `equipe` \| `marketplace` e `best_sellers` sem `channels`.
 
+No front atual, `previous.channels` (quando vier) é mesclado em `channels[].previous_*` para a comparação por origem.
+
+A UI do Início usa faixa horizontal de origens; toque filtra `admin-recent-sales` por `channel` no cliente. Edição de venda: `docs/contratos/painel-venda-edicao.md`.
+
 ## preco_marketplace (estoque)
 
 Em `admin-product-list` / view admin de produtos (PR #16), cada peça pode trazer `preco_marketplace` calculado no banco:

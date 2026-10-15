@@ -1,0 +1,118 @@
+import { assert, assertEquals } from "jsr:@std/assert@1"
+import {
+  ADMIN_SALE_EDIT_ENABLED,
+  filterSalesByChannel,
+  normalizeSaleItems,
+  readSaleEditForm,
+  renderSaleCards,
+  renderSaleEditDialog,
+  saleChannelLabel,
+  salePrimaryPhoto,
+  shouldShowSaleEdit,
+} from "./venda-edicao.logic.js"
+
+const formatMoney = (value: number) => `R$ ${Number(value).toFixed(2).replace(".", ",")}`
+
+Deno.test("a edição de venda no painel fica desligada até o back unificar as RPCs", async () => {
+  assertEquals(ADMIN_SALE_EDIT_ENABLED, false)
+  assertEquals(shouldShowSaleEdit(), false)
+  const source = await Deno.readTextFile(new URL("./venda-edicao.logic.js", import.meta.url))
+  assertEquals(source.includes("export const ADMIN_SALE_EDIT_ENABLED = false"), true)
+  assertEquals(saleChannelLabel("mercado_livre"), "Mercado Livre")
+  assertEquals(saleChannelLabel("tiktok"), "TikTok Shop")
+})
+
+Deno.test("filtra vendas por canal e monta cards com foto ou placeholder", () => {
+  const sales = [
+    {
+      id: 1,
+      channel: "shopee",
+      customer_name: "Ana",
+      seller_name: "",
+      total: 200,
+      payment_status: "paid",
+      created_at: "2026-10-14T15:00:00Z",
+      items_count: 1,
+      items: [{ code: "AN1", name: "Anel", quantity: 1, image_url: "https://exemplo.test/a.jpg" }],
+    },
+    {
+      id: 2,
+      channel: "equipe",
+      customer_name: "Lia",
+      seller_name: "Marineide",
+      total: 190,
+      payment_status: "receivable",
+      created_at: "2026-10-14T16:00:00Z",
+      items_count: 2,
+      items: [],
+    },
+  ]
+  assertEquals(filterSalesByChannel(sales, "shopee").map((s) => s.id), [1])
+  assertEquals(filterSalesByChannel(sales, "").length, 2)
+  assertEquals(salePrimaryPhoto(sales[0]), "https://exemplo.test/a.jpg")
+  assertEquals(salePrimaryPhoto(sales[1]), "")
+
+  const cards = renderSaleCards(sales, formatMoney)
+  assert(cards.includes("Ana"))
+  assert(cards.includes("Lia"))
+  assert(cards.includes('data-sale-id="1"'))
+  assert(cards.includes("https://exemplo.test/a.jpg"))
+  assert(cards.includes("Marineide"))
+  assert(cards.includes("Paga") || cards.includes("A receber"))
+})
+
+Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
+  const sale = {
+    id: 10,
+    channel: "equipe",
+    customer_name: "Lia",
+    seller_name: "Marineide",
+    total: 190,
+    payment_status: "receivable",
+    payment_method: "pix",
+    created_at: "2026-10-14T15:00:00Z",
+    items_count: 1,
+    items: [{ code: "AN581-R", name: "Anel rosa", quantity: 1, unit_price: 190, image_url: "" }],
+  }
+  const off = renderSaleEditDialog(sale, formatMoney)
+  assert(off.includes("Lia"))
+  assert(off.includes("Fechar"))
+  assertEquals(off.includes("sale-edit-save"), false)
+  assertEquals(off.includes("sale-edit-paid"), false)
+  assert(off.includes("ADMIN_SALE_EDIT_ENABLED"))
+
+  const on = renderSaleEditDialog(sale, formatMoney, { enabled: true })
+  assert(on.includes("sale-edit-save"))
+  assert(on.includes("sale-edit-paid"))
+  assert(on.includes("sale-edit-cancel"))
+  assert(on.includes("sale-edit-total"))
+  assertEquals(normalizeSaleItems(sale.items)[0].code, "AN581-R")
+})
+
+Deno.test("readSaleEditForm lê total e peças do formulário", () => {
+  const root = {
+    getAttribute(name: string) {
+      return name === "data-sale-id" ? "55" : null
+    },
+    querySelector(sel: string) {
+      if (sel === "#sale-edit-total") return { value: "210,50" }
+      return null
+    },
+    querySelectorAll() {
+      return [{
+        querySelector(sel: string) {
+          if (sel.includes("name")) return { value: "Anel" }
+          if (sel.includes("quantity")) return { value: "2" }
+          if (sel.includes("unit_price")) return { value: "100" }
+          return null
+        },
+      }]
+    },
+  }
+  assertEquals(readSaleEditForm(root as never), {
+    id: "55",
+    total: "210,50",
+    pieces: [{ name: "Anel", quantity: "2", unit_price: "100" }],
+  })
+  assertEquals(readSaleEditForm(null), null)
+})

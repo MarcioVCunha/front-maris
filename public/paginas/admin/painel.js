@@ -12,6 +12,7 @@ import {
   isPanelLink,
   navHtml,
   nextPackagingValues,
+  formatPrice,
   normalizeOverview,
   normalizeRecentSales,
   normalizeSellersMonth,
@@ -34,6 +35,12 @@ import {
   validateProductUpdate,
   visibleStock
 } from "./painel.logic.js"
+import {
+  ADMIN_SALE_EDIT_ENABLED,
+  renderSaleCards,
+  renderSaleEditDialog,
+  shouldShowSaleEdit
+} from "./venda-edicao.logic.js"
 import {
   addProduct,
   archiveProduct,
@@ -92,6 +99,7 @@ const stockNav = document.getElementById("stock-nav")
 const dashNav = document.getElementById("dash-nav")
 const titleEl = document.getElementById("view-title")
 const dialog = document.getElementById("archive-dialog")
+const saleDialog = document.getElementById("sale-dialog")
 
 const state = {
   products: [],
@@ -103,7 +111,8 @@ const state = {
   stockLimit: STOCK_PAGE_SIZE,
   overview: undefined,
   recent: undefined,
-  sellers: undefined
+  sellers: undefined,
+  selectedChannel: null
 }
 
 function showMessage(text, kind) {
@@ -368,9 +377,54 @@ async function loadOverview() {
 
 async function loadRecent() {
   if (state.recent !== undefined) return state.recent
-  const result = await fetchRecentSales({ limit: 20 })
+  const result = await fetchRecentSales({ limit: 50 })
   state.recent = result.ok ? normalizeRecentSales(result.data) : null
   return state.recent
+}
+
+function openSaleDialog(sale) {
+  if (!saleDialog || !sale) return
+  saleDialog.innerHTML = renderSaleEditDialog(sale, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
+  saleDialog.showModal()
+  saleDialog.querySelector("#sale-edit-close")?.addEventListener("click", () => saleDialog.close())
+  if (!shouldShowSaleEdit()) return
+  // Ações reais ficam para quando as RPCs existirem e a flag ligar.
+  saleDialog.querySelector("#sale-edit-save")?.addEventListener("click", () => {
+    showMessage("Salvar venda ainda depende do back (ver contrato de edição).", "error")
+  })
+  saleDialog.querySelector("#sale-edit-paid")?.addEventListener("click", () => {
+    showMessage("Marcar como paga no painel ainda depende do back unificado.", "error")
+  })
+  saleDialog.querySelector("#sale-edit-cancel")?.addEventListener("click", () => {
+    showMessage("Cancelar venda no painel ainda depende do back unificado.", "error")
+  })
+}
+
+function paintInicio() {
+  viewEl.classList.add("view--inicio")
+  viewEl.innerHTML = renderInicio(state.overview, formatPrice, {
+    selectedChannel: state.selectedChannel,
+    sales: state.recent || [],
+    renderSales: (rows, formatMoney) => renderSaleCards(rows, formatMoney, { clickable: true })
+  })
+  bindInicio()
+}
+
+function bindInicio() {
+  viewEl.querySelectorAll("[data-origin]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const channel = btn.getAttribute("data-origin")
+      state.selectedChannel = state.selectedChannel === channel ? null : channel
+      paintInicio()
+    })
+  })
+  viewEl.querySelectorAll(".sale-card[data-sale-id]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-sale-id")
+      const sale = (state.recent || []).find((row) => String(row.id) === String(id))
+      openSaleDialog(sale)
+    })
+  })
 }
 
 async function loadSellers() {
@@ -407,17 +461,23 @@ async function render(view, token) {
   showMessage("")
   const stale = () => token !== renderToken
   if (view === "inicio") {
-    if (state.overview === undefined) viewEl.innerHTML = viewLoading()
-    const overview = await loadOverview()
+    viewEl.classList.add("view--inicio")
+    if (state.overview === undefined || state.recent === undefined) viewEl.innerHTML = viewLoading()
+    await Promise.all([loadOverview(), loadRecent()])
     if (stale()) return
-    viewEl.innerHTML = renderInicio(overview)
+    paintInicio()
     return
   }
+  viewEl.classList.remove("view--inicio")
   if (view === "vendas") {
     if (state.recent === undefined) viewEl.innerHTML = viewLoading()
     const sales = await loadRecent()
     if (stale()) return
     viewEl.innerHTML = renderVendas(sales)
+    viewEl.querySelectorAll(".sale-row").forEach((row) => {
+      // Vendas ainda é lista; a edição reutilizável entra quando a flag ligar.
+      row.classList.add("sale-row--static")
+    })
     return
   }
   if (view === "vendedoras") {

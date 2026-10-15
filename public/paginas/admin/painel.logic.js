@@ -575,21 +575,36 @@ function normalizeBestSeller(item) {
 
 export function normalizeOverview(data) {
   if (!data || data.ok === false || typeof data !== "object") return null
+  const previousChannels = Array.isArray(data.previous?.channels)
+    ? data.previous.channels.map(normalizeChannelRow)
+    : []
   const previous = data.previous && typeof data.previous === "object"
     ? {
       month: String(data.previous.month || ""),
       charged_total: Number(data.previous.charged_total) || 0,
       paid_count: Number(data.previous.paid_count) || 0,
-      paid_orders_count: Number(data.previous.paid_orders_count) || 0
+      paid_orders_count: Number(data.previous.paid_orders_count) || 0,
+      channels: previousChannels
     }
     : null
+  const prevMap = new Map(previousChannels.map((row) => [row.channel, row]))
+  const channels = (Array.isArray(data.channels) ? data.channels.map(normalizeChannelRow) : []).map((row) => {
+    if (row.previous_charged_total != null || row.previous_orders != null) return row
+    const prev = prevMap.get(row.channel)
+    if (!prev) return row
+    return {
+      ...row,
+      previous_orders: prev.orders,
+      previous_charged_total: prev.charged_total
+    }
+  })
   return {
     month: String(data.month || ""),
     charged_total: Number(data.charged_total) || 0,
     paid_count: Number(data.paid_count) || 0,
     paid_orders_count: Number(data.paid_orders_count) || 0,
     previous,
-    channels: Array.isArray(data.channels) ? data.channels.map(normalizeChannelRow) : [],
+    channels,
     best_sellers: Array.isArray(data.best_sellers) ? data.best_sellers.map(normalizeBestSeller) : []
   }
 }
@@ -622,17 +637,33 @@ function bestSellerChannelHint(item) {
 export function normalizeRecentSales(data) {
   if (!data || data.ok === false) return null
   const sales = Array.isArray(data.sales) ? data.sales : []
-  return sales.map((sale) => ({
-    id: sale.id,
-    created_at: sale.created_at || sale.paid_at || "",
-    seller_name: sale.seller_name || "",
-    channel: sale.channel || "",
-    customer_name: sale.customer_name || "",
-    total: sale.total,
-    payment_status: sale.payment_status || "",
-    payment_method: sale.payment_method || "",
-    items_count: Number(sale.items_count) || 0
-  }))
+  return sales.map((sale) => {
+    const items = Array.isArray(sale.items)
+      ? sale.items.map((item) => ({
+        id: item?.id ?? null,
+        code: String(item?.code || item?.product_code || ""),
+        name: String(item?.name || item?.product_name || ""),
+        quantity: Number(item?.quantity) || 0,
+        unit_price: item?.unit_price == null ? null : Number(item.unit_price),
+        line_total: item?.line_total == null ? null : Number(item.line_total),
+        image_url: String(item?.image_url || "").trim(),
+        legacy_sale_id: item?.legacy_sale_id == null ? null : Number(item.legacy_sale_id)
+      }))
+      : []
+    return {
+      id: sale.id,
+      created_at: sale.created_at || sale.paid_at || "",
+      seller_name: sale.seller_name || "",
+      channel: sale.channel || "",
+      customer_name: sale.customer_name || "",
+      total: sale.total,
+      payment_status: sale.payment_status || "",
+      payment_method: sale.payment_method || "",
+      items_count: Number(sale.items_count) || items.length || 0,
+      image_url: String(sale.image_url || "").trim(),
+      items
+    }
+  })
 }
 
 export function normalizeSellersMonth(data) {
@@ -674,50 +705,85 @@ function statusLabel(status) {
   return ""
 }
 
+function renderOriginStrip(channelRows, selectedChannel, formatMoney, detailed) {
+  if (!channelRows.length) return `<p class="empty">${NO_DATA}</p>`
+  return `<div class="origin-strip" role="list">${channelRows.map((item) => {
+    const active = selectedChannel && selectedChannel === item.channel
+    const delta = detailed && item.previous_charged_total != null
+      ? formatMoneyDelta(moneyDelta(item.charged_total, item.previous_charged_total), formatMoney)
+      : ""
+    return `<button type="button" class="origin-card" role="listitem" data-origin="${escapeHtml(item.channel)}" aria-pressed="${active ? "true" : "false"}">
+      <span class="origin-card__name">${escapeHtml(channelLabel(item.channel))}</span>
+      <b class="origin-card__total">${escapeHtml(money(item.charged_total, formatMoney))}</b>
+      <small class="origin-card__meta">${Number(item.orders) || 0} pedidos</small>
+      ${delta ? `<small class="delta origin-card__delta">${escapeHtml(delta)}</small>` : ""}
+    </button>`
+  }).join("")}</div>`
+}
+
+function renderBestSellersBlock(bestSellers, detailed) {
+  if (!bestSellers.length) return `<p class="empty">${NO_DATA}</p>`
+  return `<ul class="plain-list best-list">${bestSellers.map((item) => {
+    const code = item.code || ""
+    const split = detailed ? bestSellerChannelHint(item) : ""
+    const meta = [code, split].filter(Boolean).join(" · ")
+    return `<li class="best-row">
+      <span><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
+        <small>${escapeHtml(meta)}</small></span>
+      <b>${Number(item.quantity) || 0} un.</b>
+    </li>`
+  }).join("")}</ul>`
+}
+
+/**
+ * Início: totais do mês + origem em faixa horizontal.
+ * options.selectedChannel: filtra vendas no lugar de Mais vendidas.
+ * options.sales: lista de admin-recent-sales (já normalizada).
+ * options.renderSales: renderer de cards (injetável; padrão vem de venda-edicao).
+ */
 export function renderInicio(overview, formatMoney = formatPrice, options = {}) {
   const data = overview && overview.month != null && overview.channels ? overview : normalizeOverview(overview)
   if (!data) return `<p class="empty">${NO_DATA}</p>`
   const detailed = shouldShowHomeChannels(options.enabled) && overviewHasDetailedChannels(data)
   const channelRows = detailed ? orderedHomeChannels(data.channels) : data.channels
+  const selected = String(options.selectedChannel || "").trim()
   const monthDelta = detailed && data.previous
     ? formatMoneyDelta(moneyDelta(data.charged_total, data.previous.charged_total), formatMoney)
     : ""
-  const channels = channelRows.length
-    ? `<ul class="plain-list">${channelRows.map((item) => {
-      const delta = detailed && item.previous_charged_total != null
-        ? formatMoneyDelta(moneyDelta(item.charged_total, item.previous_charged_total), formatMoney)
-        : ""
-      return `<li class="channel-row">
-        <span>${escapeHtml(channelLabel(item.channel))}
-          <small>${Number(item.orders) || 0} pedidos</small></span>
-        <span class="piece-side">
-          <b>${escapeHtml(money(item.charged_total, formatMoney))}</b>
-          ${delta ? `<small class="delta">${escapeHtml(delta)}</small>` : ""}
-        </span>
-      </li>`
-    }).join("")}</ul>`
-    : `<p class="empty">${NO_DATA}</p>`
-  const best = data.best_sellers.length
-    ? `<ul class="plain-list">${data.best_sellers.map((item) => {
-      const code = item.code || ""
-      const split = detailed ? bestSellerChannelHint(item) : ""
-      const meta = [code, split].filter(Boolean).join(" · ")
-      return `<li class="best-row">
-        <span><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
-          <small>${escapeHtml(meta)}</small></span>
-        <b>${Number(item.quantity) || 0} un.</b>
-      </li>`
-    }).join("")}</ul>`
-    : `<p class="empty">${NO_DATA}</p>`
-  return `<section class="report">
-    <h2>Vendas do mês</h2>
-    <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
-    <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
-    ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
+  const origins = renderOriginStrip(channelRows, selected, formatMoney, detailed)
+
+  let secondaryTitle = "Mais vendidas"
+  let secondaryBody = renderBestSellersBlock(data.best_sellers, detailed)
+  if (selected) {
+    secondaryTitle = `Vendas · ${channelLabel(selected)}`
+    const sales = Array.isArray(options.sales) ? options.sales : []
+    const filtered = sales.filter((sale) => String(sale?.channel || "") === selected)
+    if (typeof options.renderSales === "function") {
+      secondaryBody = options.renderSales(filtered, formatMoney)
+    } else {
+      secondaryBody = filtered.length
+        ? `<ul class="sale-card-list">${filtered.map((sale) => `<li><article class="sale-card sale-card--static">
+            <span class="sale-card__copy"><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
+              <small>${escapeHtml([sale.seller_name, formatWhen(sale.created_at)].filter(Boolean).join(" · "))}</small></span>
+            <span class="sale-card__side"><b>${escapeHtml(money(sale.total, formatMoney))}</b>
+              <small>${escapeHtml(statusLabel(sale.payment_status))}</small></span>
+          </article></li>`).join("")}</ul>`
+        : `<p class="empty">Nenhuma venda neste canal.</p>`
+    }
+  }
+
+  return `<section class="report report--inicio">
+    <header class="inicio-hero">
+      <h2>Vendas do mês</h2>
+      <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
+      <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
+      ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
+    </header>
     <h2>Origem</h2>
-    ${channels}
-    <h2>Mais vendidas</h2>
-    ${best}
+    <p class="hint origin-hint">Toque numa origem para ver as vendas. Toque de novo para voltar às mais vendidas.</p>
+    ${origins}
+    <h2 id="inicio-secondary-title">${escapeHtml(secondaryTitle)}</h2>
+    <div id="inicio-secondary">${secondaryBody}</div>
   </section>`
 }
 

@@ -149,9 +149,10 @@ export async function fetchMonthOverview({ month }, client) {
 
 /**
  * GET admin-recent-sales?limit=20
- * Resposta: { ok, sales: [{ id, created_at, seller_name, channel, customer_name,
+ * Resposta atual: { ok, sales: [{ id, created_at, seller_name, channel, customer_name,
  *   total, payment_status, payment_method, items_count }] }
- * Vendas de todas as vendedoras. Só administrador.
+ * Desejado (fotos/edição): items[] com code, name, quantity, unit_price, image_url.
+ * Ver docs/contratos/painel-venda-edicao.md. Só administrador.
  */
 export async function fetchRecentSales({ limit = 20 }, client) {
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {

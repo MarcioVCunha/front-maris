@@ -313,6 +313,8 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
     best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5 }],
   })
   assert(inicio.includes("Vendas do mês"))
+  assert(inicio.includes("origin-strip"))
+  assert(inicio.includes('data-origin="site"'))
   assert(inicio.includes("Site"))
   assert(inicio.includes("Equipe"))
   assert(inicio.includes("Marketplace"))
@@ -321,6 +323,29 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assertEquals(inicio.includes("Shopee"), false)
   assertEquals(inicio.includes("vs mês anterior"), false)
   assertEquals(renderInicio(null).includes(NO_DATA), true)
+
+  const filtered = renderInicio({
+    month: "2026-10",
+    charged_total: 2400,
+    paid_count: 12,
+    paid_orders_count: 7,
+    channels: [
+      { channel: "site", orders: 2, charged_total: 400 },
+      { channel: "equipe", orders: 4, charged_total: 1600 },
+    ],
+    best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5 }],
+  }, undefined, {
+    selectedChannel: "equipe",
+    sales: [
+      { id: 1, channel: "equipe", customer_name: "Lia", seller_name: "Marineide", total: 190, payment_status: "paid", created_at: "2026-10-14T15:00:00Z", items_count: 1 },
+      { id: 2, channel: "site", customer_name: "Ana", total: 80, payment_status: "paid", created_at: "2026-10-14T16:00:00Z", items_count: 1 },
+    ],
+  })
+  assert(filtered.includes("Vendas · Equipe"))
+  assert(filtered.includes("Lia"))
+  assertEquals(filtered.includes("Anel rosa"), false)
+  assertEquals(filtered.includes("Ana"), false)
+  assert(filtered.includes('aria-pressed="true"'))
 
   const vendas = renderVendas([{
     id: 10,
@@ -395,6 +420,25 @@ Deno.test("a flag de canais do Início fica ligada e o fallback antigo ainda fun
   assertEquals(overviewHasDetailedChannels(normalized), true)
   assertEquals(normalized?.previous?.month, "2026-09")
   assertEquals(normalized?.best_sellers[0].channels.length, 2)
+
+  const fromPrevChannels = normalizeOverview({
+    ok: true,
+    month: "2026-10",
+    charged_total: 100,
+    paid_count: 1,
+    paid_orders_count: 1,
+    channels: [{ channel: "site", orders: 1, charged_total: 100 }],
+    previous: {
+      month: "2026-09",
+      charged_total: 80,
+      paid_count: 1,
+      paid_orders_count: 1,
+      channels: [{ channel: "site", orders: 2, charged_total: 80 }],
+    },
+    best_sellers: [],
+  })
+  assertEquals(fromPrevChannels?.channels[0].previous_charged_total, 80)
+  assertEquals(fromPrevChannels?.channels[0].previous_orders, 2)
 
   const on = renderInicio(normalized)
   assert(on.includes("Shopee"))
