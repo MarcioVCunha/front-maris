@@ -48,6 +48,10 @@ import {
   stockNavHtml,
   visibleStock,
   shouldShowDashboard,
+  shouldShowFab,
+  fabMenuHtml,
+  feedbackParts,
+  LEGACY_ADMIN_REDIRECTS,
 } from "./painel.logic.js"
 
 const anelDefaults = {
@@ -566,4 +570,62 @@ Deno.test("a flag de canais do Início fica ligada e o fallback antigo ainda fun
 
   assertEquals(pieceFormState({ preco_marketplace: 47.9 }).precoMarketplace, "47,9")
   assertEquals(renderPieceForm({ code: "X", unit_price: 10 }).includes("preco-marketplace"), false)
+})
+
+Deno.test("passo 7: FAB some em adicionar, menu aponta para nova peça e nova venda", async () => {
+  assertEquals(shouldShowFab("inicio"), true)
+  assertEquals(shouldShowFab("estoque"), true)
+  assertEquals(shouldShowFab("esgotadas"), true)
+  assertEquals(shouldShowFab("vendas"), true)
+  assertEquals(shouldShowFab("adicionar"), false)
+  const menu = fabMenuHtml()
+  assert(menu.includes('href="/admin/adicionar"'))
+  assert(menu.includes('href="/vendas/nova"'))
+  assert(menu.includes("Nova peça"))
+  assert(menu.includes("Nova venda"))
+  const page = await Deno.readTextFile(new URL("./painel.html", import.meta.url))
+  assert(page.includes('id="fab-root"'))
+  assert(page.includes('id="fab-toggle"'))
+  assert(page.includes('data-fab="peca"'))
+  assert(page.includes('data-fab="venda"'))
+  const script = await Deno.readTextFile(new URL("./painel.js", import.meta.url))
+  assert(script.includes("shouldShowFab"))
+  assert(script.includes("paintFab"))
+  assert(script.includes("undoArchive"))
+  assert(script.includes('label: "Desfazer"'))
+})
+
+Deno.test("passo 7: feedbackParts marca Desfazer e archivePayload desfaz com archive false", () => {
+  const withUndo = feedbackParts("Peça arquivada.", { undo: { label: "Desfazer", ms: 5000 } })
+  assertEquals(withUndo.text, "Peça arquivada.")
+  assertEquals(withUndo.undoLabel, "Desfazer")
+  assertEquals(withUndo.undoMs, 5000)
+  const plain = feedbackParts("Salvo.")
+  assertEquals(plain.undoLabel, "")
+  assertEquals(archivePayload("AN581-R"), { code: "AN581-R" })
+  assertEquals(archivePayload("AN581-R", false), { code: "AN581-R", archive: false })
+})
+
+Deno.test("passo 7: rotas antigas de admin redirecionam para as telas novas", async () => {
+  const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
+  assertEquals(LEGACY_ADMIN_REDIRECTS.length >= 4, true)
+  for (const rule of LEGACY_ADMIN_REDIRECTS) {
+    const found = vercel.redirects.find((item: { source: string }) => item.source === rule.from)
+    assert(found, `${rule.from} precisa de redirect`)
+    assertEquals(found.destination, rule.to)
+    assertEquals(found.permanent, true)
+    assertEquals(
+      vercel.rewrites.some((item: { source: string }) => item.source === rule.from),
+      false,
+      `${rule.from} não pode continuar como rewrite`,
+    )
+  }
+  assertEquals(
+    vercel.redirects.find((item: { source: string }) => item.source === "/adicionar-peca")?.destination,
+    "/admin/adicionar",
+  )
+  assertEquals(
+    vercel.redirects.find((item: { source: string }) => item.source === "/importar")?.destination,
+    "/admin/importar",
+  )
 })

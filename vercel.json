@@ -6,8 +6,8 @@
     { "source": "/hubs/admin.html", "destination": "/admin", "permanent": true },
     { "source": "/hubs/vendedoras.html", "destination": "/vendedoras", "permanent": true },
     { "source": "/hubs/catalogo.html", "destination": "/catalogo", "permanent": true },
-    { "source": "/importJson/import.html", "destination": "/importar", "permanent": true },
-    { "source": "/addProduct/add-product.html", "destination": "/adicionar-peca", "permanent": true },
+    { "source": "/importJson/import.html", "destination": "/admin/importar", "permanent": true },
+    { "source": "/addProduct/add-product.html", "destination": "/admin/adicionar", "permanent": true },
     { "source": "/components/components.html", "destination": "/tipos-produto", "permanent": true },
     { "source": "/promocoes/promocoes.html", "destination": "/promocoes", "permanent": true },
     { "source": "/contas-vendedoras/contas-vendedoras.html", "destination": "/contas-vendedoras", "permanent": true },
@@ -23,7 +23,9 @@
     { "source": "/home.css", "destination": "/assets/home.css", "permanent": true },
     { "source": "/maris-theme.css", "destination": "/assets/maris-theme.css", "permanent": true },
     { "source": "/maris-internal.css", "destination": "/assets/maris-internal.css", "permanent": true },
-    { "source": "/shared/:path*", "destination": "/compartilhado/:path*", "permanent": true }
+    { "source": "/shared/:path*", "destination": "/compartilhado/:path*", "permanent": true },
+    { "source": "/adicionar-peca", "destination": "/admin/adicionar", "permanent": true },
+    { "source": "/importar", "destination": "/admin/importar", "permanent": true }
   ],
   "rewrites": [
     { "source": "/utils.js", "destination": "/compartilhado/utils.js" },
@@ -45,8 +47,6 @@
     { "source": "/admin", "destination": "/paginas/admin/painel.html" },
     { "source": "/vendedoras", "destination": "/paginas/admin/vendedoras.html" },
     { "source": "/catalogo", "destination": "/paginas/admin/catalogo.html" },
-    { "source": "/importar", "destination": "/paginas/estoque/importar/importar.html" },
-    { "source": "/adicionar-peca", "destination": "/paginas/estoque/adicionar-peca/adicionar-peca.html" },
     { "source": "/tipos-produto", "destination": "/paginas/estoque/tipos-produto/tipos-produto.html" },
     { "source": "/promocoes", "destination": "/paginas/estoque/promocoes/promocoes.html" },
     { "source": "/contas-vendedoras", "destination": "/paginas/vendedoras/contas.html" },

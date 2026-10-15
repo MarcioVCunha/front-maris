@@ -30,6 +30,7 @@ import {
   renderVendedoras,
   sellersFromDirectory,
   shouldShowDashboard,
+  shouldShowFab,
   stockNavHtml,
   STOCK_PAGE_SIZE,
   validateAddProduct,
@@ -125,6 +126,12 @@ const titleEl = document.getElementById("view-title")
 const dialog = document.getElementById("archive-dialog")
 const saleDialog = document.getElementById("sale-dialog")
 const pieceDialog = document.getElementById("piece-dialog")
+const fabRoot = document.getElementById("fab-root")
+const fabToggle = document.getElementById("fab-toggle")
+const fabMenu = document.getElementById("fab-menu")
+
+let undoTimer = null
+let undoAction = null
 const conjuntoDialog = document.getElementById("conjunto-dialog")
 
 const state = {
@@ -143,10 +150,93 @@ const state = {
   conjuntoQuery: ""
 }
 
-function showMessage(text, kind) {
+function clearUndo() {
+  if (undoTimer) clearTimeout(undoTimer)
+  undoTimer = null
+  undoAction = null
+}
+
+function showMessage(text, kind, options = {}) {
+  clearUndo()
   messageEl.hidden = !text
-  messageEl.textContent = text || ""
   messageEl.className = kind ? `note ${kind}` : "note"
+  messageEl.replaceChildren()
+  if (!text) return
+  const span = document.createElement("span")
+  span.textContent = text
+  messageEl.appendChild(span)
+  if (typeof options.undo?.run === "function") {
+    const btn = document.createElement("button")
+    btn.type = "button"
+    btn.className = "note__undo"
+    btn.textContent = options.undo.label || "Desfazer"
+    undoAction = options.undo.run
+    btn.addEventListener("click", async () => {
+      const run = undoAction
+      clearUndo()
+      messageEl.hidden = true
+      messageEl.replaceChildren()
+      if (run) await run()
+    })
+    messageEl.appendChild(btn)
+    const ms = options.undo.ms == null ? 8000 : Number(options.undo.ms)
+    if (ms > 0) {
+      undoTimer = setTimeout(() => {
+        clearUndo()
+        messageEl.hidden = true
+        messageEl.replaceChildren()
+      }, ms)
+    }
+  }
+}
+
+function closeFabMenu() {
+  if (!fabMenu || !fabToggle) return
+  fabMenu.hidden = true
+  fabToggle.setAttribute("aria-expanded", "false")
+}
+
+function paintFab(view) {
+  if (!fabRoot) return
+  fabRoot.hidden = !shouldShowFab(view)
+  if (fabRoot.hidden) closeFabMenu()
+}
+
+function bindFabOnce() {
+  if (!fabToggle || fabToggle.dataset.bound === "1") return
+  fabToggle.dataset.bound = "1"
+  fabToggle.addEventListener("click", () => {
+    const open = fabMenu.hidden
+    fabMenu.hidden = !open
+    fabToggle.setAttribute("aria-expanded", open ? "true" : "false")
+  })
+  fabMenu?.addEventListener("click", (event) => {
+    const link = event.target.closest?.("[data-fab]")
+    if (!link) return
+    closeFabMenu()
+    if (link.getAttribute("data-fab") === "peca") {
+      event.preventDefault()
+      navigate("/admin/adicionar")
+    }
+  })
+  document.addEventListener("click", (event) => {
+    if (!fabRoot || fabRoot.hidden || fabMenu.hidden) return
+    if (fabRoot.contains(event.target)) return
+    closeFabMenu()
+  })
+}
+
+async function undoArchive(code) {
+  showMessage("Desfazendo…")
+  const result = await archiveProduct(archivePayload(code, false))
+  if (!result.ok) {
+    showMessage(result.error, "error")
+    return
+  }
+  state.productsLoaded = false
+  showMessage("Arquivo desfeito. A peça voltou ao estoque.")
+  await loadProducts()
+  showView()
 }
 
 function paintChrome(view) {
@@ -159,6 +249,7 @@ function paintChrome(view) {
     stockNav.innerHTML = stockNavHtml(subActive)
   }
   titleEl.textContent = TITLES[view] || "Painel"
+  paintFab(view)
 }
 
 function categoryBag(categoria) {
@@ -261,17 +352,22 @@ function bindPieceForm(root = document, options = {}) {
     dialog.showModal()
     dialog.querySelector("#archive-cancel").addEventListener("click", () => dialog.close())
     dialog.querySelector("#archive-confirm").addEventListener("click", async () => {
-      const result = await archiveProduct(archivePayload(state.piece.code))
+      const code = state.piece.code
+      const result = await archiveProduct(archivePayload(code))
       if (!result.ok) {
         showMessage(result.error, "error")
         return
       }
       dialog.close()
-      if (options.onArchived) options.onArchived()
-      else {
-        state.productsLoaded = false
-        navigate("/admin/estoque")
-      }
+      state.productsLoaded = false
+      if (options.onArchived) await options.onArchived()
+      else await navigate("/admin/estoque")
+      showMessage("Peça arquivada.", "", {
+        undo: {
+          label: "Desfazer",
+          run: () => undoArchive(code)
+        }
+      })
     })
   })
   form.querySelector("#piece-edit-close")?.addEventListener("click", () => {
@@ -305,8 +401,7 @@ async function openPieceDialog(piece) {
     },
     onArchived: async () => {
       pieceDialog.close()
-      state.productsLoaded = false
-      navigate("/admin/estoque")
+      await navigate("/admin/estoque")
     },
     onClose: () => pieceDialog.close()
   })
@@ -729,7 +824,7 @@ function navigate(href) {
   const url = new URL(href, location.origin)
   const next = `${url.pathname}${url.search}`
   if (next !== `${location.pathname}${location.search}`) history.pushState(null, "", next)
-  showView()
+  return showView()
 }
 
 function onPanelClick(event) {
@@ -744,7 +839,8 @@ function onPanelClick(event) {
 }
 
 async function render(view, token) {
-  showMessage("")
+  // Não limpa toast com Desfazer pendente.
+  if (!undoAction) showMessage("")
   const stale = () => token !== renderToken
   if (view === "inicio") {
     viewEl.classList.add("view--inicio")
@@ -850,6 +946,7 @@ async function boot() {
   document.addEventListener("click", onPanelClick)
   window.addEventListener("popstate", () => { showView() })
   bindStockOnce()
+  bindFabOnce()
   reveal()
   await showView()
 }

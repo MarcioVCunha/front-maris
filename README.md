@@ -12,13 +12,13 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/catalog/carrinho` | Visitante | Revisão da cesta e pedido |
 | `/equipe` | Equipe | Login com e-mail e senha |
 | `/equipe/nova-senha` | Equipe | Nova senha a partir do e-mail |
-| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início com totais por origem em faixa (filtra vendas ao tocar), Estoque (Peças em cards + **Esgotadas** + Estoque por tipo; **Conjuntos**/divisões com `ADMIN_CONJUNTOS_ENABLED` ligada ao back PR #17; preço do site + marketplace), Vendas e Vendedoras com os mesmos cards/diálogo do Início, Promoções. Edição de venda (`ADMIN_SALE_EDIT_ENABLED`) ligada ao back-maris PR #18 |
+| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início com totais por origem em faixa (filtra vendas ao tocar), Estoque (Peças em cards + **Esgotadas** + Estoque por tipo; **Conjuntos**/divisões com `ADMIN_CONJUNTOS_ENABLED` ligada ao back PR #17; preço do site + marketplace), Vendas e Vendedoras com os mesmos cards/diálogo do Início, Promoções. Edição de venda (`ADMIN_SALE_EDIT_ENABLED`) ligada ao back-maris PR #18. Botão **+** fixo (Nova peça / Nova venda) e toast **Desfazer** após arquivar peça |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Redireciona para `/vendas/nova` |
 | `/vendas/nova` | Equipe | Registrar venda (equipe) e venda de marketplace (Shopee, Mercado Livre, TikTok Shop) |
 | `/lista-espera` | Administração | Lista de espera |
-| `/adicionar-peca` | Administração | Cadastrar uma peça |
-| `/importar` | Administração | Importar várias peças por JSON |
+| `/adicionar-peca` | Administração | Redireciona para `/admin/adicionar` |
+| `/importar` | Administração | Redireciona para `/admin/importar` |
 | `/tipos-produto` | Equipe | Divisões de conjunto (tipo = divisão; categoria = Anel/Brinco…) |
 | `/admin/conjuntos` | Administração | Conjuntos no painel: cards, edição e Estoque por tipo (`ADMIN_CONJUNTOS_ENABLED` ligada) |
 | `/promocoes` | Administração | Promoções |
