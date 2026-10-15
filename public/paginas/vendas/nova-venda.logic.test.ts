@@ -1,5 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@1"
 import {
+  MARKETPLACE_PLATFORMS,
   MARKETPLACE_SALE_ENABLED,
   NEW_SALE_ENABLED,
   buildCreateSaleBody,
@@ -416,6 +417,14 @@ Deno.test("marketplace fica ligado e monta o corpo do contrato real", async () =
   assertEquals(marketplaceLabel("shopee"), "Shopee")
   assertEquals(marketplaceLabel("mercado_livre"), "Mercado Livre")
   assertEquals(marketplaceLabel("tiktok"), "TikTok Shop")
+  assertEquals(
+    MARKETPLACE_PLATFORMS.map((item) => item.id),
+    ["shopee", "mercado_livre", "tiktok"]
+  )
+  assertEquals(
+    MARKETPLACE_PLATFORMS.map((item) => item.label),
+    ["Shopee", "Mercado Livre", "TikTok Shop"]
+  )
 
   assertEquals(marketplaceLine({ id: 12, code: "AN581-R", quantity: 1 }), {
     product_code: "AN581-R",
@@ -426,9 +435,16 @@ Deno.test("marketplace fica ligado e monta o corpo do contrato real", async () =
     quantity: 2
   })
 
+  const pieces = [{ id: 12, code: "AN581-R", quantity: 1 }]
+  for (const channel of ["shopee", "mercado_livre", "tiktok"]) {
+    const builtChannel = buildMarketplaceSaleBody({ channel, pieces })
+    assertEquals(builtChannel.ok, true)
+    assertEquals(builtChannel.body.channel, channel)
+  }
+
   const built = buildMarketplaceSaleBody({
     channel: "shopee",
-    pieces: [{ id: 12, code: "AN581-R", quantity: 1 }],
+    pieces,
     clientRequestId: "11111111-1111-1111-1111-111111111111",
     notes: "SP-99"
   })
@@ -443,6 +459,10 @@ Deno.test("marketplace fica ligado e monta o corpo do contrato real", async () =
 
   assertEquals(buildMarketplaceSaleBody({
     channel: "outro",
+    pieces: [{ id: 1, code: "X", quantity: 1 }]
+  }).ok, false)
+  assertEquals(buildMarketplaceSaleBody({
+    channel: "TikTok Shop",
     pieces: [{ id: 1, code: "X", quantity: 1 }]
   }).ok, false)
 
