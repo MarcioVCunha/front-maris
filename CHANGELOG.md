@@ -10,6 +10,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 - Brilho de carregamento (`compartilhado/loading.js`): estrela de 4 pontas ✦ que enche e esvazia nas cores da Maris. Usado no catálogo, na cesta e no painel (boot e troca de aba), com `role="status"`, `aria-label="Carregando"` e sem animação quando `prefers-reduced-motion`.
 - Catálogo alinhado ao back-maris PR #15: `products_public` esconde arquivadas via `catalog_product_visible` (`archived_at IS NULL`); `catalog-read.js` ainda descarta `archived_at` se vier na linha. `admin-product-archive` documentado com `{ code, archive? }` (ver `docs/contratos/catalogo-arquivadas.md`).
 - Venda de marketplace em `/vendas/nova` ligada (`MARKETPLACE_SALE_ENABLED`): Shopee, Mercado Livre e TikTok Shop. Contrato em `docs/contratos/venda-marketplace.md` (back-maris PR #15): `register-marketplace-order` com `channel` + itens `product_code`/`component_id`, sempre pago e sem comissão; `cancel-marketplace-order` com `order_id` e `reason?` devolvendo estoque.
+- Painel Início Fase 2 (back-maris PR #16), atrás de `ADMIN_HOME_CHANNELS_ENABLED` (**desligada**): totais do mês por canal (`site`, `equipe`, `shopee`, `mercado_livre`, `tiktok`) com comparação ao mês anterior e mais vendidas com divisão por canal. No estoque/edição, preço do site editável e `preco_marketplace` só leitura (2,5×custo+5, ceil até `,90`). Contrato em `docs/contratos/painel-admin-inicio.md`. Com a flag off, o comportamento atual permanece.
 
 ### Alterado
 

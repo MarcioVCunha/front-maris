@@ -1,6 +1,8 @@
 import { assert, assertEquals } from "jsr:@std/assert@1"
 import {
   ADMIN_DASHBOARD_ENABLED,
+  ADMIN_HOME_CHANNELS_ENABLED,
+  HOME_CHANNEL_ORDER,
   NCM_DEFAULT,
   ORIGEM_DEFAULT,
   NO_DATA,
@@ -8,6 +10,7 @@ import {
   STOCK_PAGE_SIZE,
   archiveConfirmText,
   archivePayload,
+  ceilMarketplacePrice,
   channelLabel,
   currentMonthKey,
   filterStock,
@@ -23,6 +26,8 @@ import {
   isDashboardAdmin,
   nextPackagingValues,
   normalizeCategoryDefaults,
+  normalizeOverview,
+  overviewHasDetailedChannels,
   packagingValues,
   pieceFormState,
   defaultsFor,
@@ -36,6 +41,7 @@ import {
   renderStockList,
   renderTipos,
   sellersFromDirectory,
+  shouldShowHomeChannels,
   visibleStock,
   shouldShowDashboard,
 } from "./painel.logic.js"
@@ -312,6 +318,8 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(inicio.includes("Marketplace"))
   assert(inicio.includes("Anel rosa"))
   assert(inicio.includes("5 un."))
+  assertEquals(inicio.includes("Shopee"), false)
+  assertEquals(inicio.includes("vs mês anterior"), false)
   assertEquals(renderInicio(null).includes(NO_DATA), true)
 
   const vendas = renderVendas([{
@@ -347,4 +355,95 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(waiting.includes("Marineide"))
   assert(waiting.includes(NO_DATA))
   assertEquals(renderVendedoras(null).includes(NO_DATA), true)
+})
+
+Deno.test("a flag de canais do Início fica desligada e o fallback mantém o Início atual", async () => {
+  assertEquals(ADMIN_HOME_CHANNELS_ENABLED, false)
+  assertEquals(shouldShowHomeChannels(), false)
+  assertEquals(HOME_CHANNEL_ORDER, ["site", "equipe", "shopee", "mercado_livre", "tiktok"])
+  assertEquals(ceilMarketplacePrice(16.88), 47.9) // 16.88×2,5+5 = 47,2 → 47,90
+  assertEquals(ceilMarketplacePrice(17.28), 48.9) // 17.28×2,5+5 = 48,2 → 48,90
+  assertEquals(ceilMarketplacePrice(null), null)
+  const source = await Deno.readTextFile(new URL("./painel.logic.js", import.meta.url))
+  assertEquals(source.includes("export const ADMIN_HOME_CHANNELS_ENABLED = false"), true)
+
+  const fase2 = {
+    month: "2026-10",
+    charged_total: 2400,
+    paid_count: 12,
+    paid_orders_count: 7,
+    previous: { month: "2026-09", charged_total: 2000, paid_count: 10, paid_orders_count: 6 },
+    channels: [
+      { channel: "site", orders: 2, charged_total: 400, previous_orders: 1, previous_charged_total: 300 },
+      { channel: "equipe", orders: 4, charged_total: 1600, previous_orders: 3, previous_charged_total: 1200 },
+      { channel: "shopee", orders: 1, charged_total: 200, previous_orders: 0, previous_charged_total: 0 },
+      { channel: "mercado_livre", orders: 0, charged_total: 0, previous_orders: 1, previous_charged_total: 150 },
+      { channel: "tiktok", orders: 0, charged_total: 0, previous_orders: 0, previous_charged_total: 0 },
+    ],
+    best_sellers: [{
+      code: "AN581-R",
+      name: "Anel rosa",
+      quantity: 5,
+      charged_total: 600,
+      channels: [
+        { channel: "site", quantity: 2, charged_total: 200 },
+        { channel: "shopee", quantity: 3, charged_total: 400 },
+      ],
+    }],
+  }
+  const normalized = normalizeOverview(fase2)
+  assertEquals(overviewHasDetailedChannels(normalized), true)
+  assertEquals(normalized?.previous?.month, "2026-09")
+  assertEquals(normalized?.best_sellers[0].channels.length, 2)
+
+  const off = renderInicio(normalized)
+  assertEquals(off.includes("Shopee"), true) // dados vêm na lista, mas sem comparação detalhada
+  assertEquals(off.includes("vs mês anterior"), false)
+  assertEquals(off.includes("Site 2"), false)
+
+  const on = renderInicio(normalized, undefined, { enabled: true })
+  assert(on.includes("Shopee"))
+  assert(on.includes("Mercado Livre"))
+  assert(on.includes("TikTok Shop"))
+  assert(on.includes("vs mês anterior"))
+  assert(on.includes("Site 2"))
+  assert(on.includes("Shopee 3"))
+
+  const legacyOn = renderInicio({
+    month: "2026-10",
+    charged_total: 2400,
+    paid_count: 12,
+    paid_orders_count: 7,
+    channels: [
+      { channel: "site", orders: 2, charged_total: 400 },
+      { channel: "equipe", orders: 4, charged_total: 1600 },
+      { channel: "marketplace", orders: 1, charged_total: 400 },
+    ],
+    best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5 }],
+  }, undefined, { enabled: true })
+  assert(legacyOn.includes("Marketplace"))
+  assertEquals(legacyOn.includes("vs mês anterior"), false)
+
+  const formOff = renderPieceForm({
+    code: "AN581-R",
+    name: "Anel rosa",
+    unit_price: 120,
+    preco_marketplace: 47.9,
+  })
+  assert(formOff.includes(">Preço<") || formOff.includes("Preço</span>"))
+  assertEquals(formOff.includes("Preço do site"), false)
+  assertEquals(formOff.includes("preco-marketplace"), false)
+
+  const formOn = renderPieceForm({
+    code: "AN581-R",
+    name: "Anel rosa",
+    unit_price: 120,
+    preco_marketplace: 47.9,
+  }, {}, { enabled: true })
+  assert(formOn.includes("Preço do site"))
+  assert(formOn.includes('id="preco-marketplace"'))
+  assert(formOn.includes("readonly"))
+  assert(formOn.includes("47,9"))
+  assertEquals(pieceFormState({ preco_marketplace: 47.9 }).precoMarketplace, "47,9")
+  assertEquals(renderPieceForm({ code: "X", unit_price: 10 }, {}, { enabled: true }).includes("preco-marketplace"), false)
 })

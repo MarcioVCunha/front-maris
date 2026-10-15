@@ -1,11 +1,16 @@
 // Painel do admin. Ligado: /admin abre este painel. Promoções continua em /promocoes.
+// Fase 2 Passo 1 (canais + preco_marketplace) fica atrás de ADMIN_HOME_CHANNELS_ENABLED.
 import { ADD_PRODUCT_CATEGORIES, parseImageUrlLines, parseMoneyBRL } from "../estoque/adicionar-peca/adicionar-peca.logic.js"
 
 export const ADMIN_DASHBOARD_ENABLED = true
+/** Início com canais site/equipe/shopee/ML/tiktok, mês anterior e preço marketplace. Off até o back PR #16. */
+export const ADMIN_HOME_CHANNELS_ENABLED = false
 export const NCM_DEFAULT = "71171900"
 export const ORIGEM_DEFAULT = 0
 export const STOCK_PAGE_SIZE = 20
 export const NO_DATA = "sem dados ainda"
+
+export const HOME_CHANNEL_ORDER = ["site", "equipe", "shopee", "mercado_livre", "tiktok"]
 
 // Embalagem padrão ao adicionar peça. A categoria pode trazer outros valores.
 export const PACKAGING_FIELDS = ["peso_g", "largura_cm", "comprimento_cm", "altura_cm"]
@@ -35,6 +40,20 @@ const PLACEHOLDER_FIELDS = ["descricao", "peso_g", "largura_cm", "altura_cm", "c
 
 export function shouldShowDashboard(enabled = ADMIN_DASHBOARD_ENABLED) {
   return enabled === true
+}
+
+export function shouldShowHomeChannels(enabled = ADMIN_HOME_CHANNELS_ENABLED) {
+  return enabled === true
+}
+
+/** Espelha a regra do banco: 2,5× + R$5, arredondado pra cima até ,90. Ver docs/contratos/painel-admin-inicio.md. */
+export function ceilMarketplacePrice(base) {
+  if (base == null || base === "") return null
+  const amount = Number(base)
+  if (!Number.isFinite(amount) || amount < 0) return null
+  const raw = amount * 2.5 + 5
+  if (!Number.isFinite(raw) || raw <= 0) return null
+  return Math.round((Math.ceil(raw - 0.9) + 0.9) * 100) / 100
 }
 
 export function dashboardView(pathname, search = "") {
@@ -174,10 +193,14 @@ export function nextPackagingValues({ current = {}, previousSuggested = {}, next
 export function pieceFormState(piece = {}, defaults = {}) {
   const photos = Array.isArray(piece.image_urls) ? piece.image_urls.filter(Boolean) : []
   if (!photos.length && piece.image_url) photos.push(piece.image_url)
+  const marketplace = piece.preco_marketplace
   return {
     code: String(piece.code || "").trim(),
     name: String(piece.name || "").trim(),
     unitPrice: filled(piece.unit_price) ? String(piece.unit_price).replace(".", ",") : "",
+    precoMarketplace: filled(marketplace) && Number.isFinite(Number(marketplace))
+      ? String(marketplace).replace(".", ",")
+      : "",
     quantity: displayQuantity(piece.quantity),
     categoria: String(piece.categoria || "").trim(),
     photos: photos.join("\n"),
@@ -352,14 +375,23 @@ function field(label, control) {
   return `<label class="field"><span>${label}</span>${control}</label>`
 }
 
-export function renderPieceForm(piece, defaults = {}) {
+export function renderPieceForm(piece, defaults = {}, options = {}) {
   const state = pieceFormState(piece, defaults)
+  const showMarketplace = shouldShowHomeChannels(options.enabled) && state.precoMarketplace !== ""
+  const priceLabel = shouldShowHomeChannels(options.enabled) ? "Preço do site" : "Preço"
   const input = (id, value, extra = "") =>
     `<input id="${id}" value="${escapeHtml(value)}"${extra}>`
+  const marketplaceField = showMarketplace
+    ? field(
+      "Preço marketplace",
+      input("preco-marketplace", state.precoMarketplace, ` readonly tabindex="-1" aria-readonly="true"`)
+    )
+    : ""
   return `<form id="piece-form" class="stack">
     <p class="kicker">${escapeHtml(state.code)}</p>
     <h2>${escapeHtml(state.name || "Peça")}</h2>
-    ${field("Preço", input("unit-price", state.unitPrice, ` inputmode="decimal" required`))}
+    ${field(priceLabel, input("unit-price", state.unitPrice, ` inputmode="decimal" required`))}
+    ${marketplaceField}
     ${field("Quantidade", input("quantity", state.quantity, ` inputmode="numeric" required`))}
     ${field("Categoria", `<select id="categoria">${categoryOptions(state.categoria)}</select>`)}
     ${field("Fotos", `<textarea id="photos" rows="3" placeholder="Uma URL por linha">${escapeHtml(state.photos)}</textarea>`)}
@@ -469,12 +501,29 @@ export function renderStockPage({ rows, total, query }) {
 const CHANNEL_LABELS = {
   site: "Site",
   equipe: "Equipe",
-  marketplace: "Marketplace"
+  marketplace: "Marketplace",
+  shopee: "Shopee",
+  mercado_livre: "Mercado Livre",
+  tiktok: "TikTok Shop"
 }
 
 export function channelLabel(channel) {
   const key = String(channel || "").trim().toLowerCase()
   return CHANNEL_LABELS[key] || String(channel || "")
+}
+
+export function moneyDelta(current, previous) {
+  const a = Number(current)
+  const b = Number(previous)
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null
+  return Math.round((a - b) * 100) / 100
+}
+
+export function formatMoneyDelta(delta, formatMoney) {
+  if (delta == null || !Number.isFinite(delta)) return ""
+  if (delta === 0) return "igual ao mês anterior"
+  const amount = formatMoney(Math.abs(delta))
+  return delta > 0 ? `+${amount} vs mês anterior` : `−${amount} vs mês anterior`
 }
 
 export function formatWhen(iso) {
@@ -495,16 +544,79 @@ function money(value, formatMoney) {
   return formatMoney(number)
 }
 
+function normalizeChannelRow(item) {
+  return {
+    channel: String(item?.channel || ""),
+    orders: Number(item?.orders) || 0,
+    charged_total: Number(item?.charged_total) || 0,
+    previous_orders: item?.previous_orders == null ? null : Number(item.previous_orders) || 0,
+    previous_charged_total: item?.previous_charged_total == null
+      ? null
+      : Number(item.previous_charged_total) || 0
+  }
+}
+
+function normalizeBestSeller(item) {
+  const channels = Array.isArray(item?.channels)
+    ? item.channels.map((row) => ({
+      channel: String(row?.channel || ""),
+      quantity: Number(row?.quantity) || 0,
+      charged_total: Number(row?.charged_total) || 0
+    }))
+    : []
+  return {
+    code: item?.code || "",
+    name: item?.name || "",
+    quantity: Number(item?.quantity) || 0,
+    charged_total: Number(item?.charged_total) || 0,
+    channels
+  }
+}
+
 export function normalizeOverview(data) {
   if (!data || data.ok === false || typeof data !== "object") return null
+  const previous = data.previous && typeof data.previous === "object"
+    ? {
+      month: String(data.previous.month || ""),
+      charged_total: Number(data.previous.charged_total) || 0,
+      paid_count: Number(data.previous.paid_count) || 0,
+      paid_orders_count: Number(data.previous.paid_orders_count) || 0
+    }
+    : null
   return {
     month: String(data.month || ""),
     charged_total: Number(data.charged_total) || 0,
     paid_count: Number(data.paid_count) || 0,
     paid_orders_count: Number(data.paid_orders_count) || 0,
-    channels: Array.isArray(data.channels) ? data.channels : [],
-    best_sellers: Array.isArray(data.best_sellers) ? data.best_sellers : []
+    previous,
+    channels: Array.isArray(data.channels) ? data.channels.map(normalizeChannelRow) : [],
+    best_sellers: Array.isArray(data.best_sellers) ? data.best_sellers.map(normalizeBestSeller) : []
   }
+}
+
+export function overviewHasDetailedChannels(overview) {
+  const channels = overview?.channels || []
+  return channels.some((item) =>
+    item.channel === "shopee" || item.channel === "mercado_livre" || item.channel === "tiktok"
+  )
+}
+
+function orderedHomeChannels(channels) {
+  const map = new Map((channels || []).map((item) => [item.channel, item]))
+  return HOME_CHANNEL_ORDER.map((channel) => map.get(channel) || {
+    channel,
+    orders: 0,
+    charged_total: 0,
+    previous_orders: 0,
+    previous_charged_total: 0
+  })
+}
+
+function bestSellerChannelHint(item) {
+  const parts = (item?.channels || [])
+    .filter((row) => (Number(row.quantity) || 0) > 0)
+    .map((row) => `${channelLabel(row.channel)} ${Number(row.quantity) || 0}`)
+  return parts.join(" · ")
 }
 
 export function normalizeRecentSales(data) {
@@ -562,27 +674,46 @@ function statusLabel(status) {
   return ""
 }
 
-export function renderInicio(overview, formatMoney = formatPrice) {
+export function renderInicio(overview, formatMoney = formatPrice, options = {}) {
   const data = overview && overview.month != null && overview.channels ? overview : normalizeOverview(overview)
   if (!data) return `<p class="empty">${NO_DATA}</p>`
-  const channels = data.channels.length
-    ? `<ul class="plain-list">${data.channels.map((item) => `<li class="channel-row">
-        <span>${escapeHtml(channelLabel(item.channel))}</span>
-        <b>${escapeHtml(money(item.charged_total, formatMoney))}</b>
-        <small>${Number(item.orders) || 0} pedidos</small>
-      </li>`).join("")}</ul>`
+  const detailed = shouldShowHomeChannels(options.enabled) && overviewHasDetailedChannels(data)
+  const channelRows = detailed ? orderedHomeChannels(data.channels) : data.channels
+  const monthDelta = detailed && data.previous
+    ? formatMoneyDelta(moneyDelta(data.charged_total, data.previous.charged_total), formatMoney)
+    : ""
+  const channels = channelRows.length
+    ? `<ul class="plain-list">${channelRows.map((item) => {
+      const delta = detailed && item.previous_charged_total != null
+        ? formatMoneyDelta(moneyDelta(item.charged_total, item.previous_charged_total), formatMoney)
+        : ""
+      return `<li class="channel-row">
+        <span>${escapeHtml(channelLabel(item.channel))}
+          <small>${Number(item.orders) || 0} pedidos</small></span>
+        <span class="piece-side">
+          <b>${escapeHtml(money(item.charged_total, formatMoney))}</b>
+          ${delta ? `<small class="delta">${escapeHtml(delta)}</small>` : ""}
+        </span>
+      </li>`
+    }).join("")}</ul>`
     : `<p class="empty">${NO_DATA}</p>`
   const best = data.best_sellers.length
-    ? `<ul class="plain-list">${data.best_sellers.map((item) => `<li class="best-row">
+    ? `<ul class="plain-list">${data.best_sellers.map((item) => {
+      const code = item.code || ""
+      const split = detailed ? bestSellerChannelHint(item) : ""
+      const meta = [code, split].filter(Boolean).join(" · ")
+      return `<li class="best-row">
         <span><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
-          <small>${escapeHtml(item.code || "")}</small></span>
+          <small>${escapeHtml(meta)}</small></span>
         <b>${Number(item.quantity) || 0} un.</b>
-      </li>`).join("")}</ul>`
+      </li>`
+    }).join("")}</ul>`
     : `<p class="empty">${NO_DATA}</p>`
   return `<section class="report">
     <h2>Vendas do mês</h2>
     <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
     <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
+    ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
     <h2>Origem</h2>
     ${channels}
     <h2>Mais vendidas</h2>
