@@ -55,7 +55,7 @@ function failed(result, fallback) {
  *   comprimento_cm, ncm, origem, gtin, components: [{ id, name, sku }],
  *   preco_marketplace? }] }
  * preco_marketplace (back-maris PR #16): só leitura; fórmula no contrato painel-admin-inicio.
- * O front só mostra com ADMIN_HOME_CHANNELS_ENABLED.
+ * O front mostra com ADMIN_HOME_CHANNELS_ENABLED ligada.
  */
 export async function listProducts(client) {
   const result = await call(ADMIN_DASHBOARD_API.productList, { method: "GET" }, client)
@@ -135,7 +135,7 @@ export async function addProduct(body, client) {
  * Formato atual: channels site|equipe|marketplace; best_sellers sem channels.
  * Fase 2 (back-maris PR #16, docs/contratos/painel-admin-inicio.md): previous,
  *   channels site|equipe|shopee|mercado_livre|tiktok (+ previous_*),
- *   best_sellers[].channels. Front atrás de ADMIN_HOME_CHANNELS_ENABLED.
+ *   best_sellers[].channels. Front com ADMIN_HOME_CHANNELS_ENABLED ligada.
  * Só administrador. Se a função ainda não existe, a tela mostra "sem dados ainda".
  */
 export async function fetchMonthOverview({ month }, client) {

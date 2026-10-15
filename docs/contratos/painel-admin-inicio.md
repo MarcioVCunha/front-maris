@@ -1,6 +1,6 @@
 # Painel admin — Início (Fase 2, Passo 1)
 
-Contrato alinhado ao back-maris PR #16. No front fica atrás de `ADMIN_HOME_CHANNELS_ENABLED` (**desligada**): com a flag off, o Início e o estoque mantêm o comportamento atual.
+Contrato alinhado ao back-maris PR #16. No front a flag `ADMIN_HOME_CHANNELS_ENABLED` está **ligada**. Se a resposta ainda vier no formato antigo (`site`/`equipe`/`marketplace`), o Início cai nesse layout; sem `preco_marketplace` a edição não mostra o campo.
 
 ## GET admin-month-overview
 

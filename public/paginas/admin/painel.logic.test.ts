@@ -357,15 +357,15 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assertEquals(renderVendedoras(null).includes(NO_DATA), true)
 })
 
-Deno.test("a flag de canais do Início fica desligada e o fallback mantém o Início atual", async () => {
-  assertEquals(ADMIN_HOME_CHANNELS_ENABLED, false)
-  assertEquals(shouldShowHomeChannels(), false)
+Deno.test("a flag de canais do Início fica ligada e o fallback antigo ainda funciona", async () => {
+  assertEquals(ADMIN_HOME_CHANNELS_ENABLED, true)
+  assertEquals(shouldShowHomeChannels(), true)
   assertEquals(HOME_CHANNEL_ORDER, ["site", "equipe", "shopee", "mercado_livre", "tiktok"])
   assertEquals(ceilMarketplacePrice(16.88), 47.9) // 16.88×2,5+5 = 47,2 → 47,90
   assertEquals(ceilMarketplacePrice(17.28), 48.9) // 17.28×2,5+5 = 48,2 → 48,90
   assertEquals(ceilMarketplacePrice(null), null)
   const source = await Deno.readTextFile(new URL("./painel.logic.js", import.meta.url))
-  assertEquals(source.includes("export const ADMIN_HOME_CHANNELS_ENABLED = false"), true)
+  assertEquals(source.includes("export const ADMIN_HOME_CHANNELS_ENABLED = true"), true)
 
   const fase2 = {
     month: "2026-10",
@@ -396,12 +396,7 @@ Deno.test("a flag de canais do Início fica desligada e o fallback mantém o In�
   assertEquals(normalized?.previous?.month, "2026-09")
   assertEquals(normalized?.best_sellers[0].channels.length, 2)
 
-  const off = renderInicio(normalized)
-  assertEquals(off.includes("Shopee"), true) // dados vêm na lista, mas sem comparação detalhada
-  assertEquals(off.includes("vs mês anterior"), false)
-  assertEquals(off.includes("Site 2"), false)
-
-  const on = renderInicio(normalized, undefined, { enabled: true })
+  const on = renderInicio(normalized)
   assert(on.includes("Shopee"))
   assert(on.includes("Mercado Livre"))
   assert(on.includes("TikTok Shop"))
@@ -409,7 +404,12 @@ Deno.test("a flag de canais do Início fica desligada e o fallback mantém o In�
   assert(on.includes("Site 2"))
   assert(on.includes("Shopee 3"))
 
-  const legacyOn = renderInicio({
+  const off = renderInicio(normalized, undefined, { enabled: false })
+  assertEquals(off.includes("Shopee"), true)
+  assertEquals(off.includes("vs mês anterior"), false)
+  assertEquals(off.includes("Site 2"), false)
+
+  const legacy = renderInicio({
     month: "2026-10",
     charged_total: 2400,
     paid_count: 12,
@@ -420,30 +420,31 @@ Deno.test("a flag de canais do Início fica desligada e o fallback mantém o In�
       { channel: "marketplace", orders: 1, charged_total: 400 },
     ],
     best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5 }],
-  }, undefined, { enabled: true })
-  assert(legacyOn.includes("Marketplace"))
-  assertEquals(legacyOn.includes("vs mês anterior"), false)
-
-  const formOff = renderPieceForm({
-    code: "AN581-R",
-    name: "Anel rosa",
-    unit_price: 120,
-    preco_marketplace: 47.9,
   })
-  assert(formOff.includes(">Preço<") || formOff.includes("Preço</span>"))
-  assertEquals(formOff.includes("Preço do site"), false)
-  assertEquals(formOff.includes("preco-marketplace"), false)
+  assert(legacy.includes("Marketplace"))
+  assertEquals(legacy.includes("vs mês anterior"), false)
 
   const formOn = renderPieceForm({
     code: "AN581-R",
     name: "Anel rosa",
     unit_price: 120,
     preco_marketplace: 47.9,
-  }, {}, { enabled: true })
+  })
   assert(formOn.includes("Preço do site"))
   assert(formOn.includes('id="preco-marketplace"'))
   assert(formOn.includes("readonly"))
   assert(formOn.includes("47,9"))
+
+  const formOff = renderPieceForm({
+    code: "AN581-R",
+    name: "Anel rosa",
+    unit_price: 120,
+    preco_marketplace: 47.9,
+  }, {}, { enabled: false })
+  assert(formOff.includes(">Preço<") || formOff.includes("Preço</span>"))
+  assertEquals(formOff.includes("Preço do site"), false)
+  assertEquals(formOff.includes("preco-marketplace"), false)
+
   assertEquals(pieceFormState({ preco_marketplace: 47.9 }).precoMarketplace, "47,9")
-  assertEquals(renderPieceForm({ code: "X", unit_price: 10 }, {}, { enabled: true }).includes("preco-marketplace"), false)
+  assertEquals(renderPieceForm({ code: "X", unit_price: 10 }).includes("preco-marketplace"), false)
 })

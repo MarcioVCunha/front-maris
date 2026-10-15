@@ -12,7 +12,7 @@ O site é estático: HTML, CSS e JavaScript em `public/`, publicado na Vercel. O
 | `/catalog/carrinho` | Visitante | Revisão da cesta e pedido |
 | `/equipe` | Equipe | Login com e-mail e senha |
 | `/equipe/nova-senha` | Equipe | Nova senha a partir do e-mail |
-| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início (mês, origem e mais vendidas), Estoque, Vendas, Vendedoras e o atalho de Promoções. Canais por marketplace e preço marketplace no estoque ficam atrás de `ADMIN_HOME_CHANNELS_ENABLED` (desligada) |
+| `/admin` | Administração | Painel ligado (`ADMIN_DASHBOARD_ENABLED`): Início (mês por canal site/equipe/Shopee/ML/TikTok, comparação e mais vendidas), Estoque (preço do site + marketplace), Vendas, Vendedoras e o atalho de Promoções (`ADMIN_HOME_CHANNELS_ENABLED` ligada) |
 | `/vendedoras` | Equipe | Atalhos da vendedora |
 | `/vendas` | Equipe | Redireciona para `/vendas/nova` |
 | `/vendas/nova` | Equipe | Registrar venda (equipe) e venda de marketplace (Shopee, Mercado Livre, TikTok Shop) |

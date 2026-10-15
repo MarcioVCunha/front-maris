@@ -37,7 +37,7 @@ Início: vendas do mês, origem e mais vendidas.
 
 `paid_count` é o número de peças. `channel` é `site`, `equipe` ou `marketplace`.
 
-Fase 2 (back-maris PR #16): totais por canal `site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`, campo `previous`, comparação por canal e `best_sellers[].channels`. Contrato em `docs/contratos/painel-admin-inicio.md`. No front fica atrás de `ADMIN_HOME_CHANNELS_ENABLED` (desligada).
+Fase 2 (back-maris PR #16): totais por canal `site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok`, campo `previous`, comparação por canal e `best_sellers[].channels`. Contrato em `docs/contratos/painel-admin-inicio.md`. No front `ADMIN_HOME_CHANNELS_ENABLED` está ligada.
 
 ## GET admin-recent-sales
 
