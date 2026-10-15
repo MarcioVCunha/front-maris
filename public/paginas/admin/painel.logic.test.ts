@@ -14,6 +14,7 @@ import {
   channelLabel,
   currentMonthKey,
   filterStock,
+  inStockProducts,
   isPanelLink,
   buildAddProductPayload,
   buildProductUpdatePayload,
@@ -27,6 +28,7 @@ import {
   nextPackagingValues,
   normalizeCategoryDefaults,
   normalizeOverview,
+  outOfStockProducts,
   overviewHasDetailedChannels,
   packagingValues,
   pieceFormState,
@@ -39,9 +41,11 @@ import {
   renderVendedoras,
   navHtml,
   renderStockList,
+  renderStockPage,
   renderTipos,
   sellersFromDirectory,
   shouldShowHomeChannels,
+  stockNavHtml,
   visibleStock,
   shouldShowDashboard,
 } from "./painel.logic.js"
@@ -164,6 +168,7 @@ Deno.test("adicionar peça repete os campos novos e o arquivamento pede confirma
   assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.largura_cm}"`), true)
   assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.comprimento_cm}"`), true)
   assertEquals(add.includes(`value="${PACKAGING_DEFAULTS.altura_cm}"`), true)
+  assert(add.includes('id="quantity"') && add.includes('value="1"'))
   const piece = { code: "AN581-R", name: "Anel rosa" }
   assertEquals(archivePayload(piece.code), { code: "AN581-R" })
   assertEquals(archivePayload(piece.code, false), { code: "AN581-R", archive: false })
@@ -265,6 +270,7 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(isDashboardAdmin({ role: "seller", name: "Marineide" }), false)
   assertEquals(isDashboardAdmin(null), false)
   assertEquals(dashboardView("/admin/estoque"), "estoque")
+  assertEquals(dashboardView("/admin/esgotadas"), "esgotadas")
   assertEquals(dashboardView("/admin/peca", "?code=AN581-R"), "peca")
   assertEquals(dashboardView("/admin/conjuntos"), "conjuntos")
   assertEquals(dashboardView("/admin/tipos"), "conjuntos")
@@ -279,23 +285,48 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   }])
   assert(list.includes("0 un."))
   assert(list.includes('loading="lazy"'))
-  assert(list.includes("/admin/peca?code=AN581-R"))
+  assert(list.includes("entity-card"))
+  assert(list.includes('data-product-code="AN581-R"'))
+  assert(list.includes("https://exemplo.test/anel.jpg"))
+  const nav = stockNavHtml("esgotadas")
+  assert(nav.includes("/admin/esgotadas"))
+  assert(nav.includes('aria-current="page"'))
+  assert(nav.includes("Esgotadas"))
 })
 
-Deno.test("o estoque busca e pagina sem pedir a lista de novo", () => {
+Deno.test("o estoque busca, pagina e separa esgotadas sem pedir a lista de novo", () => {
   const products = [
-    { code: "AN581-R", name: "Anel rosa", categoria: "Anel" },
-    { code: "BR10", name: "Brinco orquídea", categoria: "Brinco" },
-    { code: "CO2", name: "Colar", categoria: "Colar" },
+    { code: "AN581-R", name: "Anel rosa", categoria: "Anel", quantity: 2 },
+    { code: "BR10", name: "Brinco orquídea", categoria: "Brinco", quantity: 0 },
+    { code: "CO2", name: "Colar", categoria: "Colar", quantity: null },
   ]
   assertEquals(filterStock(products, "rosa").map((item) => item.code), ["AN581-R"])
   assertEquals(filterStock(products, "brinco").map((item) => item.code), ["BR10"])
+  assertEquals(inStockProducts(products).map((item) => item.code), ["AN581-R"])
+  assertEquals(outOfStockProducts(products).map((item) => item.code), ["BR10", "CO2"])
   const page = visibleStock(products, "", 2)
   assertEquals(page.total, 3)
   assertEquals(page.rows.length, 2)
   assertEquals(STOCK_PAGE_SIZE, 20)
   assertEquals(isPanelLink("/admin/estoque"), true)
   assertEquals(isPanelLink("/promocoes"), false)
+  const stockPage = renderStockPage({
+    rows: inStockProducts(products),
+    total: 1,
+    query: "",
+    mode: "estoque",
+    typeBlock: `<section class="stock-by-type"><h3>Estoque por tipo</h3></section>`,
+  })
+  assert(stockPage.includes("stock-by-type"))
+  assert(stockPage.includes('data-stock-mode="estoque"'))
+  const soldOut = renderStockPage({
+    rows: outOfStockProducts(products),
+    total: 2,
+    query: "",
+    mode: "esgotadas",
+  })
+  assert(soldOut.includes('data-stock-mode="esgotadas"'))
+  assertEquals(soldOut.includes("stock-by-type"), false)
 })
 
 Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () => {

@@ -22,6 +22,8 @@ import {
   renderImportHelp,
   renderInicio,
   renderPieceForm,
+  inStockProducts,
+  outOfStockProducts,
   renderStockList,
   renderStockPage,
   renderVendas,
@@ -52,6 +54,7 @@ import {
   renderConjuntoCreatePicker,
   renderConjuntoEditDialog,
   renderConjuntosPage,
+  renderStockByType,
   saveDivisionsPayload,
   shouldShowConjuntos,
   validateDivisionsPayload
@@ -87,7 +90,8 @@ function viewLoading() {
 
 const TITLES = {
   inicio: "Início",
-  estoque: "Estoque",
+  estoque: "Peças",
+  esgotadas: "Esgotadas",
   vendas: "Vendas",
   vendedoras: "Vendedoras",
   peca: "Editar peça",
@@ -120,6 +124,7 @@ const dashNav = document.getElementById("dash-nav")
 const titleEl = document.getElementById("view-title")
 const dialog = document.getElementById("archive-dialog")
 const saleDialog = document.getElementById("sale-dialog")
+const pieceDialog = document.getElementById("piece-dialog")
 const conjuntoDialog = document.getElementById("conjunto-dialog")
 
 const state = {
@@ -145,9 +150,9 @@ function showMessage(text, kind) {
 }
 
 function paintChrome(view) {
-  const top = ["peca", "conjuntos", "adicionar", "importar"].includes(view) ? "estoque" : view
+  const top = ["peca", "esgotadas", "conjuntos", "adicionar", "importar"].includes(view) ? "estoque" : view
   dashNav.innerHTML = navHtml(top)
-  const sub = ["estoque", "peca", "conjuntos", "adicionar", "importar"].includes(view)
+  const sub = ["estoque", "esgotadas", "peca", "conjuntos", "adicionar", "importar"].includes(view)
   stockNav.hidden = !sub
   if (sub) {
     const subActive = view === "peca" ? "estoque" : view
@@ -228,11 +233,14 @@ async function loadDefaults() {
   state.defaults = result.ok ? result.defaults : {}
 }
 
-function bindPieceForm() {
-  document.getElementById("categoria").addEventListener("change", (event) => {
+function bindPieceForm(root = document, options = {}) {
+  const scope = root.querySelector?.("#piece-form") ? root : document
+  const form = scope.querySelector("#piece-form") || document.getElementById("piece-form")
+  if (!form) return
+  form.querySelector("#categoria")?.addEventListener("change", (event) => {
     refreshPlaceholders(event.target.value)
   })
-  document.getElementById("piece-form").addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault()
     const payload = buildProductUpdatePayload(readFields(state.piece.code))
     const problem = validateProductUpdate(payload)
@@ -243,9 +251,12 @@ function bindPieceForm() {
     showMessage("Salvando…")
     const result = await updateProduct(payload)
     showMessage(result.ok ? "Peça salva." : result.error, result.ok ? "" : "error")
-    if (result.ok) state.productsLoaded = false
+    if (result.ok) {
+      state.productsLoaded = false
+      if (options.onSaved) options.onSaved()
+    }
   })
-  document.getElementById("archive-open").addEventListener("click", () => {
+  form.querySelector("#archive-open")?.addEventListener("click", () => {
     dialog.innerHTML = renderArchiveDialog(state.piece)
     dialog.showModal()
     dialog.querySelector("#archive-cancel").addEventListener("click", () => dialog.close())
@@ -256,9 +267,48 @@ function bindPieceForm() {
         return
       }
       dialog.close()
+      if (options.onArchived) options.onArchived()
+      else {
+        state.productsLoaded = false
+        navigate("/admin/estoque")
+      }
+    })
+  })
+  form.querySelector("#piece-edit-close")?.addEventListener("click", () => {
+    if (options.onClose) options.onClose()
+  })
+}
+
+async function openPieceDialog(piece) {
+  if (!pieceDialog || !piece) return
+  state.piece = piece
+  await loadDefaults()
+  const formHtml = renderPieceForm(piece, categoryBag(piece.categoria), {
+    enabled: true,
+    dialog: true
+  })
+  pieceDialog.innerHTML = `${formHtml}
+    <div class="dialog-actions">
+      <button type="button" class="btn-ghost" id="piece-edit-close">Fechar</button>
+    </div>`
+  // Move close into the form actions area visually via bind
+  const form = pieceDialog.querySelector("#piece-form")
+  const closeBtn = pieceDialog.querySelector("#piece-edit-close")
+  if (form && closeBtn) form.appendChild(closeBtn)
+  if (!pieceDialog.open) pieceDialog.showModal()
+  bindPieceForm(pieceDialog, {
+    onSaved: async () => {
+      pieceDialog.close()
+      state.productsLoaded = false
+      await loadProducts()
+      showView()
+    },
+    onArchived: async () => {
+      pieceDialog.close()
       state.productsLoaded = false
       navigate("/admin/estoque")
-    })
+    },
+    onClose: () => pieceDialog.close()
   })
 }
 
@@ -437,18 +487,35 @@ function bindImport() {
 
 let renderToken = 0
 
-function paintStock() {
-  const { rows, total } = visibleStock(state.products, state.stockQuery, state.stockLimit)
-  const empty = state.stockQuery.trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque."
-  const listHtml = rows.length ? renderStockList(rows) : `<p class="empty">${empty}</p>`
+function stockPool(mode) {
+  return mode === "esgotadas" ? outOfStockProducts(state.products) : inStockProducts(state.products)
+}
+
+function paintStock(mode = "estoque") {
+  const pool = stockPool(mode)
+  const { rows, total } = visibleStock(pool, state.stockQuery, state.stockLimit)
+  const empty = mode === "esgotadas"
+    ? (state.stockQuery.trim() ? "Nenhuma esgotada com esse nome." : "Nenhuma peça esgotada.")
+    : (state.stockQuery.trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque.")
+  const listHtml = rows.length
+    ? renderStockList(rows, formatPrice, { empty })
+    : `<p class="empty">${empty}</p>`
   const list = document.getElementById("stock-list")
-  if (!list) {
-    viewEl.innerHTML = renderStockPage({ rows, total, query: state.stockQuery })
+  if (!list || viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") !== mode) {
+    viewEl.innerHTML = renderStockPage({
+      rows,
+      total,
+      query: state.stockQuery,
+      mode,
+      typeBlock: mode === "esgotadas" ? "" : renderStockByType(state.products)
+    })
     const fresh = document.getElementById("stock-list")
     if (fresh) fresh.innerHTML = listHtml
+    bindStockCards()
     return
   }
   list.innerHTML = listHtml
+  bindStockCards()
   const meta = document.getElementById("stock-meta")
   if (meta) meta.textContent = total ? `${rows.length} de ${total}` : ""
   const more = document.getElementById("stock-more")
@@ -458,12 +525,22 @@ function paintStock() {
       button.id = "stock-more"
       button.type = "button"
       button.className = "btn-ghost"
-      button.textContent = "Mais peças"
+      button.textContent = mode === "esgotadas" ? "Mais esgotadas" : "Mais peças"
       viewEl.appendChild(button)
     }
   } else if (more) {
     more.remove()
   }
+}
+
+function bindStockCards() {
+  viewEl.querySelectorAll(".entity-card[data-product-code]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const code = btn.getAttribute("data-product-code")
+      const piece = (state.products || []).find((row) => String(row.code) === String(code))
+      openPieceDialog(piece)
+    })
+  })
 }
 
 function bindStockOnce() {
@@ -473,12 +550,14 @@ function bindStockOnce() {
     if (event.target.id !== "stock-query") return
     state.stockQuery = event.target.value
     state.stockLimit = STOCK_PAGE_SIZE
-    paintStock()
+    const mode = viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") || "estoque"
+    paintStock(mode)
   })
   viewEl.addEventListener("click", (event) => {
     if (event.target.id !== "stock-more") return
     state.stockLimit += STOCK_PAGE_SIZE
-    paintStock()
+    const mode = viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") || "estoque"
+    paintStock(mode)
   })
   viewEl.addEventListener("submit", (event) => {
     if (event.target.id === "stock-search") event.preventDefault()
@@ -690,11 +769,12 @@ async function render(view, token) {
     paintVendedoras()
     return
   }
-  if (view === "estoque") {
+  if (view === "estoque" || view === "esgotadas") {
     if (!document.getElementById("stock-search")) viewEl.innerHTML = viewLoading()
     await loadProducts()
     if (stale()) return
-    paintStock()
+    paintStock(view === "esgotadas" ? "esgotadas" : "estoque")
+    bindStockOnce()
     return
   }
   if (view === "peca") {
@@ -708,7 +788,7 @@ async function render(view, token) {
       return
     }
     viewEl.innerHTML = renderPieceForm(state.piece, categoryBag(state.piece.categoria))
-    bindPieceForm()
+    bindPieceForm(document)
     return
   }
   if (view === "conjuntos") {

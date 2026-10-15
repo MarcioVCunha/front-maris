@@ -1031,6 +1031,28 @@ dialog h2 {
   white-space: nowrap;
 }
 
+.piece-dialog {
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100% - 48px);
+  overflow: auto;
+}
+
+.stock-card-list {
+  margin-top: 8px;
+}
+
+@media (min-width: 1024px) {
+  .stock-card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1440px) {
+  .stock-card-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .conjuntos-hero h2 {
   margin: 0;
   flex: 1 1 100%;

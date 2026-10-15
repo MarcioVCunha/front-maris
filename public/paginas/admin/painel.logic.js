@@ -1,6 +1,8 @@
 // Painel do admin. Ligado: /admin abre este painel. Promoções continua em /promocoes.
 // Fase 2 Passo 1 (canais + preco_marketplace): ADMIN_HOME_CHANNELS_ENABLED ligada.
+// Fase 2 Passo 5: Estoque em cards, aba Esgotadas, qtd 1 ao adicionar, Estoque por tipo.
 import { ADD_PRODUCT_CATEGORIES, parseImageUrlLines, parseMoneyBRL } from "../estoque/adicionar-peca/adicionar-peca.logic.js"
+import { entityPhotoHtml, renderEntityCard } from "./painel-entity.logic.js"
 
 export const ADMIN_DASHBOARD_ENABLED = true
 /** Início com canais site/equipe/shopee/ML/tiktok, mês anterior e preço marketplace. Ligada (back-maris PR #16). */
@@ -31,6 +33,7 @@ export const DASHBOARD_VIEWS = [
 
 export const STOCK_LINKS = [
   { id: "estoque", href: "/admin/estoque", label: "Peças" },
+  { id: "esgotadas", href: "/admin/esgotadas", label: "Esgotadas" },
   { id: "conjuntos", href: "/admin/conjuntos", label: "Conjuntos" },
   { id: "adicionar", href: "/admin/adicionar", label: "Adicionar peça" },
   { id: "importar", href: "/admin/importar", label: "Importar" }
@@ -61,6 +64,7 @@ export function dashboardView(pathname, search = "") {
   const known = {
     "/admin/inicio": "inicio",
     "/admin/estoque": "estoque",
+    "/admin/esgotadas": "esgotadas",
     "/admin/vendas": "vendas",
     "/admin/vendedoras": "vendedoras",
     "/admin/peca": "peca",
@@ -339,28 +343,38 @@ export function stockNavHtml(active) {
   }).join("")
 }
 
-export function renderStockList(products, formatMoney = formatPrice) {
+/** Peças com quantidade > 0. */
+export function inStockProducts(products) {
+  return (products || []).filter((piece) => displayQuantity(piece.quantity) > 0)
+}
+
+/** Peças esgotadas (quantidade 0). */
+export function outOfStockProducts(products) {
+  return (products || []).filter((piece) => displayQuantity(piece.quantity) === 0)
+}
+
+export function renderStockList(products, formatMoney = formatPrice, options = {}) {
   const rows = products || []
-  if (!rows.length) return `<p class="empty">Nenhuma peça no estoque.</p>`
-  return rows.map((piece) => {
-    const code = escapeHtml(piece.code)
+  const empty = options.empty || "Nenhuma peça no estoque."
+  if (!rows.length) return `<p class="empty">${escapeHtml(empty)}</p>`
+  return `<ul class="entity-card-list stock-card-list">${rows.map((piece) => {
     const qty = displayQuantity(piece.quantity)
-    const photo = Array.isArray(piece.image_urls) ? piece.image_urls[0] : piece.image_url
-    const image = photo
-      ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" decoding="async" width="52" height="52">`
-      : `<span class="thumb thumb--empty">${escapeHtml(String(piece.code || "?").slice(0, 2))}</span>`
-    return `<a class="piece-row" href="/admin/peca?code=${encodeURIComponent(piece.code || "")}">
-      ${image}
-      <span class="piece-copy">
-        <strong>${escapeHtml(piece.name || "Peça")}</strong>
-        <small>${code}${piece.categoria ? ` · ${escapeHtml(piece.categoria)}` : ""}</small>
-      </span>
-      <span class="piece-side">
-        <b>${escapeHtml(formatMoney(piece.unit_price))}</b>
-        <small>${qty} un.</small>
-      </span>
-    </a>`
-  }).join("")
+    const photo = entityPhotoHtml({
+      image_url: Array.isArray(piece.image_urls) ? piece.image_urls[0] : piece.image_url,
+      code: piece.code,
+      name: piece.name
+    })
+    const meta = [[piece.code, piece.categoria].filter(Boolean).join(" · ")].filter(Boolean)
+    return `<li>${renderEntityCard({
+      title: piece.name || piece.code || "Peça",
+      meta,
+      sideTitle: formatMoney(piece.unit_price),
+      sideMeta: `${qty} un.`,
+      photo,
+      attrs: `data-product-code="${escapeHtml(piece.code || "")}"`,
+      clickable: options.clickable !== false
+    })}</li>`
+  }).join("")}</ul>`
 }
 
 function categoryOptions(selected) {
@@ -428,7 +442,7 @@ export function renderAddForm(defaults = {}) {
     ${field("Nome", `<input id="name" required placeholder="Nome do produto">`)}
     ${field("Categoria", `<select id="categoria">${categoryOptions("")}</select>`)}
     ${field("Preço", `<input id="unit-price" inputmode="decimal" required placeholder="Ex.: 89,90">`)}
-    ${field("Quantidade", `<input id="quantity" inputmode="numeric" required value="0">`)}
+    ${field("Quantidade", `<input id="quantity" inputmode="numeric" required value="1">`)}
     ${field("Fotos", `<textarea id="photos" rows="3" placeholder="Uma URL por linha"></textarea>`)}
     ${field("Descrição", `<textarea id="descricao" rows="3" placeholder="${escapeHtml(state.placeholders.descricao)}"></textarea>`)}
     ${field("Peso (g)", `<input id="peso" inputmode="decimal" value="${escapeHtml(pack.peso_g)}">`)}
@@ -485,20 +499,27 @@ export function visibleStock(products, query, limit = STOCK_PAGE_SIZE) {
   return { rows: filtered.slice(0, size), total: filtered.length }
 }
 
-export function renderStockPage({ rows, total, query }) {
+export function renderStockPage({ rows, total, query, mode = "estoque", typeBlock = "" }) {
   const shown = (rows || []).length
+  const esgotadas = mode === "esgotadas"
   const more = total > shown
-    ? `<button type="button" id="stock-more" class="btn-ghost">Mais peças</button>`
+    ? `<button type="button" id="stock-more" class="btn-ghost">${esgotadas ? "Mais esgotadas" : "Mais peças"}</button>`
     : ""
   const meta = total ? `<p class="hint" id="stock-meta">${shown} de ${total}</p>` : ""
-  return `<form id="stock-search" class="stock-tools" role="search">
-    <label class="field"><span>Buscar</span>
-      <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
-    </label>
-  </form>
-  ${meta}
-  <div id="stock-list">${renderStockList(rows)}</div>
-  ${more}`
+  const empty = esgotadas
+    ? (String(query || "").trim() ? "Nenhuma esgotada com esse nome." : "Nenhuma peça esgotada.")
+    : (String(query || "").trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque.")
+  return `<section class="report report--estoque" data-stock-mode="${escapeHtml(mode)}">
+    ${typeBlock || ""}
+    <form id="stock-search" class="stock-tools" role="search">
+      <label class="field"><span>Buscar</span>
+        <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
+      </label>
+    </form>
+    ${meta}
+    <div id="stock-list">${renderStockList(rows, formatPrice, { empty })}</div>
+    ${more}
+  </section>`
 }
 
 const CHANNEL_LABELS = {
