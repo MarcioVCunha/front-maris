@@ -410,12 +410,12 @@ Deno.test("o atalho da equipe abre a venda nova", async () => {
   assertEquals(hub.includes("Ainda desligada"), false)
 })
 
-Deno.test("marketplace fica desligado e monta o corpo do contrato real", async () => {
-  assertEquals(MARKETPLACE_SALE_ENABLED, false)
-  assertEquals(shouldShowMarketplaceSale(), false)
+Deno.test("marketplace fica ligado e monta o corpo do contrato real", async () => {
+  assertEquals(MARKETPLACE_SALE_ENABLED, true)
+  assertEquals(shouldShowMarketplaceSale(), true)
   assertEquals(marketplaceLabel("shopee"), "Shopee")
   assertEquals(marketplaceLabel("mercado_livre"), "Mercado Livre")
-  assertEquals(marketplaceLabel("tiktok"), "TikTok")
+  assertEquals(marketplaceLabel("tiktok"), "TikTok Shop")
 
   assertEquals(marketplaceLine({ id: 12, code: "AN581-R", quantity: 1 }), {
     product_code: "AN581-R",
@@ -471,7 +471,9 @@ Deno.test("marketplace fica desligado e monta o corpo do contrato real", async (
 
   const page = await Deno.readTextFile(new URL("./nova-venda.html", import.meta.url))
   assert(page.includes('id="marketplace-sale-btn"'))
-  assert(page.includes('data-marketplace="shopee"'))
+  assert(page.includes('data-marketplace="shopee">Shopee<'))
+  assert(page.includes('data-marketplace="mercado_livre">Mercado Livre<'))
+  assert(page.includes('data-marketplace="tiktok">TikTok Shop<'))
   assert(page.includes('id="marketplace-notes"'))
   assertEquals(page.includes("external-order-id"), false)
   const contract = await Deno.readTextFile(new URL("../../../docs/contratos/venda-marketplace.md", import.meta.url))

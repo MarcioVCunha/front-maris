@@ -1,8 +1,8 @@
-# Venda de marketplace (Shopee, Mercado Livre, TikTok)
+# Venda de marketplace (Shopee, Mercado Livre, TikTok Shop)
 
 Contrato alinhado ao back-maris (PR #15 / migration `marketplace_admin_archive_views` + edges `register-marketplace-order` e `cancel-marketplace-order`).
 
-A tela `/vendas/nova` prepara o fluxo atrás da flag `MARKETPLACE_SALE_ENABLED` (**desligada**). O front **não** chama essas funções enquanto a flag estiver off. Só `admin` registra e cancela.
+A tela `/vendas/nova` liga o fluxo com `MARKETPLACE_SALE_ENABLED` (**ligada**). Só `admin` registra e cancela. Os rótulos na UI são Shopee, Mercado Livre e TikTok Shop (`channel` no contrato continua `tiktok`).
 
 Pedido marketplace no banco: `source = marketplace`, `status = pago`, `seller_id` nulo, `commission_percent = 0`, `payment_method` nulo. O campo `orders.channel` guarda a plataforma (`shopee` | `mercado_livre` | `tiktok`).
 

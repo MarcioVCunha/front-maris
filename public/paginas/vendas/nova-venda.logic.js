@@ -1,10 +1,10 @@
 // Regras da tela de venda. A flag está ligada: /vendas/nova é a tela da equipe.
-// Marketplace (Shopee / ML / TikTok) fica atrás de MARKETPLACE_SALE_ENABLED.
+// Marketplace (Shopee / Mercado Livre / TikTok Shop) em MARKETPLACE_SALE_ENABLED.
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
 
 export const NEW_SALE_ENABLED = true
-/** Liga o fluxo de venda marketplace. Off até o front ligar após o contrato no ar. */
-export const MARKETPLACE_SALE_ENABLED = false
+/** Liga o fluxo de venda marketplace em /vendas/nova. */
+export const MARKETPLACE_SALE_ENABLED = true
 export const COMMISSION_RATE = 0.3
 export const PIX_DISCOUNT_RATE = 0.05
 export { newClientRequestId }
@@ -12,7 +12,7 @@ export { newClientRequestId }
 export const MARKETPLACE_PLATFORMS = [
   { id: "shopee", label: "Shopee" },
   { id: "mercado_livre", label: "Mercado Livre" },
-  { id: "tiktok", label: "TikTok" }
+  { id: "tiktok", label: "TikTok Shop" }
 ]
 
 export function shouldShowMarketplaceSale(enabled = MARKETPLACE_SALE_ENABLED) {
@@ -287,7 +287,7 @@ export function buildCreateSaleBody({ sellerId, customer, paymentStatus, payment
 export function buildMarketplaceSaleBody({ channel, pieces, clientRequestId, notes }) {
   const platform = String(channel || "").trim()
   if (!isMarketplacePlatform(platform)) {
-    return { ok: false, error: "Escolha Shopee, Mercado Livre ou TikTok." }
+    return { ok: false, error: "Escolha Shopee, Mercado Livre ou TikTok Shop." }
   }
   if (!pieces?.length) return { ok: false, error: "Escolha pelo menos uma peça." }
   const items = pieces.map(marketplaceLine)

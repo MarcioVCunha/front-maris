@@ -7,7 +7,7 @@ export const NEW_SALE_API = {
   searchCustomers: "sale-customer-search",
   saveCustomer: "sale-customer-save",
   createSale: "sale-create",
-  /** Contrato em docs/contratos/venda-marketplace.md (back-maris PR #15). Flag off no front. */
+  /** Contrato em docs/contratos/venda-marketplace.md (back-maris PR #15). */
   registerMarketplaceOrder: "register-marketplace-order",
   cancelMarketplaceOrder: "cancel-marketplace-order"
 }
