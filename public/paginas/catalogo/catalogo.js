@@ -1074,7 +1074,7 @@ async function loadCatalogData() {
     window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name"),
     window.MarisCatalogRead.selectImages(supabaseClient).order("sort_order", { ascending: true }),
     window.MarisCatalogRead.selectCollections
-      ? window.MarisCatalogRead.selectCollections(supabaseClient).catch(() => ({ data: [] }))
+      ? Promise.resolve(window.MarisCatalogRead.selectCollections(supabaseClient)).catch(() => ({ data: [] }))
       : Promise.resolve({ data: [] }),
   ])
 

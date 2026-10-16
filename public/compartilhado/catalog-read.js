@@ -147,8 +147,14 @@ window.MarisCatalogRead = {
   },
 
   selectCollections(client) {
-    return this._select(client, this.COLLECTIONS_RELATION, this.COLLECTION_COLUMNS)
+    const query = this._select(client, this.COLLECTIONS_RELATION, this.COLLECTION_COLUMNS)
       .order("sort_order", { ascending: true })
       .order("id", { ascending: false })
+    if (query && typeof query.catch !== "function") {
+      query.catch = function (onReject) {
+        return Promise.resolve(this).catch(onReject)
+      }
+    }
+    return query
   }
 }
