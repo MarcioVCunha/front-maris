@@ -1,5 +1,15 @@
 const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo } = window.MarisUtils
 const {
+  loadStoredFavorites,
+  saveStoredFavorites,
+  isProductFavorite,
+  toggleFavoriteItem,
+  countFavorites,
+  isGroupFavorite,
+  validateEmail,
+  formatRestockAlertPayload,
+} = window.MarisFavoritesLogic || {}
+const {
   visibleCategories,
   whatsappLink,
   productWhatsappMessage,
@@ -97,6 +107,7 @@ const minPriceInput = document.getElementById("filter-min-price")
 const maxPriceInput = document.getElementById("filter-max-price")
 const filterOnSaleInput = document.getElementById("filter-on-sale")
 const onlyAvailableInput = document.getElementById("filter-only-available")
+const filterOnlyFavoritesInput = document.getElementById("filter-only-favorites")
 const catalogFiltersClearBtn = document.getElementById("catalog-filters-clear")
 const piecePage = document.getElementById("piece-page")
 const pieceGalleryContainer = document.getElementById("piece-gallery-container")
@@ -131,6 +142,11 @@ const collectionBannerEl = document.getElementById("catalog-collection-banner")
 const collectionBadgeEl = document.getElementById("catalog-collection-badge")
 const collectionTitleEl = document.getElementById("catalog-collection-title")
 const collectionDescEl = document.getElementById("catalog-collection-desc")
+const headerFavBtn = document.getElementById("header-fav-btn")
+const headerFavCount = document.getElementById("header-fav-count")
+const colFavBtn = document.getElementById("col-filter-favoritos")
+const colFavCount = document.getElementById("col-fav-count")
+const catalogFavoritesBanner = document.getElementById("catalog-favorites-banner")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
 const productModalShareWhatsapp = document.getElementById("product-modal-share-whatsapp")
 const productModalColors = document.getElementById("product-modal-colors")
@@ -183,6 +199,62 @@ let modalImageUrls = []
 let modalImageIndex = 0
 let touchStartX = 0
 let touchStartY = 0
+
+let userFavorites = typeof loadStoredFavorites === "function" ? loadStoredFavorites(localStorage) : []
+let onlyFavorites = false
+
+function syncFavoritesUi() {
+  const count = typeof countFavorites === "function" ? countFavorites(userFavorites) : userFavorites.length
+  if (headerFavCount) {
+    headerFavCount.textContent = String(count)
+    headerFavCount.hidden = count === 0
+  }
+  if (headerFavBtn) {
+    headerFavBtn.classList.toggle("is-active", onlyFavorites)
+    headerFavBtn.setAttribute("aria-pressed", onlyFavorites ? "true" : "false")
+  }
+  if (colFavCount) {
+    colFavCount.textContent = String(count)
+  }
+
+  document.querySelectorAll("[data-fav-code]").forEach((btn) => {
+    const code = btn.getAttribute("data-fav-code")
+    const isFav = typeof isProductFavorite === "function"
+      ? isProductFavorite(code, userFavorites)
+      : userFavorites.includes(code)
+    btn.classList.toggle("is-favorited", isFav)
+    btn.setAttribute("aria-label", isFav ? "Remover dos favoritos" : "Salvar nos favoritos")
+    btn.setAttribute("title", isFav ? "Remover dos favoritos" : "Salvar nos favoritos")
+    const icon = btn.querySelector(".fav-icon")
+    if (icon) icon.textContent = isFav ? "♥" : "♡"
+    const textSpan = btn.querySelector(".fav-text")
+    if (textSpan) textSpan.textContent = isFav ? "Favoritado" : "Favoritar"
+  })
+
+  if (catalogFavoritesBanner) {
+    catalogFavoritesBanner.hidden = !onlyFavorites
+  }
+}
+
+function toggleFavorite(code) {
+  if (!code) return
+  if (typeof toggleFavoriteItem === "function") {
+    const res = toggleFavoriteItem(code, userFavorites)
+    userFavorites = res.favorites
+    if (typeof saveStoredFavorites === "function") {
+      saveStoredFavorites(userFavorites, localStorage)
+    }
+  } else {
+    const idx = userFavorites.indexOf(code)
+    if (idx >= 0) userFavorites.splice(idx, 1)
+    else userFavorites.push(code)
+    try { localStorage.setItem("maris_favoritos", JSON.stringify(userFavorites)) } catch {}
+  }
+  syncFavoritesUi()
+  if (onlyFavorites) {
+    renderCatalogGrids()
+  }
+}
 
 function setCatalogFeedback(text, type = "") {
   window.MarisUI.setFeedback(catalogFeedbackEl, text, type, { baseClass: "catalog-feedback" })
@@ -319,6 +391,8 @@ function activeFilters() {
     onlyAvailable,
     onSaleOnly,
     collection,
+    favoritos: onlyFavorites,
+    favoritesList: userFavorites,
   }
 }
 
@@ -335,6 +409,7 @@ function syncCatalogUrl() {
     ordem: getSortMode(),
     onSaleOnly,
     onlyAvailable,
+    favoritos: onlyFavorites,
     colecao: selectedCollectionSlug,
     minPrice,
     maxPrice,
@@ -450,6 +525,16 @@ function renderCatalogGroup(group) {
     ? `<span class="product-sale-badge">${offerFromProduct(product).percentOff}% OFF</span>`
     : ""
 
+  const isFav = typeof isProductFavorite === "function"
+    ? isProductFavorite(product.code, userFavorites)
+    : userFavorites.includes(product.code)
+
+  const favBtnHtml = `
+    <button type="button" class="product-favorite-btn${isFav ? " is-favorited" : ""}" data-fav-code="${escapeHtml(product.code)}" aria-label="${isFav ? "Remover dos favoritos" : "Salvar nos favoritos"}" title="${isFav ? "Remover dos favoritos" : "Salvar nos favoritos"}">
+      <span class="fav-icon" aria-hidden="true">${isFav ? "♥" : "♡"}</span>
+    </button>
+  `
+
   // Com tipos: só abre o modal (estoque/venda são por tipo, não pelo pai).
   const actionHtml = soldOut
     ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
@@ -459,6 +544,7 @@ function renderCatalogGroup(group) {
 
   return `
     <article class="product ${soldOut ? "sold-out" : ""}" data-group-key="${escapeHtml(group.key)}" data-product-code="${escapeHtml(product.code)}" role="button" tabindex="0">
+      ${favBtnHtml}
       ${saleBadge}
       ${renderNoteBadges(product, soldOut)}
       ${renderPhotoStrip(imageUrls, product.name || "Peça")}
@@ -534,12 +620,13 @@ function openWaitlistModal({ productCode = null, componentId = null }) {
   setWaitlistFeedback("")
   const buyer = window.MarisCatalogCart?.getBuyerProfile?.()
   if (buyer) {
-    waitlistNameInput.value = buyer.name || ""
-    waitlistWhatsappInput.value = buyer.whatsapp || ""
-    waitlistEmailInput.value = buyer.email || ""
+    if (waitlistNameInput) waitlistNameInput.value = buyer.name || ""
+    if (waitlistWhatsappInput) waitlistWhatsappInput.value = buyer.whatsapp || ""
+    if (waitlistEmailInput) waitlistEmailInput.value = buyer.email || ""
   }
   waitlistModal.hidden = false
-  waitlistNameInput.focus()
+  if (waitlistEmailInput) waitlistEmailInput.focus()
+  else if (waitlistNameInput) waitlistNameInput.focus()
 }
 
 function closeWaitlistModal() {
@@ -553,44 +640,66 @@ function joinWaitlist({ productCode = null, componentId = null }) {
 
 async function submitWaitlist() {
   if (!pendingWaitlistItem) return
-  const name = waitlistNameInput.value.trim()
-  const whatsapp = window.MarisUtils.onlyDigits(waitlistWhatsappInput.value)
-  const email = waitlistEmailInput.value.trim()
+  const email = (waitlistEmailInput?.value || "").trim().toLowerCase()
+  const name = (waitlistNameInput?.value || "").trim()
+  const rawWhatsapp = (waitlistWhatsappInput?.value || "").trim()
+  const whatsapp = window.MarisUtils.onlyDigits(rawWhatsapp)
 
-  if (!name) {
-    setWaitlistFeedback("Informe seu nome.", "error")
+  if (!email && !whatsapp) {
+    setWaitlistFeedback("Informe seu e-mail para receber o aviso de reposição.", "error")
     return
   }
-  if (whatsapp.length < 10) {
-    setWaitlistFeedback("Informe um WhatsApp válido com DDD.", "error")
+
+  if (email) {
+    const isEmailValid = typeof validateEmail === "function"
+      ? validateEmail(email)
+      : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (!isEmailValid) {
+      setWaitlistFeedback("Informe um e-mail válido (ex.: seu@email.com).", "error")
+      return
+    }
+  }
+
+  if (whatsapp && whatsapp.length < 10) {
+    setWaitlistFeedback("WhatsApp incompleto. Digite com DDD (ex.: 11 99999-9999).", "error")
     return
   }
 
   window.MarisCatalogCart?.saveBuyerProfile?.({ name, whatsapp, email })
 
+  const payload = typeof formatRestockAlertPayload === "function"
+    ? formatRestockAlertPayload({
+        email,
+        name,
+        whatsapp,
+        productCode: pendingWaitlistItem.productCode,
+        componentId: pendingWaitlistItem.componentId,
+      })
+    : {
+        buyer_email: email,
+        buyer_name: name || (email ? "Cliente" : ""),
+        buyer_whatsapp: whatsapp,
+        product_code: pendingWaitlistItem.productCode,
+        component_id: pendingWaitlistItem.componentId,
+      }
+
   waitlistSubmitBtn.disabled = true
-  waitlistSubmitBtn.textContent = "Enviando…"
+  waitlistSubmitBtn.textContent = "Cadastrando aviso…"
   try {
     const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("customer-waitlist-add"), {
-      body: {
-        buyer_name: name,
-        buyer_whatsapp: whatsapp,
-        buyer_email: email,
-        product_code: pendingWaitlistItem.productCode,
-        component_id: pendingWaitlistItem.componentId
-      }
+      body: payload
     })
     if (!ok) {
-      setWaitlistFeedback(data.error || "Não foi possível entrar na lista de espera.", "error")
+      setWaitlistFeedback(data.error || "Não foi possível cadastrar seu aviso.", "error")
       return
     }
     closeWaitlistModal()
-    setCatalogFeedback("Pronto! Você entrou na lista de espera.", "success")
+    setCatalogFeedback("Aviso cadastrado! Enviaremos uma notificação assim que a peça voltar ao estoque.", "success")
   } catch {
     setWaitlistFeedback("Erro de conexão. Tente novamente.", "error")
   } finally {
     waitlistSubmitBtn.disabled = false
-    waitlistSubmitBtn.textContent = "Entrar na lista"
+    waitlistSubmitBtn.textContent = "Cadastrar aviso"
   }
 }
 
@@ -663,13 +772,32 @@ function chooseGroupColor(groupKey, code) {
 }
 
 function renderPieceActions(product, components, soldOut) {
+  const isFav = typeof isProductFavorite === "function"
+    ? isProductFavorite(product?.code, userFavorites)
+    : userFavorites.includes(product?.code)
+
+  const favBtnHtml = `
+    <button type="button" class="piece-fav-btn${isFav ? " is-favorited" : ""}" data-fav-code="${escapeHtml(product?.code)}" aria-label="${isFav ? "Remover dos favoritos" : "Salvar nos favoritos"}" title="${isFav ? "Remover dos favoritos" : "Salvar nos favoritos"}">
+      <span class="fav-icon" aria-hidden="true">${isFav ? "♥" : "♡"}</span>
+      <span class="fav-text">${isFav ? "Favoritado" : "Favoritar"}</span>
+    </button>
+  `
+
+  let primaryActionHtml = ""
   if (soldOut) {
-    return `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+    primaryActionHtml = `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+  } else if (components.length) {
+    primaryActionHtml = `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
+  } else {
+    primaryActionHtml = `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
   }
-  if (components.length) {
-    return `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
-  }
-  return `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
+
+  return `
+    <div class="piece-actions-row">
+      ${primaryActionHtml}
+      ${favBtnHtml}
+    </div>
+  `
 }
 
 function openPiecePage(group) {
@@ -847,6 +975,7 @@ function applyCatalogLink() {
   }
   onSaleOnly = Boolean(link.onSaleOnly)
   onlyAvailable = Boolean(link.onlyAvailable)
+  onlyFavorites = Boolean(link.favoritos)
   minPrice = link.minPrice
   maxPrice = link.maxPrice
   if (link.busca && catalogSearchInput) {
@@ -888,6 +1017,7 @@ function renderCatalogGrids() {
   renderActiveFilters()
   syncDrawerInputs()
   renderCollectionBanner()
+  syncFavoritesUi()
 
   const filters = activeFilters()
   const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
@@ -907,9 +1037,16 @@ function renderCatalogGrids() {
     catalogEl.hidden = false
     catalogEl.innerHTML = term
       ? "Nenhum produto encontrado para a busca"
-      : selectedCategory !== "Todos"
-        ? "Nenhum produto nessa categoria"
-        : "Nenhum produto encontrado"
+      : filters.favoritos
+        ? `<div class="catalog-empty-favorites">
+             <div class="empty-fav-icon" aria-hidden="true">♡</div>
+             <h3>Você ainda não tem favoritos salvos</h3>
+             <p>Toque no coração das peças que você mais gostar para guardar aqui no seu aparelho e não perder de vista.</p>
+             <button type="button" class="btn-primary" id="empty-fav-see-all">Ver todas as peças</button>
+           </div>`
+        : selectedCategory !== "Todos"
+          ? "Nenhum produto nessa categoria"
+          : "Nenhum produto encontrado"
   } else if (!availFiltered.length) {
     catalogEl.hidden = true
     catalogEl.innerHTML = ""
@@ -1046,6 +1183,7 @@ function syncCollectionPressed() {
     const selected = (name === "promocoes" && onSaleOnly)
       || (name === "novidades" && !onSaleOnly && sort === "created_desc")
       || (name === "mais-vendidas" && sort === BESTSELLER_SORT)
+      || (name === "favoritos" && onlyFavorites)
     el.classList.toggle("is-selected", selected)
     el.setAttribute("aria-pressed", selected ? "true" : "false")
   })
@@ -1103,6 +1241,21 @@ async function handleCatalogGridClick(event) {
     ignoreNextCardClick = false
     return
   }
+  const favBtn = event.target.closest("[data-fav-code]")
+  if (favBtn) {
+    event.stopPropagation()
+    const code = favBtn.getAttribute("data-fav-code")
+    toggleFavorite(code)
+    return
+  }
+  const emptySeeAll = event.target.closest("#empty-fav-see-all")
+  if (emptySeeAll) {
+    event.stopPropagation()
+    onlyFavorites = false
+    syncCollectionPressed()
+    refreshAfterFilterChange()
+    return
+  }
   const colorBtn = event.target.closest("[data-color-code]")
   if (colorBtn) {
     event.stopPropagation()
@@ -1158,6 +1311,12 @@ catalogEl.addEventListener("click", handleCatalogGridClick)
 unavailableProductsGrid.addEventListener("click", handleCatalogGridClick)
 
 productModal.addEventListener("click", async (event) => {
+  const favBtn = event.target.closest("[data-fav-code]")
+  if (favBtn) {
+    const code = favBtn.getAttribute("data-fav-code")
+    toggleFavorite(code)
+    return
+  }
   const colorBtn = event.target.closest("[data-color-code]")
   if (colorBtn && currentModalGroup) {
     chooseGroupColor(currentModalGroup.key, colorBtn.getAttribute("data-color-code"))
@@ -1596,6 +1755,7 @@ function readDrawerFilters() {
   minPrice = parsePriceBound(minPriceInput?.value)
   maxPrice = parsePriceBound(maxPriceInput?.value)
   onlyAvailable = Boolean(onlyAvailableInput?.checked)
+  onlyFavorites = Boolean(filterOnlyFavoritesInput?.checked)
   onSaleOnly = Boolean(filterOnSaleInput?.checked)
 }
 
@@ -1603,6 +1763,7 @@ function syncDrawerInputs() {
   if (minPriceInput) minPriceInput.value = minPrice != null ? String(minPrice).replace(".", ",") : ""
   if (maxPriceInput) maxPriceInput.value = maxPrice != null ? String(maxPrice).replace(".", ",") : ""
   if (onlyAvailableInput) onlyAvailableInput.checked = Boolean(onlyAvailable)
+  if (filterOnlyFavoritesInput) filterOnlyFavoritesInput.checked = Boolean(onlyFavorites)
   if (filterOnSaleInput) filterOnSaleInput.checked = Boolean(onSaleOnly)
 
   if (priceRangePresetsEl) {
@@ -1650,6 +1811,7 @@ function clearAllFilters() {
   minPrice = null
   maxPrice = null
   onlyAvailable = false
+  onlyFavorites = false
   onSaleOnly = false
   if (catalogSearchInput) {
     catalogSearchInput.value = ""
@@ -1723,6 +1885,7 @@ catalogActivePills?.addEventListener("click", (event) => {
     maxPrice = null
   } else if (type === "onSale") onSaleOnly = false
   else if (type === "onlyAvailable") onlyAvailable = false
+  else if (type === "favoritos") onlyFavorites = false
   else if (type === "term") {
     if (catalogSearchInput) {
       catalogSearchInput.value = ""
@@ -1771,6 +1934,11 @@ onlyAvailableInput?.addEventListener("change", () => {
   readDrawerFilters()
   refreshAfterFilterChange()
 })
+filterOnlyFavoritesInput?.addEventListener("change", () => {
+  readDrawerFilters()
+  syncCollectionPressed()
+  refreshAfterFilterChange()
+})
 colorFiltersEl?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-color-filter]")
   if (!button) return
@@ -1790,6 +1958,9 @@ collectionsEl?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-collection]")
   if (!button || button.disabled) return
   const kind = button.getAttribute("data-collection")
+  if (kind === "favoritos") {
+    onlyFavorites = !onlyFavorites
+  }
   if (kind === "mais-vendidas" && catalogSortSelect) {
     if (!bestsellerTotals) return
     catalogSortSelect.value = catalogSortSelect.value === BESTSELLER_SORT ? "name_asc" : BESTSELLER_SORT
@@ -1803,6 +1974,11 @@ collectionsEl?.addEventListener("click", (event) => {
     onSaleOnly = !onSaleOnly
     if (onSaleOnly && catalogSortSelect?.value === BESTSELLER_SORT) catalogSortSelect.value = "name_asc"
   }
+  syncCollectionPressed()
+  refreshAfterFilterChange()
+})
+headerFavBtn?.addEventListener("click", () => {
+  onlyFavorites = !onlyFavorites
   syncCollectionPressed()
   refreshAfterFilterChange()
 })
