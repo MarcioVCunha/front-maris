@@ -47,4 +47,8 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   const garantia = config.redirects.find((item) => item.source === "/garantia")
   assertEquals(garantia?.destination, "/trocas")
   assertEquals(garantia?.permanent, true)
+
+  const vendedoras = config.redirects.find((item) => item.source === "/vendedoras")
+  assertEquals(vendedoras?.destination, "/vendas/nova")
+  assertEquals(vendedoras?.permanent, true)
 })
