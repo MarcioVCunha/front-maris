@@ -1,0 +1,75 @@
+/* Faixa de anúncios no topo do site (frete pelas plataformas, Pix e Trocas/Garantia) */
+
+.top-announcement-bar {
+  background-color: var(--maris-black, #432838);
+  color: #faeff4;
+  font-family: var(--maris-font-body, system-ui, sans-serif);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(199, 146, 168, 0.25);
+  position: relative;
+  z-index: 101;
+}
+
+.top-bar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  text-align: center;
+}
+
+.top-bar-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-bar-text {
+  letter-spacing: 0.01em;
+}
+
+.top-bar-link {
+  color: #faeff4;
+  text-decoration: underline;
+  text-decoration-color: var(--maris-gold, #c792a8);
+  text-underline-offset: 2px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.top-bar-link:hover,
+.top-bar-link:focus-visible {
+  color: #ffffff;
+  text-decoration-color: #ffffff;
+}
+
+.top-bar-sep {
+  color: var(--maris-gold, #c792a8);
+  opacity: 0.6;
+  user-select: none;
+}
+
+@media (max-width: 680px) {
+  .top-announcement-bar {
+    font-size: 0.75rem;
+  }
+
+  .top-bar-inner {
+    padding: 6px 12px;
+    gap: 4px 10px;
+  }
+
+  .top-bar-sep {
+    display: none;
+  }
+
+  .top-bar-item {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 200px;
+  }
+}

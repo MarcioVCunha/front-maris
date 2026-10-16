@@ -25,7 +25,9 @@
     { "source": "/maris-internal.css", "destination": "/assets/maris-internal.css", "permanent": true },
     { "source": "/shared/:path*", "destination": "/compartilhado/:path*", "permanent": true },
     { "source": "/adicionar-peca", "destination": "/admin/adicionar", "permanent": true },
-    { "source": "/importar", "destination": "/admin/importar", "permanent": true }
+    { "source": "/importar", "destination": "/admin/importar", "permanent": true },
+    { "source": "/trocas.html", "destination": "/trocas", "permanent": true },
+    { "source": "/garantia", "destination": "/trocas", "permanent": true }
   ],
   "rewrites": [
     { "source": "/utils.js", "destination": "/compartilhado/utils.js" },
@@ -54,6 +56,7 @@
     { "source": "/lista-espera", "destination": "/paginas/vendas/lista-espera.html" },
     { "source": "/catalog", "destination": "/paginas/catalogo/catalogo.html" },
     { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
+    { "source": "/trocas", "destination": "/paginas/institucional/trocas.html" },
     { "source": "/equipe/nova-senha", "destination": "/paginas/admin/nova-senha.html" },
     { "source": "/equipe", "destination": "/paginas/admin/equipe.html" }
   ]
