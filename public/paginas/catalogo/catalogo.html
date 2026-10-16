@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="/assets/maris-theme.css">
     <link rel="stylesheet" href="/compartilhado/loading.css">
+    <link rel="stylesheet" href="/compartilhado/top-bar.css">
     <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
     <script src="/env.js"></script>
     <script src="/compartilhado/utils.js"></script>
@@ -18,6 +19,24 @@
   </head>
 
   <body>
+    <aside class="top-announcement-bar" role="region" aria-label="Avisos da loja">
+      <div class="top-bar-inner">
+        <div class="top-bar-item" data-id="frete">
+          <span class="top-bar-text">Envio pelas plataformas: Shopee, Mercado Livre e TikTok Shop</span>
+        </div>
+        <span class="top-bar-sep" aria-hidden="true">·</span>
+        <div class="top-bar-item" data-id="pix">
+          <span class="top-bar-text">5% de desconto no Pix à vista</span>
+        </div>
+        <span class="top-bar-sep" aria-hidden="true">·</span>
+        <div class="top-bar-item" data-id="trocas">
+          <a href="/trocas" class="top-bar-link" title="Garantia e troca fácil em até 7 dias">
+            <span class="top-bar-text">Garantia e troca fácil em até 7 dias</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
     <header class="site-header">
       <div class="site-header-inner">
         <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
@@ -138,6 +157,8 @@
     </main>
 
     <footer class="site-footer">
+      <a href="/trocas" class="footer-link">Trocas e garantia</a>
+      <span class="footer-sep" aria-hidden="true" style="margin: 0 12px; color: var(--maris-border);">·</span>
       <a id="footer-whatsapp" target="_blank" rel="noopener">Fale com a gente</a>
     </footer>
 

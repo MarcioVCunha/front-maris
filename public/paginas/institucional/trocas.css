@@ -1,0 +1,212 @@
+/* Estilos da página de Trocas e Garantia — Maris Semijoias */
+
+body {
+  margin: 0;
+  background-color: var(--maris-bg, #fcf7fa);
+  color: var(--maris-text, #2f1f2a);
+  font-family: var(--maris-font-body, "DM Sans", system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+.trocas-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.trocas-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.trocas-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--maris-gold-light, #faeff4);
+  color: var(--maris-gold-dark, #9f6d83);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.trocas-title {
+  font-family: var(--maris-font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: 2.25rem;
+  font-weight: 600;
+  color: var(--maris-black, #432838);
+  margin: 0 0 12px;
+  line-height: 1.15;
+}
+
+.trocas-lead {
+  font-size: 1.0625rem;
+  color: var(--maris-text-muted, #7b5f70);
+  max-width: 640px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.policies-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.policy-card {
+  background: var(--maris-surface, #ffffff);
+  border: 1px solid var(--maris-border, #ecdbe4);
+  border-radius: var(--maris-radius-lg, 8px);
+  padding: 28px 32px;
+  box-shadow: var(--maris-shadow, 0 2px 12px rgba(98, 52, 76, 0.08));
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.policy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--maris-border-soft, #f4eaf0);
+  padding-bottom: 12px;
+}
+
+.policy-card-title {
+  font-family: var(--maris-font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.625rem;
+  font-weight: 600;
+  color: var(--maris-black, #432838);
+  margin: 0;
+}
+
+.policy-card-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--maris-gold-dark, #9f6d83);
+  background: var(--maris-gold-light, #faeff4);
+  padding: 4px 10px;
+  border-radius: var(--maris-radius, 4px);
+  border: 1px solid rgba(199, 146, 168, 0.3);
+}
+
+.policy-card-summary {
+  font-size: 0.9375rem;
+  color: var(--maris-text, #2f1f2a);
+  line-height: 1.6;
+  margin: 0 0 20px;
+  font-weight: 500;
+}
+
+.policy-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.policy-topic {
+  border-left: 3px solid var(--maris-gold, #c792a8);
+  padding-left: 14px;
+}
+
+.policy-topic-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--maris-black, #432838);
+  margin: 0 0 4px;
+}
+
+.policy-topic-text {
+  font-size: 0.875rem;
+  color: var(--maris-text-muted, #7b5f70);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Call to Action Box */
+.trocas-cta {
+  background: linear-gradient(135deg, var(--maris-black, #432838) 0%, #5d3850 100%);
+  color: #faeff4;
+  border-radius: var(--maris-radius-lg, 8px);
+  padding: 36px 32px;
+  text-align: center;
+  margin-top: 40px;
+  box-shadow: var(--maris-shadow-hover, 0 8px 24px rgba(98, 52, 76, 0.14));
+}
+
+.trocas-cta-title {
+  font-family: var(--maris-font-display, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #ffffff;
+}
+
+.trocas-cta-text {
+  font-size: 0.9375rem;
+  color: var(--maris-gold-light, #faeff4);
+  max-width: 540px;
+  margin: 0 auto 24px;
+  line-height: 1.6;
+}
+
+.trocas-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--maris-surface, #ffffff);
+  color: var(--maris-black, #432838);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.trocas-cta-btn:hover {
+  background-color: #f7e8ef;
+  transform: translateY(-1px);
+}
+
+.trocas-nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--maris-gold-dark, #9f6d83);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+  transition: color 0.15s ease;
+}
+
+.trocas-nav-back:hover {
+  color: var(--maris-black, #432838);
+}
+
+@media (max-width: 680px) {
+  .trocas-page {
+    padding: 24px 16px 48px;
+  }
+
+  .trocas-title {
+    font-size: 1.875rem;
+  }
+
+  .policy-card {
+    padding: 20px;
+  }
+
+  .policy-card-title {
+    font-size: 1.375rem;
+  }
+
+  .trocas-cta {
+    padding: 28px 20px;
+  }
+}
