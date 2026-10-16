@@ -175,9 +175,10 @@ export async function fetchMonthOverview({ month }, client) {
  * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }
  * (chips/foto no Início). Ver docs/contratos/painel-venda-edicao.md.
  */
-export async function fetchRecentSales({ limit = 20, channel } = {}, client) {
+export async function fetchRecentSales({ limit = 20, channel, status } = {}, client) {
   const query = { limit }
   if (channel) query.p_channel = channel
+  if (status) query.status = status
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {
     method: "GET",
     query

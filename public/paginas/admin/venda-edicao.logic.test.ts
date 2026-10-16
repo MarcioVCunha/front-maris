@@ -3,6 +3,7 @@ import {
   ADMIN_SALE_EDIT_ENABLED,
   filterSalesByChannel,
   filterSalesBySeller,
+  filterSalesByStatus,
   normalizeAdminSale,
   normalizeSaleItems,
   readSaleEditForm,
@@ -61,6 +62,11 @@ Deno.test("filtra vendas por canal ou vendedora e monta cards com chip de status
   assertEquals(filterSalesByChannel(sales, "").length, 2)
   assertEquals(filterSalesBySeller(sales, { seller_id: 2, name: "Marineide" }).map((s) => s.id), [2])
   assertEquals(filterSalesBySeller(sales, { name: "Marineide" }).map((s) => s.id), [2])
+  assertEquals(filterSalesByStatus(sales, "paid").map((s) => s.id), [1])
+  assertEquals(filterSalesByStatus(sales, "receivable").map((s) => s.id), [2])
+  assertEquals(filterSalesByStatus(sales, "all").length, 2)
+  assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "all").length, 2)
+  assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "cancelled").map((s) => s.id), [3])
   assertEquals(salePrimaryPhoto(sales[0]), "https://exemplo.test/a.jpg")
   assertEquals(salePrimaryPhoto(sales[1]), "")
 

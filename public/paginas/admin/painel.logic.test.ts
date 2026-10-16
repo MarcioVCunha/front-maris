@@ -37,6 +37,7 @@ import {
   renderArchiveDialog,
   renderInicio,
   renderPieceForm,
+  renderSalesStatusFilter,
   renderVendas,
   renderVendedoras,
   navHtml,
@@ -414,6 +415,26 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   })
   assert(vendasCards.includes('data-sale-id="10"'))
   assert(vendasCards.includes("Lia"))
+
+  const statusFilterHtml = renderSalesStatusFilter("receivable")
+  assert(statusFilterHtml.includes("Todas"))
+  assert(statusFilterHtml.includes("A receber"))
+  assert(statusFilterHtml.includes("Pagas"))
+  assert(statusFilterHtml.includes("Canceladas"))
+  assert(statusFilterHtml.includes('data-status="receivable" role="tab" aria-selected="true"'))
+
+  const filteredVendas = renderVendas([
+    { id: 1, customer_name: "Lia", payment_status: "paid" },
+    { id: 2, customer_name: "Bia", payment_status: "receivable" },
+  ], undefined, {
+    selectedStatus: "receivable",
+    filterSales: (rows, status) => rows.filter((r) => r.payment_status === status),
+  })
+  assert(filteredVendas.includes("Bia"))
+  assertEquals(filteredVendas.includes("Lia"), false)
+
+  const emptyReceivable = renderVendas([], undefined, { selectedStatus: "receivable" })
+  assert(emptyReceivable.includes("Nenhuma venda a receber."))
 
   const team = renderVendedoras([{
     seller_id: 2,

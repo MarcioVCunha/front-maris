@@ -812,13 +812,41 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
   </section>`
 }
 
+export const SALE_STATUS_FILTERS = [
+  { id: "all", label: "Todas" },
+  { id: "receivable", label: "A receber" },
+  { id: "paid", label: "Pagas" },
+  { id: "cancelled", label: "Canceladas" }
+]
+
+export function renderSalesStatusFilter(selectedStatus = "all") {
+  const active = String(selectedStatus || "all").trim().toLowerCase()
+  return `<div class="sale-status-filter" role="tablist" aria-label="Filtrar por status">${SALE_STATUS_FILTERS.map((item) => {
+    const pressed = item.id === active
+    return `<button type="button" class="status-filter-btn${pressed ? " status-filter-btn--active" : ""}" data-status="${escapeHtml(item.id)}" role="tab" aria-selected="${pressed ? "true" : "false"}">${escapeHtml(item.label)}</button>`
+  }).join("")}</div>`
+}
+
 export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
+  const selectedStatus = options.selectedStatus || "all"
+  const filterToolbar = renderSalesStatusFilter(selectedStatus)
   const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
-  if (!rows) return `<p class="empty">${NO_DATA}</p>`
-  if (!rows.length) return `<p class="empty">Nenhuma venda recente.</p>`
-  const body = typeof options.renderSales === "function"
-    ? options.renderSales(rows, formatMoney)
-    : rows.map((sale) => {
+  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${filterToolbar}<p class="empty">${NO_DATA}</p></section>`
+  const filtered = typeof options.filterSales === "function"
+    ? options.filterSales(rows, selectedStatus)
+    : rows
+  const emptyMessage = selectedStatus === "receivable"
+    ? "Nenhuma venda a receber."
+    : selectedStatus === "paid"
+    ? "Nenhuma venda paga."
+    : selectedStatus === "cancelled"
+    ? "Nenhuma venda cancelada."
+    : "Nenhuma venda recente."
+  const body = !filtered.length
+    ? `<p class="empty">${emptyMessage}</p>`
+    : typeof options.renderSales === "function"
+    ? options.renderSales(filtered, formatMoney)
+    : filtered.map((sale) => {
       const who = [sale.seller_name, channelLabel(sale.channel)].filter(Boolean).join(" · ")
       const pay = [statusLabel(sale.payment_status), paymentLabel(sale.payment_method)].filter(Boolean).join(" · ")
       return `<article class="sale-row">
@@ -828,7 +856,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
           <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
       </article>`
     }).join("")
-  return `<section class="report"><h2>Vendas recentes</h2>${body}</section>`
+  return `<section class="report"><h2>Vendas recentes</h2>${filterToolbar}${body}</section>`
 }
 
 export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {

@@ -140,6 +140,11 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(recentChannel.calls[0].name, "admin-recent-sales")
   assertEquals(recentChannel.calls[0].options.query, { limit: 20, p_channel: "shopee" })
 
+  const recentStatus = client({ ok: true, sales: [] })
+  await fetchRecentSales({ limit: 50, status: "receivable" }, recentStatus)
+  assertEquals(recentStatus.calls[0].name, "admin-recent-sales")
+  assertEquals(recentStatus.calls[0].options.query, { limit: 50, status: "receivable" })
+
   const sellers = client({ ok: true, sellers: [{ seller_id: 2, name: "Marineide", balance: 0 }] })
   const team = await fetchSellersMonth({ month: "2026-10" }, sellers)
   assertEquals(team.ok, true)

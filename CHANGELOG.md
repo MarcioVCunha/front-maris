@@ -6,6 +6,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Filtro por status na aba Vendas do painel (`/admin/vendas`): barra com botões de filtro (Todas, A receber, Pagas, Canceladas) que reflete o status ativo, consulta o back-maris com o parâmetro `status` e filtra os cards na tela.
 - Painel do administrador em `/admin`, ligado (`ADMIN_DASHBOARD_ENABLED`). O menu é Início, Estoque, Vendas, Vendedoras e Promoções. O estoque lista as peças, edita preço, quantidade, categoria, fotos e os dados fiscais, e arquiva com confirmação. Adicionar peça e Importar ficam nesse painel. A aba **Conjuntos** (antes Tipos) grava divisões no padrão código-DIVISAO; a tela completa de cards/edição/criação usa `ADMIN_CONJUNTOS_ENABLED` (ligada com back-maris PR #17). Contrato em `docs/contratos/painel-conjuntos.md`. Os nomes e os corpos ficam em `painel.api.js`.
 - Brilho de carregamento (`compartilhado/loading.js`): estrela de 4 pontas ✦ que enche e esvazia nas cores da Maris. Usado no catálogo, na cesta e no painel (boot e troca de aba), com `role="status"`, `aria-label="Carregando"` e sem animação quando `prefers-reduced-motion`.
 - Catálogo alinhado ao back-maris PR #15: `products_public` esconde arquivadas via `catalog_product_visible` (`archived_at IS NULL`); `catalog-read.js` ainda descarta `archived_at` se vier na linha. `admin-product-archive` documentado com `{ code, archive? }` (ver `docs/contratos/catalogo-arquivadas.md`).
