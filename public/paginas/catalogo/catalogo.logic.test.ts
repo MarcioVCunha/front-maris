@@ -51,6 +51,7 @@ import {
   getComplementaryCategories,
   combinaGroups,
   renderCombinaComponentCard,
+  getSearchSuggestions,
 } from "./catalogo.logic.js"
 
 const inStock = (product) => (Number(product?.quantity) || 0) > 0
@@ -264,6 +265,9 @@ Deno.test("disponíveis e esgotadas respeitam filtro e busca do grupo", () => {
 
 Deno.test("catalog doesProductMatchSearch", () => {
   assertEquals(doesProductMatchSearch({ name: "Colar", code: "C1" }, "col"), true)
+  assertEquals(doesProductMatchSearch({ name: "Anel Solitário", code: "A1" }, "solitario"), true)
+  assertEquals(doesProductMatchSearch({ name: "Brinco Pérola", code: "BM-1" }, "perola"), true)
+  assertEquals(doesProductMatchSearch({ name: "Brinco Ouro", code: "BM-O" }, "bm-o"), true)
 })
 
 Deno.test("sortProductsForCatalog: preço ascendente", () => {
@@ -477,12 +481,12 @@ Deno.test("última unidade exige 1 no estoque e 3 ou mais no cadastro, e fica de
   assertEquals(showLastUnitBadge({ quantity: 1, quantidade_inicial: 5 }), false)
 })
 
-Deno.test("novo dura 30 dias depois do created_at", () => {
-  assertEquals(NEW_DAYS, 30)
+Deno.test("novo dura 15 dias depois do created_at", () => {
+  assertEquals(NEW_DAYS, 15)
   const now = Date.parse("2026-10-09T12:00:00.000Z")
   const day = 24 * 60 * 60 * 1000
-  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day).toISOString() }, now), true)
-  assertEquals(showNewBadge({ created_at: new Date(now - 30 * day - 1).toISOString() }, now), false)
+  assertEquals(showNewBadge({ created_at: new Date(now - 15 * day).toISOString() }, now), true)
+  assertEquals(showNewBadge({ created_at: new Date(now - 15 * day - 1).toISOString() }, now), false)
   assertEquals(showNewBadge({ created_at: "2026-10-08T00:00:00.000Z" }, now), true)
   assertEquals(showNewBadge({ created_at: "" }, now), false)
 })
@@ -678,5 +682,31 @@ Deno.test("renderCombinaComponentCard renderiza card com dados, preços e botõe
   assertEquals(htmlSoldOut.includes("Esgotado"), true)
   assertEquals(htmlSoldOut.includes('data-waitlist-component="102"'), true)
   assertEquals(htmlSoldOut.includes("Lista de espera"), true)
+})
+
+Deno.test("getSearchSuggestions retorna sugestões rápidas e busca inteligente", () => {
+  const groups = groupProductsByColor([
+    { code: "A1-O", name: "Anel Solitário", quantity: 1, categoria: "Anel" },
+    { code: "B1-O", name: "Brinco Pérola", quantity: 1, categoria: "Brinco" },
+    { code: "C1-O", name: "Colar Coração", quantity: 1, categoria: "Colar" },
+  ])
+
+  // Busca vazia: retorna atalhos padrão
+  const empty = getSearchSuggestions(groups, "", 5)
+  assertEquals(empty.length, 5)
+  assertEquals(empty[0].text, "Novidades")
+  assertEquals(empty[1].text, "Promoções")
+
+  // Busca por categoria
+  const catSearch = getSearchSuggestions(groups, "ane", 4)
+  assertEquals(catSearch.some((s) => s.text === "Anéis" && s.kind === "category"), true)
+
+  // Busca por nome de peça (sem acento contra peça com acento)
+  const pieceSearch = getSearchSuggestions(groups, "perola", 4)
+  assertEquals(pieceSearch.some((s) => s.text === "Brinco Pérola" && s.kind === "product"), true)
+
+  // Busca por código
+  const codeSearch = getSearchSuggestions(groups, "c1", 4)
+  assertEquals(codeSearch.some((s) => s.text === "Colar Coração" && s.kind === "product"), true)
 })
 

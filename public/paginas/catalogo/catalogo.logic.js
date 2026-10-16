@@ -234,7 +234,7 @@ export function cartMoneyTotals(lines) {
   return { total, pixTotal: pixPrice(total) }
 }
 
-export const NEW_DAYS = 30
+export const NEW_DAYS = 15
 // Sem coluna com a quantidade do cadastro. A flag deixa o selo desligado.
 export const LAST_UNIT_BADGE_ENABLED = false
 export const LAST_UNIT_QUANTITY = 1
@@ -563,9 +563,86 @@ export function whatsappLink(message) {
 
 export function doesProductMatchSearch(product, term) {
   if (!term) return true
-  const name = String(product?.name || "").toLowerCase()
-  const code = String(product?.code || "").toLowerCase()
-  return name.includes(term) || code.includes(term)
+  const termFolded = foldText(term)
+  if (!termFolded) return true
+  const nameFolded = foldText(product?.name)
+  const codeFolded = foldText(product?.code)
+  const catFolded = foldText(resolveProductCategory(product))
+  return nameFolded.includes(termFolded) || codeFolded.includes(termFolded) || catFolded.includes(termFolded)
+}
+
+export function getSearchSuggestions(groups, term, limit = 5) {
+  const raw = String(term || "").trim()
+  const folded = foldText(raw)
+
+  if (!folded) {
+    return [
+      { text: "Novidades", kind: "collection", value: "novidades" },
+      { text: "Promoções", kind: "collection", value: "promocoes" },
+      { text: "Brincos", kind: "category", value: "Brinco" },
+      { text: "Colares", kind: "category", value: "Colar" },
+      { text: "Anéis", kind: "category", value: "Anel" },
+      { text: "Conjuntos", kind: "category", value: "Conjunto" },
+    ].slice(0, limit)
+  }
+
+  const suggestions = []
+  const seenTexts = new Set()
+
+  // 1. Sugestões de categoria
+  for (const cat of CATEGORY_ORDER) {
+    if (cat === "Outros") continue
+    const catFolded = foldText(cat)
+    if (catFolded.includes(folded) || folded.includes(catFolded)) {
+      const label = cat === "Anel" ? "Anéis" : `${cat}s`
+      if (!seenTexts.has(label)) {
+        seenTexts.add(label)
+        suggestions.push({ text: label, kind: "category", value: cat })
+      }
+    }
+  }
+
+  // 2. Sugestões de coleções (se buscar "novidade" ou "promo")
+  if ("novidades".includes(folded) || folded.includes("novid")) {
+    if (!seenTexts.has("Novidades")) {
+      seenTexts.add("Novidades")
+      suggestions.push({ text: "Novidades", kind: "collection", value: "novidades" })
+    }
+  }
+  if ("promocoes".includes(folded) || folded.includes("promo")) {
+    if (!seenTexts.has("Promoções")) {
+      seenTexts.add("Promoções")
+      suggestions.push({ text: "Promoções", kind: "collection", value: "promocoes" })
+    }
+  }
+
+  // 3. Sugestões de peças individuais por nome ou código
+  for (const group of groups || []) {
+    if (suggestions.length >= limit) break
+    const variant = groupDisplayVariant(group)
+    const product = variant?.product
+    if (!product) continue
+
+    const name = String(product.name || "").trim()
+    const code = String(product.code || "").trim()
+    const nameFolded = foldText(name)
+    const codeFolded = foldText(code)
+
+    if (nameFolded.includes(folded) || codeFolded.includes(folded)) {
+      if (!seenTexts.has(name)) {
+        seenTexts.add(name)
+        suggestions.push({
+          text: name,
+          kind: "product",
+          value: code,
+          groupKey: group.key,
+          code: code,
+        })
+      }
+    }
+  }
+
+  return suggestions.slice(0, limit)
 }
 
 export function sortProductsForCatalog(products, mode) {
@@ -734,6 +811,7 @@ if (typeof globalThis.window !== "undefined") {
     productWhatsappMessage,
     whatsappLink,
     doesProductMatchSearch,
+    getSearchSuggestions,
     sortProductsForCatalog,
     formatMoneyShare,
     buildProductShareText,

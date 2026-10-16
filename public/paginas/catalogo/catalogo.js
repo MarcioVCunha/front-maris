@@ -29,6 +29,7 @@ const {
   buildProductOgMetadata,
   combinaGroups,
   renderCombinaComponentCard,
+  getSearchSuggestions,
   updateOpenGraphTags,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
@@ -41,7 +42,10 @@ function loadingMarkup(options = {}) {
 const supabaseClient = createSupabaseClient()
 
 const catalogEl = document.getElementById("catalog")
+const productSearchContainer = document.getElementById("product-search-container")
 const catalogSearchInput = document.getElementById("catalog-search")
+const catalogSearchClearBtn = document.getElementById("catalog-search-clear")
+const catalogSearchSuggestionsEl = document.getElementById("catalog-search-suggestions")
 const catalogSortSelect = document.getElementById("catalog-sort")
 const unavailableProductsSection = document.getElementById("unavailable-products-section")
 const unavailableProductsGrid = document.getElementById("unavailable-products-grid")
@@ -294,7 +298,7 @@ function renderPhotoStrip(urls, alt) {
 function renderNoteBadges(product, soldOut) {
   const notes = []
   if (!soldOut && showLastUnitBadge(product)) notes.push("Última unidade")
-  if (showNewBadge(product)) notes.push("Novo")
+  if (showNewBadge(product)) notes.push("Novidade")
   if (!notes.length) return ""
   return `<div class="product-notes">${notes.map((label) => `<span class="product-note-badge">${label}</span>`).join("")}</div>`
 }
@@ -1022,9 +1026,137 @@ if (productModalCarousel) {
   }, { passive: true })
 }
 
-if (catalogSearchInput) {
-  window.MarisUI.bindDebouncedSearch(catalogSearchInput, () => renderCatalogGrids(), { debounceMs: 120 })
+function renderSearchSuggestions() {
+  if (!catalogSearchSuggestionsEl) return
+  const query = getSearchTerm()
+  const suggestions = getSearchSuggestions(allGroups, query, 6)
+  if (!suggestions.length) {
+    catalogSearchSuggestionsEl.hidden = true
+    catalogSearchSuggestionsEl.innerHTML = ""
+    return
+  }
+
+  if (!query) {
+    catalogSearchSuggestionsEl.innerHTML = `
+      <div class="catalog-suggestion-header">Sugestões rápidas</div>
+      <div class="catalog-suggestion-chips">
+        ${suggestions.map((s) => `
+          <button type="button" class="catalog-suggestion-chip" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}">
+            ${escapeHtml(s.text)}
+          </button>
+        `).join("")}
+      </div>
+    `
+  } else {
+    catalogSearchSuggestionsEl.innerHTML = `
+      <div class="catalog-suggestion-header">Sugestões</div>
+      <div class="catalog-suggestion-list">
+        ${suggestions.map((s) => {
+          const badge = s.kind === "category" ? "Categoria" : s.kind === "collection" ? "Coleção" : "Peça"
+          return `
+            <button type="button" class="catalog-suggestion-item" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}" ${s.groupKey ? `data-group-key="${escapeHtml(s.groupKey)}"` : ""}>
+              <span class="catalog-suggestion-text">${escapeHtml(s.text)}</span>
+              <span class="catalog-suggestion-badge">${badge}</span>
+            </button>
+          `
+        }).join("")}
+      </div>
+    `
+  }
+  catalogSearchSuggestionsEl.hidden = false
 }
+
+function closeSearchSuggestions() {
+  if (catalogSearchSuggestionsEl) catalogSearchSuggestionsEl.hidden = true
+}
+
+function syncSearchClearButton() {
+  if (catalogSearchClearBtn) catalogSearchClearBtn.hidden = !catalogSearchInput?.value
+}
+
+if (catalogSearchInput) {
+  window.MarisUI.bindDebouncedSearch(catalogSearchInput, () => {
+    syncSearchClearButton()
+    renderCatalogGrids()
+  }, { debounceMs: 120 })
+
+  catalogSearchInput.addEventListener("input", () => {
+    syncSearchClearButton()
+    renderSearchSuggestions()
+  })
+
+  catalogSearchInput.addEventListener("focus", () => {
+    renderSearchSuggestions()
+  })
+
+  catalogSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeSearchSuggestions()
+    }
+  })
+}
+
+catalogSearchClearBtn?.addEventListener("click", () => {
+  if (catalogSearchInput) {
+    catalogSearchInput.value = ""
+    syncSearchClearButton()
+    closeSearchSuggestions()
+    renderCatalogGrids()
+    catalogSearchInput.focus()
+  }
+})
+
+catalogSearchSuggestionsEl?.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-suggestion-kind]")
+  if (!btn) return
+  const kind = btn.getAttribute("data-suggestion-kind")
+  const val = btn.getAttribute("data-suggestion-value")
+  const groupKey = btn.getAttribute("data-group-key")
+
+  closeSearchSuggestions()
+
+  if (kind === "collection") {
+    if (catalogSearchInput) catalogSearchInput.value = ""
+    syncSearchClearButton()
+    if (val === "novidades" && catalogSortSelect) {
+      catalogSortSelect.value = "created_desc"
+      onSaleOnly = false
+    } else if (val === "promocoes") {
+      onSaleOnly = true
+    }
+    syncCollectionPressed()
+    refreshAfterFilterChange()
+    return
+  }
+
+  if (kind === "category") {
+    if (catalogSearchInput) catalogSearchInput.value = ""
+    syncSearchClearButton()
+    selectedCategory = val
+    refreshAfterFilterChange()
+    return
+  }
+
+  if (kind === "product") {
+    const group = findGroupByKey(groupKey)
+    if (group) {
+      openPiecePage(group)
+      return
+    }
+    const txt = btn.querySelector(".catalog-suggestion-text")?.textContent || val
+    if (catalogSearchInput) {
+      catalogSearchInput.value = txt
+      syncSearchClearButton()
+      renderCatalogGrids()
+    }
+  }
+})
+
+document.addEventListener("click", (event) => {
+  if (!productSearchContainer?.contains(event.target)) {
+    closeSearchSuggestions()
+  }
+})
 
 if (catalogSortSelect) {
   catalogSortSelect.addEventListener("change", () => {
