@@ -69,15 +69,19 @@
       </section>
 
       <div class="catalog-toolbar">
-        <div class="product-search">
+        <div class="product-search" id="product-search-container">
           <label for="catalog-search" class="catalog-search-label">Buscar no catálogo</label>
-          <input
-            id="catalog-search"
-            type="search"
-            placeholder="Nome (ex.: Brinco) ou código (ex.: BM1786)"
-            autocomplete="off"
-            enterkeyhint="search"
-          />
+          <div class="catalog-search-input-wrap">
+            <input
+              id="catalog-search"
+              type="search"
+              placeholder="Nome (ex.: Brinco) ou código (ex.: BM1786)"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+            <button type="button" id="catalog-search-clear" class="catalog-search-clear" aria-label="Limpar busca" hidden>×</button>
+          </div>
+          <div id="catalog-search-suggestions" class="catalog-search-suggestions" hidden></div>
         </div>
         <div class="catalog-sort">
           <label for="catalog-sort" class="catalog-search-label">Ordenar por</label>

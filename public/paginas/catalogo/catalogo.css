@@ -272,6 +272,126 @@ body {
 
 .product-search {
   width: 100%;
+  position: relative;
+}
+
+.catalog-search-input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.catalog-search-clear {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--maris-text-muted);
+  cursor: pointer;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.catalog-search-clear:hover {
+  color: var(--maris-black);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.catalog-search-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--maris-border);
+  border-radius: var(--maris-radius);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  z-index: 50;
+  overflow: hidden;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.catalog-suggestion-header {
+  padding: 10px 14px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--maris-text-muted);
+  background: #faf8f5;
+  border-bottom: 1px solid #f0ede8;
+}
+
+.catalog-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f6f4f1;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--maris-black);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.catalog-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.catalog-suggestion-item:hover,
+.catalog-suggestion-item:focus {
+  background: #fdfaf6;
+  outline: none;
+}
+
+.catalog-suggestion-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f4ede4;
+  color: var(--maris-gold-dark);
+}
+
+.catalog-suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.catalog-suggestion-chip {
+  padding: 8px 14px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--maris-bg);
+  border: 1px solid var(--maris-border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--maris-black);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.catalog-suggestion-chip:hover {
+  border-color: var(--maris-gold);
+  background: #fff;
 }
 
 .catalog-search-label {

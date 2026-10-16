@@ -6,6 +6,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Selo "Novidade" e busca com sugestões inteligentes: selo atualizado para peças cadastradas há ≤ 15 dias (`NEW_DAYS = 15`) com etiqueta "Novidade"; busca rápida no catálogo agora com suporte a termos com ou sem acentuação (`foldText`) em nome, código e categoria; componente de sugestões rápidas (`#catalog-search-suggestions`) com atalhos de coleções (Novidades, Promoções), categorias e peças correspondentes direto ao digitar ou focar; botão de limpar busca (`×`) acessível e otimizado para celulares.
+
 - Bloco "Combina com" na página da peça (`#piece-page` / `/catalog?peca=...`): quando o produto possui tipos/divisões de conjunto (`product_components`), exibe cards individuais das divisões com tag "Conjunto", badge de promoção, disponibilidade de estoque e botão "+ Adicionar à cesta" direto; quando o produto não possui tipos cadastrados, exibe sugestões de categorias complementares (ex.: Anel combina com Brinco/Colar/Pulseira) ordenadas com prioridade para peças disponíveis em estoque e que combinam com a cor/banho do metal da peça visualizada.
 
 - Compartilhamento de peça no WhatsApp com prévia Open Graph: botão "Compartilhar no WhatsApp" na visualização da peça (`/catalog?peca=...`) e no modal do produto, gerando mensagem pré-formatada com nome, preço, desconto no Pix à vista e link direto; suporte nativo à Web Share API (`navigator.share`) no celular; metatags Open Graph (`og:title`, `og:description`, `og:image`, `og:url`) e Twitter Cards configuradas e atualizadas dinamicamente conforme a peça em exibição.
