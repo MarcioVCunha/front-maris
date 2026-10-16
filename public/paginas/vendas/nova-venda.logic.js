@@ -125,9 +125,46 @@ export function piecesInStock(pieces) {
   return (pieces || []).filter((piece) => (Number(piece?.quantity) || 0) > 0)
 }
 
-export function filterPieces(pieces, term) {
+export const KNOWN_CATEGORIES = [
+  "Brinco",
+  "Colar",
+  "Pulseira",
+  "Choker",
+  "Anel",
+  "Pingente",
+  "Conjunto",
+  "Tornozeleira",
+  "Piercing",
+  "Outros"
+]
+
+export function resolvePieceCategory(piece) {
+  const raw = String(piece?.categoria || "").trim()
+  if (raw) {
+    const match = KNOWN_CATEGORIES.find((c) => c.toLowerCase() === raw.toLowerCase())
+    if (match) return match
+  }
+  const name = foldName(piece?.name || "")
+  if (name.includes("brinco")) return "Brinco"
+  if (name.includes("colar")) return "Colar"
+  if (name.includes("pulseira")) return "Pulseira"
+  if (name.includes("choker")) return "Choker"
+  if (name.includes("anel") || name.includes("aneis")) return "Anel"
+  if (name.includes("pingente")) return "Pingente"
+  if (name.includes("conjunto")) return "Conjunto"
+  if (name.includes("tornozeleira")) return "Tornozeleira"
+  if (name.includes("piercing")) return "Piercing"
+  return raw || "Outros"
+}
+
+export function filterPieces(pieces, term, category = "") {
   const query = foldName(term)
+  const cat = String(category || "").trim().toLowerCase()
   return piecesInStock(pieces).filter((piece) => {
+    if (cat && cat !== "todas" && cat !== "todos") {
+      const pieceCat = resolvePieceCategory(piece).toLowerCase()
+      if (pieceCat !== cat) return false
+    }
     if (!query) return true
     return foldName(piece.name).includes(query) || foldName(piece.code).includes(query)
   })
@@ -135,6 +172,40 @@ export function filterPieces(pieces, term) {
 
 function sameId(left, right) {
   return String(left) === String(right)
+}
+
+export function removePiece(selected, id) {
+  return (selected || []).filter((item) => !sameId(item.id, id))
+}
+
+export function totalPiecesCount(selected) {
+  return (selected || []).reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0)
+}
+
+export function addPiece(selected, piece, quantity = 1) {
+  const stock = Number(piece?.quantity) || 0
+  if (stock <= 0) return selected || []
+  const current = selected || []
+  const existing = current.find((item) => sameId(item.id, piece.id))
+  if (existing) {
+    const next = Math.min(existing.quantity + quantity, stock)
+    return setPieceQuantity(current, piece.id, next)
+  }
+  const pix = Number(piece.preco_pix)
+  const effective = Number.isFinite(Number(piece.preco_efetivo)) ? Number(piece.preco_efetivo) : piece.unit_price
+  return [...current, {
+    id: piece.id,
+    code: piece.code,
+    name: piece.name,
+    categoria: piece.categoria || resolvePieceCategory(piece),
+    image_url: piece.image_url || "",
+    unit_price: roundMoney(effective),
+    preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,
+    item_type: piece.item_type || "",
+    component_id: piece.component_id ?? null,
+    quantity: Math.min(Math.max(1, quantity), stock),
+    stock
+  }]
 }
 
 export function togglePiece(selected, piece) {
@@ -150,6 +221,7 @@ export function togglePiece(selected, piece) {
     id: piece.id,
     code: piece.code,
     name: piece.name,
+    categoria: piece.categoria || resolvePieceCategory(piece),
     image_url: piece.image_url || "",
     unit_price: roundMoney(effective),
     preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,

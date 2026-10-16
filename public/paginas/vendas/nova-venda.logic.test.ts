@@ -28,6 +28,10 @@ import {
   sumPaidChargesInMonth,
   togglePiece,
   whatsappLink,
+  addPiece,
+  removePiece,
+  resolvePieceCategory,
+  totalPiecesCount,
 } from "./nova-venda.logic.js"
 
 Deno.test("a flag da venda nova está ligada", async () => {
@@ -97,16 +101,23 @@ Deno.test("o mês soma só venda paga pela data de pagamento", () => {
   assertEquals(chargedTotalFromSummary({ sales }, { year: 2026, month: 10 }), 17)
 })
 
-Deno.test("a busca de peças fica no estoque e aceita código ou nome", () => {
+Deno.test("a busca de peças fica no estoque e aceita código, nome e categoria", () => {
   const pieces = [
-    { id: 1, code: "AN581-R", name: "Anel rosa", quantity: 2 },
-    { id: 2, code: "BR100", name: "Brinco", quantity: 0 },
-    { id: 3, code: "CL200", name: "Colar de anel", quantity: 1 }
+    { id: 1, code: "AN581-R", name: "Anel rosa", quantity: 2, categoria: "Anel" },
+    { id: 2, code: "BR100", name: "Brinco pérola", quantity: 0, categoria: "Brinco" },
+    { id: 3, code: "CL200", name: "Colar de anel", quantity: 1, categoria: "Colar" },
+    { id: 4, code: "PU300", name: "Pulseira dourada", quantity: 3 }
   ]
-  assertEquals(filterPieces(pieces, "").map((piece) => piece.id), [1, 3])
+  assertEquals(filterPieces(pieces, "").map((piece) => piece.id), [1, 3, 4])
   assertEquals(filterPieces(pieces, "anel").map((piece) => piece.id), [1, 3])
   assertEquals(filterPieces(pieces, "an581").map((piece) => piece.id), [1])
   assertEquals(filterPieces(pieces, "brinco"), [])
+  assertEquals(filterPieces(pieces, "", "Anel").map((piece) => piece.id), [1])
+  assertEquals(filterPieces(pieces, "", "Colar").map((piece) => piece.id), [3])
+  assertEquals(filterPieces(pieces, "", "Pulseira").map((piece) => piece.id), [4])
+  assertEquals(filterPieces(pieces, "", "Todas").map((piece) => piece.id), [1, 3, 4])
+  assertEquals(resolvePieceCategory({ name: "Brinco de prata" }), "Brinco")
+  assertEquals(resolvePieceCategory({ name: "Anel solitário", categoria: "Anel" }), "Anel")
 })
 
 Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
@@ -115,11 +126,26 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
   let selected = togglePiece([], anel)
   selected = togglePiece(selected, colar)
   assertEquals(selected.map((piece) => piece.quantity), [1, 1])
+  assertEquals(totalPiecesCount(selected), 2)
   selected = setPieceQuantity(selected, 1, 9)
   assertEquals(selected[0].quantity, 2)
+  assertEquals(totalPiecesCount(selected), 3)
   selected = togglePiece(selected, anel)
   assertEquals(selected.map((piece) => piece.id), [2])
   assertEquals(togglePiece([], { id: 9, quantity: 0 }), [])
+
+  // addPiece adiciona ou incrementa quantidade
+  let added = addPiece([], anel, 1)
+  assertEquals(added[0].quantity, 1)
+  added = addPiece(added, anel, 1)
+  assertEquals(added[0].quantity, 2)
+  // Não passa do estoque de 2
+  added = addPiece(added, anel, 1)
+  assertEquals(added[0].quantity, 2)
+
+  // removePiece remove da lista
+  const removed = removePiece(added, 1)
+  assertEquals(removed.length, 0)
 
   // Peça com promoção ativa via preco_efetivo e preco_pix
   const promo = { id: 3, code: "PR1", name: "Promo", unit_price: 100, preco_efetivo: 79.9, preco_pix: 75.91, quantity: 5 }

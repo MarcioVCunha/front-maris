@@ -11,11 +11,12 @@
 <script src="/compartilhado/api.js"></script>
 <script src="/compartilhado/staff-data.js"></script>
 <script src="/compartilhado/staff-auth.js"></script>
+<script src="/compartilhado/catalog-read.js"></script>
 <script src="/compartilhado/ui.js"></script>
 </head>
 <body class="nova-venda" hidden>
 <header>
-  <a class="back-link" href="/vendedoras">← Voltar às vendedoras</a>
+  <a class="back-link" href="/">← Voltar ao início</a>
   <h1>Registrar venda</h1>
   <p id="seller-name">Sua conta</p>
 </header>
@@ -70,12 +71,28 @@
   </section>
 
   <section id="step-pieces">
-    <p class="flow-kicker">Peças</p>
-    <p class="flow-help">Busque por código ou nome. Só entram peças em estoque.</p>
-    <label for="piece-search" class="visually-hidden">Buscar peças</label>
-    <input id="piece-search" type="search" placeholder="Código ou nome" autocomplete="off">
-    <div id="selected-pieces" class="selected-list"></div>
-    <div id="piece-results" class="piece-list"></div>
+    <div class="pieces-flow-head">
+      <div>
+        <p class="flow-kicker">Catálogo de Peças</p>
+        <p class="flow-help">Selecione as peças para a venda. Busque por nome, código ou filtre por categoria.</p>
+      </div>
+      <div class="pieces-search-wrap">
+        <label for="piece-search" class="visually-hidden">Buscar no catálogo</label>
+        <div class="search-input-field">
+          <input id="piece-search" type="search" placeholder="Buscar por nome ou código..." autocomplete="off">
+          <button type="button" id="piece-search-clear" class="btn-clear-search" aria-label="Limpar busca" hidden>×</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="piece-categories" class="categories-bar" role="group" aria-label="Filtro por categoria"></div>
+
+    <div id="selected-pieces" class="selected-container"></div>
+
+    <div class="catalog-grid-header">
+      <span id="catalog-count" class="catalog-count-badge">Carregando catálogo...</span>
+    </div>
+    <div id="piece-results" class="catalog-grid" aria-live="polite"></div>
   </section>
 
   <section id="step-customer" hidden>
