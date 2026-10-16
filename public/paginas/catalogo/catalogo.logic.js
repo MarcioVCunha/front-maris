@@ -282,6 +282,180 @@ export function pieceCareText(product) {
   return `${general}\n${steel}`
 }
 
+export function detectPieceMaterial(product) {
+  const code = String(product?.code || "").trim()
+  const name = String(product?.name || "").toLowerCase()
+  const suffix = parseProductColor(code).suffix
+
+  if (suffix === "AD") {
+    return {
+      id: "aco_dourado",
+      label: "Aço Inoxidável Dourado (PVD)",
+      metal: "Aço cirúrgico 316L",
+      finishing: "Acabamento Dourado PVD",
+      badge: "Aço Inox PVD",
+      isSteel: true,
+      hypoallergenic: "100% hipoalergênico e livre de níquel",
+      description: "Base em aço cirúrgico com revestimento dourado em tecnologia PVD. Não descasca, não oxida e é ideal para o dia a dia.",
+    }
+  }
+
+  if (suffix === "A") {
+    return {
+      id: "aco",
+      label: "Aço Inoxidável",
+      metal: "Aço cirúrgico 316L",
+      finishing: "Polimento espelhado brilhante",
+      badge: "Aço Cirúrgico",
+      isSteel: true,
+      hypoallergenic: "100% hipoalergênico e livre de níquel",
+      description: "Aço cirúrgico de altíssima durabilidade, resistente à água e ao suor. Mantém a cor prateada viva sem escurecer.",
+    }
+  }
+
+  if (suffix === "R" || name.includes("ródio") || name.includes("rodio")) {
+    return {
+      id: "rodio",
+      label: "Semijoia em Ródio Branco",
+      metal: "Liga nobre para semijoias",
+      finishing: "Banho nobre de Ródio Branco + Verniz protetor",
+      badge: "Ródio Branco Premium",
+      isSteel: false,
+      hypoallergenic: "100% hipoalergênica e livre de níquel",
+      description: "Banho nobre de ródio branco (acabamento do ouro branco) com verniz protetor especial, garantindo brilho espelhado duradouro.",
+    }
+  }
+
+  return {
+    id: "ouro",
+    label: "Semijoia Banhada a Ouro 18k",
+    metal: "Liga nobre para semijoias",
+    finishing: "Banho multicamadas de Ouro 18k + Verniz Diamond",
+    badge: "Banhada a Ouro 18k",
+    isSteel: false,
+    hypoallergenic: "100% hipoalergênica e livre de níquel",
+    description: "Banho multicamadas de Ouro 18k finalizado com camada de verniz protetor que protege o brilho e aumenta a resistência ao atrito.",
+  }
+}
+
+export function getPiecePhotoLabels(urls = []) {
+  if (!Array.isArray(urls)) return []
+  return urls.map((url, index) => {
+    const lower = String(url || "").toLowerCase()
+    if (index === 0) return { label: "Principal", kind: "front" }
+    if (lower.includes("usando") || lower.includes("corpo") || lower.includes("look") || index === 1) {
+      return { label: "No corpo / Usando", kind: "wear" }
+    }
+    if (lower.includes("detalhe") || lower.includes("macro") || index === 2) {
+      return { label: "Detalhes da peça", kind: "detail" }
+    }
+    return { label: `Foto ${index + 1}`, kind: "extra" }
+  })
+}
+
+export const CATEGORY_SPECS = {
+  Colar: {
+    categoria: "Colar",
+    comprimento: "40 cm a 45 cm (+ 5 cm extensor)",
+    fecho: "Fecho lagosta / boia resistente",
+    tamanho: "Ajustável no pescoço",
+  },
+  Choker: {
+    categoria: "Choker / Gargantilha",
+    comprimento: "35 cm a 38 cm (+ 5 cm extensor)",
+    fecho: "Fecho regulável rente ao pescoço",
+    tamanho: "Ajustável",
+  },
+  Pulseira: {
+    categoria: "Pulseira",
+    comprimento: "16 cm a 18 cm (+ 4 cm extensor)",
+    fecho: "Fecho lagosta prático",
+    tamanho: "Ajustável para pulsos finos a médios",
+  },
+  Tornozeleira: {
+    categoria: "Tornozeleira",
+    comprimento: "22 cm a 24 cm (+ 5 cm extensor)",
+    fecho: "Fecho com corrente extensora",
+    tamanho: "Ajustável",
+  },
+  Brinco: {
+    categoria: "Brinco",
+    comprimento: "Design anatômico e super leve",
+    fecho: "Acompanha tarraxas de sustentação confortáveis",
+    tamanho: "Confortável para o dia todo",
+  },
+  Anel: {
+    categoria: "Anel",
+    comprimento: "Aro anatômico polido",
+    fecho: "Modelos reguláveis ou aro padrão",
+    tamanho: "Consulte a numeração nas opções",
+  },
+  Pingente: {
+    categoria: "Pingente",
+    comprimento: "Passador compatível com correntes finas e médias",
+    fecho: "Argola soldada e segura",
+    tamanho: "Delicado",
+  },
+  Conjunto: {
+    categoria: "Conjunto",
+    comprimento: "Peças coordenadas (colar + brinco / pulseira)",
+    fecho: "Fechos e extensores individuais",
+    tamanho: "Harmonioso para usar junto ou separado",
+  },
+  Piercing: {
+    categoria: "Piercing fake / pressão",
+    comprimento: "Ajuste manual com pressão confortável",
+    fecho: "Sem necessidade de furo",
+    tamanho: "Regulável",
+  },
+  Outros: {
+    categoria: "Semijoia",
+    comprimento: "Tamanho padrão",
+    fecho: "Fecho seguro",
+    tamanho: "Confortável",
+  },
+}
+
+export function getCategorySpecifications(category) {
+  const norm = String(category || "").trim()
+  return CATEGORY_SPECS[norm] || CATEGORY_SPECS.Outros
+}
+
+export function getMaterialCareGuide(product) {
+  const mat = detectPieceMaterial(product)
+  const isSteel = mat.isSteel
+
+  return {
+    title: "Cuidados para maior durabilidade",
+    material: mat,
+    cards: [
+      {
+        icon: "cosmetics",
+        title: "Cosméticos e Perfume",
+        text: "Aplique perfumes, loções e maquiagens antes de colocar a peça e aguarde secar na pele.",
+      },
+      {
+        icon: "water",
+        title: "Água, Piscina e Mar",
+        text: isSteel
+          ? "O aço resiste à água doce. Em banhos de mar ou piscina, enxágue com água corrente para retirar sal e cloro."
+          : "Retire antes do banho de chuveiro, piscina e praia. O cloro e o sal aceleram o desgaste do banho.",
+      },
+      {
+        icon: "storage",
+        title: "Armazenamento Individual",
+        text: "Guarde as semijoias separadas em saquinhos ou caixas forradas para evitar atrito e arranhões.",
+      },
+      {
+        icon: "clean",
+        title: "Limpeza Delicada",
+        text: "Limpe sempre com uma flanela macia e seca. Nunca utilize pastas, sabões abrasivos ou esponjas.",
+      },
+    ],
+    guarantee: "90 dias de garantia contra defeitos de fabricação e 1 mês para troca em compras pelo site.",
+  }
+}
+
 export function totalsByProductCode(rows) {
   const totals = new Map()
   for (const row of rows || []) {
@@ -790,6 +964,11 @@ if (typeof globalThis.window !== "undefined") {
     showLastUnitBadge,
     showNewBadge,
     pieceCareText,
+    detectPieceMaterial,
+    getPiecePhotoLabels,
+    CATEGORY_SPECS,
+    getCategorySpecifications,
+    getMaterialCareGuide,
     totalsByProductCode,
     groupSoldTotal,
     sortGroupsByBestsellers,

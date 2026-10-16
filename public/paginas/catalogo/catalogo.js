@@ -22,6 +22,11 @@ const {
   showLastUnitBadge,
   showNewBadge,
   pieceCareText,
+  detectPieceMaterial,
+  getPiecePhotoLabels,
+  getCategorySpecifications,
+  getMaterialCareGuide,
+  resolveProductCategory,
   totalsByProductCode,
   sortGroupsByBestsellers,
   buildProductShareText,
@@ -82,15 +87,25 @@ const minPriceInput = document.getElementById("filter-min-price")
 const maxPriceInput = document.getElementById("filter-max-price")
 const onlyAvailableInput = document.getElementById("filter-only-available")
 const piecePage = document.getElementById("piece-page")
+const pieceGalleryContainer = document.getElementById("piece-gallery-container")
 const pieceGallery = document.getElementById("piece-gallery")
+const pieceGalleryThumbs = document.getElementById("piece-gallery-thumbs")
+const pieceGalleryBadge = document.getElementById("piece-gallery-badge")
+const pieceGalleryPrev = document.getElementById("piece-gallery-prev")
+const pieceGalleryNext = document.getElementById("piece-gallery-next")
+const pieceZoomTrigger = document.getElementById("piece-zoom-trigger")
 const pieceTitle = document.getElementById("piece-title")
 const pieceBadges = document.getElementById("piece-badges")
 const pieceCode = document.getElementById("piece-code")
 const pieceColors = document.getElementById("piece-colors")
 const piecePrices = document.getElementById("piece-prices")
 const pieceDescription = document.getElementById("piece-description")
+const pieceSpecs = document.getElementById("piece-specs")
+const pieceSpecsGrid = document.getElementById("piece-specs-grid")
 const pieceCare = document.getElementById("piece-care")
+const pieceCareBadge = document.getElementById("piece-care-badge")
 const pieceCareTextEl = document.getElementById("piece-care-text")
+const pieceCareCards = document.getElementById("piece-care-cards")
 const pieceActions = document.getElementById("piece-actions")
 const pieceWhatsapp = document.getElementById("piece-whatsapp")
 const pieceShareWhatsapp = document.getElementById("piece-share-whatsapp")
@@ -103,6 +118,28 @@ const collectionsEl = document.querySelector(".catalog-collections")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
 const productModalShareWhatsapp = document.getElementById("product-modal-share-whatsapp")
 const productModalColors = document.getElementById("product-modal-colors")
+
+// Zoom Modal Elements
+const pieceZoomModal = document.getElementById("piece-zoom-modal")
+const zoomImage = document.getElementById("zoom-image")
+const zoomCloseBtn = document.getElementById("zoom-close-btn")
+const zoomPrevBtn = document.getElementById("zoom-prev-btn")
+const zoomNextBtn = document.getElementById("zoom-next-btn")
+const zoomInBtn = document.getElementById("zoom-in-btn")
+const zoomOutBtn = document.getElementById("zoom-out-btn")
+const zoomResetBtn = document.getElementById("zoom-reset-btn")
+const zoomLevelText = document.getElementById("zoom-level-text")
+const zoomPhotoChip = document.getElementById("zoom-photo-chip")
+const zoomCounter = document.getElementById("zoom-counter")
+const zoomViewport = document.getElementById("zoom-viewport")
+
+let pieceImageUrls = []
+let pieceImageLabels = []
+let currentPieceImageIndex = 0
+let zoomScale = 1
+let zoomTranslate = { x: 0, y: 0 }
+let isZoomDragging = false
+let zoomDragStart = { x: 0, y: 0 }
 
 let selectedCategory = "Todos"
 let categoryFilterSignature = ""
@@ -584,10 +621,36 @@ function openPiecePage(group) {
   if (!product) return
   const components = getProductComponents(product.code)
   const soldOut = !isCatalogProductAvailable(product, components)
-  const urls = getProductImageUrls(product)
-  pieceGallery.innerHTML = urls.length
-    ? urls.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(product.name || "Peça")}">`).join("")
+  pieceImageUrls = getProductImageUrls(product)
+  pieceImageLabels = getPiecePhotoLabels(pieceImageUrls)
+  currentPieceImageIndex = 0
+
+  pieceGallery.innerHTML = pieceImageUrls.length
+    ? pieceImageUrls.map((url, i) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(product.name || "Peça")}" data-index="${i}" loading="${i === 0 ? "eager" : "lazy"}">`).join("")
     : ""
+
+  if (pieceImageUrls.length > 1) {
+    if (pieceGalleryThumbs) {
+      pieceGalleryThumbs.hidden = false
+      pieceGalleryThumbs.innerHTML = pieceImageUrls.map((url, i) => `
+        <button type="button" class="piece-gallery-thumb${i === 0 ? " is-active" : ""}" data-thumb-index="${i}" aria-label="Ver foto ${i + 1}: ${escapeHtml(pieceImageLabels[i]?.label || "")}">
+          <img src="${escapeHtml(url)}" alt="Miniatura ${i + 1}">
+        </button>
+      `).join("")
+    }
+    if (pieceGalleryBadge) {
+      pieceGalleryBadge.hidden = false
+      pieceGalleryBadge.textContent = pieceImageLabels[0]?.label || "Principal"
+    }
+    if (pieceGalleryPrev) pieceGalleryPrev.hidden = false
+    if (pieceGalleryNext) pieceGalleryNext.hidden = false
+  } else {
+    if (pieceGalleryThumbs) pieceGalleryThumbs.hidden = true
+    if (pieceGalleryBadge) pieceGalleryBadge.hidden = true
+    if (pieceGalleryPrev) pieceGalleryPrev.hidden = true
+    if (pieceGalleryNext) pieceGalleryNext.hidden = true
+  }
+
   pieceTitle.textContent = product.name || "Peça"
   if (pieceBadges) pieceBadges.innerHTML = renderNoteBadges(product, soldOut)
   pieceCode.textContent = product.code || ""
@@ -600,9 +663,49 @@ function openPiecePage(group) {
   const description = productDescriptionText(product)
   pieceDescription.hidden = !description
   pieceDescription.textContent = description
-  const care = pieceCareText(product)
-  pieceCare.hidden = !care
-  pieceCareTextEl.textContent = care
+
+  if (pieceSpecs && pieceSpecsGrid) {
+    const cat = resolveProductCategory(product)
+    const specs = getCategorySpecifications(cat)
+    const mat = detectPieceMaterial(product)
+    const specItems = [
+      { label: "Categoria", value: specs.categoria },
+      { label: "Material & Banho", value: mat.finishing },
+      { label: "Comprimento / Medidas", value: specs.comprimento },
+      { label: "Fecho & Ajuste", value: specs.fecho },
+      { label: "Hipoalergênico", value: mat.hypoallergenic },
+      { label: "Destaque", value: specs.tamanho },
+    ]
+    pieceSpecsGrid.innerHTML = specItems.map((item) => `
+      <div class="piece-spec-item">
+        <span class="piece-spec-label">${escapeHtml(item.label)}</span>
+        <span class="piece-spec-value">${escapeHtml(item.value)}</span>
+      </div>
+    `).join("")
+    pieceSpecs.hidden = false
+  }
+
+  if (pieceCare) {
+    const careGuide = getMaterialCareGuide(product)
+    if (pieceCareBadge) pieceCareBadge.textContent = careGuide.material.badge
+    if (pieceCareTextEl) pieceCareTextEl.textContent = careGuide.material.description
+    if (pieceCareCards) {
+      const iconMap = {
+        cosmetics: "🧴",
+        water: "🌊",
+        storage: "💎",
+        clean: "✨",
+      }
+      pieceCareCards.innerHTML = careGuide.cards.map((c) => `
+        <div class="piece-care-card">
+          <span class="piece-care-card-icon" aria-hidden="true">${iconMap[c.icon] || "✨"}</span>
+          <h3 class="piece-care-card-title">${escapeHtml(c.title)}</h3>
+          <p class="piece-care-card-text">${escapeHtml(c.text)}</p>
+        </div>
+      `).join("")
+    }
+    pieceCare.hidden = false
+  }
   pieceActions.innerHTML = renderPieceActions(product, components, soldOut)
   if (pieceWhatsapp) pieceWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
   if (pieceShareWhatsapp) {
@@ -612,7 +715,7 @@ function openPiecePage(group) {
   const ogMeta = buildProductOgMetadata(product, {
     code: product.code,
     origin: window.location.origin,
-    image: urls[0]
+    image: pieceImageUrls[0]
   })
   updateOpenGraphTags(ogMeta)
   if (pieceCombinaWrap) {
@@ -661,6 +764,7 @@ function openPiecePage(group) {
 }
 
 function closePiecePage() {
+  closeZoomModal()
   pieceGroupKey = ""
   if (piecePage) piecePage.hidden = true
   if (pieceCombinaWrap) pieceCombinaWrap.hidden = true
@@ -983,12 +1087,219 @@ productModal.addEventListener("click", async (event) => {
   const target = event.target
   if (target instanceof HTMLElement && target.dataset.closeModal === "true") {
     closeProductModal()
+function setPieceGalleryIndex(index) {
+  if (!pieceImageUrls.length) return
+  const max = pieceImageUrls.length - 1
+  currentPieceImageIndex = Math.max(0, Math.min(max, index))
+  const width = pieceGallery?.clientWidth || 300
+  pieceGallery?.scrollTo({ left: currentPieceImageIndex * width, behavior: "smooth" })
+
+  if (pieceGalleryThumbs) {
+    pieceGalleryThumbs.querySelectorAll(".piece-gallery-thumb").forEach((thumb, i) => {
+      thumb.classList.toggle("is-active", i === currentPieceImageIndex)
+    })
   }
-})
+  if (pieceGalleryBadge) {
+    pieceGalleryBadge.textContent = pieceImageLabels[currentPieceImageIndex]?.label || "Foto"
+  }
+}
+
+function updateZoomView() {
+  if (!zoomImage) return
+  zoomImage.style.transform = `translate(${zoomTranslate.x}px, ${zoomTranslate.y}px) scale(${zoomScale})`
+  if (zoomLevelText) zoomLevelText.textContent = `${Math.round(zoomScale * 100)}%`
+  if (zoomPhotoChip) {
+    zoomPhotoChip.textContent = pieceImageLabels[currentPieceImageIndex]?.label || "Principal"
+  }
+  if (zoomCounter) {
+    zoomCounter.textContent = `${currentPieceImageIndex + 1} / ${pieceImageUrls.length}`
+  }
+}
+
+function openZoomModal(index = currentPieceImageIndex) {
+  if (!pieceZoomModal || !pieceImageUrls.length) return
+  currentPieceImageIndex = Math.max(0, Math.min(pieceImageUrls.length - 1, index))
+  zoomScale = 1
+  zoomTranslate = { x: 0, y: 0 }
+  if (zoomImage) zoomImage.src = pieceImageUrls[currentPieceImageIndex]
+  updateZoomView()
+  if (zoomPrevBtn) zoomPrevBtn.hidden = pieceImageUrls.length <= 1
+  if (zoomNextBtn) zoomNextBtn.hidden = pieceImageUrls.length <= 1
+  pieceZoomModal.hidden = false
+  document.body.style.overflow = "hidden"
+}
+
+function closeZoomModal() {
+  if (!pieceZoomModal) return
+  pieceZoomModal.hidden = true
+  document.body.style.overflow = ""
+}
+
+function zoomIn() {
+  zoomScale = Math.min(3, zoomScale + 0.5)
+  updateZoomView()
+}
+
+function zoomOut() {
+  zoomScale = Math.max(1, zoomScale - 0.5)
+  if (zoomScale <= 1) zoomTranslate = { x: 0, y: 0 }
+  updateZoomView()
+}
+
+function zoomReset() {
+  zoomScale = 1
+  zoomTranslate = { x: 0, y: 0 }
+  updateZoomView()
+}
+
+// Listeners da galeria na página da peça
+if (pieceGallery) {
+  let scrollTimeout = null
+  pieceGallery.addEventListener("scroll", () => {
+    if (scrollTimeout) clearTimeout(scrollTimeout)
+    scrollTimeout = setTimeout(() => {
+      const width = pieceGallery.clientWidth
+      if (!width) return
+      const idx = Math.round(pieceGallery.scrollLeft / width)
+      if (idx !== currentPieceImageIndex && idx >= 0 && idx < pieceImageUrls.length) {
+        currentPieceImageIndex = idx
+        if (pieceGalleryThumbs) {
+          pieceGalleryThumbs.querySelectorAll(".piece-gallery-thumb").forEach((thumb, i) => {
+            thumb.classList.toggle("is-active", i === idx)
+          })
+        }
+        if (pieceGalleryBadge) {
+          pieceGalleryBadge.textContent = pieceImageLabels[idx]?.label || "Foto"
+        }
+      }
+    }, 60)
+  }, { passive: true })
+
+  pieceGallery.addEventListener("click", (event) => {
+    const img = event.target.closest("img")
+    if (img) openZoomModal(currentPieceImageIndex)
+  })
+}
+
+if (pieceGalleryPrev) {
+  pieceGalleryPrev.addEventListener("click", () => setPieceGalleryIndex(currentPieceImageIndex - 1))
+}
+if (pieceGalleryNext) {
+  pieceGalleryNext.addEventListener("click", () => setPieceGalleryIndex(currentPieceImageIndex + 1))
+}
+if (pieceZoomTrigger) {
+  pieceZoomTrigger.addEventListener("click", () => openZoomModal(currentPieceImageIndex))
+}
+if (pieceGalleryThumbs) {
+  pieceGalleryThumbs.addEventListener("click", (event) => {
+    const thumb = event.target.closest("[data-thumb-index]")
+    if (thumb) {
+      setPieceGalleryIndex(Number(thumb.dataset.thumbIndex))
+    }
+  })
+}
+
+// Listeners do modal de Zoom Lightbox
+if (zoomCloseBtn) zoomCloseBtn.addEventListener("click", closeZoomModal)
+if (pieceZoomModal) {
+  pieceZoomModal.addEventListener("click", (event) => {
+    if (event.target.dataset.closeZoom === "true") closeZoomModal()
+  })
+}
+if (zoomInBtn) zoomInBtn.addEventListener("click", zoomIn)
+if (zoomOutBtn) zoomOutBtn.addEventListener("click", zoomOut)
+if (zoomResetBtn) zoomResetBtn.addEventListener("click", zoomReset)
+
+if (zoomPrevBtn) {
+  zoomPrevBtn.addEventListener("click", () => {
+    if (currentPieceImageIndex > 0) {
+      currentPieceImageIndex--
+      if (zoomImage) zoomImage.src = pieceImageUrls[currentPieceImageIndex]
+      zoomScale = 1
+      zoomTranslate = { x: 0, y: 0 }
+      updateZoomView()
+      setPieceGalleryIndex(currentPieceImageIndex)
+    }
+  })
+}
+if (zoomNextBtn) {
+  zoomNextBtn.addEventListener("click", () => {
+    if (currentPieceImageIndex < pieceImageUrls.length - 1) {
+      currentPieceImageIndex++
+      if (zoomImage) zoomImage.src = pieceImageUrls[currentPieceImageIndex]
+      zoomScale = 1
+      zoomTranslate = { x: 0, y: 0 }
+      updateZoomView()
+      setPieceGalleryIndex(currentPieceImageIndex)
+    }
+  })
+}
+
+if (zoomViewport) {
+  zoomViewport.addEventListener("wheel", (event) => {
+    event.preventDefault()
+    if (event.deltaY < 0) zoomIn()
+    else zoomOut()
+  }, { passive: false })
+
+  const startDrag = (x, y) => {
+    if (zoomScale <= 1) return
+    isZoomDragging = true
+    zoomDragStart = { x: x - zoomTranslate.x, y: y - zoomTranslate.y }
+    zoomViewport.classList.add("is-dragging")
+  }
+
+  const moveDrag = (x, y) => {
+    if (!isZoomDragging) return
+    zoomTranslate = { x: x - zoomDragStart.x, y: y - zoomDragStart.y }
+    updateZoomView()
+  }
+
+  const endDrag = () => {
+    isZoomDragging = false
+    zoomViewport.classList.remove("is-dragging")
+  }
+
+  zoomViewport.addEventListener("mousedown", (e) => startDrag(e.clientX, e.clientY))
+  window.addEventListener("mousemove", (e) => moveDrag(e.clientX, e.clientY))
+  window.addEventListener("mouseup", endDrag)
+
+  zoomViewport.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY)
+  }, { passive: true })
+  zoomViewport.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 1) moveDrag(e.touches[0].clientX, e.touches[0].clientY)
+  }, { passive: true })
+  zoomViewport.addEventListener("touchend", endDrag)
+}
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !productModal.hidden) {
-    closeProductModal()
+  if (event.key === "Escape") {
+    if (pieceZoomModal && !pieceZoomModal.hidden) {
+      closeZoomModal()
+      return
+    }
+    if (!productModal.hidden) {
+      closeProductModal()
+    }
+  } else if (event.key === "ArrowLeft" && pieceZoomModal && !pieceZoomModal.hidden) {
+    if (currentPieceImageIndex > 0) {
+      currentPieceImageIndex--
+      if (zoomImage) zoomImage.src = pieceImageUrls[currentPieceImageIndex]
+      zoomScale = 1
+      zoomTranslate = { x: 0, y: 0 }
+      updateZoomView()
+      setPieceGalleryIndex(currentPieceImageIndex)
+    }
+  } else if (event.key === "ArrowRight" && pieceZoomModal && !pieceZoomModal.hidden) {
+    if (currentPieceImageIndex < pieceImageUrls.length - 1) {
+      currentPieceImageIndex++
+      if (zoomImage) zoomImage.src = pieceImageUrls[currentPieceImageIndex]
+      zoomScale = 1
+      zoomTranslate = { x: 0, y: 0 }
+      updateZoomView()
+      setPieceGalleryIndex(currentPieceImageIndex)
+    }
   }
 })
 
