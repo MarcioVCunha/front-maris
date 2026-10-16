@@ -1,6 +1,8 @@
 import {
   NEW_SALE_ENABLED,
   MARKETPLACE_SALE_ENABLED,
+  KNOWN_CATEGORIES,
+  addPiece,
   applyStockIssues,
   buildCreateSaleBody,
   buildMarketplaceSaleBody,
@@ -14,13 +16,16 @@ import {
   isMarketplaceSale,
   monthCardFromSummary,
   newClientRequestId,
+  removePiece,
   renderRecentSales,
   renderSaleDetail,
+  resolvePieceCategory,
   saleTotals,
   setPieceQuantity,
   shouldShowMarketplaceSale,
   shouldShowNewSale,
-  togglePiece
+  togglePiece,
+  totalPiecesCount
 } from "./nova-venda.logic.js"
 import {
   cancelMarketplaceOrder as cancelMarketplaceOrderApi,
@@ -49,6 +54,9 @@ const newSaleBtn = document.getElementById("new-sale-btn")
 const marketplaceSaleBtn = document.getElementById("marketplace-sale-btn")
 const homeMessageEl = document.getElementById("home-message")
 const pieceSearchEl = document.getElementById("piece-search")
+const pieceSearchClearEl = document.getElementById("piece-search-clear")
+const pieceCategoriesEl = document.getElementById("piece-categories")
+const catalogCountEl = document.getElementById("catalog-count")
 const selectedEl = document.getElementById("selected-pieces")
 const pieceResultsEl = document.getElementById("piece-results")
 const customerSearchEl = document.getElementById("customer-search")
@@ -73,6 +81,10 @@ const state = {
   channel: "equipe",
   marketplace: "",
   recentSales: [],
+  allPieces: [],
+  catalogLoaded: false,
+  catalogLoading: false,
+  activeCategory: "Todas",
   pieceHits: [],
   selected: [],
   customerHits: [],
@@ -99,9 +111,11 @@ function resetFlowState(channel = "equipe") {
   state.paymentMethod = ""
   state.clientRequestId = ""
   state.saleFingerprint = ""
+  state.activeCategory = "Todas"
   if (customerNameEl) customerNameEl.value = ""
   if (customerWhatsappEl) customerWhatsappEl.value = ""
   if (pieceSearchEl) pieceSearchEl.value = ""
+  if (pieceSearchClearEl) pieceSearchClearEl.hidden = true
   if (marketplaceNotesEl) marketplaceNotesEl.value = ""
 }
 
@@ -115,6 +129,149 @@ function setNote(el, text, type) {
 function showHome() {
   homeEl.hidden = false
   flowEl.hidden = true
+}
+
+async function loadCatalogPieces() {
+  if (state.catalogLoaded || state.catalogLoading) return state.allPieces
+  state.catalogLoading = true
+  if (catalogCountEl) catalogCountEl.textContent = "Carregando catálogo..."
+
+  try {
+    const sb = window.MarisUtils?.createSupabaseClient ? window.MarisUtils.createSupabaseClient() : null
+    if (!sb || !window.MarisCatalogRead) {
+      state.catalogLoading = false
+      return []
+    }
+    const [productsRes, componentsRes, imagesRes] = await Promise.all([
+      window.MarisCatalogRead.selectProducts(sb)
+        .order("quantity", { ascending: false })
+        .order("name"),
+      window.MarisCatalogRead.selectPricedComponents(sb).order("name"),
+      window.MarisCatalogRead.selectImages(sb).order("sort_order", { ascending: true })
+    ])
+
+    const products = Array.isArray(productsRes?.data) ? productsRes.data : []
+    const components = Array.isArray(componentsRes?.data) ? componentsRes.data : []
+    const images = Array.isArray(imagesRes?.data) ? imagesRes.data : []
+
+    const imagesByProductId = Object.create(null)
+    const codeById = Object.create(null)
+    const categoryByCode = Object.create(null)
+
+    for (const p of products) {
+      if (p?.id && p?.code) {
+        codeById[Number(p.id)] = String(p.code)
+        categoryByCode[String(p.code)] = p.categoria || ""
+      }
+    }
+
+    const imagesByCode = Object.create(null)
+    for (const row of images) {
+      const pid = Number(row?.product_id)
+      const url = String(row?.image_url || "").trim()
+      if (!pid || !url) continue
+      if (!imagesByProductId[pid]) imagesByProductId[pid] = url
+      const code = codeById[pid]
+      if (code && !imagesByCode[code]) imagesByCode[code] = url
+    }
+
+    const pieces = []
+    // 1. Produtos com estoque > 0
+    for (const p of products) {
+      const stock = Number(p.quantity) || 0
+      if (stock <= 0) continue
+      const img = String(p.image_url || "").trim() || imagesByProductId[Number(p.id)] || imagesByCode[p.code] || ""
+      const unitPrice = Number(p.unit_price) || 0
+      const precoEfetivo = Number.isFinite(Number(p.preco_efetivo)) ? Number(p.preco_efetivo) : unitPrice
+      const precoPix = Number.isFinite(Number(p.preco_pix)) ? Number(p.preco_pix) : null
+      pieces.push({
+        id: p.id,
+        code: p.code,
+        name: p.name,
+        categoria: resolvePieceCategory(p),
+        quantity: stock,
+        stock,
+        image_url: img,
+        item_type: "product",
+        unit_price: unitPrice,
+        preco_efetivo: precoEfetivo,
+        preco_pix: precoPix,
+        is_on_sale: Boolean(p.is_on_sale),
+        discount_percent: Number(p.discount_percent) || 0
+      })
+    }
+
+    // 2. Componentes com estoque > 0
+    for (const c of components) {
+      const stock = Number(c.quantity) || 0
+      if (stock <= 0 || c.is_active === false) continue
+      const img = imagesByCode[c.product_code] || ""
+      const unitPrice = Number(c.computed_unit_price) || 0
+      const precoEfetivo = Number.isFinite(Number(c.preco_efetivo)) ? Number(c.preco_efetivo) : unitPrice
+      const precoPix = Number.isFinite(Number(c.preco_pix)) ? Number(c.preco_pix) : null
+      pieces.push({
+        id: `c:${c.id}`,
+        code: c.product_code,
+        name: c.name,
+        categoria: categoryByCode[c.product_code] || "Partes",
+        quantity: stock,
+        stock,
+        image_url: img,
+        item_type: "component",
+        component_id: c.id,
+        unit_price: unitPrice,
+        preco_efetivo: precoEfetivo,
+        preco_pix: precoPix,
+        is_on_sale: Boolean(c.parent_is_on_sale),
+        discount_percent: Number(c.parent_discount_percent) || 0
+      })
+    }
+
+    state.allPieces = pieces
+    state.catalogLoaded = true
+    state.catalogLoading = false
+    renderCategoryChips()
+    renderPieces()
+    return pieces
+  } catch (err) {
+    console.error("Falha ao carregar catálogo completo:", err)
+    state.catalogLoading = false
+    return []
+  }
+}
+
+function renderCategoryChips() {
+  if (!pieceCategoriesEl) return
+  if (!state.allPieces.length) {
+    pieceCategoriesEl.innerHTML = ""
+    return
+  }
+
+  const counts = Object.create(null)
+  let totalCount = 0
+  for (const piece of state.allPieces) {
+    const cat = resolvePieceCategory(piece)
+    counts[cat] = (counts[cat] || 0) + 1
+    totalCount++
+  }
+
+  const categories = ["Todas"]
+  for (const cat of KNOWN_CATEGORIES) {
+    if (counts[cat]) categories.push(cat)
+  }
+  for (const cat of Object.keys(counts)) {
+    if (!categories.includes(cat) && counts[cat]) categories.push(cat)
+  }
+
+  pieceCategoriesEl.innerHTML = categories.map((cat) => {
+    const count = cat === "Todas" ? totalCount : (counts[cat] || 0)
+    const isActive = (state.activeCategory || "Todas").toLowerCase() === cat.toLowerCase()
+    return `
+      <button type="button" class="category-chip" data-category="${escapeHtml(cat)}" aria-pressed="${isActive ? "true" : "false"}">
+        ${escapeHtml(cat)} <span class="chip-count">${count}</span>
+      </button>
+    `
+  }).join("")
 }
 
 function showFlow(step) {
@@ -131,7 +288,6 @@ function showFlow(step) {
   document.getElementById("step-payment").hidden = current !== "payment"
   document.querySelectorAll("[data-step-pill]").forEach((pill) => {
     const n = Number(pill.getAttribute("data-step-pill"))
-    // pills 1–3 map to pieces/customer/payment; channel is extra before them
     const mapped = state.channel === "marketplace" ? n + 1 : n
     const on = mapped === state.step || (current === "channel" && n === 1)
     if (on) pill.setAttribute("aria-current", "step")
@@ -150,7 +306,14 @@ function showFlow(step) {
   flowNextEl.textContent = confirmStep ? "Confirmar venda" : "Continuar"
   setNote(flowMessageEl, "")
   if (current === "payment") renderPayment()
-  if (current === "pieces") renderPieces()
+  if (current === "pieces") {
+    renderCategoryChips()
+    if (!state.catalogLoaded && !state.catalogLoading) {
+      loadCatalogPieces()
+    } else {
+      renderPieces()
+    }
+  }
 }
 
 function piecePhoto(piece) {
@@ -159,48 +322,141 @@ function piecePhoto(piece) {
     const letters = String(piece.code || piece.name || "?").slice(0, 2)
     return `<span class="piece-photo piece-photo--empty">${escapeHtml(letters)}</span>`
   }
-  return `<img class="piece-photo" src="${escapeHtml(url)}" alt="">`
+  return `<img class="piece-photo" src="${escapeHtml(url)}" alt="" loading="lazy">`
 }
 
 function renderSelected() {
-  if (!state.selected.length) {
-    selectedEl.innerHTML = ""
+  if (!selectedEl) return
+  const count = totalPiecesCount(state.selected)
+  if (!count) {
+    selectedEl.innerHTML = `
+      <div class="selected-summary-empty">
+        <p>Nenhuma peça adicionada ainda. Navegue pelo catálogo abaixo ou use a busca para ir colocando as peças na venda.</p>
+      </div>
+    `
     return
   }
-  selectedEl.innerHTML = state.selected.map((piece) => `
-    <div class="selected-row">
-      <span>${escapeHtml(piece.name)} · ${escapeHtml(piece.code)}</span>
-      <span class="qty-control">
-        <button type="button" class="qty-btn" data-qty="${escapeHtml(piece.id)}" data-dir="-1" aria-label="Diminuir">−</button>
-        <strong>${piece.quantity}</strong>
-        <button type="button" class="qty-btn" data-qty="${escapeHtml(piece.id)}" data-dir="1" aria-label="Aumentar">+</button>
-      </span>
+
+  const totals = saleTotals(state.selected, "pix")
+  const subtotalFormatted = money(totals.subtotal)
+  const pixFormatted = money(totals.total)
+
+  selectedEl.innerHTML = `
+    <div class="selected-summary-card">
+      <div class="selected-summary-top">
+        <div class="selected-summary-info">
+          <span class="selected-count-badge">${count} ${count === 1 ? "peça selecionada" : "peças selecionadas"}</span>
+          <strong class="selected-total-val">${subtotalFormatted}</strong>
+          <small class="selected-pix-val">ou ${pixFormatted} no Pix (5% off)</small>
+        </div>
+        <button type="button" class="btn-summary-advance" id="btn-advance-summary">
+          Avançar para finalizar (${count}) →
+        </button>
+      </div>
+      <div class="selected-items-list">
+        ${state.selected.map((item) => {
+          const itemSubtotal = money((Number(item.unit_price) || 0) * (Number(item.quantity) || 1))
+          const isMax = Number(item.quantity) >= Number(item.stock)
+          return `
+            <div class="selected-item-row" data-selected-id="${escapeHtml(item.id)}">
+              ${piecePhoto(item)}
+              <div class="selected-item-meta">
+                <strong>${escapeHtml(item.name)}</strong>
+                <small>${escapeHtml(item.code)} · ${money(item.unit_price)} un.</small>
+              </div>
+              <div class="selected-item-controls">
+                <span class="qty-control">
+                  <button type="button" class="qty-btn" data-qty="${escapeHtml(item.id)}" data-dir="-1" aria-label="Diminuir">−</button>
+                  <strong class="qty-val">${item.quantity}</strong>
+                  <button type="button" class="qty-btn" data-qty="${escapeHtml(item.id)}" data-dir="1" aria-label="Aumentar" ${isMax ? "disabled" : ""}>+</button>
+                </span>
+                <span class="selected-item-subtotal">${itemSubtotal}</span>
+                <button type="button" class="btn-remove-selected" data-remove="${escapeHtml(item.id)}" aria-label="Remover">×</button>
+              </div>
+            </div>
+          `
+        }).join("")}
+      </div>
     </div>
-  `).join("")
+  `
 }
 
 function renderPieces() {
   renderSelected()
-  const visible = filterPieces(state.pieceHits, pieceSearchEl.value)
-  if (!pieceSearchEl.value.trim()) {
-    pieceResultsEl.innerHTML = `<p class="recent-empty">Digite um código ou um nome.</p>`
+
+  const term = pieceSearchEl ? pieceSearchEl.value.trim() : ""
+  if (pieceSearchClearEl) {
+    pieceSearchClearEl.hidden = !term
+  }
+
+  const pool = state.allPieces.length ? state.allPieces : state.pieceHits
+  const visible = filterPieces(pool, term, state.activeCategory)
+
+  if (catalogCountEl) {
+    if (state.catalogLoading) {
+      catalogCountEl.textContent = "Carregando catálogo..."
+    } else {
+      const count = visible.length
+      const catText = state.activeCategory && state.activeCategory !== "Todas" ? ` em ${state.activeCategory}` : ""
+      catalogCountEl.textContent = `${count} ${count === 1 ? "peça disponível" : "peças disponíveis"}${catText}`
+    }
+  }
+
+  if (state.catalogLoading && !state.allPieces.length) {
+    pieceResultsEl.innerHTML = `<div class="catalog-loading-msg"><p>Carregando peças do catálogo...</p></div>`
     return
   }
+
   if (!visible.length) {
-    pieceResultsEl.innerHTML = `<p class="recent-empty">Nenhuma peça em estoque para essa busca.</p>`
+    if (term) {
+      pieceResultsEl.innerHTML = `<div class="catalog-empty-msg"><p class="recent-empty">Nenhuma peça em estoque para "<strong>${escapeHtml(term)}</strong>".</p></div>`
+    } else {
+      pieceResultsEl.innerHTML = `<div class="catalog-empty-msg"><p class="recent-empty">Nenhuma peça disponível nesta categoria.</p></div>`
+    }
     return
   }
+
   pieceResultsEl.innerHTML = visible.map((piece) => {
-    const picked = state.selected.some((item) => String(item.id) === String(piece.id))
+    const selectedItem = state.selected.find((item) => String(item.id) === String(piece.id))
+    const isPicked = Boolean(selectedItem)
+    const quantityInCart = selectedItem ? selectedItem.quantity : 0
     const price = Number.isFinite(Number(piece.preco_efetivo)) ? piece.preco_efetivo : piece.unit_price
-    const pix = Number.isFinite(Number(piece.preco_pix)) ? ` · Pix ${money(piece.preco_pix)}` : ""
-    return `<button type="button" class="piece" data-piece="${escapeHtml(piece.id)}" aria-pressed="${picked ? "true" : "false"}">
-      ${piecePhoto(piece)}
-      <span class="piece-copy">
-        <strong>${escapeHtml(piece.name)}</strong>
-        <small>${escapeHtml(piece.code)} · ${escapeHtml(money(price))}${escapeHtml(pix)} · ${Number(piece.quantity) || 0} em estoque</small>
-      </span>
-    </button>`
+    const isPromo = Boolean(piece.is_on_sale && piece.discount_percent > 0)
+    const stock = Number(piece.quantity) || 0
+    const isMax = quantityInCart >= stock
+
+    return `
+      <article class="piece-card ${isPicked ? "piece-card--selected" : ""}" data-piece-card="${escapeHtml(piece.id)}">
+        <div class="piece-card-thumb-wrap">
+          ${piecePhoto(piece)}
+          ${isPromo ? `<span class="promo-tag">-${piece.discount_percent}%</span>` : ""}
+          <span class="stock-tag ${stock === 1 ? "stock-tag--last" : ""}">${stock === 1 ? "Última un." : `${stock} un.`}</span>
+        </div>
+        <div class="piece-card-info">
+          <span class="piece-card-cat">${escapeHtml(resolvePieceCategory(piece))}</span>
+          <h3 class="piece-card-title">${escapeHtml(piece.name)}</h3>
+          <p class="piece-card-code">${escapeHtml(piece.code)}</p>
+          <div class="piece-card-prices">
+            ${isPromo ? `<span class="price-original">${money(piece.unit_price)}</span>` : ""}
+            <strong class="price-current">${money(price)}</strong>
+            ${Number.isFinite(Number(piece.preco_pix)) ? `<span class="price-pix">${money(piece.preco_pix)} no Pix</span>` : ""}
+          </div>
+        </div>
+        <div class="piece-card-actions">
+          ${!isPicked ? `
+            <button type="button" class="btn-card-add" data-card-add="${escapeHtml(piece.id)}">
+              + Adicionar
+            </button>
+          ` : `
+            <div class="card-stepper">
+              <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(piece.id)}" data-dir="-1" aria-label="Diminuir">−</button>
+              <strong class="card-stepper-qty">${quantityInCart}</strong>
+              <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(piece.id)}" data-dir="1" aria-label="Aumentar" ${isMax ? "disabled" : ""}>+</button>
+            </div>
+          `}
+        </div>
+      </article>
+    `
   }).join("")
 }
 
@@ -280,7 +536,14 @@ async function loadHome() {
 }
 
 async function onPieceSearch() {
-  const query = pieceSearchEl.value.trim()
+  const query = pieceSearchEl ? pieceSearchEl.value.trim() : ""
+  if (pieceSearchClearEl) pieceSearchClearEl.hidden = !query
+
+  if (state.allPieces.length) {
+    renderPieces()
+    return
+  }
+
   if (!query || !state.seller?.seller_id) {
     state.pieceHits = []
     renderPieces()
@@ -442,23 +705,76 @@ document.querySelectorAll("[data-marketplace]").forEach((button) => {
   })
 })
 
+pieceCategoriesEl?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-category]")
+  if (!chip) return
+  const cat = chip.getAttribute("data-category") || "Todas"
+  state.activeCategory = cat
+  renderCategoryChips()
+  renderPieces()
+})
+
+pieceSearchClearEl?.addEventListener("click", () => {
+  if (pieceSearchEl) pieceSearchEl.value = ""
+  onPieceSearch()
+  pieceSearchEl?.focus()
+})
+
 pieceResultsEl.addEventListener("click", (event) => {
+  const addBtn = event.target.closest("[data-card-add]")
+  if (addBtn) {
+    const id = addBtn.getAttribute("data-card-add")
+    const piece = state.allPieces.find((item) => String(item.id) === String(id))
+      || state.pieceHits.find((item) => String(item.id) === String(id))
+    if (!piece) return
+    state.selected = addPiece(state.selected, piece, 1)
+    renderPieces()
+    return
+  }
+
+  const stepBtn = event.target.closest("[data-card-qty]")
+  if (stepBtn) {
+    const id = stepBtn.getAttribute("data-card-qty")
+    const dir = Number(stepBtn.getAttribute("data-dir")) || 0
+    const current = state.selected.find((item) => String(item.id) === String(id))
+    if (!current) return
+    const next = current.quantity + dir
+    if (next < 1) state.selected = removePiece(state.selected, id)
+    else state.selected = setPieceQuantity(state.selected, id, next)
+    renderPieces()
+    return
+  }
+
   const button = event.target.closest("[data-piece]")
   if (!button) return
-  const piece = state.pieceHits.find((item) => String(item.id) === button.getAttribute("data-piece"))
+  const piece = state.allPieces.find((item) => String(item.id) === button.getAttribute("data-piece"))
+    || state.pieceHits.find((item) => String(item.id) === button.getAttribute("data-piece"))
   if (!piece) return
   state.selected = togglePiece(state.selected, piece)
   renderPieces()
 })
 
 selectedEl.addEventListener("click", (event) => {
+  if (event.target.closest("#btn-advance-summary")) {
+    onNext()
+    return
+  }
+
+  const removeBtn = event.target.closest("[data-remove]")
+  if (removeBtn) {
+    const id = removeBtn.getAttribute("data-remove")
+    state.selected = removePiece(state.selected, id)
+    renderPieces()
+    return
+  }
+
   const button = event.target.closest("[data-qty]")
   if (!button) return
   const id = button.getAttribute("data-qty")
   const current = state.selected.find((item) => String(item.id) === String(id))
   if (!current) return
   const next = current.quantity + Number(button.getAttribute("data-dir"))
-  if (next < 1) state.selected = togglePiece(state.selected, current)
+  if (next < 1) state.selected = removePiece(state.selected, id)
   else state.selected = setPieceQuantity(state.selected, id, next)
   renderPieces()
 })
@@ -573,5 +889,5 @@ if (!shouldShowNewSale(NEW_SALE_ENABLED)) {
     }
   }
   recentEl.innerHTML = renderRecentSales([], money)
-  await loadHome()
+  await Promise.all([loadHome(), loadCatalogPieces()])
 }
