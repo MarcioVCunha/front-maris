@@ -137,16 +137,37 @@
 
       <section id="piece-page" class="piece-page" hidden>
         <a id="piece-back" class="piece-back" href="/catalog">Voltar ao catálogo</a>
-        <div id="piece-gallery" class="piece-gallery"></div>
+        <div id="piece-gallery-container" class="piece-gallery-container">
+          <div class="piece-gallery-main-wrap">
+            <div id="piece-gallery" class="piece-gallery"></div>
+            <button id="piece-zoom-trigger" class="piece-zoom-trigger" type="button" aria-label="Ampliar foto em alta resolução">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+              <span>Zoom</span>
+            </button>
+            <span id="piece-gallery-badge" class="piece-gallery-badge" hidden>Principal</span>
+            <button id="piece-gallery-prev" class="piece-gallery-nav prev" type="button" aria-label="Foto anterior" hidden>‹</button>
+            <button id="piece-gallery-next" class="piece-gallery-nav next" type="button" aria-label="Próxima foto" hidden>›</button>
+          </div>
+          <div id="piece-gallery-thumbs" class="piece-gallery-thumbs" hidden></div>
+        </div>
         <h1 id="piece-title"></h1>
         <div id="piece-badges" class="piece-badges"></div>
         <p id="piece-code" class="piece-code"></p>
         <div id="piece-colors" class="color-options" role="group" aria-label="Cor"></div>
         <div id="piece-prices"></div>
         <p id="piece-description" class="piece-description" hidden></p>
+        <section id="piece-specs" class="piece-specs" hidden>
+          <h2 class="piece-specs-title">Especificações e Medidas</h2>
+          <div id="piece-specs-grid" class="piece-specs-grid"></div>
+        </section>
         <section id="piece-care" class="piece-care" hidden>
-          <h2>Cuidados com a peça</h2>
-          <p id="piece-care-text"></p>
+          <div class="piece-care-header">
+            <h2>Cuidados com a peça</h2>
+            <span id="piece-care-badge" class="piece-care-badge"></span>
+          </div>
+          <p id="piece-care-text" class="piece-care-intro"></p>
+          <div id="piece-care-cards" class="piece-care-cards"></div>
+          <p class="piece-care-guarantee">🛡️ <strong>Garantia & Trocas:</strong> 90 dias de garantia contra defeitos de fabricação e até 1 mês para troca em compras no site. <a href="/trocas" class="piece-care-link">Ver políticas completas →</a></p>
         </section>
         <div id="piece-actions" class="piece-actions"></div>
         <div class="product-contact-actions">
@@ -250,6 +271,26 @@
             <button type="submit" id="waitlist-submit" class="btn-primary">Entrar na lista</button>
           </div>
         </form>
+      </div>
+    <div id="piece-zoom-modal" class="piece-zoom-modal" hidden role="dialog" aria-modal="true" aria-label="Visualizador ampliado de fotos">
+      <div class="zoom-backdrop" data-close-zoom="true"></div>
+      <div class="zoom-content">
+        <button id="zoom-close-btn" class="zoom-close-btn" type="button" aria-label="Fechar zoom">×</button>
+        <div class="zoom-header-info">
+          <span id="zoom-photo-chip" class="zoom-photo-chip">Principal</span>
+          <span id="zoom-counter" class="zoom-counter">1 / 1</span>
+        </div>
+        <div class="zoom-toolbar">
+          <button id="zoom-out-btn" class="zoom-tool-btn" type="button" aria-label="Diminuir zoom">−</button>
+          <span id="zoom-level-text" class="zoom-level">100%</span>
+          <button id="zoom-in-btn" class="zoom-tool-btn" type="button" aria-label="Aumentar zoom">+</button>
+          <button id="zoom-reset-btn" class="zoom-tool-btn zoom-reset" type="button" aria-label="Restaurar zoom">1:1</button>
+        </div>
+        <div id="zoom-viewport" class="zoom-viewport">
+          <img id="zoom-image" class="zoom-image" src="" alt="Foto ampliada em alta resolução">
+        </div>
+        <button id="zoom-prev-btn" class="zoom-nav prev" type="button" aria-label="Foto anterior">‹</button>
+        <button id="zoom-next-btn" class="zoom-nav next" type="button" aria-label="Próxima foto">›</button>
       </div>
     </div>
 

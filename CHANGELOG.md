@@ -6,6 +6,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Galeria interativa com Lightbox Zoom, especificações e cuidados por material na página da peça (`/catalog?peca=...`):
+  - Suporte a múltiplas fotos com etiqueta flutuante inteligente ("Principal", "No corpo / Usando", "Detalhes da peça"), setas de navegação rápida e miniaturas interativas com seleção instantânea.
+  - Modal Lightbox Zoom com ampliação de até 3x, controles visuais (+ / − / 100%), suporte a arrastar/pan (mouse e toque), rolagem do mouse e atalhos de teclado (Esc para fechar, setas para navegar).
+  - Seção estruturada de "Especificações e Medidas" com dimensões, extensores e tipos de fecho adaptados por categoria (Colares, Brincos, Anéis, Pulseiras, Conjuntos, etc.).
+  - Guia visual de "Cuidados com a peça" com etiqueta de identificação do material (Ouro 18k, Ródio Branco, Aço Inox, Aço Dourado PVD) e 4 cartões explicativos (Cosméticos, Água/Piscina/Mar com instrução diferenciada para aço hipoalergênico, Armazenamento individual e Limpeza com flanela seca), além de reforço da garantia de 90 dias.
+
 - Painel de Promoções por Campanhas (`/promocoes`): interface moderna conectada aos endpoints `admin-promotion-list`, `admin-promotion-save` e `admin-promotion-end` (back-maris PR #19); listagem em cards com badges de status (Ativa, Agendada, Encerrada, Esgotada), tipo e valor de desconto (% ou R$ fixo), alcance (categoria ou peças específicas), vigência e contador de peças vendidas com limite; diálogo modal para criar e editar campanhas com validação completa no client; botão de encerramento imediato de campanhas ativas com confirmação; busca rápida e abas de filtro por status; animação de carregamento integrada (`loading.css`).
 
 - Selo "Novidade" e busca com sugestões inteligentes: selo atualizado para peças cadastradas há ≤ 15 dias (`NEW_DAYS = 15`) com etiqueta "Novidade"; busca rápida no catálogo agora com suporte a termos com ou sem acentuação (`foldText`) em nome, código e categoria; componente de sugestões rápidas (`#catalog-search-suggestions`) com atalhos de coleções (Novidades, Promoções), categorias e peças correspondentes direto ao digitar ou focar; botão de limpar busca (`×`) acessível e otimizado para celulares.

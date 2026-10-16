@@ -21,6 +21,10 @@ import {
   NEW_DAYS,
   PIECE_CARE,
   pieceCareText,
+  detectPieceMaterial,
+  getPiecePhotoLabels,
+  getCategorySpecifications,
+  getMaterialCareGuide,
   EFFECTIVE_PRICE_FIELD,
   PIX_PRICE_FIELD,
   pixPrice,
@@ -709,4 +713,54 @@ Deno.test("getSearchSuggestions retorna sugestões rápidas e busca inteligente"
   const codeSearch = getSearchSuggestions(groups, "c1", 4)
   assertEquals(codeSearch.some((s) => s.text === "Colar Coração" && s.kind === "product"), true)
 })
+
+Deno.test("detectPieceMaterial identifica ouro, ródio, aço e aço dourado", () => {
+  assertEquals(detectPieceMaterial({ code: "BM123-O", name: "Colar" }).id, "ouro")
+  assertEquals(detectPieceMaterial({ code: "BM123-R", name: "Colar" }).id, "rodio")
+  assertEquals(detectPieceMaterial({ code: "BM123-A", name: "Pulseira Aço" }).id, "aco")
+  assertEquals(detectPieceMaterial({ code: "BM123-AD", name: "Pulseira Dourada" }).id, "aco_dourado")
+  assertEquals(detectPieceMaterial({ code: "BM999", name: "Anel Folheado a Ouro" }).id, "ouro")
+  assertEquals(detectPieceMaterial({ code: "BM888", name: "Anel em Ródio" }).id, "rodio")
+})
+
+Deno.test("getPiecePhotoLabels classifica fotos por posição ou nome", () => {
+  const urls = [
+    "https://img.test/front.webp",
+    "https://img.test/look-usando.webp",
+    "https://img.test/macro-detalhe.webp",
+    "https://img.test/outro.webp",
+  ]
+  const labels = getPiecePhotoLabels(urls)
+  assertEquals(labels[0].label, "Principal")
+  assertEquals(labels[1].label, "No corpo / Usando")
+  assertEquals(labels[2].label, "Detalhes da peça")
+  assertEquals(labels[3].label, "Foto 4")
+})
+
+Deno.test("getCategorySpecifications retorna especificações da categoria", () => {
+  const colar = getCategorySpecifications("Colar")
+  assertEquals(colar.categoria, "Colar")
+  assertEquals(colar.comprimento.includes("40 cm a 45 cm"), true)
+
+  const brinco = getCategorySpecifications("Brinco")
+  assertEquals(brinco.categoria, "Brinco")
+  assertEquals(brinco.comprimento.includes("leve"), true)
+
+  const fallback = getCategorySpecifications("Desconhecido")
+  assertEquals(fallback.categoria, "Semijoia")
+})
+
+Deno.test("getMaterialCareGuide gera guia completo e adapta orientações de água para o aço", () => {
+  const goldGuide = getMaterialCareGuide({ code: "AN1-O" })
+  assertEquals(goldGuide.material.id, "ouro")
+  assertEquals(goldGuide.cards.length, 4)
+  const waterCardGold = goldGuide.cards.find((c) => c.icon === "water")
+  assertEquals(waterCardGold?.text.includes("Retire antes do banho"), true)
+
+  const steelGuide = getMaterialCareGuide({ code: "PU1-A" })
+  assertEquals(steelGuide.material.isSteel, true)
+  const waterCardSteel = steelGuide.cards.find((c) => c.icon === "water")
+  assertEquals(waterCardSteel?.text.includes("resiste à água doce"), true)
+})
+
 
