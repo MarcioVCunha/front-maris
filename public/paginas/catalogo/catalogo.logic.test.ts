@@ -47,6 +47,10 @@ import {
   buildProductOgMetadata,
   updateOpenGraphTags,
   formatMoneyShare,
+  COMPLEMENTARY_CATEGORIES,
+  getComplementaryCategories,
+  combinaGroups,
+  renderCombinaComponentCard,
 } from "./catalogo.logic.js"
 
 const inStock = (product) => (Number(product?.quantity) || 0) > 0
@@ -602,5 +606,77 @@ Deno.test("updateOpenGraphTags atualiza atributos no DOM", () => {
   assertEquals(store['meta[property="og:description"][content]'], "Anel lindo por R$ 39,90")
   assertEquals(store['meta[property="og:image"][content]'], "https://img.test/anel.jpg")
   assertEquals(store['meta[property="og:url"][content]'], "https://maris.test/catalog?peca=AN1")
+})
+
+Deno.test("getComplementaryCategories retorna categorias certas para cross-sell", () => {
+  assertEquals(getComplementaryCategories("Anel"), ["Brinco", "Colar", "Pulseira"])
+  assertEquals(getComplementaryCategories("Brinco"), ["Colar", "Anel", "Pulseira"])
+  assertEquals(getComplementaryCategories("Conjuntos"), ["Anel", "Pulseira", "Brinco", "Colar"])
+  assertEquals(getComplementaryCategories("Categoria Desconhecida"), ["Brinco", "Colar", "Anel"])
+})
+
+Deno.test("combinaGroups filtra categorias complementares, prioriza estoque e mesma cor", () => {
+  const groups = groupProductsByColor([
+    { code: "A1-O", name: "Anel Ouro", quantity: 1, categoria: "Anel" },
+    { code: "B1-O", name: "Brinco Ouro", quantity: 1, categoria: "Brinco" },
+    { code: "B2-R", name: "Brinco Ródio", quantity: 1, categoria: "Brinco" },
+    { code: "C1-O", name: "Colar Ouro", quantity: 0, categoria: "Colar" },
+    { code: "A2-O", name: "Anel Outro", quantity: 1, categoria: "Anel" }, // mesma categoria do alvo, deve ser ignorado
+  ])
+
+  const target = groups.find((g) => g.base === "A1")
+  const suggestions = combinaGroups(groups, target, inStock, 4)
+
+  // Deve excluir o próprio A1 e o A2 (mesma categoria)
+  assertEquals(suggestions.some((g) => g.base === "A1"), false)
+  assertEquals(suggestions.some((g) => g.base === "A2"), false)
+
+  // Em estoque vem antes de esgotado; e mesma cor (Ouro) vem antes de cor diferente (Ródio)
+  // B1-O (estoque 1, ouro match) > B2-R (estoque 1, rodio) > C1-O (esgotado)
+  assertEquals(suggestions.map((g) => g.base), ["B1", "B2", "C1"])
+})
+
+Deno.test("renderCombinaComponentCard renderiza card com dados, preços e botões corretos", () => {
+  const componentAvailable = {
+    id: 101,
+    name: "Colar do Conjunto",
+    quantity: 2,
+    unit_price: 100,
+  }
+
+  const htmlAvail = renderCombinaComponentCard(componentAvailable, {
+    effectivePrice: (c) => c.unit_price,
+    hasPromo: () => false,
+    pixPrice: (p) => p * 0.95,
+    formatMoneyBRL: (v) => `R$ ${v.toFixed(2).replace(".", ",")}`,
+  })
+
+  assertEquals(htmlAvail.includes("Colar do Conjunto"), true)
+  assertEquals(htmlAvail.includes("R$ 100,00"), true)
+  assertEquals(htmlAvail.includes("R$ 95,00 no Pix"), true)
+  assertEquals(htmlAvail.includes("Disponível"), true)
+  assertEquals(htmlAvail.includes('data-add-component="101"'), true)
+  assertEquals(htmlAvail.includes("+ Adicionar à cesta"), true)
+
+  const componentSoldOut = {
+    id: 102,
+    name: "Brinco do Conjunto",
+    quantity: 0,
+    unit_price: 60,
+  }
+
+  const htmlSoldOut = renderCombinaComponentCard(componentSoldOut, {
+    effectivePrice: (c) => 50,
+    hasPromo: () => true,
+    pixPrice: (p) => 47.5,
+    formatMoneyBRL: (v) => `R$ ${v.toFixed(2).replace(".", ",")}`,
+  })
+
+  assertEquals(htmlSoldOut.includes("Brinco do Conjunto"), true)
+  assertEquals(htmlSoldOut.includes("sold-out"), true)
+  assertEquals(htmlSoldOut.includes("PROMOÇÃO"), true)
+  assertEquals(htmlSoldOut.includes("Esgotado"), true)
+  assertEquals(htmlSoldOut.includes('data-waitlist-component="102"'), true)
+  assertEquals(htmlSoldOut.includes("Lista de espera"), true)
 })
 

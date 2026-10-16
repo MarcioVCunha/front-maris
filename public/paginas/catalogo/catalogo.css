@@ -1198,9 +1198,166 @@ body {
 }
 
 .piece-care h2,
+.piece-combina-wrap .section-heading,
 .piece-related-wrap .section-heading {
   padding-left: 0;
   padding-right: 0;
+}
+
+.piece-combina-wrap {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--maris-border);
+}
+
+.combina-components-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.combina-component-card {
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.combina-component-card:hover {
+  border-color: var(--maris-gold);
+  box-shadow: 0 4px 16px rgba(67, 40, 56, 0.08);
+  transform: translateY(-2px);
+}
+
+.combina-component-card.sold-out {
+  opacity: 0.75;
+  background: var(--maris-bg);
+}
+
+.combina-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.combina-type-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--maris-gold-light);
+  color: var(--maris-gold-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.combina-promo-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  background: #fdf2f2;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.combina-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.combina-badge.in-stock {
+  background: #eafaf1;
+  color: #27ae60;
+}
+
+.combina-badge.out-of-stock {
+  background: #f8f9fa;
+  color: #7f8c8d;
+}
+
+.combina-card-title {
+  margin: 0;
+  font-family: var(--maris-font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--maris-black);
+  line-height: 1.2;
+}
+
+.combina-card-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.combina-price-main {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--maris-black);
+}
+
+.combina-price-pix {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--maris-gold-dark);
+}
+
+.combina-card-action {
+  margin-top: 4px;
+}
+
+.combina-add-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--maris-black);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.combina-add-btn:hover {
+  background: #5b374d;
+}
+
+.combina-add-btn:active {
+  transform: scale(0.98);
+}
+
+.combina-waitlist-btn {
+  width: 100%;
+  padding: 10px 14px;
+  background: #ffffff;
+  color: var(--maris-black);
+  border: 1px solid var(--maris-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.combina-waitlist-btn:hover {
+  background: var(--maris-bg);
 }
 
 .piece-actions {

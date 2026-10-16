@@ -396,6 +396,114 @@ export function relatedGroups(groups, group, isAvailable, limit = 4) {
   return [...available, ...soldOut].slice(0, limit)
 }
 
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
+export const COMPLEMENTARY_CATEGORIES = {
+  Anel: ["Brinco", "Colar", "Pulseira"],
+  Brinco: ["Colar", "Anel", "Pulseira"],
+  Colar: ["Brinco", "Anel", "Pulseira"],
+  Pulseira: ["Anel", "Brinco", "Colar"],
+  Conjunto: ["Anel", "Pulseira", "Brinco", "Colar"],
+  Choker: ["Brinco", "Anel", "Pulseira"],
+  Pingente: ["Colar", "Brinco", "Pulseira"],
+  Tornozeleira: ["Pulseira", "Anel"],
+  Piercing: ["Brinco", "Colar"],
+  Outros: ["Brinco", "Colar", "Anel"],
+}
+
+export function getComplementaryCategories(category) {
+  const raw = String(category || "").trim()
+  if (COMPLEMENTARY_CATEGORIES[raw]) return COMPLEMENTARY_CATEGORIES[raw]
+  const byWord = productCategory(raw)
+  if (COMPLEMENTARY_CATEGORIES[byWord]) return COMPLEMENTARY_CATEGORIES[byWord]
+  const norm = normalizeCategoryParam(raw)
+  return COMPLEMENTARY_CATEGORIES[norm] || ["Brinco", "Colar", "Anel"]
+}
+
+export function combinaGroups(groups, group, isAvailable, limit = 4) {
+  if (!group) return []
+  const current = groupDisplayVariant(group, isAvailable)?.product
+  const category = resolveProductCategory(current)
+  const currentColor = parseProductColor(current?.name || current?.code).colorId
+  const targets = getComplementaryCategories(category)
+
+  const others = (groups || []).filter((item) => item && item.key !== group?.key)
+  const matching = others.filter((item) => {
+    const product = groupDisplayVariant(item, isAvailable)?.product
+    const cat = resolveProductCategory(product)
+    return targets.includes(cat)
+  })
+
+  const sorted = [...matching].sort((a, b) => {
+    const aAvail = groupIsAvailable(a, isAvailable) ? 1 : 0
+    const bAvail = groupIsAvailable(b, isAvailable) ? 1 : 0
+    if (aAvail !== bAvail) return bAvail - aAvail
+
+    const aColor = parseProductColor(groupDisplayVariant(a, isAvailable)?.product?.name || "").colorId
+    const bColor = parseProductColor(groupDisplayVariant(b, isAvailable)?.product?.name || "").colorId
+    const aColorMatch = aColor && aColor === currentColor ? 1 : 0
+    const bColorMatch = bColor && bColor === currentColor ? 1 : 0
+    if (aColorMatch !== bColorMatch) return bColorMatch - aColorMatch
+
+    return String(a?.base || "").localeCompare(String(b?.base || ""))
+  })
+
+  return sorted.slice(0, limit)
+}
+
+export function renderCombinaComponentCard(component, options = {}) {
+  if (!component) return ""
+  const name = String(component.name || "Peça do conjunto").trim()
+  const qty = Number(component.quantity) || 0
+  const isAvailable = qty > 0
+  const unitPrice = Number(component.computed_unit_price || component.unit_price) || 0
+  const effective = typeof options.effectivePrice === "function" ? options.effectivePrice(component) : unitPrice
+  const hasPromoBadge = typeof options.hasPromo === "function" ? options.hasPromo(component) : false
+  const pix = typeof options.pixPrice === "function" ? options.pixPrice(effective) : Math.round(effective * 0.95 * 100) / 100
+
+  const priceFormatted = typeof options.formatMoneyBRL === "function"
+    ? options.formatMoneyBRL(effective)
+    : `R$ ${effective.toFixed(2).replace(".", ",")}`
+  const pixFormatted = typeof options.formatMoneyBRL === "function"
+    ? options.formatMoneyBRL(pix)
+    : `R$ ${pix.toFixed(2).replace(".", ",")}`
+
+  const actionBtn = isAvailable
+    ? `<button type="button" class="btn-primary combina-add-btn" data-add-component="${escapeHtml(component.id)}">+ Adicionar à cesta</button>`
+    : `<button type="button" class="btn-secondary combina-waitlist-btn" data-waitlist-component="${escapeHtml(component.id)}">Lista de espera</button>`
+
+  const statusBadge = isAvailable
+    ? `<span class="combina-badge in-stock">Disponível</span>`
+    : `<span class="combina-badge out-of-stock">Esgotado</span>`
+
+  const promoBadge = hasPromoBadge ? `<span class="combina-promo-badge">PROMOÇÃO</span>` : ""
+
+  return `
+    <article class="combina-component-card ${isAvailable ? "" : "sold-out"}" data-component-id="${escapeHtml(component.id)}">
+      <div class="combina-card-top">
+        <span class="combina-type-tag">Conjunto</span>
+        ${promoBadge}
+        ${statusBadge}
+      </div>
+      <h3 class="combina-card-title">${escapeHtml(name)}</h3>
+      <div class="combina-card-prices">
+        <div class="combina-price-main">${priceFormatted}</div>
+        <div class="combina-price-pix">${pixFormatted} no Pix</div>
+      </div>
+      <div class="combina-card-action">
+        ${actionBtn}
+      </div>
+    </article>
+  `.trim()
+}
+
 export function normalizeCategoryParam(value) {
   const raw = String(value || "").trim()
   if (!raw || raw === "Todos") return "Todos"
@@ -614,6 +722,10 @@ if (typeof globalThis.window !== "undefined") {
     groupPassesFilters,
     filterAndPartitionCatalog,
     relatedGroups,
+    COMPLEMENTARY_CATEGORIES,
+    getComplementaryCategories,
+    combinaGroups,
+    renderCombinaComponentCard,
     normalizeCategoryParam,
     readCatalogLink,
     buildCatalogQuery,
