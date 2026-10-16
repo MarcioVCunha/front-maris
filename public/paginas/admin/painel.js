@@ -600,6 +600,8 @@ function bindConjuntos() {
       openConjuntoEdit(piece)
     })
   })
+}
+
 async function loadCollections() {
   const result = await fetchCollectionList()
   if (result.ok && Array.isArray(result.data?.collections)) {
