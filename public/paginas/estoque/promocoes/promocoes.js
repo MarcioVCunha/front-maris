@@ -1,239 +1,368 @@
-const { createSupabaseClient, formatMoneyBRL, effectivePrice, hasPromo, groupByKey } = window.MarisUtils
-const { filterProductsForPromo } = window.MarisPromocoesLogic
-
-const supabaseClient = createSupabaseClient()
+const { escapeHtml, setFeedback, bindDebouncedSearch } = window.MarisUI
+const {
+  PROMO_CATEGORIES,
+  computePromotionStatus,
+  formatDiscountDisplay,
+  formatDateRange,
+  toLocalDatetimeInput,
+  formatUnitsLimit,
+  parseProductCodes,
+  validatePromotionPayload,
+  filterPromotions,
+} = window.MarisPromocoesLogic
 
 const listEl = document.getElementById("promo-list")
-const searchInput = document.getElementById("promo-search")
+const loadingEl = document.getElementById("promo-loading")
 const feedbackEl = document.getElementById("promo-feedback")
-const bulkPercentInput = document.getElementById("bulk-percent")
-const bulkApplyBtn = document.getElementById("bulk-apply-btn")
-const bulkClearBtn = document.getElementById("bulk-clear-btn")
+const searchInput = document.getElementById("promo-search")
+const statusFilterEl = document.querySelector(".promo-status-filter")
+const newBtn = document.getElementById("promo-new-btn")
 
-let products = []
-let componentsByProductCode = Object.create(null)
+// Modal Dialog & Form
+const dialogEl = document.getElementById("promo-dialog")
+const dialogCloseBtn = document.getElementById("promo-dialog-close-btn")
+const dialogCancelBtn = document.getElementById("promo-dialog-cancel")
+const dialogSubmitBtn = document.getElementById("promo-dialog-submit")
+const dialogTitleEl = document.getElementById("promo-dialog-title")
+const dialogFeedbackEl = document.getElementById("promo-dialog-feedback")
+const formEl = document.getElementById("promo-form")
+const idInput = document.getElementById("promo-form-id")
+const nameInput = document.getElementById("promo-form-name")
+const scopeSelect = document.getElementById("promo-form-scope")
+const groupCategory = document.getElementById("promo-group-category")
+const categorySelect = document.getElementById("promo-form-category")
+const groupProducts = document.getElementById("promo-group-products")
+const codesInput = document.getElementById("promo-form-codes")
+const discountTypeSelect = document.getElementById("promo-form-discount-type")
+const valueLabel = document.getElementById("promo-value-label")
+const valueInput = document.getElementById("promo-form-value")
+const startsAtInput = document.getElementById("promo-form-starts-at")
+const endsAtInput = document.getElementById("promo-form-ends-at")
+const maxUnitsInput = document.getElementById("promo-form-max-units")
+const activeCheckbox = document.getElementById("promo-form-active")
 
-function setFeedback(text, type = "") {
-  window.MarisUI.setFeedback(feedbackEl, text, type, { baseClass: "promo-feedback" })
+let allPromotions = []
+let currentFilter = "all"
+let searchTerm = ""
+
+function showPageFeedback(text, type = "") {
+  setFeedback(feedbackEl, text, type, { baseClass: "promo-feedback" })
 }
 
-function priceBlock(row) {
-  const base = Number(row?.unit_price) || 0
-  const onSale = hasPromo(row)
-  const final = effectivePrice(row)
+function showDialogFeedback(text, type = "") {
+  setFeedback(dialogFeedbackEl, text, type, { baseClass: "promo-feedback" })
+}
+
+function initCategoryOptions() {
+  if (!categorySelect) return
+  categorySelect.innerHTML = PROMO_CATEGORIES.map(
+    (cat) => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`
+  ).join("")
+}
+
+function syncScopeVisibility() {
+  const isCategory = scopeSelect.value === "categoria"
+  groupCategory.hidden = !isCategory
+  groupProducts.hidden = isCategory
+}
+
+function syncDiscountType() {
+  const isPercent = discountTypeSelect.value === "percent"
+  if (isPercent) {
+    valueLabel.textContent = "Desconto (% OFF) *"
+    valueInput.placeholder = "Ex: 15"
+    valueInput.max = "100"
+  } else {
+    valueLabel.textContent = "Desconto (R$ OFF) *"
+    valueInput.placeholder = "Ex: 25.00"
+    valueInput.removeAttribute("max")
+  }
+}
+
+function renderCard(promo) {
+  const status = computePromotionStatus(promo)
+  const discount = formatDiscountDisplay(promo)
+  const dates = formatDateRange(promo.starts_at, promo.ends_at)
+  const units = formatUnitsLimit(promo.units_sold, promo.max_units)
+
+  const isScopeProduct = promo.scope === "produto"
+  const codes = Array.isArray(promo.product_codes) ? promo.product_codes : parseProductCodes(promo.product_codes)
+
+  const scopeHtml = isScopeProduct
+    ? `<span>🏷️ Peças (${codes.length}): <span class="promo-codes-list">${
+        codes.length
+          ? codes.map((c) => `<code class="promo-code-chip">${escapeHtml(c)}</code>`).join(" ")
+          : '<em class="field-hint">Nenhuma peça informada</em>'
+      }</span></span>`
+    : `<span>📂 Categoria: <strong>${escapeHtml(promo.category || "-")}</strong></span>`
+
+  const canEnd = promo.is_active !== false && status.tone !== "ended"
+
   return `
-    <div class="promo-prices">
-      <span class="base ${onSale ? "struck" : ""}">${formatMoneyBRL(base)}</span>
-      ${onSale ? `<span class="final">${formatMoneyBRL(final)}</span>` : ""}
-    </div>
-  `
-}
-
-function controlsBlock({ code, row }) {
-  const onSale = Boolean(row?.is_on_sale)
-  const pct = Number(row?.discount_percent) || 0
-  return `
-    <div class="promo-controls" data-target="product" data-code="${code}">
-      <label class="promo-toggle">
-        <input type="checkbox" class="promo-on" ${onSale ? "checked" : ""}>
-        Em promoção
-      </label>
-      <span class="promo-pct">
-        <input type="number" class="promo-percent" min="0" max="100" step="1" value="${pct}" ${onSale ? "" : "disabled"}>
-        % off
-      </span>
-      <button type="button" class="promo-save">Salvar</button>
-    </div>
-  `
-}
-
-function renderProductCard(product) {
-  const escapeHtml = window.MarisUI.escapeHtml
-  const components = componentsByProductCode[product.code] || []
-  const hasTypes = components.length > 0
-  const onSale = hasPromo(product)
-  const componentsHtml = hasTypes
-    ? `
-      <div class="promo-components">
-        <p class="promo-components-title">Tipos (preço = % do pai · promo herdada)</p>
-        ${components.map((component) => `
-          <div class="promo-comp-row">
-            <div>
-              <div class="promo-comp-name">${escapeHtml(component.name)}${onSale ? ' <span class="promo-badge">Promo</span>' : ""}</div>
-              ${priceBlock(component)}
-            </div>
+    <article class="promo-card" data-id="${promo.id}">
+      <div class="promo-card-header">
+        <div class="promo-card-title-group">
+          <h2 class="promo-card-title">${escapeHtml(promo.name || "Sem nome")}</h2>
+          <div class="promo-card-badges">
+            <span class="promo-badge promo-badge--${status.tone}">${status.label}</span>
+            <span class="promo-discount-tag">${discount}</span>
           </div>
-        `).join("")}
-      </div>
-    `
-    : ""
-
-  return `
-    <article class="promo-card" data-product-code="${escapeHtml(product.code)}">
-      <div class="promo-row">
-        <img class="promo-thumb" src="${escapeHtml(product.image_url || "")}" alt="${escapeHtml(product.name)}" loading="lazy">
-        <div class="promo-info">
-          <p class="promo-name">${escapeHtml(product.name)} ${onSale ? '<span class="promo-badge">Promo</span>' : ""}</p>
-          <p class="promo-code">${escapeHtml(product.code)}</p>
-          ${hasTypes ? '<p class="promo-type-note">Venda por tipos — promo do pai vale para todos</p>' : ""}
-          ${priceBlock(product)}
         </div>
-        ${controlsBlock({ code: product.code, row: product })}
       </div>
-      ${componentsHtml}
+
+      <div class="promo-card-meta">
+        <div class="promo-meta-row">${scopeHtml}</div>
+        <div class="promo-meta-row"><span>📅 ${dates}</span></div>
+        <div class="promo-meta-row"><span>🛍️ ${units}</span></div>
+      </div>
+
+      <div class="promo-card-actions">
+        <button type="button" class="promo-btn-secondary promo-btn-sm" data-action="edit" data-id="${promo.id}">Editar</button>
+        ${
+          canEnd
+            ? `<button type="button" class="promo-btn-secondary promo-btn-danger promo-btn-sm" data-action="end" data-id="${promo.id}">Encerrar</button>`
+            : ""
+        }
+      </div>
     </article>
   `
 }
 
-function getFilteredProducts() {
-  return filterProductsForPromo(products, componentsByProductCode, searchInput.value)
-}
-
 function render() {
-  const filtered = getFilteredProducts()
-  if (!products.length) {
-    listEl.innerHTML = '<p class="promo-empty">Nenhum produto cadastrado.</p>'
+  const filtered = filterPromotions(allPromotions, { term: searchTerm, status: currentFilter })
+
+  if (!allPromotions.length) {
+    listEl.innerHTML = `
+      <div class="promo-empty">
+        <p>Nenhuma campanha promocional cadastrada.</p>
+        <p class="field-hint">Clique em "+ Nova promoção" para criar a primeira campanha da loja.</p>
+      </div>
+    `
     return
   }
+
   if (!filtered.length) {
-    listEl.innerHTML = '<p class="promo-empty">Nada encontrado para a busca.</p>'
-    return
-  }
-  listEl.innerHTML = filtered.map(renderProductCard).join("")
-}
-
-async function loadData() {
-  const [productsRes, componentsRes] = await Promise.all([
-    window.MarisCatalogRead.selectProducts(supabaseClient).order("name"),
-    window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name")
-  ])
-
-  if (productsRes.error || componentsRes.error) {
-    setFeedback("Erro ao carregar os produtos.", "error")
+    listEl.innerHTML = `
+      <div class="promo-empty">
+        <p>Nenhuma promoção encontrada para os filtros atuais.</p>
+      </div>
+    `
     return
   }
 
-  products = productsRes.data || []
-  componentsByProductCode = groupByKey(
-    window.MarisUtils.mapPricedComponents(componentsRes.data || []),
-    (c) => c.product_code
-  )
-  render()
+  listEl.innerHTML = filtered.map(renderCard).join("")
 }
 
-function findProduct(code) {
-  return products.find((p) => p.code === code)
-}
-
-async function savePromotion(controlsEl) {
-  const code = controlsEl.dataset.code
-  const checkbox = controlsEl.querySelector(".promo-on")
-  const percentInput = controlsEl.querySelector(".promo-percent")
-  const saveBtn = controlsEl.querySelector(".promo-save")
-
-  const isOnSale = checkbox.checked
-  const discountPercent = Math.max(0, Math.min(100, Number(percentInput.value) || 0))
-
-  if (isOnSale && discountPercent <= 0) {
-    setFeedback("Defina um percentual maior que 0 para ativar a promoção.", "error")
-    return
+async function loadPromotions() {
+  if (loadingEl) {
+    loadingEl.hidden = false
+    loadingEl.innerHTML = window.MarisLoading?.html
+      ? window.MarisLoading.html({ block: true, size: "lg" })
+      : '<p class="promo-empty">Carregando promoções…</p>'
   }
+  listEl.innerHTML = ""
 
-  saveBtn.disabled = true
-  saveBtn.textContent = "Salvando…"
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("set-product-promotion"), {
-      body: {
-        target: "product",
-        code,
-        is_on_sale: isOnSale,
-        discount_percent: discountPercent
-      }
-    })
-    if (!ok || !data.ok) {
-      setFeedback(data.error || "Não foi possível salvar a promoção.", "error")
-      return
-    }
+    const { ok, data } = await window.MarisApi.callFunction(
+      window.ENV.fn("admin-promotion-list"),
+      { auth: "staff" }
+    )
 
-    const row = findProduct(code)
-    if (row) {
-      row.is_on_sale = data.is_on_sale
-      row.discount_percent = data.discount_percent
+    if (!ok || !data?.ok) {
+      showPageFeedback(data?.error || "Não foi possível carregar as promoções.", "error")
+      allPromotions = []
+    } else {
+      allPromotions = data.promotions || []
     }
-    setFeedback("Promoção atualizada!", "success")
-    await loadData()
-  } catch {
-    setFeedback("Erro de conexão ao salvar.", "error")
+  } catch (err) {
+    showPageFeedback("Erro de conexão ao carregar as promoções.", "error")
+    allPromotions = []
   } finally {
-    saveBtn.disabled = false
-    saveBtn.textContent = "Salvar"
+    if (loadingEl) loadingEl.hidden = true
+    render()
   }
 }
 
-async function applyAllPromotions(isOnSale, discountPercent) {
-  bulkApplyBtn.disabled = true
-  bulkClearBtn.disabled = true
-  const applyLabel = bulkApplyBtn.textContent
-  const clearLabel = bulkClearBtn.textContent
-  bulkApplyBtn.textContent = "Aplicando…"
-  if (!isOnSale) bulkClearBtn.textContent = "Limpando…"
+function openCreateModal() {
+  idInput.value = ""
+  dialogTitleEl.textContent = "Nova promoção"
+  nameInput.value = ""
+  scopeSelect.value = "categoria"
+  categorySelect.value = PROMO_CATEGORIES[0] || "Anel"
+  codesInput.value = ""
+  discountTypeSelect.value = "percent"
+  valueInput.value = "10"
+  maxUnitsInput.value = ""
+  activeCheckbox.checked = true
+
+  const now = new Date()
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  startsAtInput.value = toLocalDatetimeInput(now)
+  endsAtInput.value = toLocalDatetimeInput(in30Days)
+
+  syncScopeVisibility()
+  syncDiscountType()
+  showDialogFeedback("")
+
+  dialogEl.showModal()
+  nameInput.focus()
+}
+
+function openEditModal(promo) {
+  if (!promo) return
+  idInput.value = promo.id || ""
+  dialogTitleEl.textContent = "Editar promoção"
+  nameInput.value = promo.name || ""
+  scopeSelect.value = promo.scope || "categoria"
+  categorySelect.value = promo.category || PROMO_CATEGORIES[0] || "Anel"
+
+  const codes = Array.isArray(promo.product_codes) ? promo.product_codes : parseProductCodes(promo.product_codes)
+  codesInput.value = codes.join(", ")
+
+  discountTypeSelect.value = promo.discount_type || "percent"
+  valueInput.value = promo.value != null ? promo.value : ""
+  startsAtInput.value = toLocalDatetimeInput(promo.starts_at)
+  endsAtInput.value = toLocalDatetimeInput(promo.ends_at)
+  maxUnitsInput.value = promo.max_units != null ? promo.max_units : ""
+  activeCheckbox.checked = promo.is_active !== false
+
+  syncScopeVisibility()
+  syncDiscountType()
+  showDialogFeedback("")
+
+  dialogEl.showModal()
+  nameInput.focus()
+}
+
+async function handleSavePromotion(event) {
+  event.preventDefault()
+
+  const formData = {
+    id: idInput.value ? Number(idInput.value) : null,
+    name: nameInput.value,
+    scope: scopeSelect.value,
+    category: categorySelect.value,
+    product_codes: codesInput.value,
+    discount_type: discountTypeSelect.value,
+    value: Number(valueInput.value),
+    starts_at: startsAtInput.value,
+    ends_at: endsAtInput.value,
+    max_units: maxUnitsInput.value,
+    is_active: activeCheckbox.checked,
+  }
+
+  const validation = validatePromotionPayload(formData)
+  if (!validation.ok) {
+    showDialogFeedback(validation.error, "error")
+    return
+  }
+
+  dialogSubmitBtn.disabled = true
+  const prevLabel = dialogSubmitBtn.textContent
+  dialogSubmitBtn.textContent = "Salvando…"
+
   try {
-    const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("set-all-promotions"), {
-      body: { is_on_sale: isOnSale, discount_percent: discountPercent }
-    })
-    if (!ok || !data.ok) {
-      setFeedback(data.error || "Não foi possível atualizar as promoções.", "error")
+    const { ok, data } = await window.MarisApi.callFunction(
+      window.ENV.fn("admin-promotion-save"),
+      {
+        method: "POST",
+        auth: "staff",
+        body: validation.payload,
+      }
+    )
+
+    if (!ok || !data?.ok) {
+      showDialogFeedback(data?.error || "Erro ao salvar a promoção.", "error")
       return
     }
-    setFeedback(
-      isOnSale
-        ? `Todos os produtos em promoção com ${data.discount_percent}% de desconto!`
-        : "Todas as promoções foram removidas.",
+
+    dialogEl.close()
+    showPageFeedback("Promoção salva com sucesso!", "success")
+    await loadPromotions()
+  } catch {
+    showDialogFeedback("Erro de conexão ao salvar promoção.", "error")
+  } finally {
+    dialogSubmitBtn.disabled = false
+    dialogSubmitBtn.textContent = prevLabel
+  }
+}
+
+async function handleEndPromotion(id) {
+  const promo = allPromotions.find((p) => p.id === id)
+  if (!promo) return
+
+  const confirmed = window.confirm(`Deseja realmente encerrar a promoção "${promo.name}"?`)
+  if (!confirmed) return
+
+  try {
+    const { ok, data } = await window.MarisApi.callFunction(
+      window.ENV.fn("admin-promotion-end"),
+      {
+        method: "POST",
+        auth: "staff",
+        body: { id: promo.id },
+      }
+    )
+
+    if (!ok || !data?.ok) {
+      showPageFeedback(data?.error || "Não foi possível encerrar a promoção.", "error")
+      return
+    }
+
+    showPageFeedback(
+      data.already_ended ? "Esta promoção já estava encerrada." : "Promoção encerrada com sucesso!",
       "success"
     )
-    await loadData()
+    await loadPromotions()
   } catch {
-    setFeedback("Erro de conexão ao atualizar as promoções.", "error")
-  } finally {
-    bulkApplyBtn.disabled = false
-    bulkClearBtn.disabled = false
-    bulkApplyBtn.textContent = applyLabel
-    bulkClearBtn.textContent = clearLabel
+    showPageFeedback("Erro de conexão ao encerrar promoção.", "error")
   }
 }
 
-bulkApplyBtn.addEventListener("click", () => {
-  const pct = Math.max(0, Math.min(100, Number(bulkPercentInput.value) || 0))
-  if (pct <= 0) {
-    setFeedback("Defina um percentual maior que 0 para aplicar a todos.", "error")
-    bulkPercentInput.focus()
-    return
-  }
-  if (!window.confirm(`Colocar TODOS os produtos em promoção com ${pct}% de desconto?`)) return
-  applyAllPromotions(true, pct)
+// Event Listeners
+scopeSelect.addEventListener("change", syncScopeVisibility)
+discountTypeSelect.addEventListener("change", syncDiscountType)
+newBtn.addEventListener("click", openCreateModal)
+dialogCloseBtn.addEventListener("click", () => dialogEl.close())
+dialogCancelBtn.addEventListener("click", () => dialogEl.close())
+formEl.addEventListener("submit", handleSavePromotion)
+
+dialogEl.addEventListener("click", (event) => {
+  if (event.target === dialogEl) dialogEl.close()
 })
 
-bulkClearBtn.addEventListener("click", () => {
-  if (!window.confirm("Remover a promoção de TODOS os produtos?")) return
-  applyAllPromotions(false, 0)
-})
-
-listEl.addEventListener("change", (event) => {
-  const checkbox = event.target.closest(".promo-on")
-  if (!checkbox) return
-  const controlsEl = checkbox.closest(".promo-controls")
-  const percentInput = controlsEl.querySelector(".promo-percent")
-  percentInput.disabled = !checkbox.checked
-  if (checkbox.checked && (Number(percentInput.value) || 0) <= 0) percentInput.focus()
+statusFilterEl?.addEventListener("click", (event) => {
+  const btn = event.target.closest(".status-filter-btn")
+  if (!btn) return
+  statusFilterEl.querySelectorAll(".status-filter-btn").forEach((b) => {
+    b.classList.remove("status-filter-btn--active")
+    b.setAttribute("aria-selected", "false")
+  })
+  btn.classList.add("status-filter-btn--active")
+  btn.setAttribute("aria-selected", "true")
+  currentFilter = btn.dataset.status || "all"
+  render()
 })
 
 listEl.addEventListener("click", (event) => {
-  const saveBtn = event.target.closest(".promo-save")
-  if (!saveBtn) return
-  const controlsEl = saveBtn.closest(".promo-controls")
-  if (controlsEl) savePromotion(controlsEl)
+  const actionBtn = event.target.closest("button[data-action]")
+  if (!actionBtn) return
+  const action = actionBtn.dataset.action
+  const id = Number(actionBtn.dataset.id)
+  if (action === "edit") {
+    const promo = allPromotions.find((p) => p.id === id)
+    if (promo) openEditModal(promo)
+  } else if (action === "end") {
+    handleEndPromotion(id)
+  }
 })
 
-searchInput && window.MarisUI.bindDebouncedSearch(searchInput, () => render(), { debounceMs: 120 })
+if (searchInput) {
+  bindDebouncedSearch(searchInput, (value) => {
+    searchTerm = value
+    render()
+  })
+}
 
-loadData()
+initCategoryOptions()
+loadPromotions()

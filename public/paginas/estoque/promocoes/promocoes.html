@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Promoções — Maris Semijoias</title>
+    <link rel="stylesheet" href="/compartilhado/loading.css">
     <link rel="stylesheet" href="/paginas/estoque/promocoes/promocoes.css">
     <script src="/env.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
@@ -12,34 +13,128 @@
     <script src="/compartilhado/staff-data.js"></script>
     <script src="/compartilhado/staff-auth.js"></script>
     <script src="/compartilhado/catalog-read.js"></script>
+    <script src="/compartilhado/loading.js"></script>
     <script src="/compartilhado/ui.js"></script>
   </head>
 
   <body>
     <header class="promo-header">
       <a class="back-link" href="/admin">← Voltar à administração</a>
-      <h1>Promoções</h1>
-      <p>Ative a promoção de um produto ou de um tipo e defina o percentual de desconto. O preço base não é alterado. Produtos com tipos só vendem pelos tipos — promova cada tipo abaixo.</p>
-      <label for="promo-search" class="visually-hidden">Buscar produtos</label>
-      <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome, código ou tipo…" autocomplete="off" enterkeyhint="search">
+      <div class="promo-title-row">
+        <div>
+          <h1>Promoções</h1>
+          <p class="promo-subtitle">Gerencie as campanhas promocionais do catálogo por categoria ou peças específicas. O desconto é calculado pelo servidor e exibido automaticamente.</p>
+        </div>
+        <button id="promo-new-btn" type="button" class="promo-btn-primary">+ Nova promoção</button>
+      </div>
+
+      <div class="promo-toolbar">
+        <label for="promo-search" class="visually-hidden">Buscar promoções</label>
+        <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome, categoria ou código…" autocomplete="off" enterkeyhint="search">
+
+        <div class="promo-status-filter" role="tablist" aria-label="Filtrar por status">
+          <button type="button" class="status-filter-btn status-filter-btn--active" data-status="all" role="tab" aria-selected="true">Todas</button>
+          <button type="button" class="status-filter-btn" data-status="active" role="tab" aria-selected="false">Ativas</button>
+          <button type="button" class="status-filter-btn" data-status="scheduled" role="tab" aria-selected="false">Agendadas</button>
+          <button type="button" class="status-filter-btn" data-status="ended" role="tab" aria-selected="false">Encerradas</button>
+        </div>
+      </div>
     </header>
 
     <main class="promo-main">
-      <section class="promo-bulk">
-        <div class="promo-bulk-apply">
-          <span class="promo-bulk-label">Colocar o site todo em promoção</span>
-          <span class="promo-pct">
-            <input id="bulk-percent" type="number" min="0" max="100" step="1" value="10">
-            % off
-          </span>
-          <button id="bulk-apply-btn" type="button" class="promo-save">Aplicar a todos</button>
-        </div>
-        <button id="bulk-clear-btn" type="button" class="promo-clear">Limpar todas as promoções</button>
-      </section>
-
       <div id="promo-feedback" class="promo-feedback" hidden></div>
-      <div id="promo-list" class="promo-list"></div>
+      <div id="promo-loading" class="promo-loading-container" hidden></div>
+      <div id="promo-list" class="promo-grid"></div>
     </main>
+
+    <!-- Modal Dialog para Criar/Editar Promoção -->
+    <dialog id="promo-dialog" class="promo-dialog">
+      <form id="promo-form" method="dialog">
+        <div class="dialog-header">
+          <h2 id="promo-dialog-title">Nova promoção</h2>
+          <button id="promo-dialog-close-btn" type="button" class="dialog-close" aria-label="Fechar">&times;</button>
+        </div>
+
+        <input type="hidden" id="promo-form-id">
+
+        <div id="promo-dialog-feedback" class="promo-feedback" hidden></div>
+
+        <div class="dialog-body">
+          <label class="form-field">
+            <span>Nome da campanha *</span>
+            <input type="text" id="promo-form-name" required maxlength="120" placeholder="Ex: Black Friday Anéis, Mês das Mães">
+          </label>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span>Alcance *</span>
+              <select id="promo-form-scope" required>
+                <option value="categoria">Por categoria</option>
+                <option value="produto">Por peças específicas</option>
+              </select>
+            </label>
+
+            <div id="promo-group-category" class="form-field">
+              <span>Categoria *</span>
+              <select id="promo-form-category">
+                <!-- Preenchido via PROMO_CATEGORIES -->
+              </select>
+            </div>
+          </div>
+
+          <div id="promo-group-products" class="form-field" hidden>
+            <span>Códigos das peças (separados por vírgula) *</span>
+            <input type="text" id="promo-form-codes" placeholder="Ex: AN01, AN02, BR05">
+            <small class="field-hint">Informe os códigos das peças cadastradas (ex: AN1, CO2).</small>
+          </div>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span>Tipo de desconto *</span>
+              <select id="promo-form-discount-type" required>
+                <option value="percent">Porcentagem (% OFF)</option>
+                <option value="fixed">Valor fixo (R$ OFF)</option>
+              </select>
+            </label>
+
+            <label class="form-field">
+              <span id="promo-value-label">Desconto (% OFF) *</span>
+              <input type="number" id="promo-form-value" required min="0.01" step="any" placeholder="Ex: 15">
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span>Início da promoção *</span>
+              <input type="datetime-local" id="promo-form-starts-at" required>
+            </label>
+
+            <label class="form-field">
+              <span>Término da promoção *</span>
+              <input type="datetime-local" id="promo-form-ends-at" required>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="form-field">
+              <span>Limite de peças</span>
+              <input type="number" id="promo-form-max-units" min="1" step="1" placeholder="Sem limite se vazio">
+              <small class="field-hint">Encerra após atingir o total vendido.</small>
+            </label>
+
+            <label class="form-field-checkbox">
+              <input type="checkbox" id="promo-form-active" checked>
+              <span>Campanha ativa</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button id="promo-dialog-cancel" type="button" class="promo-btn-secondary">Cancelar</button>
+          <button id="promo-dialog-submit" type="submit" class="promo-btn-primary">Salvar promoção</button>
+        </div>
+      </form>
+    </dialog>
 
     <script type="module" src="/paginas/estoque/promocoes/promocoes.logic.js"></script>
     <script defer src="/paginas/estoque/promocoes/promocoes.js"></script>
