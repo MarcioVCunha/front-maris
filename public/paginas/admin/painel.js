@@ -153,10 +153,15 @@ const state = {
   conjuntoQuery: ""
 }
 
+let pendingSaleCancel = null
+
 function clearUndo() {
   if (undoTimer) clearTimeout(undoTimer)
   undoTimer = null
   undoAction = null
+  if (pendingSaleCancel) {
+    void commitPendingSaleCancel()
+  }
 }
 
 function showMessage(text, kind, options = {}) {
@@ -176,10 +181,11 @@ function showMessage(text, kind, options = {}) {
     undoAction = options.undo.run
     btn.addEventListener("click", async () => {
       const run = undoAction
+      undoAction = null
+      if (run) await run()
       clearUndo()
       messageEl.hidden = true
       messageEl.replaceChildren()
-      if (run) await run()
     })
     messageEl.appendChild(btn)
     const ms = options.undo.ms == null ? 8000 : Number(options.undo.ms)
@@ -241,6 +247,31 @@ async function undoArchive(code) {
   await loadProducts()
   showView()
 }
+
+async function commitPendingSaleCancel() {
+  if (!pendingSaleCancel) return
+  const current = pendingSaleCancel
+  pendingSaleCancel = null
+  const result = await cancelAdminSale(saleCancelPayload(current.orderId))
+  if (!result.ok) {
+    showMessage(result.error, "error")
+  }
+  state.recent = undefined
+  state.overview = undefined
+}
+
+function undoCancelSale() {
+  if (!pendingSaleCancel) return
+  const previousRecent = pendingSaleCancel.previousRecent
+  pendingSaleCancel = null
+  state.recent = previousRecent
+  showMessage("Cancelamento desfeito.")
+  showView()
+}
+
+window.addEventListener("beforeunload", () => {
+  void commitPendingSaleCancel()
+})
 
 function paintChrome(view) {
   const top = ["peca", "esgotadas", "conjuntos", "adicionar", "importar"].includes(view) ? "estoque" : view
@@ -715,17 +746,22 @@ function bindSaleEditActions(sale) {
 
   saleDialog.querySelector("#sale-edit-cancel")?.addEventListener("click", async () => {
     if (!window.confirm("Cancelar esta venda e devolver o estoque?")) return
-    showMessage("Cancelando…")
-    const result = await cancelAdminSale(saleCancelPayload(sale.id))
-    if (!result.ok) {
-      showMessage(result.error, "error")
-      return
-    }
-    state.recent = undefined
-    state.overview = undefined
+    await commitPendingSaleCancel()
+    const orderId = sale.id
+    const previousRecent = state.recent
+    pendingSaleCancel = { orderId, previousRecent }
     saleDialog.close()
-    showMessage("Venda cancelada.")
+    if (Array.isArray(state.recent)) {
+      state.recent = state.recent.filter((s) => s.id !== orderId)
+    }
     showView()
+    showMessage("Venda cancelada.", "", {
+      undo: {
+        label: "Desfazer",
+        ms: 8000,
+        run: () => undoCancelSale()
+      }
+    })
   })
 }
 
