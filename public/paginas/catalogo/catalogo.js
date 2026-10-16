@@ -27,6 +27,8 @@ const {
   buildProductShareText,
   buildWhatsappShareLink,
   buildProductOgMetadata,
+  combinaGroups,
+  renderCombinaComponentCard,
   updateOpenGraphTags,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
@@ -88,6 +90,9 @@ const pieceCareTextEl = document.getElementById("piece-care-text")
 const pieceActions = document.getElementById("piece-actions")
 const pieceWhatsapp = document.getElementById("piece-whatsapp")
 const pieceShareWhatsapp = document.getElementById("piece-share-whatsapp")
+const pieceCombinaWrap = document.getElementById("piece-combina-wrap")
+const pieceCombinaTitle = document.getElementById("piece-combina-title")
+const pieceCombinaContent = document.getElementById("piece-combina-content")
 const pieceRelated = document.getElementById("piece-related")
 const pieceBack = document.getElementById("piece-back")
 const collectionsEl = document.querySelector(".catalog-collections")
@@ -606,6 +611,31 @@ function openPiecePage(group) {
     image: urls[0]
   })
   updateOpenGraphTags(ogMeta)
+  if (pieceCombinaWrap) {
+    if (components.length > 0) {
+      if (pieceCombinaTitle) pieceCombinaTitle.textContent = "Combina com · Peças deste conjunto"
+      if (pieceCombinaContent) {
+        pieceCombinaContent.className = "combina-components-grid"
+        pieceCombinaContent.innerHTML = components
+          .map((c) => renderCombinaComponentCard(c, { effectivePrice, hasPromo, pixPrice, formatMoneyBRL }))
+          .join("")
+      }
+      pieceCombinaWrap.hidden = false
+    } else {
+      const matching = combinaGroups(allGroups, group, isCatalogProductAvailable, 4)
+      if (matching.length > 0) {
+        if (pieceCombinaTitle) pieceCombinaTitle.textContent = "Combina com"
+        if (pieceCombinaContent) {
+          pieceCombinaContent.className = "catalog"
+          pieceCombinaContent.innerHTML = matching.map(renderCatalogGroup).join("")
+        }
+        pieceCombinaWrap.hidden = false
+      } else {
+        pieceCombinaWrap.hidden = true
+        if (pieceCombinaContent) pieceCombinaContent.innerHTML = ""
+      }
+    }
+  }
   const related = relatedGroups(allGroups, group, isCatalogProductAvailable, 4)
   pieceRelated.innerHTML = related.length
     ? related.map(renderCatalogGroup).join("")
@@ -629,6 +659,7 @@ function openPiecePage(group) {
 function closePiecePage() {
   pieceGroupKey = ""
   if (piecePage) piecePage.hidden = true
+  if (pieceCombinaWrap) pieceCombinaWrap.hidden = true
   updateOpenGraphTags(buildProductOgMetadata(null, { origin: window.location.origin }))
   syncCatalogUrl()
   renderCatalogGrids()
@@ -645,6 +676,7 @@ function applyCatalogLink() {
   if (!link.peca) {
     pieceGroupKey = ""
     if (piecePage) piecePage.hidden = true
+    if (pieceCombinaWrap) pieceCombinaWrap.hidden = true
     syncCatalogUrl()
     renderCatalogGrids()
     return
@@ -657,6 +689,7 @@ function applyCatalogLink() {
   }
   pieceGroupKey = ""
   if (piecePage) piecePage.hidden = true
+  if (pieceCombinaWrap) pieceCombinaWrap.hidden = true
   if (resolved.kind === "soldout") selectedCategory = normalizeCategoryParam(resolved.category)
   syncCatalogUrl()
   renderCatalogGrids()
@@ -851,7 +884,7 @@ function handleProductClick(target) {
   openPiecePage(findGroupByKey(productCard.getAttribute("data-group-key")))
 }
 
-function handleCatalogGridClick(event) {
+async function handleCatalogGridClick(event) {
   if (ignoreNextCardClick) {
     ignoreNextCardClick = false
     return
@@ -869,11 +902,25 @@ function handleCatalogGridClick(event) {
     joinWaitlist({ productCode: waitlistBtn.getAttribute("data-waitlist-code") })
     return
   }
+  const waitComp = event.target.closest("[data-waitlist-component]")
+  if (waitComp) {
+    event.stopPropagation()
+    joinWaitlist({ componentId: Number(waitComp.getAttribute("data-waitlist-component")) })
+    return
+  }
   const viewTypesBtn = event.target.closest("[data-view-code]")
   if (viewTypesBtn) {
     event.stopPropagation()
     const card = viewTypesBtn.closest("[data-group-key]")
     openProductModal(findGroupByKey(card?.getAttribute("data-group-key") || pieceGroupKey))
+    return
+  }
+  const addComp = event.target.closest("[data-add-component]")
+  if (addComp) {
+    event.stopPropagation()
+    const compId = Number(addComp.getAttribute("data-add-component"))
+    const result = await window.MarisCatalogCart?.addComponent(compId, 1)
+    notifyCartAdd(result, "Peça")
     return
   }
   const addBtn = event.target.closest("[data-add-code]")
@@ -886,7 +933,7 @@ function handleCatalogGridClick(event) {
       openProductModal(findGroupByKey(card?.getAttribute("data-group-key")))
       return
     }
-    const result = window.MarisCatalogCart?.addProduct(code, 1)
+    const result = await window.MarisCatalogCart?.addProduct(code, 1)
     notifyCartAdd(result, "Produto")
     return
   }
@@ -1096,6 +1143,7 @@ piecePage?.addEventListener("click", handleCatalogGridClick)
 bindPhotoSwipe(catalogEl)
 bindPhotoSwipe(unavailableProductsGrid)
 bindPhotoSwipe(pieceRelated)
+bindPhotoSwipe(pieceCombinaContent)
 window.addEventListener("popstate", () => applyCatalogLink())
 renderColorFilters()
 
