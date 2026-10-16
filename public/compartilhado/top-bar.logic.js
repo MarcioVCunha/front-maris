@@ -19,8 +19,8 @@ export const DEFAULT_TOP_BAR_MESSAGES = [
   {
     id: "trocas",
     icon: "shield",
-    text: "Garantia e troca fácil em até 7 dias",
-    shortText: "Garantia e troca em até 7 dias",
+    text: "Troca ou retorno em até 1 mês no site · Garantia 90 dias",
+    shortText: "Troca em até 1 mês no site",
     link: "/trocas"
   }
 ]

@@ -10,7 +10,7 @@ export const STORE_POLICIES = {
     id: "garantia",
     title: "Garantia das Semijoias",
     badge: "90 dias de garantia",
-    summary: "Nossas semijoias contam com garantia legal de 90 dias a partir do recebimento, cobrindo defeitos de fabricação e problemas no banho da peça.",
+    summary: "Nossas semijoias contam com garantia legal de 90 dias a partir do recebimento contra defeitos de fabricação e banho. Para compras exclusivas realizadas em nosso site, oferecemos também prazo de 1 mês para troca ou retorno.",
     topics: [
       {
         title: "O que a garantia cobre",
@@ -29,15 +29,15 @@ export const STORE_POLICIES = {
   trocas: {
     id: "trocas",
     title: "Trocas e Devoluções",
-    badge: "Troca fácil em até 7 dias",
-    summary: "Se a peça não serviu ou você se arrependeu da compra, garantimos a troca ou devolução sem complicações em até 7 dias corridos a partir da entrega.",
+    badge: "Troca ou retorno em até 1 mês",
+    summary: "Para compras exclusivas realizadas em nosso site, garantimos a troca ou retorno (devolução) em até 1 mês (30 dias corridos) a partir do recebimento da peça, sem complicações.",
     topics: [
       {
-        title: "Direito de arrependimento (7 dias)",
-        text: "Você pode solicitar a devolução ou troca da semijoia em até 7 (sete) dias corridos após o recebimento (CDC art. 49)."
+        title: "Prazo exclusivo do site (até 1 mês / 30 dias)",
+        text: "Enquanto o prazo legal padrão do Código de Defesa do Consumidor (CDC art. 49) é de 7 dias, oferecemos um prazo especial estendido de até 1 mês (30 dias corridos) para troca ou retorno de compras realizadas exclusivamente no site da Maris."
       },
       {
-        title: "Condições para a troca",
+        title: "Condições para a troca ou retorno",
         text: "A peça deve estar sem indícios de uso, na embalagem original, com as tags intactas e acompanhada de todos os acessórios ou divisões do conjunto."
       },
       {

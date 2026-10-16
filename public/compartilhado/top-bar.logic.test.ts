@@ -20,7 +20,8 @@ Deno.test("DEFAULT_TOP_BAR_MESSAGES contém os 3 destaques combinados", () => {
   assert(pix?.text.includes("Pix"))
 
   const trocas = topBarItemById("trocas")
-  assert(trocas?.text.includes("troca"))
+  assert(trocas?.text.toLowerCase().includes("troca"))
+  assert(trocas?.text.includes("1 mês"))
   assertEquals(trocas?.link, "/trocas")
 })
 

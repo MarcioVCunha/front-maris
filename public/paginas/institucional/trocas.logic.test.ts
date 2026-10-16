@@ -19,7 +19,8 @@ Deno.test("STORE_POLICIES contém as seções essenciais de atendimento", () => 
   assert(garantia.topics.length >= 3)
 
   const trocas = STORE_POLICIES.trocas
-  assert(trocas.summary.includes("7 dias"))
+  assert(trocas.summary.includes("1 mês"))
+  assert(trocas.summary.includes("site"))
   assert(trocas.topics.some((t) => t.text.includes("CDC")))
 
   const envio = STORE_POLICIES.envio
