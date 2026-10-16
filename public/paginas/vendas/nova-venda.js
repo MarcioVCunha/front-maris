@@ -3,6 +3,7 @@ import {
   MARKETPLACE_SALE_ENABLED,
   KNOWN_CATEGORIES,
   addPiece,
+  addComponents,
   applyStockIssues,
   buildCreateSaleBody,
   buildMarketplaceSaleBody,
@@ -131,6 +132,25 @@ function showHome() {
   flowEl.hidden = true
 }
 
+function findPieceById(id) {
+  const targetId = String(id || "")
+  for (const piece of state.allPieces) {
+    if (String(piece.id) === targetId) return piece
+    if (Array.isArray(piece.components)) {
+      const found = piece.components.find((c) => String(c.id) === targetId)
+      if (found) return found
+    }
+  }
+  for (const piece of state.pieceHits) {
+    if (String(piece.id) === targetId) return piece
+    if (Array.isArray(piece.components)) {
+      const found = piece.components.find((c) => String(c.id) === targetId)
+      if (found) return found
+    }
+  }
+  return state.selected.find((item) => String(item.id) === targetId) || null
+}
+
 async function loadCatalogPieces() {
   if (state.catalogLoaded || state.catalogLoading) return state.allPieces
   state.catalogLoading = true
@@ -156,12 +176,10 @@ async function loadCatalogPieces() {
 
     const imagesByProductId = Object.create(null)
     const codeById = Object.create(null)
-    const categoryByCode = Object.create(null)
 
     for (const p of products) {
       if (p?.id && p?.code) {
         codeById[Number(p.id)] = String(p.code)
-        categoryByCode[String(p.code)] = p.categoria || ""
       }
     }
 
@@ -175,56 +193,109 @@ async function loadCatalogPieces() {
       if (code && !imagesByCode[code]) imagesByCode[code] = url
     }
 
+    const componentsByProductCode = Object.create(null)
+    for (const c of components) {
+      if (!c || c.is_active === false) continue
+      const pCode = String(c.product_code || "").trim()
+      if (!pCode) continue
+      if (!componentsByProductCode[pCode]) componentsByProductCode[pCode] = []
+      componentsByProductCode[pCode].push(c)
+    }
+
     const pieces = []
-    // 1. Produtos com estoque > 0
     for (const p of products) {
-      const stock = Number(p.quantity) || 0
-      if (stock <= 0) continue
-      const img = String(p.image_url || "").trim() || imagesByProductId[Number(p.id)] || imagesByCode[p.code] || ""
+      const pCode = String(p.code || "").trim()
+      const pComponents = componentsByProductCode[pCode] || []
+      const pStock = Number(p.quantity) || 0
+      const hasComponents = pComponents.length > 0
+      const img = String(p.image_url || "").trim() || imagesByProductId[Number(p.id)] || imagesByCode[pCode] || ""
+
+      const compPiecesList = pComponents.map((c) => {
+        const cStock = Number(c.quantity) || 0
+        const cUnit = Number(c.computed_unit_price) || 0
+        const cEfetivo = Number.isFinite(Number(c.preco_efetivo)) ? Number(c.preco_efetivo) : cUnit
+        const cPix = Number.isFinite(Number(c.preco_pix)) ? Number(c.preco_pix) : null
+        return {
+          id: `c:${c.id}`,
+          raw_id: c.id,
+          code: pCode,
+          name: `${p.name} · ${c.name}`,
+          component_name: c.name,
+          parent_name: p.name,
+          categoria: p.categoria || "Conjunto",
+          quantity: cStock,
+          stock: cStock,
+          image_url: img,
+          item_type: "component",
+          component_id: c.id,
+          unit_price: cUnit,
+          preco_efetivo: cEfetivo,
+          preco_pix: cPix,
+          is_on_sale: Boolean(c.parent_is_on_sale),
+          discount_percent: Number(c.parent_discount_percent) || 0
+        }
+      })
+
+      const componentsInStock = compPiecesList.filter((c) => c.stock > 0)
+      const isAvailable = hasComponents ? (componentsInStock.length > 0 || pStock > 0) : pStock > 0
+      if (!isAvailable) continue
+
       const unitPrice = Number(p.unit_price) || 0
       const precoEfetivo = Number.isFinite(Number(p.preco_efetivo)) ? Number(p.preco_efetivo) : unitPrice
       const precoPix = Number.isFinite(Number(p.preco_pix)) ? Number(p.preco_pix) : null
+
       pieces.push({
         id: p.id,
-        code: p.code,
+        code: pCode,
         name: p.name,
+        parent_name: p.name,
+        component_name: "",
         categoria: resolvePieceCategory(p),
-        quantity: stock,
-        stock,
+        quantity: pStock,
+        stock: pStock,
         image_url: img,
         item_type: "product",
+        component_id: null,
         unit_price: unitPrice,
         preco_efetivo: precoEfetivo,
         preco_pix: precoPix,
         is_on_sale: Boolean(p.is_on_sale),
-        discount_percent: Number(p.discount_percent) || 0
+        discount_percent: Number(p.discount_percent) || 0,
+        has_components: hasComponents,
+        components: compPiecesList
       })
     }
 
-    // 2. Componentes com estoque > 0
-    for (const c of components) {
-      const stock = Number(c.quantity) || 0
-      if (stock <= 0 || c.is_active === false) continue
-      const img = imagesByCode[c.product_code] || ""
-      const unitPrice = Number(c.computed_unit_price) || 0
-      const precoEfetivo = Number.isFinite(Number(c.preco_efetivo)) ? Number(c.preco_efetivo) : unitPrice
-      const precoPix = Number.isFinite(Number(c.preco_pix)) ? Number(c.preco_pix) : null
-      pieces.push({
-        id: `c:${c.id}`,
-        code: c.product_code,
-        name: c.name,
-        categoria: categoryByCode[c.product_code] || "Partes",
-        quantity: stock,
-        stock,
-        image_url: img,
-        item_type: "component",
-        component_id: c.id,
-        unit_price: unitPrice,
-        preco_efetivo: precoEfetivo,
-        preco_pix: precoPix,
-        is_on_sale: Boolean(c.parent_is_on_sale),
-        discount_percent: Number(c.parent_discount_percent) || 0
-      })
+    const processedCodes = new Set(products.map((p) => String(p?.code || "").trim()))
+    for (const [code, compList] of Object.entries(componentsByProductCode)) {
+      if (processedCodes.has(code)) continue
+      for (const c of compList) {
+        const cStock = Number(c.quantity) || 0
+        if (cStock <= 0) continue
+        const cUnit = Number(c.computed_unit_price) || 0
+        const cEfetivo = Number.isFinite(Number(c.preco_efetivo)) ? Number(c.preco_efetivo) : cUnit
+        const cPix = Number.isFinite(Number(c.preco_pix)) ? Number(c.preco_pix) : null
+        pieces.push({
+          id: `c:${c.id}`,
+          code,
+          name: c.name,
+          parent_name: "",
+          component_name: c.name,
+          categoria: "Partes",
+          quantity: cStock,
+          stock: cStock,
+          image_url: imagesByCode[code] || "",
+          item_type: "component",
+          component_id: c.id,
+          unit_price: cUnit,
+          preco_efetivo: cEfetivo,
+          preco_pix: cPix,
+          is_on_sale: Boolean(c.parent_is_on_sale),
+          discount_percent: Number(c.parent_discount_percent) || 0,
+          has_components: false,
+          components: []
+        })
+      }
     }
 
     state.allPieces = pieces
@@ -253,6 +324,18 @@ function renderCategoryChips() {
     const cat = resolvePieceCategory(piece)
     counts[cat] = (counts[cat] || 0) + 1
     totalCount++
+    if (Array.isArray(piece.components)) {
+      const addedCats = new Set([cat])
+      for (const c of piece.components) {
+        if (c.stock > 0) {
+          const cCat = resolvePieceCategory(c)
+          if (!addedCats.has(cCat)) {
+            counts[cCat] = (counts[cCat] || 0) + 1
+            addedCats.add(cCat)
+          }
+        }
+      }
+    }
   }
 
   const categories = ["Todas"]
@@ -417,6 +500,127 @@ function renderPieces() {
   }
 
   pieceResultsEl.innerHTML = visible.map((piece) => {
+    if (piece.has_components && piece.components.length > 0) {
+      const components = piece.components
+      const inStockComps = components.filter((c) => (Number(c.quantity) || 0) > 0)
+      const selectedComps = components.filter((c) => state.selected.some((item) => String(item.id) === String(c.id)))
+      const isAnyPicked = selectedComps.length > 0
+      const isPromo = Boolean(piece.is_on_sale && piece.discount_percent > 0)
+
+      let lowestPrice = Infinity
+      let lowestPix = null
+      for (const c of inStockComps) {
+        const p = Number.isFinite(Number(c.preco_efetivo)) ? c.preco_efetivo : c.unit_price
+        if (p < lowestPrice) {
+          lowestPrice = p
+          lowestPix = c.preco_pix
+        }
+      }
+      if (lowestPrice === Infinity && components.length > 0) {
+        lowestPrice = components[0].unit_price
+        lowestPix = components[0].preco_pix
+      }
+
+      const parentInCart = state.selected.find((item) => String(item.id) === String(piece.id))
+      const hasParentStock = Number(piece.quantity) > 0
+
+      return `
+        <article class="piece-card piece-card--set ${isAnyPicked || parentInCart ? "piece-card--selected" : ""}" data-piece-card="${escapeHtml(piece.id)}">
+          <div class="piece-card-thumb-wrap">
+            ${piecePhoto(piece)}
+            ${isPromo ? `<span class="promo-tag">-${piece.discount_percent}%</span>` : ""}
+            <span class="stock-tag stock-tag--set">${components.length} subtipos</span>
+          </div>
+          <div class="piece-card-info">
+            <div class="piece-card-badge-row">
+              <span class="piece-card-cat">${escapeHtml(resolvePieceCategory(piece))}</span>
+              <span class="badge-subtipos">Peça com divisões</span>
+            </div>
+            <h3 class="piece-card-title">${escapeHtml(piece.name)}</h3>
+            <p class="piece-card-code">${escapeHtml(piece.code)}</p>
+            <div class="piece-card-prices">
+              <span class="price-from-label">Subtipos a partir de:</span>
+              <strong class="price-current">${money(lowestPrice)}</strong>
+              ${Number.isFinite(Number(lowestPix)) ? `<span class="price-pix">${money(lowestPix)} no Pix</span>` : ""}
+            </div>
+          </div>
+
+          <div class="piece-card-components-section">
+            <p class="components-section-title">Escolha o que vender:</p>
+            <div class="components-subitems-list">
+              ${components.map((comp) => {
+                const selectedItem = state.selected.find((item) => String(item.id) === String(comp.id))
+                const isPicked = Boolean(selectedItem)
+                const quantityInCart = selectedItem ? selectedItem.quantity : 0
+                const price = Number.isFinite(Number(comp.preco_efetivo)) ? comp.preco_efetivo : comp.unit_price
+                const stock = Number(comp.quantity) || 0
+                const isMax = quantityInCart >= stock
+                const isSoldOut = stock <= 0
+
+                return `
+                  <div class="subitem-row ${isPicked ? "subitem-row--selected" : ""} ${isSoldOut ? "subitem-row--soldout" : ""}">
+                    <div class="subitem-meta">
+                      <strong class="subitem-name">${escapeHtml(comp.component_name || comp.name)}</strong>
+                      <span class="subitem-stock ${stock === 1 ? "stock-tag--last" : ""}">${isSoldOut ? "Esgotado" : `${stock} un.`}</span>
+                    </div>
+                    <div class="subitem-price">
+                      <strong class="subitem-val">${money(price)}</strong>
+                      ${Number.isFinite(Number(comp.preco_pix)) ? `<small class="subitem-pix">Pix ${money(comp.preco_pix)}</small>` : ""}
+                    </div>
+                    <div class="subitem-action">
+                      ${!isPicked ? `
+                        <button type="button" class="btn-subitem-add" data-card-add="${escapeHtml(comp.id)}" ${isSoldOut ? "disabled" : ""}>
+                          + Adicionar
+                        </button>
+                      ` : `
+                        <div class="card-stepper subitem-stepper">
+                          <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(comp.id)}" data-dir="-1" aria-label="Diminuir">−</button>
+                          <strong class="card-stepper-qty">${quantityInCart}</strong>
+                          <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(comp.id)}" data-dir="1" aria-label="Aumentar" ${isMax ? "disabled" : ""}>+</button>
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                `
+              }).join("")}
+
+              ${hasParentStock ? `
+                <div class="subitem-row ${parentInCart ? "subitem-row--selected" : ""}">
+                  <div class="subitem-meta">
+                    <strong class="subitem-name">Peça cheia montada</strong>
+                    <span class="subitem-stock">${piece.quantity} un.</span>
+                  </div>
+                  <div class="subitem-price">
+                    <strong class="subitem-val">${money(piece.unit_price)}</strong>
+                    ${Number.isFinite(Number(piece.preco_pix)) ? `<small class="subitem-pix">Pix ${money(piece.preco_pix)}</small>` : ""}
+                  </div>
+                  <div class="subitem-action">
+                    ${!parentInCart ? `
+                      <button type="button" class="btn-subitem-add" data-card-add="${escapeHtml(piece.id)}">
+                        + Adicionar
+                      </button>
+                    ` : `
+                      <div class="card-stepper subitem-stepper">
+                        <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(piece.id)}" data-dir="-1">−</button>
+                        <strong class="card-stepper-qty">${parentInCart.quantity}</strong>
+                        <button type="button" class="card-stepper-btn" data-card-qty="${escapeHtml(piece.id)}" data-dir="1" ${parentInCart.quantity >= piece.quantity ? "disabled" : ""}>+</button>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              ` : ""}
+            </div>
+
+            ${inStockComps.length >= 2 ? `
+              <button type="button" class="btn-add-all-set" data-add-all-components="${escapeHtml(piece.code)}">
+                + Vender conjunto completo (${inStockComps.map((c) => escapeHtml(c.component_name || c.name)).join(" + ")})
+              </button>
+            ` : ""}
+          </div>
+        </article>
+      `
+    }
+
     const selectedItem = state.selected.find((item) => String(item.id) === String(piece.id))
     const isPicked = Boolean(selectedItem)
     const quantityInCart = selectedItem ? selectedItem.quantity : 0
@@ -721,11 +925,22 @@ pieceSearchClearEl?.addEventListener("click", () => {
 })
 
 pieceResultsEl.addEventListener("click", (event) => {
+  const addAllBtn = event.target.closest("[data-add-all-components]")
+  if (addAllBtn) {
+    const code = addAllBtn.getAttribute("data-add-all-components")
+    const product = state.allPieces.find((p) => p.code === code)
+      || state.pieceHits.find((p) => p.code === code)
+    if (product && Array.isArray(product.components)) {
+      state.selected = addComponents(state.selected, product.components, 1)
+      renderPieces()
+      return
+    }
+  }
+
   const addBtn = event.target.closest("[data-card-add]")
   if (addBtn) {
     const id = addBtn.getAttribute("data-card-add")
-    const piece = state.allPieces.find((item) => String(item.id) === String(id))
-      || state.pieceHits.find((item) => String(item.id) === String(id))
+    const piece = findPieceById(id)
     if (!piece) return
     state.selected = addPiece(state.selected, piece, 1)
     renderPieces()
@@ -747,8 +962,7 @@ pieceResultsEl.addEventListener("click", (event) => {
 
   const button = event.target.closest("[data-piece]")
   if (!button) return
-  const piece = state.allPieces.find((item) => String(item.id) === button.getAttribute("data-piece"))
-    || state.pieceHits.find((item) => String(item.id) === button.getAttribute("data-piece"))
+  const piece = findPieceById(button.getAttribute("data-piece"))
   if (!piece) return
   state.selected = togglePiece(state.selected, piece)
   renderPieces()

@@ -29,6 +29,7 @@ import {
   togglePiece,
   whatsappLink,
   addPiece,
+  addComponents,
   removePiece,
   resolvePieceCategory,
   totalPiecesCount,
@@ -152,6 +153,83 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
   const promoSelected = togglePiece([], promo)
   assertEquals(promoSelected[0].unit_price, 79.9)
   assertEquals(promoSelected[0].preco_pix, 75.91)
+})
+
+Deno.test("peças com subtipos/conjunto permitem vender partes individuais (só brinco, só colar) ou ambos", () => {
+  const brinco = {
+    id: "c:12",
+    code: "CJ100-O",
+    name: "Conjunto Flor · Brinco",
+    component_name: "Brinco",
+    parent_name: "Conjunto Flor",
+    quantity: 3,
+    stock: 3,
+    unit_price: 130.5,
+    preco_pix: 123.98,
+    item_type: "component",
+    component_id: 12
+  }
+  const colar = {
+    id: "c:13",
+    code: "CJ100-O",
+    name: "Conjunto Flor · Colar",
+    component_name: "Colar",
+    parent_name: "Conjunto Flor",
+    quantity: 2,
+    stock: 2,
+    unit_price: 159.5,
+    preco_pix: 151.52,
+    item_type: "component",
+    component_id: 13
+  }
+  const conjunto = {
+    id: 50,
+    code: "CJ100-O",
+    name: "Conjunto Flor",
+    categoria: "Conjunto",
+    quantity: 0,
+    has_components: true,
+    components: [brinco, colar]
+  }
+
+  // 1. Mesmo com quantity do pai zerada, o conjunto está no estoque por ter componentes
+  assertEquals(filterPieces([conjunto], "").map((p) => p.code), ["CJ100-O"])
+  // 2. Busca por "colar" encontra o conjunto por causa da divisão
+  assertEquals(filterPieces([conjunto], "colar").map((p) => p.code), ["CJ100-O"])
+  // 3. Filtro de categoria "Brinco" encontra o conjunto por conter brinco
+  assertEquals(filterPieces([conjunto], "", "Brinco").map((p) => p.code), ["CJ100-O"])
+
+  // 4. Vender somente o brinco
+  let sale = addPiece([], brinco, 1)
+  assertEquals(sale.length, 1)
+  assertEquals(sale[0].id, "c:12")
+  assertEquals(sale[0].quantity, 1)
+
+  // 5. Vender somente o colar
+  let saleColar = addPiece([], colar, 1)
+  assertEquals(saleColar.length, 1)
+  assertEquals(saleColar[0].id, "c:13")
+
+  // 6. Vender ambos (o brinco e o colar juntos via addComponents)
+  let saleBoth = addComponents([], [brinco, colar], 1)
+  assertEquals(saleBoth.length, 2)
+  assertEquals(saleBoth.map((i) => i.id), ["c:12", "c:13"])
+  const totals = saleTotals(saleBoth, "cartao")
+  assertEquals(totals.subtotal, 290)
+
+  // 7. O corpo da venda vira items com piece_id: "c:12" e "c:13"
+  const built = buildCreateSaleBody({
+    sellerId: 1,
+    customer: { id: 10 },
+    paymentStatus: "paid",
+    paymentMethod: "pix",
+    pieces: saleBoth
+  })
+  assertEquals(built.ok, true)
+  assertEquals(built.body?.items, [
+    { piece_id: "c:12", quantity: 1 },
+    { piece_id: "c:13", quantity: 1 }
+  ])
 })
 
 Deno.test("cliente existente ou novo, com WhatsApp", () => {

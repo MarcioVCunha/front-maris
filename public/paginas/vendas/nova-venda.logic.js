@@ -122,7 +122,12 @@ export function currentYearMonth(now = new Date()) {
 }
 
 export function piecesInStock(pieces) {
-  return (pieces || []).filter((piece) => (Number(piece?.quantity) || 0) > 0)
+  return (pieces || []).filter((piece) => {
+    if (Array.isArray(piece?.components) && piece.components.length > 0) {
+      return (Number(piece.quantity) || 0) > 0 || piece.components.some((c) => (Number(c.quantity) || 0) > 0)
+    }
+    return (Number(piece?.quantity) || 0) > 0
+  })
 }
 
 export const KNOWN_CATEGORIES = [
@@ -163,10 +168,17 @@ export function filterPieces(pieces, term, category = "") {
   return piecesInStock(pieces).filter((piece) => {
     if (cat && cat !== "todas" && cat !== "todos") {
       const pieceCat = resolvePieceCategory(piece).toLowerCase()
-      if (pieceCat !== cat) return false
+      const hasComponentInCat = Array.isArray(piece.components) && piece.components.some(
+        (c) => resolvePieceCategory(c).toLowerCase() === cat || String(c.name || "").toLowerCase().includes(cat)
+      )
+      if (pieceCat !== cat && !hasComponentInCat) return false
     }
     if (!query) return true
-    return foldName(piece.name).includes(query) || foldName(piece.code).includes(query)
+    if (foldName(piece.name).includes(query) || foldName(piece.code).includes(query)) return true
+    if (Array.isArray(piece.components)) {
+      return piece.components.some((c) => foldName(c.name).includes(query))
+    }
+    return false
   })
 }
 
@@ -183,7 +195,7 @@ export function totalPiecesCount(selected) {
 }
 
 export function addPiece(selected, piece, quantity = 1) {
-  const stock = Number(piece?.quantity) || 0
+  const stock = Number(piece?.quantity ?? piece?.stock) || 0
   if (stock <= 0) return selected || []
   const current = selected || []
   const existing = current.find((item) => sameId(item.id, piece.id))
@@ -197,6 +209,8 @@ export function addPiece(selected, piece, quantity = 1) {
     id: piece.id,
     code: piece.code,
     name: piece.name,
+    parent_name: piece.parent_name || "",
+    component_name: piece.component_name || "",
     categoria: piece.categoria || resolvePieceCategory(piece),
     image_url: piece.image_url || "",
     unit_price: roundMoney(effective),
@@ -206,6 +220,16 @@ export function addPiece(selected, piece, quantity = 1) {
     quantity: Math.min(Math.max(1, quantity), stock),
     stock
   }]
+}
+
+export function addComponents(selected, components, quantity = 1) {
+  let current = selected || []
+  for (const comp of components || []) {
+    if ((Number(comp.quantity ?? comp.stock) || 0) > 0) {
+      current = addPiece(current, comp, quantity)
+    }
+  }
+  return current
 }
 
 export function togglePiece(selected, piece) {
