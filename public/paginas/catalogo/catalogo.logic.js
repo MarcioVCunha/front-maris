@@ -284,10 +284,10 @@ export function pieceCareText(product) {
 
 export function detectPieceMaterial(product) {
   const code = String(product?.code || "").trim()
-  const name = String(product?.name || "").toLowerCase()
+  const nameFolded = foldText(product?.name)
   const suffix = parseProductColor(code).suffix
 
-  if (suffix === "AD") {
+  if (suffix === "AD" || nameFolded.includes("aco dourado")) {
     return {
       id: "aco_dourado",
       label: "Aço Inoxidável Dourado (PVD)",
@@ -300,7 +300,7 @@ export function detectPieceMaterial(product) {
     }
   }
 
-  if (suffix === "A") {
+  if (suffix === "A" || nameFolded.includes("aco inox") || nameFolded.includes("aco cirurgico") || nameFolded.includes("em aco") || (nameFolded.includes("aco") && !nameFolded.includes("aco dourado"))) {
     return {
       id: "aco",
       label: "Aço Inoxidável",
@@ -313,7 +313,7 @@ export function detectPieceMaterial(product) {
     }
   }
 
-  if (suffix === "R" || name.includes("ródio") || name.includes("rodio")) {
+  if (suffix === "R" || nameFolded.includes("rodio") || nameFolded.includes("prata")) {
     return {
       id: "rodio",
       label: "Semijoia em Ródio Branco",
@@ -503,11 +503,26 @@ export function sortGroupsByBestsellers(groups, totals) {
 }
 
 export const COLOR_FILTERS = [
-  { id: "dourado", label: "Dourado", suffixes: ["O"] },
-  { id: "rodio", label: "Ródio", suffixes: ["R"] },
-  { id: "aco", label: "Aço", suffixes: ["A"] },
-  { id: "aco-dourado", label: "Aço dourado", suffixes: ["AD"] },
+  { id: "dourado", label: "Dourado (Ouro 18k)", suffixes: ["O"], materialIds: ["ouro"] },
+  { id: "rodio", label: "Ródio Branco", suffixes: ["R"], materialIds: ["rodio"] },
+  { id: "aco", label: "Aço Inox", suffixes: ["A"], materialIds: ["aco"] },
+  { id: "aco-dourado", label: "Aço Dourado (PVD)", suffixes: ["AD"], materialIds: ["aco_dourado"] },
 ]
+
+export const PRICE_RANGE_PRESETS = [
+  { id: "ate-50", label: "Até R$ 50", min: null, max: 50 },
+  { id: "50-100", label: "R$ 50 a R$ 100", min: 50, max: 100 },
+  { id: "100-200", label: "R$ 100 a R$ 200", min: 100, max: 200 },
+  { id: "acima-200", label: "Acima de R$ 200", min: 200, max: null },
+]
+
+export function variantMatchesColor(variant, colorFilter) {
+  if (!colorFilter || !variant) return false
+  if (variant.suffix && colorFilter.suffixes?.includes(variant.suffix)) return true
+  const mat = detectPieceMaterial(variant.product)
+  if (colorFilter.materialIds?.includes(mat.id)) return true
+  return false
+}
 
 export function parsePriceBound(value) {
   const raw = String(value ?? "").trim()
@@ -522,7 +537,7 @@ export function parsePriceBound(value) {
 export function displayVariantForFilters(group, filters, isAvailable) {
   const color = COLOR_FILTERS.find((item) => item.id === filters?.colorId)
   if (color) {
-    const matches = (group?.variants || []).filter((variant) => color.suffixes.includes(variant.suffix))
+    const matches = (group?.variants || []).filter((variant) => variantMatchesColor(variant, color))
     const available = matches.find((variant) => Boolean(isAvailable?.(variant.product)))
     if (available) return available
     if (matches[0]) return matches[0]
@@ -535,7 +550,7 @@ export function groupPassesFilters(group, filters, isAvailable) {
   const category = filters?.category || "Todos"
   if (!groupMatchesFilters(group, term, category, isAvailable)) return false
   const color = COLOR_FILTERS.find((item) => item.id === filters?.colorId)
-  if (color && !(group?.variants || []).some((variant) => color.suffixes.includes(variant.suffix))) return false
+  if (color && !(group?.variants || []).some((variant) => variantMatchesColor(variant, color))) return false
   const display = displayVariantForFilters(group, filters, isAvailable)
   const offer = offerFromProduct(display?.product)
   if (filters?.onSaleOnly && !offer.onSale) return false
@@ -544,6 +559,48 @@ export function groupPassesFilters(group, filters, isAvailable) {
   if (minPrice != null && Number.isFinite(Number(minPrice)) && offer.finalPrice < Number(minPrice)) return false
   if (maxPrice != null && Number.isFinite(Number(maxPrice)) && offer.finalPrice > Number(maxPrice)) return false
   return true
+}
+
+export function getActiveFilterPills(filters = {}) {
+  const pills = []
+  if (filters.category && filters.category !== "Todos") {
+    pills.push({ type: "category", label: `Categoria: ${filters.category}`, value: filters.category })
+  }
+  if (filters.colorId) {
+    const color = COLOR_FILTERS.find((c) => c.id === filters.colorId)
+    pills.push({ type: "color", label: `Banho: ${color?.label || filters.colorId}`, value: filters.colorId })
+  }
+  if (filters.minPrice != null || filters.maxPrice != null) {
+    let label = ""
+    if (filters.minPrice != null && filters.maxPrice != null) {
+      label = `R$ ${filters.minPrice} a R$ ${filters.maxPrice}`
+    } else if (filters.minPrice != null) {
+      label = `A partir de R$ ${filters.minPrice}`
+    } else {
+      label = `Até R$ ${filters.maxPrice}`
+    }
+    pills.push({ type: "price", label, value: { min: filters.minPrice, max: filters.maxPrice } })
+  }
+  if (filters.onSaleOnly) {
+    pills.push({ type: "onSale", label: "Em promoção", value: true })
+  }
+  if (filters.onlyAvailable) {
+    pills.push({ type: "onlyAvailable", label: "Só disponíveis", value: true })
+  }
+  if (filters.term) {
+    pills.push({ type: "term", label: `Busca: "${filters.term}"`, value: filters.term })
+  }
+  return pills
+}
+
+export function countActiveFilters(filters = {}) {
+  let count = 0
+  if (filters.category && filters.category !== "Todos") count++
+  if (filters.colorId) count++
+  if (filters.minPrice != null || filters.maxPrice != null) count++
+  if (filters.onSaleOnly) count++
+  if (filters.onlyAvailable) count++
+  return count
 }
 
 export function filterAndPartitionCatalog(groups, filters, isAvailable) {
@@ -688,24 +745,46 @@ export function normalizeCategoryParam(value) {
 
 export function readCatalogLink(search) {
   const params = new URLSearchParams(String(search || "").replace(/^\?/, ""))
+  const rawPromo = params.get("promocao") || params.get("promo")
+  const onSaleOnly = rawPromo === "1" || rawPromo === "true" || rawPromo === "sim"
+  const rawAvail = params.get("disponivel")
+  const onlyAvailable = rawAvail === "1" || rawAvail === "true" || rawAvail === "sim"
+  const cor = String(params.get("cor") || "").trim().toLowerCase()
+  const validColor = COLOR_FILTERS.some((c) => c.id === cor) ? cor : ""
+  const ordem = String(params.get("ordem") || "").trim()
+
   return {
     categoria: normalizeCategoryParam(params.get("categoria")),
     peca: String(params.get("peca") || "").trim(),
+    cor: validColor,
+    ordem,
+    onSaleOnly,
+    onlyAvailable,
+    minPrice: parsePriceBound(params.get("preco_min") || params.get("min")),
+    maxPrice: parsePriceBound(params.get("preco_max") || params.get("max")),
+    busca: String(params.get("busca") || params.get("q") || "").trim(),
     utmSource: String(params.get("utm_source") || "").trim(),
     utmMedium: String(params.get("utm_medium") || "").trim(),
     utmCampaign: String(params.get("utm_campaign") || "").trim(),
   }
 }
 
-export function buildCatalogQuery({ categoria, peca, utmSource, utmMedium, utmCampaign } = {}) {
+export function buildCatalogQuery(options = {}) {
   const params = new URLSearchParams()
-  const category = normalizeCategoryParam(categoria)
+  const category = normalizeCategoryParam(options.categoria)
   if (category !== "Todos") params.set("categoria", category)
-  const piece = String(peca || "").trim()
+  const piece = String(options.peca || "").trim()
   if (piece) params.set("peca", piece)
-  if (utmSource) params.set("utm_source", utmSource)
-  if (utmMedium) params.set("utm_medium", utmMedium)
-  if (utmCampaign) params.set("utm_campaign", utmCampaign)
+  if (options.cor) params.set("cor", options.cor)
+  if (options.ordem && options.ordem !== "name_asc") params.set("ordem", options.ordem)
+  if (options.onSaleOnly) params.set("promocao", "1")
+  if (options.onlyAvailable) params.set("disponivel", "1")
+  if (options.minPrice != null && Number.isFinite(Number(options.minPrice))) params.set("preco_min", String(options.minPrice))
+  if (options.maxPrice != null && Number.isFinite(Number(options.maxPrice))) params.set("preco_max", String(options.maxPrice))
+  if (options.busca) params.set("busca", options.busca)
+  if (options.utmSource) params.set("utm_source", options.utmSource)
+  if (options.utmMedium) params.set("utm_medium", options.utmMedium)
+  if (options.utmCampaign) params.set("utm_campaign", options.utmCampaign)
   const query = params.toString()
   return query ? `?${query}` : ""
 }
@@ -829,6 +908,15 @@ export function sortProductsForCatalog(products, mode) {
       const ta = Date.parse(String(a?.created_at || "")) || 0
       const tb = Date.parse(String(b?.created_at || "")) || 0
       if (ta !== tb) return mode === "created_asc" ? ta - tb : tb - ta
+    } else if (mode === "discount_desc") {
+      const da = offerFromProduct(a).percentOff || 0
+      const db = offerFromProduct(b).percentOff || 0
+      if (da !== db) return db - da
+      const pa = offerFromProduct(a).finalPrice
+      const pb = offerFromProduct(b).finalPrice
+      if (pa !== pb) return pa - pb
+    } else if (mode === "name_desc") {
+      return String(b?.name || "").localeCompare(String(a?.name || ""), "pt-BR")
     }
     return String(a?.name || "").localeCompare(String(b?.name || ""), "pt-BR")
   })
@@ -973,6 +1061,10 @@ if (typeof globalThis.window !== "undefined") {
     groupSoldTotal,
     sortGroupsByBestsellers,
     COLOR_FILTERS,
+    PRICE_RANGE_PRESETS,
+    variantMatchesColor,
+    getActiveFilterPills,
+    countActiveFilters,
     parsePriceBound,
     displayVariantForFilters,
     groupPassesFilters,

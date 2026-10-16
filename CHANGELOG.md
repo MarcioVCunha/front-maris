@@ -6,6 +6,15 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Filtros avançados, ordenações e persistência de URL no catálogo (`/catalog`):
+  - Filtro refinado por banho / cor do metal (Dourado / Ouro 18k, Ródio Branco, Aço Inox, Aço Dourado PVD), unificando sufixos no código (`-O`, `-R`, `-A`, `-AD`) e identificação semântica por nome para peças sem hífen.
+  - Faixas rápidas de preço em chips de um toque ("Até R$ 50", "R$ 50 a R$ 100", "R$ 100 a R$ 200", "Acima de R$ 200") combinadas com campos livres de preço mínimo e máximo.
+  - Filtro "Em promoção" no drawer de filtros sincronizado bidirecionalmente com o botão de coleções no topo.
+  - Barra de filtros ativos (`#catalog-active-filters-bar`) com pills removíveis individualmente ("Categoria: Colar ×", "Banho: Dourado ×", "Até R$ 100 ×") e botão "Limpar filtros" tanto na tela quanto na gaveta.
+  - Indicador de filtros ativos no botão "Filtros" com badge numérico.
+  - Novas ordenações no catálogo: "Nome (Z-A)" e "Maior desconto" (ordenação por % de desconto).
+  - Sincronização e deep-linking completos dos filtros na URL do navegador (`?categoria=...&cor=...&ordem=...&promocao=1&disponivel=1&preco_min=...&preco_max=...`).
+
 - Galeria interativa com Lightbox Zoom, especificações e cuidados por material na página da peça (`/catalog?peca=...`):
   - Suporte a múltiplas fotos com etiqueta flutuante inteligente ("Principal", "No corpo / Usando", "Detalhes da peça"), setas de navegação rápida e miniaturas interativas com seleção instantânea.
   - Modal Lightbox Zoom com ampliação de até 3x, controles visuais (+ / − / 100%), suporte a arrastar/pan (mouse e toque), rolagem do mouse e atalhos de teclado (Esc para fechar, setas para navegar).

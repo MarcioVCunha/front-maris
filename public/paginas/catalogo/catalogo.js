@@ -11,6 +11,10 @@ const {
   offerFromProduct,
   pixPrice,
   COLOR_FILTERS,
+  PRICE_RANGE_PRESETS,
+  variantMatchesColor,
+  getActiveFilterPills,
+  countActiveFilters,
   parsePriceBound,
   displayVariantForFilters,
   filterAndPartitionCatalog,
@@ -81,11 +85,19 @@ const productModalComponentsList = document.getElementById("product-modal-compon
 const productModalActions = document.getElementById("product-modal-actions")
 const catalogFeedbackEl = document.getElementById("catalog-feedback")
 const catalogFiltersEl = document.getElementById("catalog-filters")
+const catalogFiltersOpenBtn = document.getElementById("catalog-filters-open")
+const catalogFiltersCountEl = document.getElementById("catalog-filters-count")
+const catalogActiveFiltersBar = document.getElementById("catalog-active-filters-bar")
+const catalogActivePills = document.getElementById("catalog-active-pills")
+const catalogActiveClearAllBtn = document.getElementById("catalog-active-clear-all")
 const catalogDrawer = document.getElementById("catalog-drawer")
 const colorFiltersEl = document.getElementById("catalog-color-filters")
+const priceRangePresetsEl = document.getElementById("price-range-presets")
 const minPriceInput = document.getElementById("filter-min-price")
 const maxPriceInput = document.getElementById("filter-max-price")
+const filterOnSaleInput = document.getElementById("filter-on-sale")
 const onlyAvailableInput = document.getElementById("filter-only-available")
+const catalogFiltersClearBtn = document.getElementById("catalog-filters-clear")
 const piecePage = document.getElementById("piece-page")
 const pieceGalleryContainer = document.getElementById("piece-gallery-container")
 const pieceGallery = document.getElementById("piece-gallery")
@@ -309,6 +321,13 @@ function syncCatalogUrl() {
   const next = buildCatalogQuery({
     categoria: selectedCategory,
     peca: currentPieceBase(),
+    cor: colorId,
+    ordem: getSortMode(),
+    onSaleOnly,
+    onlyAvailable,
+    minPrice,
+    maxPrice,
+    busca: getSearchTerm(),
     utmSource: linkUtm.utmSource,
     utmMedium: linkUtm.utmMedium,
     utmCampaign: linkUtm.utmCampaign,
@@ -781,6 +800,22 @@ function applyCatalogLink() {
     utmCampaign: link.utmCampaign,
   }
   selectedCategory = link.categoria
+  colorId = link.cor || ""
+  if (link.ordem && catalogSortSelect) {
+    catalogSortSelect.value = link.ordem
+  }
+  onSaleOnly = Boolean(link.onSaleOnly)
+  onlyAvailable = Boolean(link.onlyAvailable)
+  minPrice = link.minPrice
+  maxPrice = link.maxPrice
+  if (link.busca && catalogSearchInput) {
+    catalogSearchInput.value = link.busca
+    syncSearchClearButton()
+  }
+  syncDrawerInputs()
+  renderColorFilters()
+  syncCollectionPressed()
+
   if (!link.peca) {
     pieceGroupKey = ""
     if (piecePage) piecePage.hidden = true
@@ -809,6 +844,8 @@ function renderCatalogGrids() {
   const sortMode = getSortMode()
 
   renderCategoryFilters()
+  renderActiveFilters()
+  syncDrawerInputs()
 
   const filters = activeFilters()
   const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
@@ -1490,6 +1527,68 @@ function readDrawerFilters() {
   minPrice = parsePriceBound(minPriceInput?.value)
   maxPrice = parsePriceBound(maxPriceInput?.value)
   onlyAvailable = Boolean(onlyAvailableInput?.checked)
+  onSaleOnly = Boolean(filterOnSaleInput?.checked)
+}
+
+function syncDrawerInputs() {
+  if (minPriceInput) minPriceInput.value = minPrice != null ? String(minPrice).replace(".", ",") : ""
+  if (maxPriceInput) maxPriceInput.value = maxPrice != null ? String(maxPrice).replace(".", ",") : ""
+  if (onlyAvailableInput) onlyAvailableInput.checked = Boolean(onlyAvailable)
+  if (filterOnSaleInput) filterOnSaleInput.checked = Boolean(onSaleOnly)
+
+  if (priceRangePresetsEl) {
+    priceRangePresetsEl.querySelectorAll(".price-preset-chip").forEach((chip) => {
+      const pMin = chip.getAttribute("data-min") ? Number(chip.getAttribute("data-min")) : null
+      const pMax = chip.getAttribute("data-max") ? Number(chip.getAttribute("data-max")) : null
+      const isActive = minPrice === pMin && maxPrice === pMax
+      chip.classList.toggle("is-active", isActive)
+      chip.setAttribute("aria-pressed", isActive ? "true" : "false")
+    })
+  }
+}
+
+function renderActiveFilters() {
+  const filters = activeFilters()
+  const count = countActiveFilters(filters)
+
+  if (catalogFiltersCountEl) {
+    catalogFiltersCountEl.textContent = String(count)
+    catalogFiltersCountEl.hidden = count === 0
+  }
+
+  if (!catalogActiveFiltersBar || !catalogActivePills) return
+
+  const pills = getActiveFilterPills(filters)
+  if (!pills.length) {
+    catalogActiveFiltersBar.hidden = true
+    catalogActivePills.innerHTML = ""
+    return
+  }
+
+  catalogActivePills.innerHTML = pills.map((p) => `
+    <button type="button" class="catalog-active-pill" data-pill-type="${escapeHtml(p.type)}" aria-label="Remover filtro ${escapeHtml(p.label)}">
+      <span>${escapeHtml(p.label)}</span>
+      <span class="pill-remove" aria-hidden="true">×</span>
+    </button>
+  `).join("")
+  catalogActiveFiltersBar.hidden = false
+}
+
+function clearAllFilters() {
+  selectedCategory = "Todos"
+  colorId = ""
+  minPrice = null
+  maxPrice = null
+  onlyAvailable = false
+  onSaleOnly = false
+  if (catalogSearchInput) {
+    catalogSearchInput.value = ""
+    syncSearchClearButton()
+  }
+  syncDrawerInputs()
+  renderColorFilters()
+  syncCollectionPressed()
+  refreshAfterFilterChange()
 }
 
 function setDrawerOpen(open) {
@@ -1535,6 +1634,51 @@ document.getElementById("catalog-filters-apply")?.addEventListener("click", () =
   setDrawerOpen(false)
   refreshAfterFilterChange()
 })
+catalogFiltersClearBtn?.addEventListener("click", () => {
+  clearAllFilters()
+  setDrawerOpen(false)
+})
+catalogActiveClearAllBtn?.addEventListener("click", () => {
+  clearAllFilters()
+})
+catalogActivePills?.addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-pill-type]")
+  if (!btn) return
+  const type = btn.getAttribute("data-pill-type")
+  if (type === "category") selectedCategory = "Todos"
+  else if (type === "color") colorId = ""
+  else if (type === "price") {
+    minPrice = null
+    maxPrice = null
+  } else if (type === "onSale") onSaleOnly = false
+  else if (type === "onlyAvailable") onlyAvailable = false
+  else if (type === "term") {
+    if (catalogSearchInput) {
+      catalogSearchInput.value = ""
+      syncSearchClearButton()
+    }
+  }
+  syncDrawerInputs()
+  renderColorFilters()
+  syncCollectionPressed()
+  refreshAfterFilterChange()
+})
+priceRangePresetsEl?.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-preset-id]")
+  if (!chip) return
+  const pMin = chip.getAttribute("data-min") ? Number(chip.getAttribute("data-min")) : null
+  const pMax = chip.getAttribute("data-max") ? Number(chip.getAttribute("data-max")) : null
+
+  if (minPrice === pMin && maxPrice === pMax) {
+    minPrice = null
+    maxPrice = null
+  } else {
+    minPrice = pMin
+    maxPrice = pMax
+  }
+  syncDrawerInputs()
+  refreshAfterFilterChange()
+})
 catalogDrawer?.addEventListener("click", (event) => {
   const target = event.target
   if (target instanceof HTMLElement && target.dataset.closeDrawer === "true") setDrawerOpen(false)
@@ -1545,6 +1689,11 @@ minPriceInput?.addEventListener("change", () => {
 })
 maxPriceInput?.addEventListener("change", () => {
   readDrawerFilters()
+  refreshAfterFilterChange()
+})
+filterOnSaleInput?.addEventListener("change", () => {
+  readDrawerFilters()
+  syncCollectionPressed()
   refreshAfterFilterChange()
 })
 onlyAvailableInput?.addEventListener("change", () => {
