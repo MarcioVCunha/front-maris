@@ -42,6 +42,11 @@ import {
   STORE_WHATSAPP_NUMBER,
   visibleCategories,
   whatsappLink,
+  buildProductShareText,
+  buildWhatsappShareLink,
+  buildProductOgMetadata,
+  updateOpenGraphTags,
+  formatMoneyShare,
 } from "./catalogo.logic.js"
 
 const inStock = (product) => (Number(product?.quantity) || 0) > 0
@@ -527,3 +532,75 @@ Deno.test("mais vendidas ordena pelo total e soma as cores da mesma peça", () =
   assertEquals(totalsByProductCode([]).size, 0)
   assertEquals(totalsByProductCode(null).size, 0)
 })
+
+Deno.test("buildProductShareText monta texto com nome, preços em reais e link", () => {
+  const product = {
+    code: "BM123",
+    name: "Brinco Coração",
+    unit_price: 100,
+    preco_efetivo: 80,
+    preco_pix: 76,
+  }
+
+  const text = buildProductShareText(product, { origin: "https://maris.test" })
+  assertEquals(text.includes("Brinco Coração"), true)
+  assertEquals(text.includes("80,00"), true)
+  assertEquals(text.includes("76,00"), true)
+  assertEquals(text.includes("https://maris.test/catalog?peca=BM123"), true)
+
+  assertEquals(buildProductShareText(null), "")
+})
+
+Deno.test("buildWhatsappShareLink gera URL de compartilhamento", () => {
+  const url = buildWhatsappShareLink("Olha esse brinco lindo: https://maris.test")
+  assertEquals(url.startsWith("https://api.whatsapp.com/send?text="), true)
+  assertEquals(url.includes("Olha%20esse%20brinco"), true)
+})
+
+Deno.test("buildProductOgMetadata gera metatags para produto ou fallback do catálogo", () => {
+  const product = {
+    code: "CL456",
+    name: "Colar Ponto de Luz",
+    unit_price: 50,
+    image_url: "https://img.test/colar.jpg",
+  }
+
+  const productMeta = buildProductOgMetadata(product, { origin: "https://maris.test" })
+  assertEquals(productMeta.title, "Colar Ponto de Luz — Maris Semijoias")
+  assertEquals(productMeta.description.includes("Colar Ponto de Luz"), true)
+  assertEquals(productMeta.description.includes("50,00"), true)
+  assertEquals(productMeta.image, "https://img.test/colar.jpg")
+  assertEquals(productMeta.url, "https://maris.test/catalog?peca=CL456")
+
+  const catalogMeta = buildProductOgMetadata(null, { origin: "https://maris.test" })
+  assertEquals(catalogMeta.title, "Catálogo — Maris Semijoias")
+  assertEquals(catalogMeta.url, "https://maris.test/catalog")
+})
+
+Deno.test("updateOpenGraphTags atualiza atributos no DOM", () => {
+  const store: Record<string, string> = {}
+  const mockDoc = {
+    title: "",
+    querySelector(selector: string) {
+      return {
+        setAttribute(attr: string, val: string) {
+          store[`${selector}[${attr}]`] = val
+        }
+      }
+    }
+  }
+
+  updateOpenGraphTags({
+    title: "Anel Solitário — Maris",
+    description: "Anel lindo por R$ 39,90",
+    image: "https://img.test/anel.jpg",
+    url: "https://maris.test/catalog?peca=AN1"
+  }, mockDoc as unknown as Document)
+
+  assertEquals(mockDoc.title, "Anel Solitário — Maris")
+  assertEquals(store['meta[property="og:title"][content]'], "Anel Solitário — Maris")
+  assertEquals(store['meta[property="og:description"][content]'], "Anel lindo por R$ 39,90")
+  assertEquals(store['meta[property="og:image"][content]'], "https://img.test/anel.jpg")
+  assertEquals(store['meta[property="og:url"][content]'], "https://maris.test/catalog?peca=AN1")
+})
+
