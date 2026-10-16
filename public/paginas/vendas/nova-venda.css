@@ -1026,3 +1026,198 @@
   color: var(--maris-text-muted);
 }
 
+/* Peças com subtipos / divisões (Conjuntos: brinco, colar, etc) */
+.piece-card--set {
+  border-color: rgba(184, 134, 11, 0.4);
+}
+
+.piece-card-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge-subtipos {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #fdf3d8;
+  color: #725219;
+  border: 1px solid rgba(184, 134, 11, 0.25);
+}
+
+.stock-tag--set {
+  background: #f3f0ff;
+  color: #4338ca;
+  font-weight: 700;
+  border-color: rgba(67, 56, 202, 0.2);
+}
+
+.price-from-label {
+  font-size: 0.75rem;
+  color: var(--maris-text-muted);
+}
+
+.piece-card-components-section {
+  padding: 10px 12px 12px;
+  border-top: 1px dashed var(--maris-border);
+  background: #faf8f5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.components-section-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--maris-text-muted);
+}
+
+.components-subitems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subitem-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--maris-border-soft);
+  transition: all 0.15s ease;
+}
+
+.subitem-row--selected {
+  border-color: var(--maris-gold);
+  background: #fffdf7;
+  box-shadow: 0 0 0 1px var(--maris-gold-light);
+}
+
+.subitem-row--soldout {
+  opacity: 0.55;
+  background: #f5f5f5;
+}
+
+.subitem-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.subitem-name {
+  font-size: 0.82rem;
+  color: var(--maris-black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subitem-stock {
+  font-size: 0.7rem;
+  color: var(--maris-text-muted);
+}
+
+.subitem-price {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 52px;
+}
+
+.subitem-val {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--maris-black);
+}
+
+.subitem-pix {
+  font-size: 0.7rem;
+  color: #1e6b45;
+  font-weight: 600;
+}
+
+.subitem-action {
+  flex: 0 0 auto;
+}
+
+.btn-subitem-add {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 6px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  color: var(--maris-black);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-subitem-add:hover:not(:disabled) {
+  background: var(--maris-gold);
+  border-color: var(--maris-gold-dark);
+  color: #fff;
+}
+
+.btn-subitem-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.subitem-stepper {
+  padding: 2px;
+  border-radius: 8px;
+}
+
+.subitem-stepper .card-stepper-btn {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+}
+
+.subitem-stepper .card-stepper-qty {
+  font-size: 0.85rem;
+  padding: 0 4px;
+}
+
+.btn-add-all-set {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff8eb;
+  border: 1px dashed var(--maris-gold);
+  color: #725219;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.btn-add-all-set:hover {
+  background: var(--maris-gold);
+  border-color: var(--maris-gold-dark);
+  color: #fff;
+  border-style: solid;
+}
+
+
