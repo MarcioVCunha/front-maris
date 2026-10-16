@@ -169,6 +169,36 @@ export function filterSalesBySeller(sales, seller) {
   })
 }
 
+/** Filtra vendas por status (all|receivable|paid|partial|cancelled). */
+export function filterSalesByStatus(sales, status) {
+  const key = String(status || "").trim().toLowerCase()
+  if (!key || key === "all" || key === "todas") {
+    return (sales || []).filter((sale) => {
+      const s = saleStatusKey(sale?.payment_status)
+      return s !== "cancelled" && s !== "canceled"
+    })
+  }
+  if (key === "receivable" || key === "a_receber") {
+    return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === "receivable")
+  }
+  if (key === "paid" || key === "paga" || key === "pagas") {
+    return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === "paid")
+  }
+  if (key === "partial" || key === "a_confirmar") {
+    return (sales || []).filter((sale) => {
+      const s = saleStatusKey(sale?.payment_status)
+      return s === "partial" || s === "to_confirm" || s === "pending"
+    })
+  }
+  if (key === "cancelled" || key === "cancelada" || key === "canceladas" || key === "canceled") {
+    return (sales || []).filter((sale) => {
+      const s = saleStatusKey(sale?.payment_status)
+      return s === "cancelled" || s === "canceled"
+    })
+  }
+  return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === key)
+}
+
 export function normalizeSaleItems(raw) {
   if (!Array.isArray(raw)) return []
   return raw.map((item) => ({

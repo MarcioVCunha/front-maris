@@ -491,6 +491,45 @@
   font-weight: 700;
 }
 
+.sale-status-filter {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 14px;
+  margin: 0 0 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.status-filter-btn {
+  flex: 0 0 auto;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  color: var(--maris-black);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-filter-btn:hover {
+  border-color: var(--maris-gold-dark, #7a5a2e);
+}
+
+.status-filter-btn--active,
+.status-filter-btn[aria-selected="true"] {
+  background: var(--maris-gold-dark, #7a5a2e);
+  border-color: var(--maris-gold-dark, #7a5a2e);
+  color: #fff;
+}
+
 .sale-card-list {
   list-style: none;
   margin: 0;

@@ -40,6 +40,7 @@ import {
 import {
   ADMIN_SALE_EDIT_ENABLED,
   filterSalesBySeller,
+  filterSalesByStatus,
   normalizeAdminSale,
   readSaleEditForm,
   renderSaleCards,
@@ -147,6 +148,8 @@ const state = {
   sellers: undefined,
   selectedChannel: null,
   selectedSellerId: null,
+  selectedSaleStatus: "all",
+  loadedStatus: "all",
   conjuntoQuery: ""
 }
 
@@ -666,10 +669,13 @@ async function loadOverview() {
   return state.overview
 }
 
-async function loadRecent() {
-  if (state.recent !== undefined) return state.recent
-  const result = await fetchRecentSales({ limit: 50 })
+async function loadRecent(status = "all") {
+  const normalized = status || "all"
+  if (state.recent !== undefined && state.loadedStatus === normalized) return state.recent
+  const queryStatus = normalized === "all" ? undefined : normalized
+  const result = await fetchRecentSales({ limit: 50, status: queryStatus })
   state.recent = result.ok ? normalizeRecentSales(result.data) : null
+  state.loadedStatus = normalized
   return state.recent
 }
 
@@ -777,12 +783,23 @@ function bindInicio() {
 function paintVendas() {
   viewEl.classList.remove("view--inicio")
   viewEl.innerHTML = renderVendas(state.recent, formatPrice, {
+    selectedStatus: state.selectedSaleStatus || "all",
+    filterSales: filterSalesByStatus,
     renderSales: (rows, formatMoney) => renderSaleCards(rows, formatMoney, {
       clickable: true,
       empty: "Nenhuma venda recente."
     })
   })
   bindSaleCards()
+  viewEl.querySelectorAll(".status-filter-btn[data-status]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const targetStatus = btn.getAttribute("data-status") || "all"
+      if (state.selectedSaleStatus === targetStatus) return
+      state.selectedSaleStatus = targetStatus
+      await loadRecent(targetStatus)
+      paintVendas()
+    })
+  })
 }
 
 function paintVendedoras() {
@@ -844,23 +861,24 @@ async function render(view, token) {
   const stale = () => token !== renderToken
   if (view === "inicio") {
     viewEl.classList.add("view--inicio")
-    if (state.overview === undefined || state.recent === undefined) viewEl.innerHTML = viewLoading()
-    await Promise.all([loadOverview(), loadRecent()])
+    if (state.overview === undefined || state.recent === undefined || state.loadedStatus !== "all") viewEl.innerHTML = viewLoading()
+    await Promise.all([loadOverview(), loadRecent("all")])
     if (stale()) return
     paintInicio()
     return
   }
   viewEl.classList.remove("view--inicio")
   if (view === "vendas") {
-    if (state.recent === undefined) viewEl.innerHTML = viewLoading()
-    await loadRecent()
+    const status = state.selectedSaleStatus || "all"
+    if (state.recent === undefined || state.loadedStatus !== status) viewEl.innerHTML = viewLoading()
+    await loadRecent(status)
     if (stale()) return
     paintVendas()
     return
   }
   if (view === "vendedoras") {
-    if (state.sellers === undefined || state.recent === undefined) viewEl.innerHTML = viewLoading()
-    await Promise.all([loadSellers(), loadRecent()])
+    if (state.sellers === undefined || state.recent === undefined || state.loadedStatus !== "all") viewEl.innerHTML = viewLoading()
+    await Promise.all([loadSellers(), loadRecent("all")])
     if (stale()) return
     paintVendedoras()
     return
