@@ -16,6 +16,9 @@ import {
   updateAdminSale,
   updateComponentSku,
   updateProduct,
+  fetchCollectionList,
+  saveCollection,
+  deleteCollection,
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
@@ -45,6 +48,9 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.saleUpdate, "admin-sale-update")
   assertEquals(ADMIN_DASHBOARD_API.saleCancel, "admin-sale-cancel")
   assertEquals(ADMIN_DASHBOARD_API.saleMarkPaid, "admin-sale-mark-paid")
+  assertEquals(ADMIN_DASHBOARD_API.collectionList, "admin-collection-list")
+  assertEquals(ADMIN_DASHBOARD_API.collectionSave, "admin-collection-save")
+  assertEquals(ADMIN_DASHBOARD_API.collectionDelete, "admin-collection-delete")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -188,4 +194,26 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(divisionsSaved.components[0].sku, "CJ100-O-BRINCO")
   assertEquals(divisions.calls[0].name, "admin-product-components")
   assertEquals(divisions.calls[0].options.method, "POST")
+
+  // Coleções
+  const listClient = client({ ok: true, collections: [{ id: 1, name: "Mães" }] })
+  const collectionsRes = await fetchCollectionList(listClient)
+  assertEquals(collectionsRes.ok, true)
+  assertEquals(collectionsRes.data.collections.length, 1)
+  assertEquals(listClient.calls[0].name, "admin-collection-list")
+  assertEquals(listClient.calls[0].options.method, "GET")
+
+  const saveClient = client({ ok: true, collection: { id: 1, name: "Mães 2026" } })
+  const saveRes = await saveCollection({ name: "Mães 2026" }, saveClient)
+  assertEquals(saveRes.ok, true)
+  assertEquals(saveClient.calls[0].name, "admin-collection-save")
+  assertEquals(saveClient.calls[0].options.method, "POST")
+  assertEquals(saveClient.calls[0].options.body, { name: "Mães 2026" })
+
+  const delClient = client({ ok: true, id: 1 })
+  const delRes = await deleteCollection(1, delClient)
+  assertEquals(delRes.ok, true)
+  assertEquals(delClient.calls[0].name, "admin-collection-delete")
+  assertEquals(delClient.calls[0].options.method, "POST")
+  assertEquals(delClient.calls[0].options.body, { id: 1 })
 })

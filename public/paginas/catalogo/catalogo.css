@@ -1043,6 +1043,47 @@ body {
   overflow-x: auto;
 }
 
+.catalog-collection-banner {
+  margin: 8px 16px 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fdf8f4 0%, #faeee5 100%);
+  border: 1px solid #ebd3c2;
+  border-radius: 12px;
+}
+
+.catalog-collection-banner-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.catalog-collection-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--maris-gold, #c59b27);
+  color: #fff;
+  border-radius: 999px;
+}
+
+.catalog-collection-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--maris-black, #111);
+}
+
+.catalog-collection-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+}
+
 .catalog-filters-open {
   display: inline-flex;
   align-items: center;
