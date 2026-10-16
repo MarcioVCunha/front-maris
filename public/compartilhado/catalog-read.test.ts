@@ -202,3 +202,37 @@ Deno.test("mais vendidas ligada consulta a view e desligada não consulta", () =
     Read.BESTSELLERS_ENABLED = previous
   }
 })
+
+Deno.test("selectCollections suporta encadeamento de .catch mesmo se o builder do cliente não tiver", async () => {
+  const client = new FakeClient()
+  const readAny = Read as unknown as { selectCollections: (c: unknown) => { catch: (fn: (err: unknown) => unknown) => Promise<unknown> } }
+  const query = readAny.selectCollections(client)
+  assert(typeof query.catch === "function", "selectCollections deve ter método catch")
+  const value = await query.catch(() => ({ data: [] }))
+  assertEquals(value, client.chain)
+
+  const errorClient = {
+    from() {
+      return {
+        select() {
+          return {
+            order() {
+              return {
+                order() {
+                  return {
+                    then(_res: unknown, reject: (err: Error) => unknown) {
+                      reject(new Error("fail"))
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  const errQuery = readAny.selectCollections(errorClient)
+  const caught = await errQuery.catch(() => ({ data: [] }))
+  assertEquals(caught, { data: [] })
+})
