@@ -87,8 +87,10 @@
           <label for="catalog-sort" class="catalog-search-label">Ordenar por</label>
           <select id="catalog-sort">
             <option value="name_asc">Nome (A-Z)</option>
+            <option value="name_desc">Nome (Z-A)</option>
             <option value="price_asc">Menor preço</option>
             <option value="price_desc">Maior preço</option>
+            <option value="discount_desc">Maior desconto</option>
             <option value="created_desc">Novidades</option>
             <option value="created_asc">Mais antigos</option>
             <option value="bestsellers" hidden>Mais vendidas</option>
@@ -103,7 +105,16 @@
       </div>
 
       <div class="catalog-filters-bar">
-        <button type="button" id="catalog-filters-open" class="catalog-filters-open">Filtros</button>
+        <button type="button" id="catalog-filters-open" class="catalog-filters-open">
+          <span>Filtros</span>
+          <span id="catalog-filters-count" class="catalog-filters-count" hidden>0</span>
+        </button>
+      </div>
+
+      <div id="catalog-active-filters-bar" class="catalog-active-filters-bar" hidden>
+        <span class="catalog-active-filters-title">Filtros:</span>
+        <div id="catalog-active-pills" class="catalog-active-pills"></div>
+        <button type="button" id="catalog-active-clear-all" class="catalog-active-clear-all">Limpar filtros</button>
       </div>
 
       <div id="catalog-drawer" class="catalog-drawer">
@@ -115,6 +126,14 @@
           </div>
           <p class="catalog-drawer-label">Categoria</p>
           <div id="catalog-filters" class="catalog-filters" role="group" aria-label="Categorias"></div>
+          
+          <p class="catalog-drawer-label">Faixa de preço</p>
+          <div id="price-range-presets" class="price-range-presets" role="group" aria-label="Faixas rápidas de preço">
+            <button type="button" class="price-preset-chip" data-preset-id="ate-50" data-min="" data-max="50">Até R$ 50</button>
+            <button type="button" class="price-preset-chip" data-preset-id="50-100" data-min="50" data-max="100">R$ 50 a R$ 100</button>
+            <button type="button" class="price-preset-chip" data-preset-id="100-200" data-min="100" data-max="200">R$ 100 a R$ 200</button>
+            <button type="button" class="price-preset-chip" data-preset-id="acima-200" data-min="200" data-max="">Acima de R$ 200</button>
+          </div>
           <div class="catalog-price-filters">
             <label for="filter-min-price">Preço mínimo
               <input id="filter-min-price" inputmode="decimal" placeholder="0,00" autocomplete="off">
@@ -123,13 +142,25 @@
               <input id="filter-max-price" inputmode="decimal" placeholder="0,00" autocomplete="off">
             </label>
           </div>
-          <p class="catalog-drawer-label">Cor</p>
+          
+          <p class="catalog-drawer-label">Banho / Cor do metal</p>
           <div id="catalog-color-filters" class="catalog-filters" role="group" aria-label="Cores"></div>
-          <label class="catalog-check" for="filter-only-available">
-            <input id="filter-only-available" type="checkbox">
-            Só disponíveis
-          </label>
-          <button type="button" id="catalog-filters-apply" class="catalog-filters-apply">Ver peças</button>
+
+          <div class="catalog-checks-group">
+            <label class="catalog-check" for="filter-on-sale">
+              <input id="filter-on-sale" type="checkbox">
+              <span>Em promoção</span>
+            </label>
+            <label class="catalog-check" for="filter-only-available">
+              <input id="filter-only-available" type="checkbox">
+              <span>Só disponíveis</span>
+            </label>
+          </div>
+
+          <div class="catalog-drawer-actions">
+            <button type="button" id="catalog-filters-clear" class="catalog-filters-clear">Limpar filtros</button>
+            <button type="button" id="catalog-filters-apply" class="catalog-filters-apply">Ver peças</button>
+          </div>
         </div>
       </div>
 

@@ -56,6 +56,12 @@ import {
   combinaGroups,
   renderCombinaComponentCard,
   getSearchSuggestions,
+  COLOR_FILTERS,
+  PRICE_RANGE_PRESETS,
+  variantMatchesColor,
+  getActiveFilterPills,
+  countActiveFilters,
+  buildCatalogQuery,
 } from "./catalogo.logic.js"
 
 const inStock = (product) => (Number(product?.quantity) || 0) > 0
@@ -762,5 +768,140 @@ Deno.test("getMaterialCareGuide gera guia completo e adapta orientações de ág
   const waterCardSteel = steelGuide.cards.find((c) => c.icon === "water")
   assertEquals(waterCardSteel?.text.includes("resiste à água doce"), true)
 })
+
+Deno.test("variantMatchesColor identifica banho pelo sufixo ou pelo nome quando não há hífen", () => {
+  const douradoFilter = COLOR_FILTERS.find((c) => c.id === "dourado")
+  const rodioFilter = COLOR_FILTERS.find((c) => c.id === "rodio")
+  const acoFilter = COLOR_FILTERS.find((c) => c.id === "aco")
+  const acoDouradoFilter = COLOR_FILTERS.find((c) => c.id === "aco-dourado")
+
+  // Com sufixo
+  assertEquals(variantMatchesColor({ suffix: "O", product: { code: "BM1-O" } }, douradoFilter), true)
+  assertEquals(variantMatchesColor({ suffix: "R", product: { code: "BM1-R" } }, rodioFilter), true)
+  assertEquals(variantMatchesColor({ suffix: "A", product: { code: "BM1-A" } }, acoFilter), true)
+  assertEquals(variantMatchesColor({ suffix: "AD", product: { code: "BM1-AD" } }, acoDouradoFilter), true)
+
+  // Sem sufixo (fallback inteligente pelo nome/material)
+  const pecaSemHifenOuro = { suffix: null, product: { code: "BOX570", name: "Colar São Bento banhado a ouro18k" } }
+  assertEquals(variantMatchesColor(pecaSemHifenOuro, douradoFilter), true)
+  assertEquals(variantMatchesColor(pecaSemHifenOuro, rodioFilter), false)
+
+  const pecaSemHifenAco = { suffix: null, product: { code: "BOX16", name: "Bracelete prego aço inox" } }
+  assertEquals(variantMatchesColor(pecaSemHifenAco, acoFilter), true)
+  assertEquals(variantMatchesColor(pecaSemHifenAco, douradoFilter), false)
+})
+
+Deno.test("sortProductsForCatalog suporta discount_desc e name_desc", () => {
+  const products = [
+    { name: "Brinco B", unit_price: 100, preco_efetivo: 90 }, // 10%
+    { name: "Anel A", unit_price: 100, preco_efetivo: 70 },   // 30%
+    { name: "Colar C", unit_price: 100, preco_efetivo: 80 },  // 20%
+  ]
+
+  const byDiscount = sortProductsForCatalog(products, "discount_desc")
+  assertEquals(byDiscount.map((p) => p.name), ["Anel A", "Colar C", "Brinco B"])
+
+  const byNameDesc = sortProductsForCatalog(products, "name_desc")
+  assertEquals(byNameDesc.map((p) => p.name), ["Colar C", "Brinco B", "Anel A"])
+})
+
+Deno.test("getActiveFilterPills e countActiveFilters geram os pills corretos", () => {
+  const filtersEmpty = { category: "Todos", colorId: "", minPrice: null, maxPrice: null, onSaleOnly: false, onlyAvailable: false }
+  assertEquals(countActiveFilters(filtersEmpty), 0)
+  assertEquals(getActiveFilterPills(filtersEmpty).length, 0)
+
+  const filtersFull = {
+    category: "Colar",
+    colorId: "dourado",
+    minPrice: 50,
+    maxPrice: 150,
+    onSaleOnly: true,
+    onlyAvailable: true,
+    term: "argola",
+  }
+  assertEquals(countActiveFilters(filtersFull), 5) // category, color, price, onSale, onlyAvailable (term não entra no badge do botão)
+  const pills = getActiveFilterPills(filtersFull)
+  assertEquals(pills.length, 6) // inclui a busca
+  assertEquals(pills.some((p) => p.type === "category" && p.label.includes("Colar")), true)
+  assertEquals(pills.some((p) => p.type === "color" && p.label.includes("Dourado")), true)
+  assertEquals(pills.some((p) => p.type === "price" && p.label.includes("R$ 50 a R$ 150")), true)
+  assertEquals(pills.some((p) => p.type === "onSale"), true)
+  assertEquals(pills.some((p) => p.type === "onlyAvailable"), true)
+  assertEquals(pills.some((p) => p.type === "term"), true)
+})
+
+Deno.test("readCatalogLink e buildCatalogQuery sincronizam filtros com a URL", () => {
+  const query = buildCatalogQuery({
+    categoria: "Brinco",
+    cor: "rodio",
+    ordem: "price_asc",
+    onSaleOnly: true,
+    onlyAvailable: true,
+    minPrice: 40,
+    maxPrice: 120,
+    busca: "pérola",
+  })
+
+  assertEquals(query.includes("categoria=Brinco"), true)
+  assertEquals(query.includes("cor=rodio"), true)
+  assertEquals(query.includes("ordem=price_asc"), true)
+  assertEquals(query.includes("promocao=1"), true)
+  assertEquals(query.includes("disponivel=1"), true)
+  assertEquals(query.includes("preco_min=40"), true)
+  assertEquals(query.includes("preco_max=120"), true)
+  assertEquals(query.includes("busca=p%C3%A9rola"), true)
+
+  const parsed = readCatalogLink(query)
+  assertEquals(parsed.categoria, "Brinco")
+  assertEquals(parsed.cor, "rodio")
+  assertEquals(parsed.ordem, "price_asc")
+  assertEquals(parsed.onSaleOnly, true)
+  assertEquals(parsed.onlyAvailable, true)
+  assertEquals(parsed.minPrice, 40)
+  assertEquals(parsed.maxPrice, 120)
+  assertEquals(parsed.busca, "pérola")
+})
+
+Deno.test("groupPassesFilters filtra por banho, promoção e faixa de preço combinados", () => {
+  const group = {
+    key: "color:ANEL",
+    base: "ANEL",
+    variants: [
+      {
+        suffix: "O",
+        product: { code: "ANEL-O", name: "Anel Ouro", unit_price: 100, preco_efetivo: 80, quantity: 2 },
+      },
+      {
+        suffix: "R",
+        product: { code: "ANEL-R", name: "Anel Ródio", unit_price: 100, preco_efetivo: 100, quantity: 1 },
+      },
+    ],
+  }
+
+  // Filtrando cor dourada + em promoção + preço até 90
+  const passesDouradoPromo = groupPassesFilters(
+    group,
+    { category: "Todos", colorId: "dourado", onSaleOnly: true, maxPrice: 90 },
+    inStock,
+  )
+  assertEquals(passesDouradoPromo, true)
+
+  // Filtrando cor ródio + em promoção -> Ródio custa 100 e não está em promoção
+  const passesRodioPromo = groupPassesFilters(
+    group,
+    { category: "Todos", colorId: "rodio", onSaleOnly: true },
+    inStock,
+  )
+  assertEquals(passesRodioPromo, false)
+
+  // Filtrando preço mínimo 90 -> Dourado (80) não atende
+  const passesMinPrice = groupPassesFilters(
+    group,
+    { category: "Todos", colorId: "dourado", minPrice: 90 },
+    inStock,
+  )
+  assertEquals(passesMinPrice, false)
+})
+
 
 
