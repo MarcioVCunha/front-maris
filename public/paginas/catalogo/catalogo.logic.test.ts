@@ -62,6 +62,7 @@ import {
   getActiveFilterPills,
   countActiveFilters,
   buildCatalogQuery,
+  doesGroupMatchCollection,
 } from "./catalogo.logic.js"
 
 const inStock = (product) => (Number(product?.quantity) || 0) > 0
@@ -901,6 +902,77 @@ Deno.test("groupPassesFilters filtra por banho, promoção e faixa de preço com
     inStock,
   )
   assertEquals(passesMinPrice, false)
+})
+
+Deno.test("doesGroupMatchCollection e filtros de coleções temáticas", () => {
+  const group = {
+    key: "color:COL1",
+    base: "COL1",
+    variants: [
+      {
+        suffix: "O",
+        product: { code: "COL1-O", name: "Colar Mãe Ouro", unit_price: 60, preco_efetivo: 45, quantity: 2 },
+      },
+    ],
+  }
+
+  // Coleção por teto de preço (ex: "Presentes até R$ 50")
+  const promoAte50 = {
+    id: 1,
+    name: "Presentes até R$ 50",
+    slug: "presentes-ate-50",
+    max_price: 50,
+    product_codes: [],
+  }
+  assertEquals(doesGroupMatchCollection(group, promoAte50, inStock), true)
+
+  const promoAte40 = {
+    id: 2,
+    name: "Presentes até R$ 40",
+    slug: "presentes-ate-40",
+    max_price: 40,
+    product_codes: [],
+  }
+  assertEquals(doesGroupMatchCollection(group, promoAte40, inStock), false)
+
+  // Coleção por códigos fixos
+  const colecaoMaes = {
+    id: 3,
+    name: "Dia das Mães",
+    slug: "dia-das-maes",
+    max_price: null,
+    product_codes: ["COL1", "BR99"],
+  }
+  assertEquals(doesGroupMatchCollection(group, colecaoMaes, inStock), true)
+
+  const colecaoNatal = {
+    id: 4,
+    name: "Natal",
+    slug: "natal",
+    max_price: null,
+    product_codes: ["OUTRO"],
+  }
+  assertEquals(doesGroupMatchCollection(group, colecaoNatal, inStock), false)
+
+  // Sincronização de URL
+  const query = buildCatalogQuery({
+    colecao: "dia-das-maes",
+  })
+  assertEquals(query.includes("colecao=dia-das-maes"), true)
+
+  const parsed = readCatalogLink(query)
+  assertEquals(parsed.colecao, "dia-das-maes")
+
+  // Pills e contagem de filtros
+  const pills = getActiveFilterPills({ collection: colecaoMaes })
+  assertEquals(pills.length, 1)
+  assertEquals(pills[0].type, "collection")
+  assertEquals(pills[0].label, "Coleção: Dia das Mães")
+  assertEquals(countActiveFilters({ collection: colecaoMaes }), 1)
+
+  // Integração em groupPassesFilters
+  assertEquals(groupPassesFilters(group, { collection: colecaoMaes }, inStock), true)
+  assertEquals(groupPassesFilters(group, { collection: colecaoNatal }, inStock), false)
 })
 
 

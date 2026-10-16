@@ -127,6 +127,10 @@ const pieceCombinaContent = document.getElementById("piece-combina-content")
 const pieceRelated = document.getElementById("piece-related")
 const pieceBack = document.getElementById("piece-back")
 const collectionsEl = document.querySelector(".catalog-collections")
+const collectionBannerEl = document.getElementById("catalog-collection-banner")
+const collectionBadgeEl = document.getElementById("catalog-collection-badge")
+const collectionTitleEl = document.getElementById("catalog-collection-title")
+const collectionDescEl = document.getElementById("catalog-collection-desc")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
 const productModalShareWhatsapp = document.getElementById("product-modal-share-whatsapp")
 const productModalColors = document.getElementById("product-modal-colors")
@@ -170,6 +174,8 @@ let allComponents = []
 let currentModalGroup = null
 
 let allGroups = []
+let activeCollections = []
+let selectedCollectionSlug = ""
 let selectedCodeByGroup = Object.create(null)
 let componentsByProductCode = Object.create(null)
 let imageUrlsByProductId = Object.create(null)
@@ -301,6 +307,9 @@ function selectedVariant(group) {
 }
 
 function activeFilters() {
+  const collection = selectedCollectionSlug
+    ? (activeCollections || []).find((c) => c.slug === selectedCollectionSlug) || null
+    : null
   return {
     term: getSearchTerm(),
     category: selectedCategory,
@@ -309,6 +318,7 @@ function activeFilters() {
     colorId,
     onlyAvailable,
     onSaleOnly,
+    collection,
   }
 }
 
@@ -325,6 +335,7 @@ function syncCatalogUrl() {
     ordem: getSortMode(),
     onSaleOnly,
     onlyAvailable,
+    colecao: selectedCollectionSlug,
     minPrice,
     maxPrice,
     busca: getSearchTerm(),
@@ -334,6 +345,35 @@ function syncCatalogUrl() {
   })
   if ((location.search || "") === next) return
   history.replaceState(null, "", `${location.pathname}${next}`)
+}
+
+function renderCollectionBanner() {
+  if (!collectionBannerEl) return
+  const collection = selectedCollectionSlug
+    ? (activeCollections || []).find((c) => c.slug === selectedCollectionSlug) || null
+    : null
+  if (!collection) {
+    collectionBannerEl.hidden = true
+    return
+  }
+  collectionBannerEl.hidden = false
+  if (collectionTitleEl) collectionTitleEl.textContent = collection.name
+  if (collectionBadgeEl) {
+    if (collection.badge_text) {
+      collectionBadgeEl.textContent = collection.badge_text
+      collectionBadgeEl.hidden = false
+    } else {
+      collectionBadgeEl.hidden = true
+    }
+  }
+  if (collectionDescEl) {
+    if (collection.description) {
+      collectionDescEl.textContent = collection.description
+      collectionDescEl.hidden = false
+    } else {
+      collectionDescEl.hidden = true
+    }
+  }
 }
 
 function renderOfferHtml(product) {
@@ -800,6 +840,7 @@ function applyCatalogLink() {
     utmCampaign: link.utmCampaign,
   }
   selectedCategory = link.categoria
+  selectedCollectionSlug = link.colecao || ""
   colorId = link.cor || ""
   if (link.ordem && catalogSortSelect) {
     catalogSortSelect.value = link.ordem
@@ -846,6 +887,7 @@ function renderCatalogGrids() {
   renderCategoryFilters()
   renderActiveFilters()
   syncDrawerInputs()
+  renderCollectionBanner()
 
   const filters = activeFilters()
   const partitioned = filterAndPartitionCatalog(allGroups, filters, isCatalogProductAvailable)
@@ -857,6 +899,7 @@ function renderCatalogGrids() {
   if (pieceGroupKey && piecePage && !piecePage.hidden) {
     catalogEl.hidden = true
     unavailableProductsSection.hidden = true
+    if (collectionBannerEl) collectionBannerEl.hidden = true
     return
   }
 
@@ -887,17 +930,21 @@ function renderCatalogGrids() {
 
 async function loadCatalogData() {
   showCatalogLoading()
-  const [productsResponse, componentsResponse, imagesResponse] = await Promise.all([
+  const [productsResponse, componentsResponse, imagesResponse, collectionsResponse] = await Promise.all([
     window.MarisCatalogRead.selectProducts(supabaseClient)
       .order("quantity", { ascending: false })
       .order("name"),
     window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name"),
-    window.MarisCatalogRead.selectImages(supabaseClient).order("sort_order", { ascending: true })
+    window.MarisCatalogRead.selectImages(supabaseClient).order("sort_order", { ascending: true }),
+    window.MarisCatalogRead.selectCollections
+      ? window.MarisCatalogRead.selectCollections(supabaseClient).catch(() => ({ data: [] }))
+      : Promise.resolve({ data: [] }),
   ])
 
   const { data, error } = productsResponse
   const { data: componentsData, error: componentsError } = componentsResponse
   const { data: imagesData, error: imagesError } = imagesResponse
+  activeCollections = Array.isArray(collectionsResponse?.data) ? collectionsResponse.data : []
 
   if (error || componentsError || imagesError) {
     allGroups = []
@@ -930,12 +977,14 @@ async function loadCatalogData() {
     catalogEl.innerHTML = "Nenhum produto encontrado"
     unavailableProductsSection.hidden = true
     unavailableProductsGrid.innerHTML = ""
+    renderCollectionChips()
     return
   }
 
   allGroups = groupProductsByColor(data)
   selectedCodeByGroup = Object.create(null)
   renderColorFilters()
+  renderCollectionChips()
 
   allComponents = componentsData || []
   if (window.MarisCatalogCart) {
@@ -1000,6 +1049,26 @@ function syncCollectionPressed() {
     el.classList.toggle("is-selected", selected)
     el.setAttribute("aria-pressed", selected ? "true" : "false")
   })
+  collectionsEl?.querySelectorAll("[data-collection-slug]").forEach((el) => {
+    const slug = el.getAttribute("data-collection-slug")
+    const selected = Boolean(selectedCollectionSlug && slug === selectedCollectionSlug)
+    el.classList.toggle("is-selected", selected)
+    el.setAttribute("aria-pressed", selected ? "true" : "false")
+  })
+}
+
+function renderCollectionChips() {
+  if (!collectionsEl) return
+  collectionsEl.querySelectorAll("[data-collection-slug]").forEach((el) => el.remove())
+  for (const c of activeCollections || []) {
+    const btn = document.createElement("button")
+    btn.type = "button"
+    btn.className = "catalog-filter"
+    btn.setAttribute("data-collection-slug", c.slug)
+    btn.textContent = c.name
+    collectionsEl.appendChild(btn)
+  }
+  syncCollectionPressed()
 }
 
 async function loadBestsellerTotals() {
@@ -1576,6 +1645,7 @@ function renderActiveFilters() {
 
 function clearAllFilters() {
   selectedCategory = "Todos"
+  selectedCollectionSlug = ""
   colorId = ""
   minPrice = null
   maxPrice = null
@@ -1646,6 +1716,7 @@ catalogActivePills?.addEventListener("click", (event) => {
   if (!btn) return
   const type = btn.getAttribute("data-pill-type")
   if (type === "category") selectedCategory = "Todos"
+  else if (type === "collection") selectedCollectionSlug = ""
   else if (type === "color") colorId = ""
   else if (type === "price") {
     minPrice = null
@@ -1708,6 +1779,14 @@ colorFiltersEl?.addEventListener("click", (event) => {
   refreshAfterFilterChange()
 })
 collectionsEl?.addEventListener("click", (event) => {
+  const dynamicBtn = event.target.closest("[data-collection-slug]")
+  if (dynamicBtn) {
+    const slug = dynamicBtn.getAttribute("data-collection-slug") || ""
+    selectedCollectionSlug = selectedCollectionSlug === slug ? "" : slug
+    syncCollectionPressed()
+    refreshAfterFilterChange()
+    return
+  }
   const button = event.target.closest("[data-collection]")
   if (!button || button.disabled) return
   const kind = button.getAttribute("data-collection")

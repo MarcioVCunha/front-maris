@@ -28,6 +28,7 @@ export const DASHBOARD_VIEWS = [
   { id: "estoque", href: "/admin/estoque", label: "Estoque" },
   { id: "vendas", href: "/admin/vendas", label: "Vendas" },
   { id: "vendedoras", href: "/admin/vendedoras", label: "Vendedoras" },
+  { id: "colecoes", href: "/admin/colecoes", label: "Coleções" },
   { id: "promocoes", href: "/promocoes", label: "Promoções" }
 ]
 
@@ -67,6 +68,7 @@ export function dashboardView(pathname, search = "") {
     "/admin/esgotadas": "esgotadas",
     "/admin/vendas": "vendas",
     "/admin/vendedoras": "vendedoras",
+    "/admin/colecoes": "colecoes",
     "/admin/peca": "peca",
     "/admin/conjuntos": "conjuntos",
     "/admin/tipos": "conjuntos",

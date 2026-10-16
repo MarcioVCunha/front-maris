@@ -29,6 +29,8 @@ window.MarisCatalogRead = {
   BESTSELLERS_ENABLED: true,
   BESTSELLERS_RELATION: "product_sales_counts",
   BESTSELLER_COLUMNS: "code, total_vendido",
+  COLLECTIONS_RELATION: "collections_public",
+  COLLECTION_COLUMNS: "id, name, slug, description, badge_text, max_price, product_codes, sort_order",
 
   _select(client, relation, columns) {
     rejectRestrictedColumn(columns)
@@ -142,5 +144,11 @@ window.MarisCatalogRead = {
     const relation = String(this.BESTSELLERS_RELATION || "").trim()
     if (!relation) return null
     return this._select(client, relation, this.BESTSELLER_COLUMNS)
+  },
+
+  selectCollections(client) {
+    return this._select(client, this.COLLECTIONS_RELATION, this.COLLECTION_COLUMNS)
+      .order("sort_order", { ascending: true })
+      .order("id", { ascending: false })
   }
 }

@@ -16,7 +16,10 @@ export const ADMIN_DASHBOARD_API = {
   saleGet: "admin-sale-get",
   saleUpdate: "admin-sale-update",
   saleCancel: "admin-sale-cancel",
-  saleMarkPaid: "admin-sale-mark-paid"
+  saleMarkPaid: "admin-sale-mark-paid",
+  collectionList: "admin-collection-list",
+  collectionSave: "admin-collection-save",
+  collectionDelete: "admin-collection-delete"
 }
 
 function withQuery(url, query) {
@@ -244,5 +247,26 @@ export async function importProducts(body, client) {
     timeoutMs: 150000
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível importar.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** GET admin-collection-list — { ok, collections: [...] } */
+export async function fetchCollectionList(client) {
+  const result = await call(ADMIN_DASHBOARD_API.collectionList, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as coleções.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** POST admin-collection-save — { ...collection } -> { ok, collection } */
+export async function saveCollection(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.collectionSave, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar a coleção.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** POST admin-collection-delete — { id } -> { ok, id } */
+export async function deleteCollection(id, client) {
+  const result = await call(ADMIN_DASHBOARD_API.collectionDelete, { method: "POST", body: { id } }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível excluir a coleção.")
   return { ok: true, data: result.data || {} }
 }

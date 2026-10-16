@@ -545,6 +545,37 @@ export function displayVariantForFilters(group, filters, isAvailable) {
   return groupDisplayVariant(group, isAvailable)
 }
 
+export function doesGroupMatchCollection(group, collection, isAvailable) {
+  if (!collection) return true
+  const codes = Array.isArray(collection.product_codes) ? collection.product_codes : []
+  const hasCodes = codes.length > 0
+  const maxPrice = collection.max_price != null && Number.isFinite(Number(collection.max_price))
+    ? Number(collection.max_price)
+    : null
+
+  let codeMatch = false
+  if (hasCodes) {
+    const groupCodes = (group?.variants || []).map((v) => String(v?.product?.code || "").trim().toUpperCase())
+    const baseCode = String(group?.base || "").trim().toUpperCase()
+    codeMatch = codes.some((c) => {
+      const upper = String(c || "").trim().toUpperCase()
+      return Boolean(upper && (groupCodes.includes(upper) || baseCode === upper))
+    })
+  }
+
+  let priceMatch = false
+  if (maxPrice != null) {
+    const display = displayVariantForFilters(group, {}, isAvailable)
+    const offer = offerFromProduct(display?.product)
+    priceMatch = offer.finalPrice <= maxPrice
+  }
+
+  if (hasCodes && maxPrice != null) return codeMatch || priceMatch
+  if (hasCodes) return codeMatch
+  if (maxPrice != null) return priceMatch
+  return true
+}
+
 export function groupPassesFilters(group, filters, isAvailable) {
   const term = filters?.term || ""
   const category = filters?.category || "Todos"
@@ -558,6 +589,7 @@ export function groupPassesFilters(group, filters, isAvailable) {
   const maxPrice = filters?.maxPrice
   if (minPrice != null && Number.isFinite(Number(minPrice)) && offer.finalPrice < Number(minPrice)) return false
   if (maxPrice != null && Number.isFinite(Number(maxPrice)) && offer.finalPrice > Number(maxPrice)) return false
+  if (filters?.collection && !doesGroupMatchCollection(group, filters.collection, isAvailable)) return false
   return true
 }
 
@@ -565,6 +597,13 @@ export function getActiveFilterPills(filters = {}) {
   const pills = []
   if (filters.category && filters.category !== "Todos") {
     pills.push({ type: "category", label: `Categoria: ${filters.category}`, value: filters.category })
+  }
+  if (filters.collection) {
+    pills.push({
+      type: "collection",
+      label: `Coleção: ${filters.collection.name}`,
+      value: filters.collection.slug || filters.collection.id,
+    })
   }
   if (filters.colorId) {
     const color = COLOR_FILTERS.find((c) => c.id === filters.colorId)
@@ -596,6 +635,7 @@ export function getActiveFilterPills(filters = {}) {
 export function countActiveFilters(filters = {}) {
   let count = 0
   if (filters.category && filters.category !== "Todos") count++
+  if (filters.collection) count++
   if (filters.colorId) count++
   if (filters.minPrice != null || filters.maxPrice != null) count++
   if (filters.onSaleOnly) count++
@@ -752,6 +792,7 @@ export function readCatalogLink(search) {
   const cor = String(params.get("cor") || "").trim().toLowerCase()
   const validColor = COLOR_FILTERS.some((c) => c.id === cor) ? cor : ""
   const ordem = String(params.get("ordem") || "").trim()
+  const colecao = String(params.get("colecao") || params.get("collection") || "").trim().toLowerCase()
 
   return {
     categoria: normalizeCategoryParam(params.get("categoria")),
@@ -760,6 +801,7 @@ export function readCatalogLink(search) {
     ordem,
     onSaleOnly,
     onlyAvailable,
+    colecao,
     minPrice: parsePriceBound(params.get("preco_min") || params.get("min")),
     maxPrice: parsePriceBound(params.get("preco_max") || params.get("max")),
     busca: String(params.get("busca") || params.get("q") || "").trim(),
@@ -779,6 +821,8 @@ export function buildCatalogQuery(options = {}) {
   if (options.ordem && options.ordem !== "name_asc") params.set("ordem", options.ordem)
   if (options.onSaleOnly) params.set("promocao", "1")
   if (options.onlyAvailable) params.set("disponivel", "1")
+  const collectionSlug = String(options.colecao || options.collectionSlug || "").trim().toLowerCase()
+  if (collectionSlug) params.set("colecao", collectionSlug)
   if (options.minPrice != null && Number.isFinite(Number(options.minPrice))) params.set("preco_min", String(options.minPrice))
   if (options.maxPrice != null && Number.isFinite(Number(options.maxPrice))) params.set("preco_max", String(options.maxPrice))
   if (options.busca) params.set("busca", options.busca)
@@ -1082,6 +1126,7 @@ if (typeof globalThis.window !== "undefined") {
     productWhatsappMessage,
     whatsappLink,
     doesProductMatchSearch,
+    doesGroupMatchCollection,
     getSearchSuggestions,
     sortProductsForCatalog,
     formatMoneyShare,

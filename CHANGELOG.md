@@ -6,6 +6,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Coleções temáticas no painel (`/admin/colecoes`) e no catálogo (`/catalog`):
+  - Gestão completa de coleções no painel do administrador (conectada a `admin-collection-list`, `admin-collection-save`, `admin-collection-delete` no back-maris): criação, edição e exclusão de coleções com nome, slug automático, texto de selo/badge, descrição, teto de preço ("Presentes até R$ X"), vigência por data/hora com status em tempo real (Ativa, Agendada, Expirada, Inativa), seletor visual de peças com busca instantânea e chips de peças selecionadas, ordem de exibição e link direto para ver a coleção no catálogo.
+  - Exibição de coleções ativas na barra de chips do catálogo (`.catalog-collections`) ao lado de "Novidades" e "Promoções", com banner temático destacado (`#catalog-collection-banner`) contendo título, selo exclusivo e descrição da campanha.
+  - Filtro dinâmico na vitrine suportando coleções por lista de peças (`product_codes`) e/ou critério de teto de preço (`max_price`), pill removível nos filtros ativos e sincronização na URL (`?colecao=<slug>`).
+
 - Filtros avançados, ordenações e persistência de URL no catálogo (`/catalog`):
   - Filtro refinado por banho / cor do metal (Dourado / Ouro 18k, Ródio Branco, Aço Inox, Aço Dourado PVD), unificando sufixos no código (`-O`, `-R`, `-A`, `-AD`) e identificação semântica por nome para peças sem hífen.
   - Faixas rápidas de preço em chips de um toque ("Até R$ 50", "R$ 50 a R$ 100", "R$ 100 a R$ 200", "Acima de R$ 200") combinadas com campos livres de preço mínimo e máximo.
