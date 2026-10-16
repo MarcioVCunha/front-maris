@@ -100,3 +100,25 @@ Deno.test("resolveLine componente variant cart usa fallbacks quando faltam nome 
   assertEquals(line.unitPrice, 25)
   assertEquals(line.available, 4)
 })
+
+Deno.test("resolveLine respeita preco_efetivo do banco no produto e no componente", () => {
+  const mapsBanco = {
+    productsByCode: {
+      PROMO_BANCO: { code: "PROMO_BANCO", name: "Pulseira", unit_price: 100, preco_efetivo: 79.90, quantity: 4 }
+    },
+    componentsById: {
+      40: { id: 40, product_code: "PROMO_BANCO", name: "Parte", unit_price: 50, preco_efetivo: 39.95, quantity: 2 }
+    },
+    productImagesByCode: {}
+  }
+  const lineProd = Cart.resolveLine({ product_code: "PROMO_BANCO", component_id: null }, mapsBanco, "cart")
+  assertEquals(lineProd.unitPrice, 79.90)
+  assertEquals(lineProd.originalPrice, 100)
+  assertEquals(lineProd.onSale, true)
+
+  const lineComp = Cart.resolveLine({ product_code: null, component_id: 40 }, mapsBanco, "cart")
+  assertEquals(lineComp.unitPrice, 39.95)
+  assertEquals(lineComp.originalPrice, 50)
+  assertEquals(lineComp.onSale, true)
+})
+

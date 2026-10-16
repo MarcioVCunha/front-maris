@@ -120,6 +120,12 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
   selected = togglePiece(selected, anel)
   assertEquals(selected.map((piece) => piece.id), [2])
   assertEquals(togglePiece([], { id: 9, quantity: 0 }), [])
+
+  // Peça com promoção ativa via preco_efetivo e preco_pix
+  const promo = { id: 3, code: "PR1", name: "Promo", unit_price: 100, preco_efetivo: 79.9, preco_pix: 75.91, quantity: 5 }
+  const promoSelected = togglePiece([], promo)
+  assertEquals(promoSelected[0].unit_price, 79.9)
+  assertEquals(promoSelected[0].preco_pix, 75.91)
 })
 
 Deno.test("cliente existente ou novo, com WhatsApp", () => {

@@ -61,6 +61,13 @@ window.MarisCatalogRead = {
     )
   },
 
+  componentColumns() {
+    return this.OPTIONAL_PRICE_FIELDS.reduce(
+      (columns, field) => this.columnsWithPixField(columns, field),
+      this.COMPONENT_COLUMNS
+    )
+  },
+
   missingPixColumn(error, field) {
     const text = `${error?.message || ""} ${error?.details || ""} ${error?.code || ""}`
     return text.toLowerCase().includes(String(field || "").toLowerCase())
@@ -115,7 +122,8 @@ window.MarisCatalogRead = {
   },
 
   selectPricedComponents(client) {
-    return this._select(client, this.COMPONENTS_RELATION, this.COMPONENT_COLUMNS).eq("is_active", true)
+    const columns = this.componentColumns()
+    return this._select(client, this.COMPONENTS_RELATION, columns).eq("is_active", true)
   },
 
   selectImages(client) {
