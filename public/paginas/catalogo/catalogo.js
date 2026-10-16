@@ -24,6 +24,10 @@ const {
   pieceCareText,
   totalsByProductCode,
   sortGroupsByBestsellers,
+  buildProductShareText,
+  buildWhatsappShareLink,
+  buildProductOgMetadata,
+  updateOpenGraphTags,
 } = window.MarisCatalogLogic
 const escapeHtml = (text) => window.MarisUI.escapeHtml(text)
 
@@ -83,10 +87,12 @@ const pieceCare = document.getElementById("piece-care")
 const pieceCareTextEl = document.getElementById("piece-care-text")
 const pieceActions = document.getElementById("piece-actions")
 const pieceWhatsapp = document.getElementById("piece-whatsapp")
+const pieceShareWhatsapp = document.getElementById("piece-share-whatsapp")
 const pieceRelated = document.getElementById("piece-related")
 const pieceBack = document.getElementById("piece-back")
 const collectionsEl = document.querySelector(".catalog-collections")
 const productModalWhatsapp = document.getElementById("product-modal-whatsapp")
+const productModalShareWhatsapp = document.getElementById("product-modal-share-whatsapp")
 const productModalColors = document.getElementById("product-modal-colors")
 
 let selectedCategory = "Todos"
@@ -501,6 +507,16 @@ function openProductModal(group) {
   if (productModalWhatsapp) {
     productModalWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
   }
+  if (productModalShareWhatsapp) {
+    const shareText = buildProductShareText(product, { code: product.code, origin: window.location.origin })
+    productModalShareWhatsapp.href = buildWhatsappShareLink(shareText)
+  }
+  const modalOgMeta = buildProductOgMetadata(product, {
+    code: product.code,
+    origin: window.location.origin,
+    image: modalImageUrls[0]
+  })
+  updateOpenGraphTags(modalOgMeta)
   setModalImageIndex(0)
   productModalCode.textContent = ""
   if (components.length) {
@@ -527,6 +543,9 @@ function openProductModal(group) {
 function closeProductModal() {
   productModal.hidden = true
   currentModalGroup = null
+  if (!piecePage || piecePage.hidden) {
+    updateOpenGraphTags(buildProductOgMetadata(null, { origin: window.location.origin }))
+  }
 }
 
 function chooseGroupColor(groupKey, code) {
@@ -577,6 +596,16 @@ function openPiecePage(group) {
   pieceCareTextEl.textContent = care
   pieceActions.innerHTML = renderPieceActions(product, components, soldOut)
   if (pieceWhatsapp) pieceWhatsapp.href = whatsappLink(productWhatsappMessage(product.name))
+  if (pieceShareWhatsapp) {
+    const shareText = buildProductShareText(product, { code: product.code, origin: window.location.origin })
+    pieceShareWhatsapp.href = buildWhatsappShareLink(shareText)
+  }
+  const ogMeta = buildProductOgMetadata(product, {
+    code: product.code,
+    origin: window.location.origin,
+    image: urls[0]
+  })
+  updateOpenGraphTags(ogMeta)
   const related = relatedGroups(allGroups, group, isCatalogProductAvailable, 4)
   pieceRelated.innerHTML = related.length
     ? related.map(renderCatalogGroup).join("")
@@ -600,6 +629,7 @@ function openPiecePage(group) {
 function closePiecePage() {
   pieceGroupKey = ""
   if (piecePage) piecePage.hidden = true
+  updateOpenGraphTags(buildProductOgMetadata(null, { origin: window.location.origin }))
   syncCatalogUrl()
   renderCatalogGrids()
 }
@@ -1070,6 +1100,42 @@ window.addEventListener("popstate", () => applyCatalogLink())
 renderColorFilters()
 
 bindStoreWhatsappLinks()
+
+function bindShareButton(button, getProduct) {
+  if (!button) return
+  button.addEventListener("click", async (event) => {
+    const product = getProduct()
+    if (!product) return
+    const shareText = buildProductShareText(product, {
+      code: product.code,
+      origin: window.location.origin
+    })
+    const shareUrl = `${window.location.origin}/catalog?peca=${encodeURIComponent(product.code)}`
+    if (typeof navigator !== "undefined" && navigator.share) {
+      event.preventDefault()
+      try {
+        await navigator.share({
+          title: `${product.name} — Maris Semijoias`,
+          text: shareText,
+          url: shareUrl
+        })
+      } catch (err) {
+        if (err.name !== "AbortError") {
+          window.open(buildWhatsappShareLink(shareText), "_blank", "noopener,noreferrer")
+        }
+      }
+    }
+  })
+}
+
+bindShareButton(pieceShareWhatsapp, () => {
+  const group = findGroupByKey(pieceGroupKey)
+  return selectedVariant(group)?.product
+})
+
+bindShareButton(productModalShareWhatsapp, () => {
+  return selectedVariant(currentModalGroup)?.product
+})
 
 waitlistForm.addEventListener("submit", (event) => {
   event.preventDefault()

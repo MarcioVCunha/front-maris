@@ -206,14 +206,59 @@ body {
 
 .product-whatsapp {
   display: inline-block;
-  margin-top: 16px;
-  font-size: 0.9rem;
+  margin-top: 4px;
+  font-size: 0.875rem;
   color: var(--maris-gold-dark);
   text-decoration: none;
+  text-align: center;
 }
 
 .product-whatsapp:hover {
   text-decoration: underline;
+}
+
+.product-contact-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  align-items: stretch;
+}
+
+.product-share-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(37, 211, 102, 0.08);
+  color: #0d7367;
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.product-share-whatsapp:hover {
+  background: rgba(37, 211, 102, 0.16);
+  border-color: #25d366;
+  color: #075e54;
+  text-decoration: none;
+}
+
+.product-share-whatsapp:active {
+  transform: scale(0.99);
+}
+
+.product-share-whatsapp .whatsapp-icon {
+  flex-shrink: 0;
+  fill: currentColor;
 }
 
 /* —— Busca e ordenação —— */

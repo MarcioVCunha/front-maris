@@ -6,6 +6,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Compartilhamento de peça no WhatsApp com prévia Open Graph: botão "Compartilhar no WhatsApp" na visualização da peça (`/catalog?peca=...`) e no modal do produto, gerando mensagem pré-formatada com nome, preço, desconto no Pix à vista e link direto; suporte nativo à Web Share API (`navigator.share`) no celular; metatags Open Graph (`og:title`, `og:description`, `og:image`, `og:url`) e Twitter Cards configuradas e atualizadas dinamicamente conforme a peça em exibição.
+
+
 - Faixa informativa no topo (anúncios) e página institucional de Trocas e Garantia (`/trocas`): faixa superior configurável em páginas do catálogo com destaques de envio pelas plataformas (Shopee, Mercado Livre, TikTok Shop), desconto de 5% no Pix à vista e link direto para as políticas da loja; página `/trocas` completa com políticas de garantia legal de 90 dias (CDC art. 26), prazo estendido de troca ou retorno em até 1 mês (30 dias corridos) para compras exclusivas realizadas no site, envio seguro com embalagem padronizada (80 g / 20 × 17 × 5 cm), guia prático de cuidados com semijoias e canal direto com o WhatsApp oficial; folha base unificada `compartilhado/imports.css` para centralizar estilos compartilhados e simplificar o HTML institucional; rotas limpas no `vercel.json` (`/trocas` rewrite, `/trocas.html` e `/garantia` redirects).
 
 - Paridade de preços no catálogo, carrinho e Nova venda: `selectPricedComponents` passa a solicitar `preco_efetivo` e `preco_pix` da view `product_components_priced`; `effectivePrice` e `hasPromo` dão precedência ao valor promocional do banco (`preco_efetivo`) tanto em produtos quanto em divisões/componentes; `offerFromProduct` reconhece campanhas ativas do banco sem depender da flag legada `is_on_sale`; `togglePiece` em Nova venda prioriza `preco_efetivo` nas seleções de venda.

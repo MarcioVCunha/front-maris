@@ -475,6 +475,100 @@ export function sortProductsForCatalog(products, mode) {
   })
 }
 
+export function formatMoneyShare(value) {
+  return Number(value || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  })
+}
+
+export function buildProductShareText(product, options = {}) {
+  if (!product) return ""
+  const name = String(product.name || "Semijoia").trim()
+  const offer = offerFromProduct(product)
+  const base = String(options.origin || "").replace(/\/$/, "") || "https://front-maris.vercel.app"
+  const code = options.code || product.code || ""
+  const url = options.url || (code ? `${base}/catalog?peca=${encodeURIComponent(code)}` : `${base}/catalog`)
+
+  let text = `Olha essa semijoia linda da Maris: *${name}*`
+  if (offer?.finalPrice) {
+    const priceFormatted = formatMoneyShare(offer.finalPrice)
+    text += ` por apenas ${priceFormatted}`
+    if (offer.pixPrice) {
+      const pixFormatted = formatMoneyShare(offer.pixPrice)
+      text += ` (ou ${pixFormatted} no Pix à vista)`
+    }
+  }
+  text += `\n\nConfira os detalhes e fotos aqui: ${url}`
+  return text
+}
+
+export function buildWhatsappShareLink(shareText) {
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(String(shareText || "").trim())}`
+}
+
+export function buildProductOgMetadata(product, options = {}) {
+  const base = String(options.origin || "").replace(/\/$/, "") || "https://front-maris.vercel.app"
+  if (!product) {
+    return {
+      title: "Catálogo — Maris Semijoias",
+      description: "Semijoias elegantes feitas em família, escolhidas com carinho. 5% de desconto no Pix à vista e envio seguro pelas plataformas parceiras.",
+      image: options.defaultImage || "",
+      url: `${base}/catalog`
+    }
+  }
+
+  const name = String(product.name || "Semijoia Maris").trim()
+  const offer = offerFromProduct(product)
+  const code = options.code || product.code || ""
+  const url = options.url || (code ? `${base}/catalog?peca=${encodeURIComponent(code)}` : `${base}/catalog`)
+  const image = options.image || (Array.isArray(product.images) && product.images[0]) || product.image_url || ""
+
+  let priceText = ""
+  if (offer?.finalPrice) {
+    const priceFormatted = formatMoneyShare(offer.finalPrice)
+    priceText = ` por ${priceFormatted}`
+    if (offer.pixPrice) {
+      const pixFormatted = formatMoneyShare(offer.pixPrice)
+      priceText += ` (${pixFormatted} no Pix)`
+    }
+  }
+
+  return {
+    title: `${name} — Maris Semijoias`,
+    description: `${name}${priceText}. Semijoias de alta qualidade com garantia e envio seguro.`,
+    image,
+    url
+  }
+}
+
+export function updateOpenGraphTags(metadata, doc = typeof document !== "undefined" ? document : null) {
+  if (!doc || !metadata) return
+  if (metadata.title) {
+    doc.title = metadata.title
+    const ogTitle = doc.querySelector?.('meta[property="og:title"]')
+    if (ogTitle) ogTitle.setAttribute("content", metadata.title)
+    const twTitle = doc.querySelector?.('meta[name="twitter:title"]')
+    if (twTitle) twTitle.setAttribute("content", metadata.title)
+  }
+  if (metadata.description) {
+    const ogDesc = doc.querySelector?.('meta[property="og:description"]')
+    if (ogDesc) ogDesc.setAttribute("content", metadata.description)
+    const twDesc = doc.querySelector?.('meta[name="twitter:description"]')
+    if (twDesc) twDesc.setAttribute("content", metadata.description)
+  }
+  if (metadata.image) {
+    const ogImg = doc.querySelector?.('meta[property="og:image"]')
+    if (ogImg) ogImg.setAttribute("content", metadata.image)
+    const twImg = doc.querySelector?.('meta[name="twitter:image"]')
+    if (twImg) twImg.setAttribute("content", metadata.image)
+  }
+  if (metadata.url) {
+    const ogUrl = doc.querySelector?.('meta[property="og:url"]')
+    if (ogUrl) ogUrl.setAttribute("content", metadata.url)
+  }
+}
+
 if (typeof globalThis.window !== "undefined") {
   globalThis.window.MarisCatalogLogic = {
     STORE_WHATSAPP_NUMBER,
@@ -529,5 +623,10 @@ if (typeof globalThis.window !== "undefined") {
     whatsappLink,
     doesProductMatchSearch,
     sortProductsForCatalog,
+    formatMoneyShare,
+    buildProductShareText,
+    buildWhatsappShareLink,
+    buildProductOgMetadata,
+    updateOpenGraphTags,
   }
 }
