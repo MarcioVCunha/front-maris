@@ -87,6 +87,7 @@ Deno.test("a leitura pública pede preco_pix e preco_efetivo e ignora nome vazio
   assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "  "), Read.PRODUCT_COLUMNS)
   assertEquals(Read.columnsWithPixField(Read.PRODUCT_COLUMNS, "custo"), Read.PRODUCT_COLUMNS)
   assertEquals(Read.productColumns(), `${Read.PRODUCT_COLUMNS}, preco_pix, preco_efetivo`)
+  assertEquals(Read.componentColumns(), `${Read.COMPONENT_COLUMNS}, preco_pix, preco_efetivo`)
 })
 
 Deno.test("selectProducts pede o preço do banco e repete sem a coluna se ela ainda não existir", async () => {
@@ -125,6 +126,7 @@ Deno.test("componentes com preço, imagens e vendedoras", () => {
   const components = new FakeClient()
   const componentChain = Read.selectPricedComponents(components)
   assertEquals(components.relation, "product_components_priced")
+  assertEquals(componentChain.ops[0][1], Read.componentColumns())
   assertEquals(componentChain.ops[1], ["eq", "is_active", true])
 
   const images = new FakeClient()

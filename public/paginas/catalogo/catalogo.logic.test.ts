@@ -333,6 +333,13 @@ Deno.test("de/por só aparece com promoção ativa e o Pix incide sobre o preço
   assertEquals(semDesconto.onSale, false)
   assertEquals(semDesconto.finalPrice, 50)
   assertEquals(semDesconto.pixPrice, 47.5)
+
+  // Promoção ativa pela tabela promotions (sem is_on_sale legado)
+  const promoBanco = offerFromProduct({ unit_price: 100, is_on_sale: false, preco_efetivo: 80 })
+  assertEquals(promoBanco.onSale, true)
+  assertEquals(promoBanco.finalPrice, 80)
+  assertEquals(promoBanco.percentOff, 20)
+  assertEquals(promoBanco.pixPrice, 76)
 })
 
 Deno.test("total Pix da cesta usa o total, não a soma dos Pix arredondados", () => {

@@ -137,3 +137,26 @@ Deno.test("normalizePricedComponent + effectivePrice: BM1733 com promo pai", () 
   assertEquals(c.unit_price, 47.73)
   assertEquals(U.effectivePrice(c), 35.79)
 })
+
+Deno.test("normalizePricedComponent + effectivePrice: preserva preco_efetivo e preco_pix do banco", () => {
+  const c = U.normalizePricedComponent({
+    id: 16,
+    product_code: "CJ100",
+    name: "Brinco",
+    quantity: 2,
+    is_active: true,
+    price_percent: 40,
+    computed_unit_price: 40.00,
+    parent_unit_price: 100.0,
+    parent_is_on_sale: false,
+    parent_discount_percent: 0,
+    preco_efetivo: 35.00,
+    preco_pix: 33.25
+  })
+  assertEquals(c.unit_price, 40.00)
+  assertEquals(c.preco_efetivo, 35.00)
+  assertEquals(c.preco_pix, 33.25)
+  assertEquals(U.effectivePrice(c), 35.00)
+  assertEquals(U.hasPromo(c), true)
+})
+

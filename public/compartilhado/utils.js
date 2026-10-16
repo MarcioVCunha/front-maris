@@ -56,8 +56,10 @@ window.MarisUtils = {
   // Preço final considerando promoção. Aplica desconto somente quando
   // is_on_sale = true E discount_percent > 0; caso contrário, preço cheio.
   // Componente com parent_unit_price + price_percent: um único round (igual à view).
-  // products_public.preco_efetivo, quando vem preenchido, substitui essa conta.
+  // preco_efetivo (do banco em products_public ou product_components_priced), quando vem preenchido, substitui essa conta.
   effectivePrice(row) {
+    const fromBank = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
+    if (fromBank != null) return fromBank
     const parent = Number(row?.parent_unit_price)
     const pricePercent = Number(row?.price_percent)
     if (Number.isFinite(parent) && parent > 0 && Number.isFinite(pricePercent) && pricePercent > 0) {
@@ -65,8 +67,6 @@ window.MarisUtils = {
       const factor = disc > 0 ? 1 - disc / 100 : 1
       return window.MarisUtils.roundMoney((parent * pricePercent) / 100 * factor)
     }
-    const fromBank = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
-    if (fromBank != null) return fromBank
     const base = Number(row?.unit_price) || 0
     const pct = row?.is_on_sale ? Number(row?.discount_percent) || 0 : 0
     if (pct <= 0) return base
@@ -75,6 +75,16 @@ window.MarisUtils = {
 
   // True quando a linha tem promoção ativa com desconto efetivo.
   hasPromo(row) {
+    const fromBank = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
+    const parent = Number(row?.parent_unit_price)
+    const pricePercent = Number(row?.price_percent)
+    const base = Number(row?.unit_price) ||
+      (Number.isFinite(parent) && parent > 0 && Number.isFinite(pricePercent) && pricePercent > 0
+        ? window.MarisUtils.roundMoney((parent * pricePercent) / 100)
+        : 0)
+    if (fromBank != null && base > 0) {
+      return fromBank < base
+    }
     return Boolean(row?.is_on_sale) && (Number(row?.discount_percent) || 0) > 0
   },
 
@@ -108,6 +118,8 @@ window.MarisUtils = {
    */
   normalizePricedComponent(row) {
     if (!row) return null
+    const precoEfetivo = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
+    const pixVal = Number(row?.preco_pix)
     return {
       id: row.id,
       product_code: row.product_code,
@@ -118,7 +130,9 @@ window.MarisUtils = {
       parent_unit_price: Number(row.parent_unit_price) || 0,
       unit_price: Number(row.computed_unit_price) || 0,
       is_on_sale: Boolean(row.parent_is_on_sale),
-      discount_percent: Number(row.parent_discount_percent) || 0
+      discount_percent: Number(row.parent_discount_percent) || 0,
+      preco_efetivo: precoEfetivo,
+      preco_pix: Number.isFinite(pixVal) ? pixVal : null
     }
   },
 

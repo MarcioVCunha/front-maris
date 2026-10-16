@@ -145,12 +145,13 @@ export function togglePiece(selected, piece) {
     return current.filter((item) => !sameId(item.id, piece.id))
   }
   const pix = Number(piece.preco_pix)
+  const effective = Number.isFinite(Number(piece.preco_efetivo)) ? Number(piece.preco_efetivo) : piece.unit_price
   return [...current, {
     id: piece.id,
     code: piece.code,
     name: piece.name,
     image_url: piece.image_url || "",
-    unit_price: roundMoney(piece.unit_price),
+    unit_price: roundMoney(effective),
     preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,
     item_type: piece.item_type || "",
     component_id: piece.component_id ?? null,

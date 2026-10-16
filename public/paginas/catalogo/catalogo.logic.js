@@ -201,15 +201,24 @@ export function localFinalPrice(listPrice, onSale, percent) {
 
 export function offerFromProduct(product) {
   const listPrice = Number(product?.unit_price) || 0
-  const percent = product?.is_on_sale ? Number(product?.discount_percent) || 0 : 0
-  const onSale = Boolean(product?.is_on_sale) && percent > 0
+  const legacyPercent = product?.is_on_sale ? Number(product?.discount_percent) || 0 : 0
+  const legacyOnSale = Boolean(product?.is_on_sale) && legacyPercent > 0
   const fromBank = moneyFromSource(product, EFFECTIVE_PRICE_FIELD)
-  const finalPrice = fromBank == null ? localFinalPrice(listPrice, onSale, percent) : fromBank
+  const finalPrice = fromBank == null ? localFinalPrice(listPrice, legacyOnSale, legacyPercent) : fromBank
+  const onSale = fromBank != null ? (fromBank < listPrice && listPrice > 0) : legacyOnSale
+  let percentOff = 0
+  if (onSale) {
+    if (legacyPercent > 0) {
+      percentOff = legacyPercent
+    } else if (fromBank != null && listPrice > 0) {
+      percentOff = Math.round((listPrice - fromBank) * 100 / listPrice)
+    }
+  }
   return {
     listPrice,
     finalPrice,
     onSale,
-    percentOff: onSale ? percent : 0,
+    percentOff,
     pixPrice: pixPriceFromSource(product, finalPrice),
   }
 }

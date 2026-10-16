@@ -32,13 +32,21 @@ Deno.test("effectivePrice aplica desconto só com promoção ativa e percentual 
   assertEquals(U.effectivePrice({ ...broken, preco_efetivo: 34.83 }), 34.83)
   assertEquals(U.effectivePrice({ ...broken, preco_efetivo: null }), 34.82)
   assertEquals(U.EFFECTIVE_PRICE_FIELD, "preco_efetivo")
+  // Componente com preco_efetivo do banco tem precedência sobre o cálculo local do pai
+  assertEquals(U.effectivePrice({ parent_unit_price: 100, price_percent: 50, preco_efetivo: 45 }), 45)
 })
 
-Deno.test("hasPromo true só quando is_on_sale e desconto > 0", () => {
+Deno.test("hasPromo true só quando is_on_sale e desconto > 0 ou preco_efetivo < tabela", () => {
   assert(U.hasPromo({ is_on_sale: true, discount_percent: 5 }))
   assertEquals(U.hasPromo({ is_on_sale: true, discount_percent: 0 }), false)
   assertEquals(U.hasPromo({ is_on_sale: false, discount_percent: 5 }), false)
   assertEquals(U.hasPromo(null), false)
+  // Promoção ativa via banco (preco_efetivo) sem is_on_sale legado
+  assert(U.hasPromo({ unit_price: 100, preco_efetivo: 85 }))
+  assertEquals(U.hasPromo({ unit_price: 100, preco_efetivo: 100 }), false)
+  // Componente com preco_efetivo do banco
+  assert(U.hasPromo({ parent_unit_price: 100, price_percent: 50, preco_efetivo: 40 }))
+  assertEquals(U.hasPromo({ parent_unit_price: 100, price_percent: 50, preco_efetivo: 50 }), false)
 })
 
 Deno.test("formatMoneyBRL formata em reais", () => {
