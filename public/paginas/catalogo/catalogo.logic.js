@@ -590,6 +590,16 @@ export function groupPassesFilters(group, filters, isAvailable) {
   if (minPrice != null && Number.isFinite(Number(minPrice)) && offer.finalPrice < Number(minPrice)) return false
   if (maxPrice != null && Number.isFinite(Number(maxPrice)) && offer.finalPrice > Number(maxPrice)) return false
   if (filters?.collection && !doesGroupMatchCollection(group, filters.collection, isAvailable)) return false
+  if (filters?.favoritos) {
+    const favs = Array.isArray(filters?.favoritesList) ? filters.favoritesList : []
+    const groupCodes = (group?.variants || []).map((v) => String(v?.product?.code || "").trim().toUpperCase())
+    const baseCode = String(group?.base || "").trim().toUpperCase()
+    const isFav = favs.some((f) => {
+      const upper = String(f || "").trim().toUpperCase()
+      return Boolean(upper && (groupCodes.includes(upper) || baseCode === upper))
+    })
+    if (!isFav) return false
+  }
   return true
 }
 
@@ -604,6 +614,9 @@ export function getActiveFilterPills(filters = {}) {
       label: `Coleção: ${filters.collection.name}`,
       value: filters.collection.slug || filters.collection.id,
     })
+  }
+  if (filters.favoritos) {
+    pills.push({ type: "favoritos", label: "Favoritos", value: true })
   }
   if (filters.colorId) {
     const color = COLOR_FILTERS.find((c) => c.id === filters.colorId)
@@ -636,6 +649,7 @@ export function countActiveFilters(filters = {}) {
   let count = 0
   if (filters.category && filters.category !== "Todos") count++
   if (filters.collection) count++
+  if (filters.favoritos) count++
   if (filters.colorId) count++
   if (filters.minPrice != null || filters.maxPrice != null) count++
   if (filters.onSaleOnly) count++
@@ -789,6 +803,8 @@ export function readCatalogLink(search) {
   const onSaleOnly = rawPromo === "1" || rawPromo === "true" || rawPromo === "sim"
   const rawAvail = params.get("disponivel")
   const onlyAvailable = rawAvail === "1" || rawAvail === "true" || rawAvail === "sim"
+  const rawFav = params.get("favoritos") || params.get("fav")
+  const favoritos = rawFav === "1" || rawFav === "true" || rawFav === "sim"
   const cor = String(params.get("cor") || "").trim().toLowerCase()
   const validColor = COLOR_FILTERS.some((c) => c.id === cor) ? cor : ""
   const ordem = String(params.get("ordem") || "").trim()
@@ -801,6 +817,7 @@ export function readCatalogLink(search) {
     ordem,
     onSaleOnly,
     onlyAvailable,
+    favoritos,
     colecao,
     minPrice: parsePriceBound(params.get("preco_min") || params.get("min")),
     maxPrice: parsePriceBound(params.get("preco_max") || params.get("max")),
@@ -821,6 +838,7 @@ export function buildCatalogQuery(options = {}) {
   if (options.ordem && options.ordem !== "name_asc") params.set("ordem", options.ordem)
   if (options.onSaleOnly) params.set("promocao", "1")
   if (options.onlyAvailable) params.set("disponivel", "1")
+  if (options.favoritos) params.set("favoritos", "1")
   const collectionSlug = String(options.colecao || options.collectionSlug || "").trim().toLowerCase()
   if (collectionSlug) params.set("colecao", collectionSlug)
   if (options.minPrice != null && Number.isFinite(Number(options.minPrice))) params.set("preco_min", String(options.minPrice))

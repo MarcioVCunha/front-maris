@@ -6,6 +6,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Favoritos sem login salvos no aparelho e aviso de reposição por e-mail no catálogo (`/catalog`):
+  - Módulo compartilhado `public/compartilhado/favoritos.logic.js` com funções puras para carregar e salvar favoritos no `localStorage` (`maris_favoritos`), alternar status, contar itens e validar formato de e-mail RFC.
+  - Botão de favoritar (coração `♡` / `♥`) em destaque flutuante em todos os cards do catálogo e botão interativo com texto na página de detalhes da peça (`#piece-page`).
+  - Botão "Favoritos" no cabeçalho com badge numérico em tempo real (`#header-fav-count`) e chip "Favoritos (N)" na barra de coleções (`.catalog-collections`).
+  - Filtro e visualização de favoritos no catálogo com URL sincronizada (`?favoritos=1`), pill removível nos filtros ativos e banner exclusivo (`#catalog-favorites-banner`).
+  - Estado vazio acolhedor no catálogo quando o filtro de favoritos está ativo mas não há peças salvas, com botão de retorno para ver todas as peças.
+  - Modal de reposição de estoque (`#waitlist-modal`) focado em e-mail obrigatório com validação e envio seguro para a Edge Function `customer-waitlist-add` do back-maris.
+
 - Coleções temáticas no painel (`/admin/colecoes`) e no catálogo (`/catalog`):
   - Gestão completa de coleções no painel do administrador (conectada a `admin-collection-list`, `admin-collection-save`, `admin-collection-delete` no back-maris): criação, edição e exclusão de coleções com nome, slug automático, texto de selo/badge, descrição, teto de preço ("Presentes até R$ X"), vigência por data/hora com status em tempo real (Ativa, Agendada, Expirada, Inativa), seletor visual de peças com busca instantânea e chips de peças selecionadas, ordem de exibição e link direto para ver a coleção no catálogo.
   - Exibição de coleções ativas na barra de chips do catálogo (`.catalog-collections`) ao lado de "Novidades" e "Promoções", com banner temático destacado (`#catalog-collection-banner`) contendo título, selo exclusivo e descrição da campanha.

@@ -975,5 +975,36 @@ Deno.test("doesGroupMatchCollection e filtros de coleções temáticas", () => {
   assertEquals(groupPassesFilters(group, { collection: colecaoNatal }, inStock), false)
 })
 
+Deno.test("filtro de favoritos no catálogo: URL, pills e groupPassesFilters", () => {
+  const group1 = {
+    key: "color:AN1",
+    base: "AN1",
+    variants: [{ suffix: "O", product: { code: "AN1-O", name: "Anel", unit_price: 100, quantity: 1 } }],
+  }
+  const group2 = {
+    key: "color:BR1",
+    base: "BR1",
+    variants: [{ suffix: "R", product: { code: "BR1-R", name: "Brinco", unit_price: 50, quantity: 1 } }],
+  }
+
+  // Sincronização de URL
+  const query = buildCatalogQuery({ favoritos: true })
+  assertEquals(query.includes("favoritos=1"), true)
+  const parsed = readCatalogLink(query)
+  assertEquals(parsed.favoritos, true)
+
+  // Pills e contagem de filtros
+  const pills = getActiveFilterPills({ favoritos: true })
+  assertEquals(pills.some((p) => p.type === "favoritos" && p.label === "Favoritos"), true)
+  assertEquals(countActiveFilters({ favoritos: true }), 1)
+
+  // Filtragem de grupos com base na lista de favoritos
+  const favList = ["AN1-O"]
+  assertEquals(groupPassesFilters(group1, { favoritos: true, favoritesList: favList }, inStock), true)
+  assertEquals(groupPassesFilters(group2, { favoritos: true, favoritesList: favList }, inStock), false)
+  assertEquals(groupPassesFilters(group2, { favoritos: false, favoritesList: favList }, inStock), true)
+})
+
+
 
 
