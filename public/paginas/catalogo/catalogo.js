@@ -1352,6 +1352,9 @@ productModal.addEventListener("click", async (event) => {
   const target = event.target
   if (target instanceof HTMLElement && target.dataset.closeModal === "true") {
     closeProductModal()
+  }
+})
+
 function setPieceGalleryIndex(index) {
   if (!pieceImageUrls.length) return
   const max = pieceImageUrls.length - 1

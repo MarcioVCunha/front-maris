@@ -1505,33 +1505,44 @@ body {
 
 .catalog-price-filters {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
   margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.catalog-price-filters label,
-.catalog-check {
+.catalog-price-filters label {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--maris-text);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-price-filters input {
-  min-height: 44px;
-  padding: 10px 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 8px 10px;
   border: 1px solid var(--maris-border);
   border-radius: var(--maris-radius);
   font: inherit;
+  font-size: 0.85rem;
 }
 
 .catalog-check {
+  display: flex;
   flex-direction: row;
   align-items: center;
   min-height: 44px;
   gap: 10px;
+  font-size: 0.8rem;
+  color: var(--maris-text);
 }
 
 .product-media {
@@ -2307,6 +2318,10 @@ body {
     position: sticky;
     top: calc(var(--maris-header-h) + 16px);
     align-self: start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
   #catalog { grid-area: catalog; min-width: 0; }
   .unavailable-products { grid-area: unavailable; min-width: 0; }
@@ -2322,6 +2337,9 @@ body {
     background: var(--maris-surface);
     border: 1px solid var(--maris-border);
     border-radius: var(--maris-radius-lg);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
   }
 
   .catalog-drawer-head h2 {
