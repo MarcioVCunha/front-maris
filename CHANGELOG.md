@@ -16,6 +16,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
   - **Lucro do mês e por canal**: Card de destaque no Início exibindo o lucro total do mês com margem bruta calculada (ex: `58% de margem bruta`), além da discriminação de lucro gerado em cada canal de venda (Site, Equipe, Shopee, Mercado Livre, TikTok Shop).
   - **Lembrete de vendas "A receber" há mais de 7 dias**: Alerta no topo do Início destacando a quantidade e o valor total de pedidos com recebimento pendente há mais de 7 dias com atalho direto para a listagem filtrada; etiqueta visual de atenção (`⏳ Xd em aberto`) nos cards de vendas com cobrança em atraso.
   - **Exportar vendas em planilha (CSV)**: Botão no Início e na aba de Vendas para download instantâneo de arquivo CSV formatado segundo os padrões brasileiros (separador `;`, formatação monetária com vírgula e codificação UTF-8 com BOM para perfeita compatibilidade no Excel e Google Sheets).
+  - **Disparo manual do Resumo Semanal por e-mail**: Botão `📧 Resumo semanal por e-mail` no Início para solicitar o envio imediato do resumo executivo dos últimos 7 dias via Edge Function `admin-weekly-summary` com confirmação e status visual.
 
 - Favoritos sem login salvos no aparelho e aviso de reposição por e-mail no catálogo (`/catalog`):
   - Módulo compartilhado `public/compartilhado/favoritos.logic.js` com funções puras para carregar e salvar favoritos no `localStorage` (`maris_favoritos`), alternar status, contar itens e validar formato de e-mail RFC.

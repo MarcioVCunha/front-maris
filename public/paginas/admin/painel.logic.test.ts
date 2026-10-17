@@ -938,6 +938,7 @@ Deno.test("etapa 3: renderInicio integra card de conversão e seção de ranking
   assert(html.includes("inicio-period-bar"), "Deve conter a barra de período")
   assert(html.includes("hero-ticket-card"), "Deve conter o card de ticket médio")
   assert(html.includes("60% de margem bruta"), "Deve exibir margem bruta no card de lucro")
+  assert(html.includes("btn-send-weekly-summary"), "Deve conter o botão de resumo semanal por e-mail")
 })
 
 Deno.test("etapa 3: computeAverageTicket calcula ticket médio corretamente", () => {

@@ -23,7 +23,8 @@ export const ADMIN_DASHBOARD_API = {
   promotionList: "admin-promotion-list",
   promotionSave: "admin-promotion-save",
   promotionEnd: "admin-promotion-end",
-  monthlyGoalUpdate: "admin-set-monthly-goal"
+  monthlyGoalUpdate: "admin-set-monthly-goal",
+  weeklySummary: "admin-weekly-summary"
 }
 
 function withQuery(url, query) {
@@ -309,4 +310,12 @@ export async function endPromotion(id, client) {
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível encerrar a promoção.")
   return { ok: true, data: result.data || {} }
 }
+
+/** POST admin-weekly-summary — { to?, days?, send? } -> { ok, sent, skipped?, message?, summary? } */
+export async function triggerWeeklySummaryEmail(body = {}, client) {
+  const result = await call(ADMIN_DASHBOARD_API.weeklySummary, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível enviar o resumo semanal.")
+  return { ok: true, data: result.data || {} }
+}
+
 

@@ -145,4 +145,6 @@ Em `admin-product-list` / view admin de produtos (PR #16), cada peça pode traze
 - **Ticket Médio:** Card no cabeçalho calculando `charged_total / paid_orders_count` com comparação delta vs mês anterior (`+R$ X vs mês anterior` ou `−R$ X vs mês anterior`).
 - **Margem Bruta:** Exibida no card de Lucro do Mês (`Math.round((profit_total / charged_total) * 100)% de margem bruta`).
 - **Desempenho de Promoções:** A tela de promoções (`/admin/promocoes`) exibe box de desempenho para cada campanha com pedidos, peças vendidas, faturamento gerado, descontos concedidos e lucro estimado calculado no servidor pela RPC `admin_promotion_list`.
+- **Exportar vendas em planilha (CSV):** Botão no Início e na aba de Vendas para download instantâneo de arquivo CSV formatado segundo os padrões brasileiros (separador `;`, formatação monetária com vírgula e codificação UTF-8 com BOM).
+- **Disparo de Resumo Semanal por E-mail:** Botão `📧 Resumo semanal por e-mail` no topo do Início (`.inicio-actions-bar`) que aciona a edge function `admin-weekly-summary` com confirmação e feedback visual, enviando o fechamento dos últimos 7 dias diretamente para o e-mail do administrador.
 
