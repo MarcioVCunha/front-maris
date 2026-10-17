@@ -59,6 +59,11 @@ import {
   fabMenuHtml,
   feedbackParts,
   LEGACY_ADMIN_REDIRECTS,
+  computeAverageTicket,
+  stepMonth,
+  formatTicketDelta,
+  renderTicketCard,
+  renderPeriodFilter,
 } from "./painel.logic.js"
 
 const anelDefaults = {
@@ -930,5 +935,56 @@ Deno.test("etapa 3: renderInicio integra card de conversão e seção de ranking
   assert(html.includes("inicio-category-ranking"))
   assert(html.includes("Brincos"))
   assert(html.includes("Lucro: R$ 1000,00"))
+  assert(html.includes("inicio-period-bar"), "Deve conter a barra de período")
+  assert(html.includes("hero-ticket-card"), "Deve conter o card de ticket médio")
+  assert(html.includes("60% de margem bruta"), "Deve exibir margem bruta no card de lucro")
+})
+
+Deno.test("etapa 3: computeAverageTicket calcula ticket médio corretamente", () => {
+  assertEquals(computeAverageTicket(1500, 10), 150)
+  assertEquals(computeAverageTicket(100.55, 3), 33.52)
+  assertEquals(computeAverageTicket(0, 0), 0)
+  assertEquals(computeAverageTicket(500, 0), 0)
+  assertEquals(computeAverageTicket(-100, 5), 0)
+})
+
+Deno.test("etapa 3: stepMonth avança e retrocede meses corretamente", () => {
+  assertEquals(stepMonth("2026-10", 1), "2026-11")
+  assertEquals(stepMonth("2026-10", -1), "2026-09")
+  assertEquals(stepMonth("2026-12", 1), "2027-01")
+  assertEquals(stepMonth("2026-01", -1), "2025-12")
+  assertEquals(stepMonth("invalid-month", 1), currentMonthKey())
+})
+
+Deno.test("etapa 3: formatTicketDelta formata a variação vs mês anterior", () => {
+  const formatMoney = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`
+  assertEquals(formatTicketDelta(150, 100, formatMoney), "+R$ 50,00 vs mês anterior")
+  assertEquals(formatTicketDelta(80, 100, formatMoney), "−R$ 20,00 vs mês anterior")
+  assertEquals(formatTicketDelta(100, 100, formatMoney), "igual ao mês anterior")
+  assertEquals(formatTicketDelta(100, null as unknown as number, formatMoney), "")
+})
+
+Deno.test("etapa 3: renderTicketCard monta o HTML do ticket médio", () => {
+  const formatMoney = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`
+  const html = renderTicketCard(2000, 10, 1500, 10, formatMoney)
+  assert(html.includes("hero-ticket-card"))
+  assert(html.includes("Ticket médio"))
+  assert(html.includes("R$ 200,00"))
+  assert(html.includes("+R$ 50,00 vs mês anterior"))
+})
+
+Deno.test("etapa 3: renderPeriodFilter monta a barra com controles de navegação", () => {
+  const current = currentMonthKey()
+  const filterCurrent = renderPeriodFilter(current, current)
+  assert(filterCurrent.includes("inicio-period-bar"))
+  assert(filterCurrent.includes("btn-prev-month"))
+  assert(filterCurrent.includes("btn-next-month"))
+  assert(filterCurrent.includes(`value="${current}"`))
+  assertEquals(filterCurrent.includes("btn-current-month"), false, "Não deve mostrar botão Mês atual quando já no mês atual")
+
+  const past = "2026-05"
+  const filterPast = renderPeriodFilter(past, "2026-10")
+  assert(filterPast.includes("btn-current-month"), "Deve exibir botão Mês atual quando em mês anterior/posterior")
+  assert(filterPast.includes(`value="${past}"`))
 })
 

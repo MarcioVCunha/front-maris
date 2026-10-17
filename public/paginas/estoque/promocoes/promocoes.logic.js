@@ -200,6 +200,12 @@ export function escapeHtml(str) {
     .replace(/'/g, "&#039;")
 }
 
+export function formatPromoMoney(val) {
+  const number = Number(val)
+  if (!Number.isFinite(number)) return "R$ 0,00"
+  return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+}
+
 export function renderPromoCard(promo) {
   const status = computePromotionStatus(promo)
   const discount = formatDiscountDisplay(promo)
@@ -219,6 +225,21 @@ export function renderPromoCard(promo) {
 
   const canEnd = promo.is_active !== false && status.tone !== "ended"
 
+  const orders = Number(promo.orders_count) || 0
+  const charged = Number(promo.charged_total) || 0
+  const profit = Number(promo.profit_total) || 0
+  const discountTotal = Number(promo.discount_total) || 0
+  const hasPerformance = orders > 0 || charged > 0 || profit > 0 || discountTotal > 0
+
+  const perfHtml = hasPerformance
+    ? `<div class="promo-meta-row"><div class="promo-perf-box" aria-label="Desempenho da promoção">
+        <span class="promo-perf-item"><strong>Faturamento:</strong> ${escapeHtml(formatPromoMoney(charged))}</span>
+        <span class="promo-perf-item"><strong>Lucro:</strong> <b class="promo-perf-profit">${escapeHtml(formatPromoMoney(profit))}</b></span>
+        <span class="promo-perf-item"><strong>Pedidos:</strong> ${orders}</span>
+        ${discountTotal > 0 ? `<span class="promo-perf-item promo-perf-item--discount"><strong>Desconto dado:</strong> ${escapeHtml(formatPromoMoney(discountTotal))}</span>` : ""}
+      </div></div>`
+    : ""
+
   return `
     <article class="promo-card" data-id="${promo.id}">
       <div class="promo-card-header">
@@ -235,6 +256,7 @@ export function renderPromoCard(promo) {
         <div class="promo-meta-row">${scopeHtml}</div>
         <div class="promo-meta-row"><span>📅 ${dates}</span></div>
         <div class="promo-meta-row"><span>🛍️ ${units}</span></div>
+        ${perfHtml}
       </div>
 
       <div class="promo-card-actions">

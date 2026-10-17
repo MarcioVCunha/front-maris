@@ -138,3 +138,11 @@ Em `admin-product-list` / view admin de produtos (PR #16), cada peça pode traze
 - Só leitura no front.
 - O preço editável continua `unit_price` (preço do site).
 - Enquanto a flag estiver off ou o campo não vier, a tela não mostra o preço marketplace.
+
+## Navegação por Período e Ticket Médio (Etapa 3)
+
+- **Filtro de período:** Barra no topo do Início com navegação mês a mês (`◀`, `input type="month"`, `▶`, botão `Mês atual`). Sincronizado com query string `?month=YYYY-MM`.
+- **Ticket Médio:** Card no cabeçalho calculando `charged_total / paid_orders_count` com comparação delta vs mês anterior (`+R$ X vs mês anterior` ou `−R$ X vs mês anterior`).
+- **Margem Bruta:** Exibida no card de Lucro do Mês (`Math.round((profit_total / charged_total) * 100)% de margem bruta`).
+- **Desempenho de Promoções:** A tela de promoções (`/admin/promocoes`) exibe box de desempenho para cada campanha com pedidos, peças vendidas, faturamento gerado, descontos concedidos e lucro estimado calculado no servidor pela RPC `admin_promotion_list`.
+

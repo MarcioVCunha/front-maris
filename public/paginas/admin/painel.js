@@ -33,6 +33,7 @@ import {
   sellersFromDirectory,
   shouldShowDashboard,
   shouldShowFab,
+  stepMonth,
   stockNavHtml,
   STOCK_PAGE_SIZE,
   validateAddProduct,
@@ -189,7 +190,8 @@ const state = {
   promotions: undefined,
   promoQuery: "",
   promoStatusFilter: "all",
-  promoEditing: null
+  promoEditing: null,
+  selectedMonth: null
 }
 
 let pendingSaleCancel = null
@@ -1116,10 +1118,33 @@ function bindStockOnce() {
 }
 
 async function loadOverview() {
-  if (state.overview !== undefined) return state.overview
-  const result = await fetchMonthOverview({ month: currentMonthKey() })
+  const currentMonth = currentMonthKey()
+  const targetMonth = state.selectedMonth || new URLSearchParams(location.search).get("month") || currentMonth
+  if (state.overview !== undefined && state.overview?.month === targetMonth) return state.overview
+  const result = await fetchMonthOverview({ month: targetMonth })
   state.overview = result.ok ? normalizeOverview(result.data) : null
+  state.selectedMonth = targetMonth
   return state.overview
+}
+
+async function changeInicioMonth(nextMonth) {
+  const currentMonth = currentMonthKey()
+  const target = (nextMonth || currentMonth).trim()
+  state.selectedMonth = target
+  state.overview = undefined
+  const url = new URL(location.href)
+  if (target === currentMonth) {
+    url.searchParams.delete("month")
+  } else {
+    url.searchParams.set("month", target)
+  }
+  const next = `${url.pathname}${url.search}`
+  if (next !== `${location.pathname}${location.search}`) {
+    history.pushState(null, "", next)
+  }
+  viewEl.innerHTML = viewLoading()
+  await loadOverview()
+  paintInicio()
 }
 
 async function loadRecent(status = "all") {
@@ -1228,6 +1253,25 @@ function bindSaleCards() {
 }
 
 function bindInicio() {
+  const monthInput = viewEl.querySelector("#inicio-month-input")
+  const currentMonthVal = state.overview?.month || state.selectedMonth || currentMonthKey()
+
+  viewEl.querySelector("#btn-prev-month")?.addEventListener("click", () => {
+    changeInicioMonth(stepMonth(currentMonthVal, -1))
+  })
+  viewEl.querySelector("#btn-next-month")?.addEventListener("click", () => {
+    changeInicioMonth(stepMonth(currentMonthVal, 1))
+  })
+  viewEl.querySelector("#btn-current-month")?.addEventListener("click", () => {
+    changeInicioMonth(currentMonthKey())
+  })
+  monthInput?.addEventListener("change", (e) => {
+    const val = e.target.value
+    if (val && /^\d{4}-\d{2}$/.test(val)) {
+      changeInicioMonth(val)
+    }
+  })
+
   viewEl.querySelectorAll("[data-origin]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const channel = btn.getAttribute("data-origin")
@@ -1347,6 +1391,11 @@ async function render(view, token) {
   const stale = () => token !== renderToken
   if (view === "inicio") {
     viewEl.classList.add("view--inicio")
+    const urlMonth = new URLSearchParams(location.search).get("month") || currentMonthKey()
+    if (state.overview && state.overview.month !== urlMonth) {
+      state.overview = undefined
+    }
+    state.selectedMonth = urlMonth
     if (state.overview === undefined || state.recent === undefined || state.loadedStatus !== "all") viewEl.innerHTML = viewLoading()
     await Promise.all([loadOverview(), loadRecent("all")])
     if (stale()) return
