@@ -22,7 +22,8 @@ export const ADMIN_DASHBOARD_API = {
   collectionDelete: "admin-collection-delete",
   promotionList: "admin-promotion-list",
   promotionSave: "admin-promotion-save",
-  promotionEnd: "admin-promotion-end"
+  promotionEnd: "admin-promotion-end",
+  monthlyGoalUpdate: "admin-set-monthly-goal"
 }
 
 function withQuery(url, query) {
@@ -172,6 +173,20 @@ export async function fetchMonthOverview({ month }, client) {
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar o mês.")
   return { ok: true, data: result.data || {} }
+}
+
+/**
+ * POST admin-set-monthly-goal
+ * Corpo: { goal: number }
+ * Resposta: { ok: true, sales_goal: number }
+ */
+export async function setMonthlyGoal(goal, client) {
+  const result = await call(ADMIN_DASHBOARD_API.monthlyGoalUpdate, {
+    method: "POST",
+    body: { goal: Number(goal) }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar a meta.")
+  return { ok: true, sales_goal: result.data?.sales_goal }
 }
 
 /**

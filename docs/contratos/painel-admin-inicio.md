@@ -19,17 +19,25 @@ Auth: staff admin (`orders.read_all`).
   "paid_count": 12,
   "paid_orders_count": 7,
   "charged_total": 2400,
+  "profit_total": 1400,
+  "sales_goal": 10000,
+  "receivables_overdue": {
+    "count": 2,
+    "total": 350
+  },
   "previous": {
     "month": "2026-09",
     "paid_count": 10,
     "paid_orders_count": 6,
-    "charged_total": 2000
+    "charged_total": 2000,
+    "profit_total": 1200
   },
   "channels": [
     {
       "channel": "site",
       "orders": 2,
       "charged_total": 400,
+      "profit_total": 250,
       "previous_orders": 1,
       "previous_charged_total": 300
     },
@@ -37,6 +45,7 @@ Auth: staff admin (`orders.read_all`).
       "channel": "equipe",
       "orders": 4,
       "charged_total": 1600,
+      "profit_total": 900,
       "previous_orders": 3,
       "previous_charged_total": 1200
     },
@@ -44,6 +53,7 @@ Auth: staff admin (`orders.read_all`).
       "channel": "shopee",
       "orders": 1,
       "charged_total": 200,
+      "profit_total": 120,
       "previous_orders": 0,
       "previous_charged_total": 0
     },
@@ -51,6 +61,7 @@ Auth: staff admin (`orders.read_all`).
       "channel": "mercado_livre",
       "orders": 0,
       "charged_total": 0,
+      "profit_total": 0,
       "previous_orders": 1,
       "previous_charged_total": 150
     },
@@ -58,6 +69,7 @@ Auth: staff admin (`orders.read_all`).
       "channel": "tiktok",
       "orders": 0,
       "charged_total": 0,
+      "profit_total": 0,
       "previous_orders": 0,
       "previous_charged_total": 0
     }
@@ -79,8 +91,11 @@ Auth: staff admin (`orders.read_all`).
 
 | Campo | Regra |
 | --- | --- |
-| `channels[].channel` | `site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok` (sempre os cinco, mesmo com zero) |
-| `previous` | Totais do mês anterior (mesmo fuso) |
+| `profit_total` | Lucro total bruto do mês (só admin) |
+| `sales_goal` | Meta mensal configurada |
+| `receivables_overdue` | `{ count, total }` de vendas a receber com mais de 7 dias |
+| `channels[].channel` | `site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok` (sempre os cinco, mesmo com zero) com `profit_total` |
+| `previous` | Totais do mês anterior (mesmo fuso) com `profit_total` |
 | `channels[].previous_*` | Comparação por canal com o mês anterior |
 | `best_sellers[].channels` | Divisão da peça por canal no mês |
 

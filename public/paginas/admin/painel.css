@@ -425,6 +425,182 @@
   margin-bottom: 8px;
 }
 
+/* Etapa 3: Métricas do negócio (Hero, Meta, Lucro, Alerta, CSV) */
+.overdue-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  color: #5d4037;
+  flex-wrap: wrap;
+}
+
+.overdue-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.overdue-banner__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.overdue-banner__text strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #e65100;
+}
+
+.overdue-banner__text p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: #6d4c41;
+}
+
+.overdue-banner__action {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  padding: 6px 14px;
+}
+
+.inicio-hero__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.inicio-hero__main {
+  flex: 1 1 auto;
+}
+
+.hero-profit-card {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.hero-profit-card__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--maris-gold-dark, #8c6b32);
+}
+
+.hero-profit-card__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--maris-black, #111);
+}
+
+.hero-profit-card__margin {
+  font-size: 0.75rem;
+  color: var(--maris-text-muted, #666);
+  font-weight: 500;
+}
+
+.goal-widget {
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  margin-top: 8px;
+}
+
+.goal-widget__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.goal-widget__bar-track {
+  width: 100%;
+  height: 10px;
+  background: var(--maris-bg, #f8f6f0);
+  border: 1px solid var(--maris-border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.goal-widget__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d4af37, #b8860b);
+  transition: width 0.4s ease;
+}
+
+.goal-widget__bar-fill--reached {
+  background: linear-gradient(90deg, #2e7d32, #4caf50);
+}
+
+.goal-widget__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goal-widget__hint {
+  font-size: 0.8rem;
+  color: var(--maris-text-muted, #666);
+  font-weight: 500;
+}
+
+.inicio-actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+.inicio-actions-bar h2 {
+  margin: 0;
+}
+
+.origin-card__profit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--maris-gold-dark, #8c6b32);
+}
+
+.origin-card[aria-pressed="true"] .origin-card__profit {
+  color: #ffe082;
+}
+
+.sales-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sale-chip--overdue {
+  background: #fff3e0;
+  color: #d84315;
+  border-color: #ffb74d;
+  font-weight: 600;
+}
+
 .origin-hint {
   margin: 0 0 10px;
   font-size: 0.9rem;

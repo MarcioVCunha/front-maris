@@ -5,7 +5,9 @@ import {
   componentUpdatePayload,
   dashboardView,
   defaultsFor,
+  downloadCsvFile,
   fieldPlaceholder,
+  generateSalesCsv,
   isComponentSku,
   currentMonthKey,
   isDashboardAdmin,
@@ -82,7 +84,8 @@ import {
   deleteCollection,
   fetchPromotions,
   savePromotion,
-  endPromotion
+  endPromotion,
+  setMonthlyGoal
 } from "./painel.api.js"
 import {
   filterCollections,
@@ -1232,6 +1235,28 @@ function bindInicio() {
       paintInicio()
     })
   })
+  viewEl.querySelector("#btn-edit-goal")?.addEventListener("click", async () => {
+    const currentGoal = state.overview?.sales_goal || 10000
+    const input = window.prompt("Defina a meta de vendas do mês (R$):", String(currentGoal))
+    if (!input) return
+    const cleaned = input.replace(/\./g, "").replace(",", ".").trim()
+    const newGoal = Number(cleaned)
+    if (!Number.isFinite(newGoal) || newGoal <= 0) {
+      showMessage("Valor inválido para a meta.", "error")
+      return
+    }
+    showMessage("Salvando nova meta…")
+    const res = await setMonthlyGoal(newGoal)
+    if (state.overview) state.overview.sales_goal = res.ok && res.sales_goal ? res.sales_goal : newGoal
+    showMessage(res.ok ? "Meta mensal atualizada!" : "Meta atualizada no painel.")
+    paintInicio()
+  })
+  viewEl.querySelector("#btn-export-sales-csv")?.addEventListener("click", () => {
+    const csv = generateSalesCsv(state.recent || [])
+    const month = state.overview?.month || new Date().toISOString().slice(0, 7)
+    downloadCsvFile(csv, `vendas-maris-${month}.csv`)
+    showMessage("Planilha de vendas exportada com sucesso.")
+  })
   bindSaleCards()
 }
 
@@ -1246,6 +1271,12 @@ function paintVendas() {
     })
   })
   bindSaleCards()
+  viewEl.querySelector("#btn-export-sales-vendas")?.addEventListener("click", () => {
+    const csv = generateSalesCsv(state.recent || [])
+    const month = state.overview?.month || new Date().toISOString().slice(0, 7)
+    downloadCsvFile(csv, `vendas-maris-${month}.csv`)
+    showMessage("Planilha de vendas exportada com sucesso.")
+  })
   viewEl.querySelectorAll(".status-filter-btn[data-status]").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const targetStatus = btn.getAttribute("data-status") || "all"
