@@ -19,7 +19,10 @@ export const ADMIN_DASHBOARD_API = {
   saleMarkPaid: "admin-sale-mark-paid",
   collectionList: "admin-collection-list",
   collectionSave: "admin-collection-save",
-  collectionDelete: "admin-collection-delete"
+  collectionDelete: "admin-collection-delete",
+  promotionList: "admin-promotion-list",
+  promotionSave: "admin-promotion-save",
+  promotionEnd: "admin-promotion-end"
 }
 
 function withQuery(url, query) {
@@ -270,3 +273,25 @@ export async function deleteCollection(id, client) {
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível excluir a coleção.")
   return { ok: true, data: result.data || {} }
 }
+
+/** GET admin-promotion-list — { ok, promotions: [...] } */
+export async function fetchPromotions(client) {
+  const result = await call(ADMIN_DASHBOARD_API.promotionList, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar as promoções.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** POST admin-promotion-save — { ...promotion } -> { ok, promotion } */
+export async function savePromotion(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.promotionSave, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar a promoção.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** POST admin-promotion-end — { id } -> { ok, id, already_ended? } */
+export async function endPromotion(id, client) {
+  const result = await call(ADMIN_DASHBOARD_API.promotionEnd, { method: "POST", body: { id } }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível encerrar a promoção.")
+  return { ok: true, data: result.data || {} }
+}
+

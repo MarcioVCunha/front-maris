@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1"
+import { assertEquals, assert } from "jsr:@std/assert@1"
 import {
   PROMO_CATEGORIES,
   computePromotionStatus,
@@ -10,6 +10,9 @@ import {
   validatePromotionPayload,
   filterPromotions,
   filterProductsForPromo,
+  renderPromoCard,
+  renderPromotionsPage,
+  renderPromoDialogContent,
 } from "./promocoes.logic.js"
 
 Deno.test("toLocalDatetimeInput formata data para input datetime-local", () => {
@@ -157,3 +160,52 @@ Deno.test("filterPromotions filtra por termo de busca e status", () => {
   assertEquals(filterPromotions(promos, { status: "active" }, now).map((p) => p.id), [1, 3])
   assertEquals(filterPromotions(promos, { status: "ended" }, now).map((p) => p.id), [2])
 })
+
+Deno.test("renderPromotionsPage e renderPromoDialogContent montam o HTML com acessibilidade e dados corretos", () => {
+  const promo = {
+    id: 1,
+    name: "Black Friday Anéis",
+    scope: "categoria",
+    category: "Anel",
+    product_codes: [],
+    discount_type: "percent",
+    value: 20,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z",
+    max_units: 50,
+    units_sold: 10,
+    is_active: true
+  }
+
+  // Card
+  const cardHtml = renderPromoCard(promo)
+  assert(cardHtml.includes("Black Friday Anéis"))
+  assert(cardHtml.includes("20% OFF"))
+  assert(cardHtml.includes("Anel"))
+  assert(cardHtml.includes('data-id="1"'))
+  assert(cardHtml.includes("Editar"))
+  assert(cardHtml.includes("Encerrar"))
+
+  // Página com promoções
+  const pageHtml = renderPromotionsPage([promo], { query: "Black", status: "all" })
+  assert(pageHtml.includes("promotions-page"))
+  assert(pageHtml.includes("Black Friday Anéis"))
+  assert(pageHtml.includes("+ Nova promoção"))
+  assert(pageHtml.includes('value="Black"'))
+
+  // Página vazia
+  const emptyPage = renderPromotionsPage([])
+  assert(emptyPage.includes("Nenhuma campanha promocional cadastrada"))
+
+  // Dialog de edição
+  const dialogEdit = renderPromoDialogContent(promo)
+  assert(dialogEdit.includes("Editar promoção"))
+  assert(dialogEdit.includes("Black Friday Anéis"))
+  assert(dialogEdit.includes('value="20"'))
+
+  // Dialog de criação
+  const dialogNew = renderPromoDialogContent(null)
+  assert(dialogNew.includes("Nova promoção"))
+  assert(dialogNew.includes("Salvar promoção"))
+})
+

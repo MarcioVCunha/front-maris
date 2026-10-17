@@ -87,7 +87,7 @@ Deno.test("o painel está ligado e Promoções continua no menu", async () => {
   assert(flag.includes("window.MARIS_ADMIN_DASHBOARD = true"))
   assert(hub.includes('href="/promocoes"'))
   const menu = navHtml("inicio")
-  assert(menu.includes('href="/promocoes"'))
+  assert(menu.includes('href="/admin/promocoes"'))
   assert(menu.includes("Promoções"))
   assert(menu.includes('href="/admin/inicio" aria-current="page"'))
   const vercel = JSON.parse(await Deno.readTextFile(new URL("../../../vercel.json", import.meta.url)))
@@ -96,8 +96,12 @@ Deno.test("o painel está ligado e Promoções continua no menu", async () => {
     "/paginas/admin/painel.html",
   )
   assertEquals(
-    vercel.rewrites.find((item: { source: string }) => item.source === "/promocoes").destination,
-    "/paginas/estoque/promocoes/promocoes.html",
+    vercel.rewrites.find((item: { source: string }) => item.source === "/admin/promocoes").destination,
+    "/paginas/admin/painel.html",
+  )
+  assertEquals(
+    vercel.redirects.find((item: { source: string }) => item.source === "/promocoes").destination,
+    "/admin/promocoes",
   )
 })
 
@@ -279,6 +283,7 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(dashboardView("/admin/peca", "?code=AN581-R"), "peca")
   assertEquals(dashboardView("/admin/conjuntos"), "conjuntos")
   assertEquals(dashboardView("/admin/tipos"), "conjuntos")
+  assertEquals(dashboardView("/admin/promocoes"), "promocoes")
   assertEquals(dashboardView("/paginas/admin/painel.html", "?view=tipos"), "conjuntos")
   const list = renderStockList([{
     code: "AN581-R",
