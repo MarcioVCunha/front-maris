@@ -19,6 +19,9 @@ import {
   fetchCollectionList,
   saveCollection,
   deleteCollection,
+  fetchPromotions,
+  savePromotion,
+  endPromotion,
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
@@ -51,6 +54,9 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.collectionList, "admin-collection-list")
   assertEquals(ADMIN_DASHBOARD_API.collectionSave, "admin-collection-save")
   assertEquals(ADMIN_DASHBOARD_API.collectionDelete, "admin-collection-delete")
+  assertEquals(ADMIN_DASHBOARD_API.promotionList, "admin-promotion-list")
+  assertEquals(ADMIN_DASHBOARD_API.promotionSave, "admin-promotion-save")
+  assertEquals(ADMIN_DASHBOARD_API.promotionEnd, "admin-promotion-end")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -216,4 +222,26 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(delClient.calls[0].name, "admin-collection-delete")
   assertEquals(delClient.calls[0].options.method, "POST")
   assertEquals(delClient.calls[0].options.body, { id: 1 })
+
+  // Promoções
+  const promoListClient = client({ ok: true, promotions: [{ id: 5, name: "Black Friday" }] })
+  const promoListRes = await fetchPromotions(promoListClient)
+  assertEquals(promoListRes.ok, true)
+  assertEquals(promoListRes.data.promotions.length, 1)
+  assertEquals(promoListClient.calls[0].name, "admin-promotion-list")
+  assertEquals(promoListClient.calls[0].options.method, "GET")
+
+  const promoSaveClient = client({ ok: true, promotion: { id: 5, name: "Black Friday" } })
+  const promoSaveRes = await savePromotion({ name: "Black Friday", value: 20 }, promoSaveClient)
+  assertEquals(promoSaveRes.ok, true)
+  assertEquals(promoSaveClient.calls[0].name, "admin-promotion-save")
+  assertEquals(promoSaveClient.calls[0].options.method, "POST")
+  assertEquals(promoSaveClient.calls[0].options.body, { name: "Black Friday", value: 20 })
+
+  const promoEndClient = client({ ok: true, id: 5, already_ended: false })
+  const promoEndRes = await endPromotion(5, promoEndClient)
+  assertEquals(promoEndRes.ok, true)
+  assertEquals(promoEndClient.calls[0].name, "admin-promotion-end")
+  assertEquals(promoEndClient.calls[0].options.method, "POST")
+  assertEquals(promoEndClient.calls[0].options.body, { id: 5 })
 })

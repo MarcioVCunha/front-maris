@@ -79,7 +79,10 @@ import {
   updateProduct,
   fetchCollectionList,
   saveCollection,
-  deleteCollection
+  deleteCollection,
+  fetchPromotions,
+  savePromotion,
+  endPromotion
 } from "./painel.api.js"
 import {
   filterCollections,
@@ -90,6 +93,15 @@ import {
   slugify,
   validateCollectionPayload
 } from "./colecoes.logic.js"
+import {
+  PROMO_CATEGORIES,
+  computePromotionStatus,
+  filterPromotions,
+  renderPromoCard,
+  renderPromotionsPage,
+  renderPromoDialogContent,
+  validatePromotionPayload as validatePromoPayload
+} from "../estoque/promocoes/promocoes.logic.js"
 import { loadingHtml } from "../../compartilhado/loading.js"
 import {
   formatImageFailuresWarning,
@@ -109,6 +121,7 @@ const TITLES = {
   vendas: "Vendas",
   vendedoras: "Vendedoras",
   colecoes: "Coleções",
+  promocoes: "Promoções",
   peca: "Editar peça",
   conjuntos: "Conjuntos",
   adicionar: "Adicionar peça",
@@ -148,6 +161,7 @@ let undoTimer = null
 let undoAction = null
 const conjuntoDialog = document.getElementById("conjunto-dialog")
 const collectionDialog = document.getElementById("collection-dialog")
+const promoDialog = document.getElementById("promo-dialog")
 
 const state = {
   products: [],
@@ -168,7 +182,11 @@ const state = {
   collections: undefined,
   collectionQuery: "",
   collectionEditing: null,
-  collectionSelectedCodes: []
+  collectionSelectedCodes: [],
+  promotions: undefined,
+  promoQuery: "",
+  promoStatusFilter: "all",
+  promoEditing: null
 }
 
 let pendingSaleCancel = null
@@ -815,6 +833,176 @@ function paintColecoes() {
   })
 }
 
+async function loadPromotions() {
+  const result = await fetchPromotions()
+  state.promotions = result.ok ? (result.data?.promotions || []) : []
+  if (!result.ok) showMessage(result.error || "Não foi possível carregar as promoções.", "error")
+  return state.promotions
+}
+
+function openPromoEditDialog(promo = null) {
+  state.promoEditing = promo
+  promoDialog.innerHTML = renderPromoDialogContent(promo)
+
+  const form = promoDialog.querySelector("#promo-form")
+  const closeBtn = promoDialog.querySelector("#promo-dialog-close-btn")
+  const cancelBtn = promoDialog.querySelector("#promo-dialog-cancel")
+  const scopeSelect = promoDialog.querySelector("#promo-form-scope")
+  const groupCategory = promoDialog.querySelector("#promo-group-category")
+  const groupProducts = promoDialog.querySelector("#promo-group-products")
+  const discountTypeSelect = promoDialog.querySelector("#promo-form-discount-type")
+  const valueLabel = promoDialog.querySelector("#promo-value-label")
+  const valueInput = promoDialog.querySelector("#promo-form-value")
+  const feedbackEl = promoDialog.querySelector("#promo-dialog-feedback")
+
+  const syncScope = () => {
+    const isCategory = scopeSelect?.value === "categoria"
+    if (groupCategory) groupCategory.hidden = !isCategory
+    if (groupProducts) groupProducts.hidden = isCategory
+  }
+
+  const syncDiscount = () => {
+    const isPercent = discountTypeSelect?.value === "percent"
+    if (valueLabel) valueLabel.textContent = isPercent ? "Desconto (% OFF) *" : "Desconto (R$ OFF) *"
+    if (valueInput) {
+      valueInput.placeholder = isPercent ? "Ex: 15" : "Ex: 25.00"
+      if (isPercent) valueInput.max = "100"
+      else valueInput.removeAttribute("max")
+    }
+  }
+
+  scopeSelect?.addEventListener("change", syncScope)
+  discountTypeSelect?.addEventListener("change", syncDiscount)
+  closeBtn?.addEventListener("click", () => promoDialog.close())
+  cancelBtn?.addEventListener("click", () => promoDialog.close())
+
+  promoDialog.addEventListener("click", (e) => {
+    if (e.target === promoDialog) promoDialog.close()
+  })
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault()
+    if (feedbackEl) feedbackEl.hidden = true
+
+    const nameInput = promoDialog.querySelector("#promo-form-name")
+    const categorySelect = promoDialog.querySelector("#promo-form-category")
+    const codesInput = promoDialog.querySelector("#promo-form-codes")
+    const startsAtInput = promoDialog.querySelector("#promo-form-starts-at")
+    const endsAtInput = promoDialog.querySelector("#promo-form-ends-at")
+    const maxUnitsInput = promoDialog.querySelector("#promo-form-max-units")
+    const activeCheckbox = promoDialog.querySelector("#promo-form-active")
+    const submitBtn = promoDialog.querySelector("#promo-dialog-submit")
+
+    const formData = {
+      id: promo?.id || null,
+      name: nameInput?.value,
+      scope: scopeSelect?.value,
+      category: categorySelect?.value,
+      product_codes: codesInput?.value,
+      discount_type: discountTypeSelect?.value,
+      value: Number(valueInput?.value),
+      starts_at: startsAtInput?.value,
+      ends_at: endsAtInput?.value,
+      max_units: maxUnitsInput?.value,
+      is_active: activeCheckbox ? activeCheckbox.checked : true,
+    }
+
+    const validation = validatePromoPayload(formData)
+    if (!validation.ok) {
+      if (feedbackEl) {
+        feedbackEl.textContent = validation.error
+        feedbackEl.className = "promo-feedback error"
+        feedbackEl.hidden = false
+      }
+      return
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true
+      submitBtn.textContent = "Salvando…"
+    }
+
+    const res = await savePromotion(validation.payload)
+    if (!res.ok) {
+      if (submitBtn) {
+        submitBtn.disabled = false
+        submitBtn.textContent = "Salvar promoção"
+      }
+      if (feedbackEl) {
+        feedbackEl.textContent = res.error || "Erro ao salvar a promoção."
+        feedbackEl.className = "promo-feedback error"
+        feedbackEl.hidden = false
+      }
+      return
+    }
+
+    promoDialog.close()
+    showMessage(promo?.id ? "Promoção atualizada." : "Promoção salva com sucesso!")
+    await loadPromotions()
+    paintPromocoes()
+  })
+
+  if (!promoDialog.open) promoDialog.showModal()
+}
+
+function paintPromocoes() {
+  viewEl.innerHTML = renderPromotionsPage(state.promotions, {
+    query: state.promoQuery,
+    status: state.promoStatusFilter
+  })
+
+  // Botão nova promoção
+  viewEl.querySelector("#promo-new-btn")?.addEventListener("click", () => openPromoEditDialog(null))
+
+  // Busca de promoções
+  const searchInput = viewEl.querySelector("#promo-search")
+  searchInput?.addEventListener("input", () => {
+    state.promoQuery = searchInput.value
+    paintPromocoes()
+    const newInput = viewEl.querySelector("#promo-search")
+    if (newInput) {
+      newInput.focus()
+      newInput.setSelectionRange(newInput.value.length, newInput.value.length)
+    }
+  })
+
+  // Filtro por status
+  viewEl.querySelectorAll(".status-filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.promoStatusFilter = btn.dataset.status || "all"
+      paintPromocoes()
+    })
+  })
+
+  // Ações nos cards (Editar / Encerrar)
+  viewEl.querySelector("#promo-list")?.addEventListener("click", async (event) => {
+    const actionBtn = event.target.closest("button[data-action]")
+    if (!actionBtn) return
+    const action = actionBtn.dataset.action
+    const id = Number(actionBtn.dataset.id)
+    const promo = (state.promotions || []).find((p) => Number(p.id) === id)
+    if (!promo) return
+
+    if (action === "edit") {
+      openPromoEditDialog(promo)
+      return
+    }
+
+    if (action === "end") {
+      const ok = confirm(`Deseja realmente encerrar a promoção "${promo.name}"?`)
+      if (!ok) return
+      const res = await endPromotion(id)
+      if (res.ok) {
+        showMessage(res.data?.already_ended ? "Esta promoção já estava encerrada." : "Promoção encerrada com sucesso!")
+        await loadPromotions()
+        paintPromocoes()
+      } else {
+        showMessage(res.error || "Não foi possível encerrar a promoção.", "error")
+      }
+    }
+  })
+}
+
 function bindImport() {
   document.getElementById("import-form").addEventListener("submit", async (event) => {
     event.preventDefault()
@@ -1185,6 +1373,13 @@ async function render(view, token) {
     await Promise.all([loadCollections(), loadProducts()])
     if (stale()) return
     paintColecoes()
+    return
+  }
+  if (view === "promocoes") {
+    if (state.promotions === undefined) viewEl.innerHTML = viewLoading()
+    await loadPromotions()
+    if (stale()) return
+    paintPromocoes()
     return
   }
   if (view === "adicionar") {
