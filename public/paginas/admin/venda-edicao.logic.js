@@ -128,7 +128,26 @@ export function piecePhotoHtml(item) {
   return `<span class="sale-edit__piece-photo sale-edit__piece-photo--empty">${escapeHtml(letters)}</span>`
 }
 
-export function saleMetaChipsHtml(sale) {
+export function isSaleOverdueReceivable(sale, now = new Date()) {
+  if (!sale) return false
+  const status = String(sale.payment_status || "").trim().toLowerCase()
+  if (status !== "receivable") return false
+  const createdDate = new Date(sale.created_at || "")
+  if (Number.isNaN(createdDate.getTime())) return false
+  const nowDate = now instanceof Date ? now : new Date(now)
+  const diffMs = nowDate.getTime() - createdDate.getTime()
+  return diffMs > 7 * 24 * 60 * 60 * 1000
+}
+
+export function daysSince(isoDate, now = new Date()) {
+  const date = new Date(isoDate || "")
+  if (Number.isNaN(date.getTime())) return 0
+  const nowDate = now instanceof Date ? now : new Date(now)
+  const diffMs = Math.max(0, nowDate.getTime() - date.getTime())
+  return Math.floor(diffMs / (24 * 60 * 60 * 1000))
+}
+
+export function saleMetaChipsHtml(sale, now = new Date()) {
   const chips = []
   const seller = String(sale?.seller_name || "").trim()
   if (seller) {
@@ -138,6 +157,12 @@ export function saleMetaChipsHtml(sale) {
   if (status) {
     chips.push(
       `<span class="sale-chip sale-chip--status sale-chip--${saleStatusTone(sale?.payment_status)}">${escapeHtml(status)}</span>`
+    )
+  }
+  if (isSaleOverdueReceivable(sale, now)) {
+    const days = daysSince(sale?.created_at, now)
+    chips.push(
+      `<span class="sale-chip sale-chip--overdue" title="Venda a receber criada há mais de 7 dias">⏳ ${days}d em aberto</span>`
     )
   }
   const method = saleMethodLabel(sale?.payment_method)

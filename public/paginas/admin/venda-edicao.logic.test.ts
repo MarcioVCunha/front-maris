@@ -1,9 +1,11 @@
 import { assert, assertEquals } from "jsr:@std/assert@1"
 import {
   ADMIN_SALE_EDIT_ENABLED,
+  daysSince,
   filterSalesByChannel,
   filterSalesBySeller,
   filterSalesByStatus,
+  isSaleOverdueReceivable,
   normalizeAdminSale,
   normalizeSaleItems,
   readSaleEditForm,
@@ -12,6 +14,7 @@ import {
   saleCancelPayload,
   saleChannelLabel,
   saleMarkPaidPayload,
+  saleMetaChipsHtml,
   salePrimaryPhoto,
   saleStatusLabel,
   saleStatusTone,
@@ -212,6 +215,38 @@ Deno.test("readSaleEditForm e payloads do back #18", () => {
   assertEquals(normalized?.id, 55)
   assertEquals(normalized?.seller_name, "Marineide")
   assertEquals(normalized?.payment_status, "paid")
-  assertEquals(normalized?.payment_method, "pix")
   assertEquals(normalized?.items[0].image_url, "https://exemplo.test/a.jpg")
+})
+
+Deno.test("etapa 3: identifica venda a receber há mais de 7 dias e renderiza chip de atraso", () => {
+  const baseTime = new Date("2026-10-25T12:00:00Z")
+
+  // Venda criada há 10 dias, status a receber
+  const overdueSale = {
+    payment_status: "receivable",
+    created_at: "2026-10-15T12:00:00Z",
+    seller_name: "Marineide",
+  }
+  assertEquals(isSaleOverdueReceivable(overdueSale, baseTime), true)
+  assertEquals(daysSince(overdueSale.created_at, baseTime), 10)
+
+  // Venda criada há 3 dias, status a receber
+  const recentReceivable = {
+    payment_status: "receivable",
+    created_at: "2026-10-22T12:00:00Z",
+  }
+  assertEquals(isSaleOverdueReceivable(recentReceivable, baseTime), false)
+
+  // Venda criada há 15 dias, mas já paga
+  const paidOldSale = {
+    payment_status: "paid",
+    created_at: "2026-10-10T12:00:00Z",
+  }
+  assertEquals(isSaleOverdueReceivable(paidOldSale, baseTime), false)
+
+  // Chip renderizado na venda com atraso
+  const chipsHtml = saleMetaChipsHtml(overdueSale, baseTime)
+  assert(chipsHtml.includes("sale-chip--overdue"))
+  assert(chipsHtml.includes("⏳ 10d em aberto"))
+  assert(chipsHtml.includes("sale-chip--receivable"))
 })

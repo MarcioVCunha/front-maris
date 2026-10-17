@@ -576,10 +576,14 @@ function normalizeChannelRow(item) {
     channel: String(item?.channel || ""),
     orders: Number(item?.orders) || 0,
     charged_total: Number(item?.charged_total) || 0,
+    profit_total: item?.profit_total == null ? null : Number(item.profit_total) || 0,
     previous_orders: item?.previous_orders == null ? null : Number(item.previous_orders) || 0,
     previous_charged_total: item?.previous_charged_total == null
       ? null
-      : Number(item.previous_charged_total) || 0
+      : Number(item.previous_charged_total) || 0,
+    previous_profit_total: item?.previous_profit_total == null
+      ? null
+      : Number(item.previous_profit_total) || 0
   }
 }
 
@@ -609,6 +613,7 @@ export function normalizeOverview(data) {
     ? {
       month: String(data.previous.month || ""),
       charged_total: Number(data.previous.charged_total) || 0,
+      profit_total: data.previous.profit_total == null ? null : Number(data.previous.profit_total) || 0,
       paid_count: Number(data.previous.paid_count) || 0,
       paid_orders_count: Number(data.previous.paid_orders_count) || 0,
       channels: previousChannels
@@ -622,12 +627,21 @@ export function normalizeOverview(data) {
     return {
       ...row,
       previous_orders: prev.orders,
-      previous_charged_total: prev.charged_total
+      previous_charged_total: prev.charged_total,
+      previous_profit_total: prev.profit_total
     }
   })
   return {
     month: String(data.month || ""),
     charged_total: Number(data.charged_total) || 0,
+    profit_total: data.profit_total == null ? null : Number(data.profit_total) || 0,
+    sales_goal: data.sales_goal == null ? 10000 : Number(data.sales_goal) || 10000,
+    receivables_overdue: data.receivables_overdue && typeof data.receivables_overdue === "object"
+      ? {
+        count: Number(data.receivables_overdue.count) || 0,
+        total: Number(data.receivables_overdue.total) || 0
+      }
+      : null,
     paid_count: Number(data.paid_count) || 0,
     paid_orders_count: Number(data.paid_orders_count) || 0,
     previous,
@@ -649,8 +663,10 @@ function orderedHomeChannels(channels) {
     channel,
     orders: 0,
     charged_total: 0,
+    profit_total: 0,
     previous_orders: 0,
-    previous_charged_total: 0
+    previous_charged_total: 0,
+    previous_profit_total: 0
   })
 }
 
@@ -740,13 +756,143 @@ function renderOriginStrip(channelRows, selectedChannel, formatMoney, detailed) 
     const delta = detailed && item.previous_charged_total != null
       ? formatMoneyDelta(moneyDelta(item.charged_total, item.previous_charged_total), formatMoney)
       : ""
+    const profitText = item.profit_total != null && Number.isFinite(item.profit_total)
+      ? `<small class="origin-card__profit">Lucro: ${escapeHtml(money(item.profit_total, formatMoney))}</small>`
+      : ""
     return `<button type="button" class="origin-card" role="listitem" data-origin="${escapeHtml(item.channel)}" aria-pressed="${active ? "true" : "false"}">
       <span class="origin-card__name">${escapeHtml(channelLabel(item.channel))}</span>
       <b class="origin-card__total">${escapeHtml(money(item.charged_total, formatMoney))}</b>
       <small class="origin-card__meta">${Number(item.orders) || 0} pedidos</small>
+      ${profitText}
       ${delta ? `<small class="delta origin-card__delta">${escapeHtml(delta)}</small>` : ""}
     </button>`
   }).join("")}</div>`
+}
+
+export function computeSalesGoalProgress(chargedTotal, salesGoal) {
+  const total = Math.max(0, Number(chargedTotal) || 0)
+  const goal = Math.max(0, Number(salesGoal) || 0)
+  if (goal <= 0) return { percent: 0, rawPercent: 0, remaining: 0, reached: true }
+  const rawPercent = Math.round((total / goal) * 100)
+  const percent = Math.min(100, rawPercent)
+  const remaining = Math.max(0, goal - total)
+  return {
+    percent,
+    rawPercent,
+    remaining,
+    reached: total >= goal
+  }
+}
+
+export function renderGoalBar(chargedTotal, salesGoal, formatMoney = formatPrice) {
+  const goal = Number(salesGoal) || 10000
+  const progress = computeSalesGoalProgress(chargedTotal, goal)
+  const goalFormatted = formatMoney(goal)
+  const remainingFormatted = formatMoney(progress.remaining)
+  const statusText = progress.reached
+    ? `🎉 Meta atingida! (${progress.rawPercent}%)`
+    : `${progress.percent}% da meta de ${goalFormatted} · Faltam ${remainingFormatted}`
+
+  return `<div class="goal-widget" id="goal-widget">
+    <div class="goal-widget__header">
+      <span class="goal-widget__title"><strong>Meta do mês:</strong> ${escapeHtml(goalFormatted)}</span>
+      <button type="button" class="btn-ghost btn-sm" id="btn-edit-goal" aria-label="Editar meta mensal">✏️ Editar meta</button>
+    </div>
+    <div class="goal-widget__bar-track" role="progressbar" aria-valuenow="${progress.percent}" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso da meta">
+      <div class="goal-widget__bar-fill${progress.reached ? " goal-widget__bar-fill--reached" : ""}" style="width: ${progress.percent}%"></div>
+    </div>
+    <div class="goal-widget__footer">
+      <small class="goal-widget__hint">${escapeHtml(statusText)}</small>
+    </div>
+  </div>`
+}
+
+export function renderOverdueAlert(overdueData, formatMoney = formatPrice) {
+  const count = Number(overdueData?.count) || 0
+  const total = Number(overdueData?.total) || 0
+  if (count <= 0) return ""
+  const totalFormatted = formatMoney(total)
+  return `<aside class="overdue-banner" role="alert">
+    <div class="overdue-banner__content">
+      <span class="overdue-banner__icon" aria-hidden="true">⚠️</span>
+      <div class="overdue-banner__text">
+        <strong>${count} ${count === 1 ? "venda a receber" : "vendas a receber"} há mais de 7 dias</strong>
+        <p>Total em aberto: <b>${escapeHtml(totalFormatted)}</b>. Acompanhe a cobrança para não perder vendas.</p>
+      </div>
+    </div>
+    <a href="/admin/vendas?status=receivable" class="btn-secondary btn-sm overdue-banner__action">Ver vendas a receber</a>
+  </aside>`
+}
+
+export function generateSalesCsv(sales) {
+  const rows = Array.isArray(sales) ? sales : []
+  const headers = [
+    "Data",
+    "Pedido",
+    "Canal",
+    "Cliente",
+    "Vendedora",
+    "Status",
+    "Forma de Pagamento",
+    "Qtd Peças",
+    "Itens",
+    "Valor Total (R$)"
+  ]
+
+  const escapeCsv = (val) => {
+    const text = String(val ?? "").trim()
+    if (text.includes(";") || text.includes('"') || text.includes("\n") || text.includes("\r")) {
+      return `"${text.replace(/"/g, '""')}"`
+    }
+    return text
+  }
+
+  const lines = [headers.join(";")]
+
+  for (const sale of rows) {
+    const dateFormatted = formatWhen(sale.created_at)
+    const orderId = sale.id != null ? `#${sale.id}` : ""
+    const channel = channelLabel(sale.channel)
+    const customer = sale.customer_name || "Cliente"
+    const seller = sale.seller_name || ""
+    const status = statusLabel(sale.payment_status) || sale.payment_status || ""
+    const payment = paymentLabel(sale.payment_method) || sale.payment_method || ""
+    const itemsCount = sale.items_count || (Array.isArray(sale.items) ? sale.items.length : 0)
+
+    const itemsSummary = Array.isArray(sale.items) && sale.items.length > 0
+      ? sale.items.map((i) => `${i.code || i.product_code || "Peça"} (${i.quantity || 1}x)`).join(", ")
+      : ""
+
+    const totalNumber = Number(sale.total) || 0
+    const totalFormatted = totalNumber.toFixed(2).replace(".", ",")
+
+    lines.push([
+      escapeCsv(dateFormatted),
+      escapeCsv(orderId),
+      escapeCsv(channel),
+      escapeCsv(customer),
+      escapeCsv(seller),
+      escapeCsv(status),
+      escapeCsv(payment),
+      escapeCsv(itemsCount),
+      escapeCsv(itemsSummary),
+      escapeCsv(totalFormatted)
+    ].join(";"))
+  }
+
+  return "\uFEFF" + lines.join("\r\n")
+}
+
+export function downloadCsvFile(csvContent, filename) {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename || `vendas-maris-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 function renderBestSellersBlock(bestSellers, detailed) {
@@ -779,6 +925,20 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
     ? formatMoneyDelta(moneyDelta(data.charged_total, data.previous.charged_total), formatMoney)
     : ""
   const origins = renderOriginStrip(channelRows, selected, formatMoney, detailed)
+  const overdueBanner = renderOverdueAlert(data.receivables_overdue, formatMoney)
+  const goalBar = renderGoalBar(data.charged_total, data.sales_goal, formatMoney)
+
+  let profitHero = ""
+  if (data.profit_total != null && Number.isFinite(data.profit_total)) {
+    const margin = data.charged_total > 0
+      ? Math.round((data.profit_total / data.charged_total) * 100)
+      : 0
+    profitHero = `<div class="hero-profit-card">
+      <small class="hero-profit-card__label">Lucro do mês</small>
+      <b class="hero-profit-card__value">${escapeHtml(money(data.profit_total, formatMoney))}</b>
+      <small class="hero-profit-card__margin">${margin}% de margem bruta</small>
+    </div>`
+  }
 
   let secondaryTitle = "Mais vendidas"
   let secondaryBody = renderBestSellersBlock(data.best_sellers, detailed)
@@ -801,13 +961,23 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
   }
 
   return `<section class="report report--inicio">
+    ${overdueBanner}
     <header class="inicio-hero">
-      <h2>Vendas do mês</h2>
-      <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
-      <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
-      ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
+      <div class="inicio-hero__header">
+        <div class="inicio-hero__main">
+          <h2>Vendas do mês</h2>
+          <p class="stat">${escapeHtml(money(data.charged_total, formatMoney))}</p>
+          <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
+          ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
+        </div>
+        ${profitHero}
+      </div>
+      ${goalBar}
     </header>
-    <h2>Origem</h2>
+    <div class="inicio-actions-bar">
+      <h2>Origem</h2>
+      <button type="button" id="btn-export-sales-csv" class="btn-ghost btn-sm" title="Baixar relatório de vendas do mês em CSV">📥 Exportar vendas (CSV)</button>
+    </div>
     <p class="hint origin-hint">Toque numa origem para ver as vendas. Toque de novo para voltar às mais vendidas.</p>
     ${origins}
     <h2 id="inicio-secondary-title">${escapeHtml(secondaryTitle)}</h2>
@@ -833,8 +1003,10 @@ export function renderSalesStatusFilter(selectedStatus = "all") {
 export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
   const selectedStatus = options.selectedStatus || "all"
   const filterToolbar = renderSalesStatusFilter(selectedStatus)
+  const exportBtn = `<button type="button" id="btn-export-sales-vendas" class="btn-ghost btn-sm" title="Exportar lista de vendas em CSV">📥 Exportar vendas (CSV)</button>`
   const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
-  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${filterToolbar}<p class="empty">${NO_DATA}</p></section>`
+  const toolbarHeader = `<div class="sales-toolbar-row">${filterToolbar}${exportBtn}</div>`
+  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<p class="empty">${NO_DATA}</p></section>`
   const filtered = typeof options.filterSales === "function"
     ? options.filterSales(rows, selectedStatus)
     : rows
@@ -859,7 +1031,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
           <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
       </article>`
     }).join("")
-  return `<section class="report"><h2>Vendas recentes</h2>${filterToolbar}${body}</section>`
+  return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}${body}</section>`
 }
 
 export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {

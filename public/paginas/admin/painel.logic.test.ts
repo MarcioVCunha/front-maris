@@ -12,8 +12,10 @@ import {
   archivePayload,
   ceilMarketplacePrice,
   channelLabel,
+  computeSalesGoalProgress,
   currentMonthKey,
   filterStock,
+  generateSalesCsv,
   inStockProducts,
   isPanelLink,
   buildAddProductPayload,
@@ -35,7 +37,9 @@ import {
   defaultsFor,
   renderAddForm,
   renderArchiveDialog,
+  renderGoalBar,
   renderInicio,
+  renderOverdueAlert,
   renderPieceForm,
   renderSalesStatusFilter,
   renderVendas,
@@ -660,4 +664,149 @@ Deno.test("passo 7: rotas antigas de admin redirecionam para as telas novas", as
     vercel.redirects.find((item: { source: string }) => item.source === "/importar")?.destination,
     "/admin/importar",
   )
+})
+
+Deno.test("etapa 3: progresso da meta e renderização da barra", () => {
+  const p1 = computeSalesGoalProgress(4000, 10000)
+  assertEquals(p1.percent, 40)
+  assertEquals(p1.rawPercent, 40)
+  assertEquals(p1.remaining, 6000)
+  assertEquals(p1.reached, false)
+
+  const p2 = computeSalesGoalProgress(10000, 10000)
+  assertEquals(p2.percent, 100)
+  assertEquals(p2.remaining, 0)
+  assertEquals(p2.reached, true)
+
+  const p3 = computeSalesGoalProgress(12500, 10000)
+  assertEquals(p3.percent, 100)
+  assertEquals(p3.rawPercent, 125)
+  assertEquals(p3.remaining, 0)
+  assertEquals(p3.reached, true)
+
+  const p4 = computeSalesGoalProgress(500, 0)
+  assertEquals(p4.reached, true)
+
+  const html = renderGoalBar(4000, 10000, (v) => `R$ ${v}`)
+  assert(html.includes("goal-widget"))
+  assert(html.includes("Meta do mês:"))
+  assert(html.includes("R$ 10000"))
+  assert(html.includes("40% da meta de R$ 10000 · Faltam R$ 6000"))
+  assert(html.includes('id="btn-edit-goal"'))
+  assert(html.includes('style="width: 40%"'))
+
+  const htmlReached = renderGoalBar(12000, 10000, (v) => `R$ ${v}`)
+  assert(htmlReached.includes("goal-widget__bar-fill--reached"))
+  assert(htmlReached.includes("🎉 Meta atingida! (120%)"))
+})
+
+Deno.test("etapa 3: alerta de vendas a receber há mais de 7 dias", () => {
+  assertEquals(renderOverdueAlert(null), "")
+  assertEquals(renderOverdueAlert({ count: 0, total: 0 }), "")
+
+  const alertHtml = renderOverdueAlert({ count: 3, total: 450 }, (v) => `R$ ${v}`)
+  assert(alertHtml.includes("overdue-banner"))
+  assert(alertHtml.includes("3 vendas a receber há mais de 7 dias"))
+  assert(alertHtml.includes("R$ 450"))
+  assert(alertHtml.includes('href="/admin/vendas?status=receivable"'))
+  assert(alertHtml.includes("Ver vendas a receber"))
+})
+
+Deno.test("etapa 3: geração de CSV de vendas formatado para Excel BR", () => {
+  const sales = [
+    {
+      id: 101,
+      created_at: "2026-10-14T15:30:00Z",
+      channel: "site",
+      customer_name: "Mariana Silva",
+      seller_name: "",
+      payment_status: "paid",
+      payment_method: "pix",
+      items_count: 2,
+      items: [
+        { code: "AN581-R", quantity: 1 },
+        { code: "BR102-O", quantity: 1 },
+      ],
+      total: 219.9,
+    },
+    {
+      id: 102,
+      created_at: "2026-10-14T16:00:00Z",
+      channel: "equipe",
+      customer_name: "Carla Pires",
+      seller_name: "Marineide",
+      payment_status: "receivable",
+      payment_method: "dinheiro",
+      items_count: 1,
+      items: [{ code: "CO200-O", quantity: 1 }],
+      total: 89.5,
+    },
+  ]
+
+  const csv = generateSalesCsv(sales)
+  // Verifica BOM UTF-8
+  assertEquals(csv.startsWith("\uFEFF"), true)
+  // Cabeçalho com ponto-e-vírgula
+  assert(csv.includes("Data;Pedido;Canal;Cliente;Vendedora;Status;Forma de Pagamento;Qtd Peças;Itens;Valor Total (R$)"))
+  // Linhas com valores formatados
+  assert(csv.includes("#101;Site;Mariana Silva;;Paga;Pix;2;AN581-R (1x), BR102-O (1x);219,90"))
+  assert(csv.includes("#102;Equipe;Carla Pires;Marineide;A receber;Dinheiro;1;CO200-O (1x);89,50"))
+
+  // Array vazio gera cabeçalho
+  const emptyCsv = generateSalesCsv([])
+  assertEquals(emptyCsv.startsWith("\uFEFF"), true)
+  assert(emptyCsv.includes("Data;Pedido;Canal"))
+})
+
+Deno.test("etapa 3: renderInicio com lucro, meta, alerta a receber e botão CSV", () => {
+  const formatMoney = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`
+  const html = renderInicio({
+    month: "2026-10",
+    charged_total: 2400,
+    profit_total: 1400,
+    sales_goal: 10000,
+    receivables_overdue: { count: 2, total: 350 },
+    paid_count: 12,
+    paid_orders_count: 7,
+    channels: [
+      { channel: "site", orders: 2, charged_total: 400, profit_total: 250 },
+      { channel: "equipe", orders: 4, charged_total: 1600, profit_total: 900 },
+      { channel: "shopee", orders: 1, charged_total: 200, profit_total: 120 },
+      { channel: "mercado_livre", orders: 0, charged_total: 0, profit_total: 0 },
+      { channel: "tiktok", orders: 0, charged_total: 0, profit_total: 0 },
+    ],
+    best_sellers: [{ code: "AN581-R", name: "Anel rosa", quantity: 5, charged_total: 600 }],
+  }, formatMoney, { enabled: true })
+
+  // Alerta a receber
+  assert(html.includes("overdue-banner"))
+  assert(html.includes("2 vendas a receber há mais de 7 dias"))
+  assert(html.includes("R$ 350,00"))
+
+  // Lucro no hero com margem
+  assert(html.includes("hero-profit-card"))
+  assert(html.includes("Lucro do mês"))
+  assert(html.includes("R$ 1400,00"))
+  assert(html.includes("58% de margem bruta"))
+
+  // Meta de vendas
+  assert(html.includes("goal-widget"))
+  assert(html.includes("Meta do mês:"))
+  assert(html.includes("R$ 10000,00"))
+  assert(html.includes('id="btn-edit-goal"'))
+
+  // Botão exportar CSV
+  assert(html.includes('id="btn-export-sales-csv"'))
+  assert(html.includes("Exportar vendas (CSV)"))
+
+  // Lucro nos cards de origem
+  assert(html.includes("Lucro: R$ 250,00"))
+  assert(html.includes("Lucro: R$ 900,00"))
+  assert(html.includes("Lucro: R$ 120,00"))
+})
+
+Deno.test("etapa 3: renderVendas com botão de exportar CSV", () => {
+  const html = renderVendas([], undefined, { selectedStatus: "all" })
+  assert(html.includes('id="btn-export-sales-vendas"'))
+  assert(html.includes("Exportar vendas (CSV)"))
 })
