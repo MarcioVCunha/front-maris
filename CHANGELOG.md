@@ -7,6 +7,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Adicionado
 
 - Números do Negócio e Métricas Admin (Etapa 3):
+  - **Taxa de conversão de pedidos**: Card dedicado no cabeçalho do Início exibindo a taxa de conversão mensal de pedidos em vendas pagas (ex: `70% de conversão`), detalhamento de pedidos pagos vs total criado, conversão específica dos pedidos do site e comparação percentual em relação ao mês anterior (ex: `+7.5% vs mês anterior`).
+  - **Ranking de categorias por lucro**: Nova seção no Início exibindo a classificação das categorias ordenadas pelo lucro gerado no mês, com medalhas de posição (`#1`, `#2`...), lucro em reais, margem percentual, quantidade de peças vendidas, faturamento total da categoria e barra visual proporcional ao líder.
   - **Meta de vendas do mês**: Widget de meta com barra de progresso visual (% atingida e valor restante ou comemoração de meta batida) e botão/diálogo para definir/editar a meta diretamente no painel (`setMonthlyGoal`).
   - **Lucro do mês e por canal**: Card de destaque no Início exibindo o lucro total do mês com margem bruta calculada (ex: `58% de margem bruta`), além da discriminação de lucro gerado em cada canal de venda (Site, Equipe, Shopee, Mercado Livre, TikTok Shop).
   - **Lembrete de vendas "A receber" há mais de 7 dias**: Alerta no topo do Início destacando a quantidade e o valor total de pedidos com recebimento pendente há mais de 7 dias com atalho direto para a listagem filtrada; etiqueta visual de atenção (`⏳ Xd em aberto`) nos cards de vendas com cobrança em atraso.

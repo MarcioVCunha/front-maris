@@ -616,6 +616,13 @@ export function normalizeOverview(data) {
       profit_total: data.previous.profit_total == null ? null : Number(data.previous.profit_total) || 0,
       paid_count: Number(data.previous.paid_count) || 0,
       paid_orders_count: Number(data.previous.paid_orders_count) || 0,
+      conversion: data.previous.conversion && typeof data.previous.conversion === "object"
+        ? {
+          orders_created: Number(data.previous.conversion.orders_created) || 0,
+          orders_paid: Number(data.previous.conversion.orders_paid) || 0,
+          conversion_rate: Number(data.previous.conversion.conversion_rate) || 0
+        }
+        : null,
       channels: previousChannels
     }
     : null
@@ -636,6 +643,25 @@ export function normalizeOverview(data) {
     charged_total: Number(data.charged_total) || 0,
     profit_total: data.profit_total == null ? null : Number(data.profit_total) || 0,
     sales_goal: data.sales_goal == null ? 10000 : Number(data.sales_goal) || 10000,
+    conversion: data.conversion && typeof data.conversion === "object"
+      ? {
+        orders_created: Number(data.conversion.orders_created) || 0,
+        orders_paid: Number(data.conversion.orders_paid) || 0,
+        conversion_rate: Number(data.conversion.conversion_rate) || 0,
+        site_orders_created: Number(data.conversion.site_orders_created) || 0,
+        site_orders_paid: Number(data.conversion.site_orders_paid) || 0,
+        site_conversion_rate: Number(data.conversion.site_conversion_rate) || 0
+      }
+      : null,
+    category_ranking: Array.isArray(data.category_ranking)
+      ? data.category_ranking.map((row) => ({
+        category: String(row?.category || "Outros"),
+        profit_total: Number(row?.profit_total) || 0,
+        charged_total: Number(row?.charged_total) || 0,
+        quantity: Number(row?.quantity) || 0,
+        margin_percent: Number(row?.margin_percent) || 0
+      }))
+      : [],
     receivables_overdue: data.receivables_overdue && typeof data.receivables_overdue === "object"
       ? {
         count: Number(data.receivables_overdue.count) || 0,
@@ -909,6 +935,77 @@ function renderBestSellersBlock(bestSellers, detailed) {
   }).join("")}</ul>`
 }
 
+export function renderConversionCard(conversion, previousConversion) {
+  if (!conversion || typeof conversion !== "object") return ""
+  const rate = Number(conversion.conversion_rate) || 0
+  const total = Number(conversion.orders_created) || 0
+  const paid = Number(conversion.orders_paid) || 0
+  const detail = total > 0
+    ? `${paid} de ${total} pedidos pagos`
+    : "Nenhum pedido no mês"
+
+  let deltaHtml = ""
+  if (previousConversion && previousConversion.orders_created > 0 && previousConversion.conversion_rate != null) {
+    const prevRate = Number(previousConversion.conversion_rate) || 0
+    const diff = Math.round((rate - prevRate) * 10) / 10
+    if (diff > 0) {
+      deltaHtml = `<small class="delta hero-conversion-card__delta">+${diff}% vs mês anterior</small>`
+    } else if (diff < 0) {
+      deltaHtml = `<small class="delta hero-conversion-card__delta">−${Math.abs(diff)}% vs mês anterior</small>`
+    } else {
+      deltaHtml = `<small class="delta hero-conversion-card__delta">igual ao mês anterior</small>`
+    }
+  }
+
+  let siteDetail = ""
+  if (conversion.site_orders_created > 0) {
+    const siteRate = Number(conversion.site_conversion_rate) || 0
+    siteDetail = `<small class="hero-conversion-card__sub">Site: ${siteRate}% (${conversion.site_orders_paid}/${conversion.site_orders_created})</small>`
+  }
+
+  return `<div class="hero-conversion-card">
+    <small class="hero-conversion-card__label">Conversão</small>
+    <b class="hero-conversion-card__value">${rate}%</b>
+    <small class="hero-conversion-card__detail">${escapeHtml(detail)}</small>
+    ${siteDetail}
+    ${deltaHtml}
+  </div>`
+}
+
+export function renderCategoryRanking(categoryRanking, formatMoney = formatPrice) {
+  const rows = Array.isArray(categoryRanking) ? categoryRanking : []
+  if (!rows.length) return `<p class="empty">${NO_DATA}</p>`
+
+  const maxProfit = Math.max(...rows.map((c) => Number(c.profit_total) || 0), 1)
+
+  return `<ul class="plain-list category-rank-list">${rows.map((item, idx) => {
+    const profit = Number(item.profit_total) || 0
+    const charged = Number(item.charged_total) || 0
+    const qty = Number(item.quantity) || 0
+    const margin = item.margin_percent != null && Number.isFinite(Number(item.margin_percent))
+      ? `${item.margin_percent}% margem`
+      : ""
+    const ratio = Math.max(0, Math.min(100, Math.round((profit / maxProfit) * 100)))
+
+    return `<li class="category-rank-row">
+      <div class="category-rank-row__header">
+        <span class="category-rank-row__name">
+          <span class="category-rank-row__badge">#${idx + 1}</span>
+          <strong>${escapeHtml(item.category || "Outros")}</strong>
+          <small>${qty} un. · Faturamento: ${escapeHtml(money(charged, formatMoney))}</small>
+        </span>
+        <span class="category-rank-row__values">
+          <b class="category-rank-row__profit">Lucro: ${escapeHtml(money(profit, formatMoney))}</b>
+          ${margin ? `<small class="category-rank-row__margin">${escapeHtml(margin)}</small>` : ""}
+        </span>
+      </div>
+      <div class="category-rank-row__bar-track" aria-hidden="true">
+        <div class="category-rank-row__bar-fill" style="width: ${ratio}%"></div>
+      </div>
+    </li>`
+  }).join("")}</ul>`
+}
+
 /**
  * Início: totais do mês + origem em faixa horizontal.
  * options.selectedChannel: filtra vendas no lugar de Mais vendidas.
@@ -940,8 +1037,11 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
     </div>`
   }
 
+  const conversionHero = renderConversionCard(data.conversion, data.previous?.conversion)
+
   let secondaryTitle = "Mais vendidas"
   let secondaryBody = renderBestSellersBlock(data.best_sellers, detailed)
+  let categoriesSection = ""
   if (selected) {
     secondaryTitle = `Vendas · ${channelLabel(selected)}`
     const sales = Array.isArray(options.sales) ? options.sales : []
@@ -958,6 +1058,11 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
           </article></li>`).join("")}</ul>`
         : `<p class="empty">Nenhuma venda neste canal.</p>`
     }
+  } else {
+    categoriesSection = `<div class="inicio-categories-section">
+      <h2>Categorias por lucro</h2>
+      <div id="inicio-category-ranking">${renderCategoryRanking(data.category_ranking, formatMoney)}</div>
+    </div>`
   }
 
   return `<section class="report report--inicio">
@@ -970,7 +1075,10 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
           <p class="hint">${data.paid_count} peças · ${data.paid_orders_count} pedidos${data.month ? ` · ${escapeHtml(data.month)}` : ""}</p>
           ${monthDelta ? `<p class="hint delta">${escapeHtml(monthDelta)}</p>` : ""}
         </div>
-        ${profitHero}
+        <div class="inicio-hero__cards">
+          ${profitHero}
+          ${conversionHero}
+        </div>
       </div>
       ${goalBar}
     </header>
@@ -982,6 +1090,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
     ${origins}
     <h2 id="inicio-secondary-title">${escapeHtml(secondaryTitle)}</h2>
     <div id="inicio-secondary">${secondaryBody}</div>
+    ${categoriesSection}
   </section>`
 }
 
