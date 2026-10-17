@@ -37,6 +37,8 @@ import {
   defaultsFor,
   renderAddForm,
   renderArchiveDialog,
+  renderCategoryRanking,
+  renderConversionCard,
   renderGoalBar,
   renderInicio,
   renderOverdueAlert,
@@ -810,3 +812,123 @@ Deno.test("etapa 3: renderVendas com botão de exportar CSV", () => {
   assert(html.includes('id="btn-export-sales-vendas"'))
   assert(html.includes("Exportar vendas (CSV)"))
 })
+
+Deno.test("etapa 3: renderConversionCard formata taxa geral, detalhe, site e comparação", () => {
+  assertEquals(renderConversionCard(null), "")
+
+  const conv = {
+    orders_created: 10,
+    orders_paid: 7,
+    conversion_rate: 70,
+    site_orders_created: 4,
+    site_orders_paid: 3,
+    site_conversion_rate: 75,
+  }
+  const prev = {
+    orders_created: 8,
+    orders_paid: 5,
+    conversion_rate: 62.5,
+  }
+
+  const html = renderConversionCard(conv, prev)
+  assert(html.includes("hero-conversion-card"))
+  assert(html.includes("Conversão"))
+  assert(html.includes("70%"))
+  assert(html.includes("7 de 10 pedidos pagos"))
+  assert(html.includes("Site: 75% (3/4)"))
+  assert(html.includes("+7.5% vs mês anterior"))
+
+  // Caso com queda
+  const lower = renderConversionCard({ ...conv, conversion_rate: 50 }, prev)
+  assert(lower.includes("−12.5% vs mês anterior"))
+
+  // Caso vazio
+  const empty = renderConversionCard({ orders_created: 0, orders_paid: 0, conversion_rate: 0 })
+  assert(empty.includes("0%"))
+  assert(empty.includes("Nenhum pedido no mês"))
+})
+
+Deno.test("etapa 3: renderCategoryRanking gera lista com posições, valores e barras", () => {
+  const formatMoney = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`
+  assertEquals(renderCategoryRanking([], formatMoney), `<p class="empty">${NO_DATA}</p>`)
+
+  const ranking = [
+    {
+      category: "Brincos",
+      profit_total: 800,
+      charged_total: 1300,
+      quantity: 8,
+      margin_percent: 61.5,
+    },
+    {
+      category: "Colares",
+      profit_total: 400,
+      charged_total: 800,
+      quantity: 4,
+      margin_percent: 50,
+    },
+  ]
+
+  const html = renderCategoryRanking(ranking, formatMoney)
+  assert(html.includes("category-rank-list"))
+  assert(html.includes("#1"))
+  assert(html.includes("Brincos"))
+  assert(html.includes("8 un. · Faturamento: R$ 1300,00"))
+  assert(html.includes("Lucro: R$ 800,00"))
+  assert(html.includes("61.5% margem"))
+  assert(html.includes("width: 100%"))
+
+  assert(html.includes("#2"))
+  assert(html.includes("Colares"))
+  assert(html.includes("4 un. · Faturamento: R$ 800,00"))
+  assert(html.includes("Lucro: R$ 400,00"))
+  assert(html.includes("50% margem"))
+  assert(html.includes("width: 50%"))
+})
+
+Deno.test("etapa 3: renderInicio integra card de conversão e seção de ranking de categorias", () => {
+  const formatMoney = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`
+  const overview = {
+    month: "2026-10",
+    charged_total: 3000,
+    profit_total: 1800,
+    sales_goal: 10000,
+    conversion: {
+      orders_created: 12,
+      orders_paid: 9,
+      conversion_rate: 75,
+      site_orders_created: 4,
+      site_orders_paid: 3,
+      site_conversion_rate: 75,
+    },
+    category_ranking: [
+      {
+        category: "Brincos",
+        profit_total: 1000,
+        charged_total: 1600,
+        quantity: 10,
+        margin_percent: 62.5,
+      },
+    ],
+    paid_count: 15,
+    paid_orders_count: 9,
+    channels: [
+      { channel: "site", orders: 3, charged_total: 600, profit_total: 350 },
+      { channel: "equipe", orders: 6, charged_total: 2400, profit_total: 1450 },
+      { channel: "shopee", orders: 0, charged_total: 0, profit_total: 0 },
+      { channel: "mercado_livre", orders: 0, charged_total: 0, profit_total: 0 },
+      { channel: "tiktok", orders: 0, charged_total: 0, profit_total: 0 },
+    ],
+    best_sellers: [{ code: "BR101-O", name: "Brinco pérola", quantity: 5, charged_total: 500 }],
+  }
+
+  const html = renderInicio(overview, formatMoney, { enabled: true })
+  assert(html.includes("hero-conversion-card"))
+  assert(html.includes("75%"))
+  assert(html.includes("9 de 12 pedidos pagos"))
+  assert(html.includes("Categorias por lucro"))
+  assert(html.includes("inicio-category-ranking"))
+  assert(html.includes("Brincos"))
+  assert(html.includes("Lucro: R$ 1000,00"))
+})
+

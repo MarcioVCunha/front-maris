@@ -25,12 +25,34 @@ Auth: staff admin (`orders.read_all`).
     "count": 2,
     "total": 350
   },
+  "conversion": {
+    "orders_created": 10,
+    "orders_paid": 7,
+    "conversion_rate": 70.0,
+    "site_orders_created": 3,
+    "site_orders_paid": 2,
+    "site_conversion_rate": 66.7
+  },
+  "category_ranking": [
+    {
+      "category": "Brincos",
+      "profit_total": 800,
+      "charged_total": 1300,
+      "quantity": 8,
+      "margin_percent": 61.5
+    }
+  ],
   "previous": {
     "month": "2026-09",
     "paid_count": 10,
     "paid_orders_count": 6,
     "charged_total": 2000,
-    "profit_total": 1200
+    "profit_total": 1200,
+    "conversion": {
+      "orders_created": 9,
+      "orders_paid": 6,
+      "conversion_rate": 66.7
+    }
   },
   "channels": [
     {
@@ -93,9 +115,11 @@ Auth: staff admin (`orders.read_all`).
 | --- | --- |
 | `profit_total` | Lucro total bruto do mês (só admin) |
 | `sales_goal` | Meta mensal configurada |
+| `conversion` | Taxa de conversão de pedidos criados no mês em pedidos pagos (`conversion_rate` geral e do site) |
+| `category_ranking` | Lista de categorias ordenadas pelo maior lucro (`profit_total`, `charged_total`, `quantity`, `margin_percent`) |
 | `receivables_overdue` | `{ count, total }` de vendas a receber com mais de 7 dias |
 | `channels[].channel` | `site` \| `equipe` \| `shopee` \| `mercado_livre` \| `tiktok` (sempre os cinco, mesmo com zero) com `profit_total` |
-| `previous` | Totais do mês anterior (mesmo fuso) com `profit_total` |
+| `previous` | Totais do mês anterior (mesmo fuso) com `profit_total` e `conversion` |
 | `channels[].previous_*` | Comparação por canal com o mês anterior |
 | `best_sellers[].channels` | Divisão da peça por canal no mês |
 
