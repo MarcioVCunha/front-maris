@@ -1006,6 +1006,61 @@ export function renderCategoryRanking(categoryRanking, formatMoney = formatPrice
   }).join("")}</ul>`
 }
 
+export function computeAverageTicket(chargedTotal, ordersCount) {
+  const total = Math.max(0, Number(chargedTotal) || 0)
+  const orders = Math.max(0, Number(ordersCount) || 0)
+  return orders > 0 ? Math.round((total / orders) * 100) / 100 : 0
+}
+
+export function stepMonth(monthKey, step = 1) {
+  const key = String(monthKey || "").trim()
+  if (!/^\d{4}-\d{2}$/.test(key)) return currentMonthKey()
+  const year = Number(key.slice(0, 4))
+  const month = Number(key.slice(5, 7)) - 1
+  const d = new Date(Date.UTC(year, month + step, 1))
+  const nextYear = d.getUTCFullYear()
+  const nextMonth = String(d.getUTCMonth() + 1).padStart(2, "0")
+  return `${nextYear}-${nextMonth}`
+}
+
+export function formatTicketDelta(currentTicket, previousTicket, formatMoney = formatPrice) {
+  if (previousTicket == null || !Number.isFinite(previousTicket) || previousTicket <= 0) return ""
+  const delta = moneyDelta(currentTicket, previousTicket)
+  if (delta == null || !Number.isFinite(delta)) return ""
+  if (delta === 0) return "igual ao mês anterior"
+  const amount = formatMoney(Math.abs(delta))
+  return delta > 0 ? `+${amount} vs mês anterior` : `−${amount} vs mês anterior`
+}
+
+export function renderTicketCard(chargedTotal, paidOrdersCount, previousChargedTotal, previousPaidOrdersCount, formatMoney = formatPrice) {
+  const ticket = computeAverageTicket(chargedTotal, paidOrdersCount)
+  const prevTicket = previousPaidOrdersCount != null
+    ? computeAverageTicket(previousChargedTotal, previousPaidOrdersCount)
+    : null
+  const deltaText = prevTicket != null && prevTicket > 0 ? formatTicketDelta(ticket, prevTicket, formatMoney) : ""
+
+  return `<div class="hero-ticket-card">
+    <small class="hero-ticket-card__label">Ticket médio</small>
+    <b class="hero-ticket-card__value">${escapeHtml(money(ticket, formatMoney))}</b>
+    <small class="hero-ticket-card__detail">por pedido pago</small>
+    ${deltaText ? `<small class="delta hero-ticket-card__delta">${escapeHtml(deltaText)}</small>` : ""}
+  </div>`
+}
+
+export function renderPeriodFilter(selectedMonth, currentMonth = currentMonthKey()) {
+  const month = String(selectedMonth || currentMonth).trim()
+  const isCurrent = month === currentMonth
+  return `<div class="inicio-period-bar">
+    <span class="inicio-period-label"><strong>Período:</strong></span>
+    <div class="inicio-period-controls">
+      <button type="button" id="btn-prev-month" class="btn-ghost btn-sm" aria-label="Mês anterior" title="Ver mês anterior">◀</button>
+      <input type="month" id="inicio-month-input" value="${escapeHtml(month)}" class="inicio-month-input" aria-label="Selecionar mês">
+      <button type="button" id="btn-next-month" class="btn-ghost btn-sm" aria-label="Próximo mês" title="Ver próximo mês">▶</button>
+      ${!isCurrent ? `<button type="button" id="btn-current-month" class="btn-ghost btn-sm" title="Ir para o mês atual">Mês atual</button>` : ""}
+    </div>
+  </div>`
+}
+
 /**
  * Início: totais do mês + origem em faixa horizontal.
  * options.selectedChannel: filtra vendas no lugar de Mais vendidas.
@@ -1024,6 +1079,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
   const origins = renderOriginStrip(channelRows, selected, formatMoney, detailed)
   const overdueBanner = renderOverdueAlert(data.receivables_overdue, formatMoney)
   const goalBar = renderGoalBar(data.charged_total, data.sales_goal, formatMoney)
+  const periodBar = renderPeriodFilter(data.month, currentMonthKey())
 
   let profitHero = ""
   if (data.profit_total != null && Number.isFinite(data.profit_total)) {
@@ -1036,6 +1092,14 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
       <small class="hero-profit-card__margin">${margin}% de margem bruta</small>
     </div>`
   }
+
+  const ticketHero = renderTicketCard(
+    data.charged_total,
+    data.paid_orders_count,
+    detailed ? data.previous?.charged_total : null,
+    detailed ? data.previous?.paid_orders_count : null,
+    formatMoney
+  )
 
   const conversionHero = renderConversionCard(data.conversion, data.previous?.conversion)
 
@@ -1068,6 +1132,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
   return `<section class="report report--inicio">
     ${overdueBanner}
     <header class="inicio-hero">
+      ${periodBar}
       <div class="inicio-hero__header">
         <div class="inicio-hero__main">
           <h2>Vendas do mês</h2>
@@ -1077,6 +1142,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
         </div>
         <div class="inicio-hero__cards">
           ${profitHero}
+          ${ticketHero}
           ${conversionHero}
         </div>
       </div>

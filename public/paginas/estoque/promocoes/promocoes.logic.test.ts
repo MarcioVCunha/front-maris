@@ -209,3 +209,32 @@ Deno.test("renderPromotionsPage e renderPromoDialogContent montam o HTML com ace
   assert(dialogNew.includes("Salvar promoção"))
 })
 
+Deno.test("renderPromoCard exibe caixa de desempenho quando houver métricas de vendas", () => {
+  const promoWithPerf = {
+    id: 10,
+    name: "Desconto Outono",
+    scope: "categoria",
+    category: "Brinco",
+    product_codes: [],
+    discount_type: "percent",
+    value: 15,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z",
+    is_active: true,
+    orders_count: 5,
+    units_sold: 8,
+    charged_total: 450.00,
+    discount_total: 67.50,
+    profit_total: 210.00,
+  }
+
+  const html = renderPromoCard(promoWithPerf)
+  assert(html.includes("promo-perf-box"), "Deve conter a caixa de desempenho")
+  assert(html.includes("Desempenho da promoção"), "Deve exibir o label de acessibilidade")
+  assert(html.includes("Pedidos:</strong> 5"), "Deve exibir contagem de pedidos")
+  assert(html.includes("8 peça(s) vendida(s)"), "Deve exibir peças vendidas")
+  assert(html.includes("450,00"), "Deve exibir faturamento gerado")
+  assert(html.includes("67,50"), "Deve exibir descontos concedidos")
+  assert(html.includes("210,00"), "Deve exibir lucro estimado")
+})
+

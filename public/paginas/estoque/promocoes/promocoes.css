@@ -313,6 +313,35 @@ body {
   color: var(--promo-ink);
 }
 
+.promo-perf-box {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.promo-perf-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--promo-ink, #222);
+}
+
+.promo-perf-profit {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.promo-perf-item--discount {
+  color: var(--promo-gold-dark, #8c6b32);
+}
+
 .promo-card-actions {
   display: flex;
   align-items: center;

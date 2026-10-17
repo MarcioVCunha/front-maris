@@ -7,6 +7,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 ### Adicionado
 
 - Números do Negócio e Métricas Admin (Etapa 3):
+  - **Filtro e navegação de período no Início**: Barra de navegação mês a mês (`◀`, `input[type="month"]`, `▶`, botão `Mês atual`) com persistência da consulta na URL (`?month=YYYY-MM`) e recarregamento dinâmico sem reload completo.
+  - **Ticket médio por pedido pago**: Card de destaque no cabeçalho do Início calculando o ticket médio mensal com comparação delta vs mês anterior (ex: `+R$ 45,00 vs mês anterior`).
+  - **Desempenho detalhado de cada promoção**: Exibição de box de métricas em cada card de campanha em `/admin/promocoes` (faturamento gerado, lucro estimado, pedidos realizados, peças vendidas e total de descontos concedidos), alimentado pela função `admin_promotion_list`.
   - **Taxa de conversão de pedidos**: Card dedicado no cabeçalho do Início exibindo a taxa de conversão mensal de pedidos em vendas pagas (ex: `70% de conversão`), detalhamento de pedidos pagos vs total criado, conversão específica dos pedidos do site e comparação percentual em relação ao mês anterior (ex: `+7.5% vs mês anterior`).
   - **Ranking de categorias por lucro**: Nova seção no Início exibindo a classificação das categorias ordenadas pelo lucro gerado no mês, com medalhas de posição (`#1`, `#2`...), lucro em reais, margem percentual, quantidade de peças vendidas, faturamento total da categoria e barra visual proporcional ao líder.
   - **Meta de vendas do mês**: Widget de meta com barra de progresso visual (% atingida e valor restante ou comemoração de meta batida) e botão/diálogo para definir/editar a meta diretamente no painel (`setMonthlyGoal`).
