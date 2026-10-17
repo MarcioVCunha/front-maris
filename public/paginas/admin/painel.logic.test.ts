@@ -30,6 +30,7 @@ import {
   nextPackagingValues,
   normalizeCategoryDefaults,
   normalizeOverview,
+  normalizeSellersMonth,
   outOfStockProducts,
   overviewHasDetailedChannels,
   packagingValues,
@@ -496,6 +497,67 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(waiting.includes("Marineide"))
   assert(waiting.includes(NO_DATA))
   assertEquals(renderVendedoras(null).includes(NO_DATA), true)
+})
+
+Deno.test("ranking de vendedoras: normalizeSellersMonth e renderVendedoras com medalhas, progresso e totais", () => {
+  const rawData = {
+    ok: true,
+    month: "2026-10",
+    team_totals: {
+      total_charged: 1200,
+      total_commission: 240,
+      paid_orders_count: 6,
+      paid_units_count: 10,
+      total_balance: 500,
+      active_sellers_count: 2,
+    },
+    sellers: [
+      {
+        seller_id: 1,
+        name: "Lia Vendedora",
+        charged_total: 800,
+        commission_amount: 240,
+        commission_percent: 30,
+        paid_orders_count: 4,
+        paid_count: 7,
+        balance: 100,
+        average_ticket: 200,
+        rank: 1,
+      },
+      {
+        seller_id: 2,
+        name: "Marcio",
+        charged_total: 400,
+        commission_amount: 0,
+        commission_percent: 0,
+        paid_orders_count: 2,
+        paid_count: 3,
+        balance: 400,
+        average_ticket: 200,
+        rank: 2,
+        sem_comissao: true,
+      },
+    ],
+  }
+
+  const normalized = normalizeSellersMonth(rawData) as any
+  assertEquals(Array.isArray(normalized), true)
+  assertEquals(normalized?.length, 2)
+  assertEquals(normalized?.team_totals.total_charged, 1200)
+  assertEquals(normalized?.team_totals.total_commission, 240)
+  assertEquals(normalized?.[0].rank, 1)
+  assertEquals(normalized?.[0].average_ticket, 200)
+
+  const html = renderVendedoras(normalized, undefined, { month: "2026-10" })
+  assert(html.includes("Ranking de Vendas da Equipe"))
+  assert(html.includes("Vendas da Equipe"))
+  assert(html.includes("Comissões a Pagar"))
+  assert(html.includes("#1 🥇"))
+  assert(html.includes("#2 🥈"))
+  assert(html.includes("Lia Vendedora"))
+  assert(html.includes("seller-progress-track"))
+  assert(html.includes("Ticket médio"))
+  assert(html.includes("inicio-period-bar"))
 })
 
 Deno.test("a flag de canais do Início fica ligada e o fallback antigo ainda funciona", async () => {
