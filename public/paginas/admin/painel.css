@@ -392,6 +392,123 @@
   grid-column: 1 / -1;
 }
 
+/* Ranking de Vendedoras e Totais da Equipe (Etapa 4) */
+.team-summary-banner {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.team-summary-card {
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--maris-muted, #777);
+  font-weight: 600;
+}
+
+.team-summary-val {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--maris-black, #111);
+}
+
+.team-summary-val--highlight {
+  color: #2e7d32;
+}
+
+.team-summary-sub {
+  font-size: 0.8rem;
+  color: var(--maris-muted, #777);
+}
+
+.vendedoras-section-header {
+  grid-column: 1 / -1;
+  margin: 10px 0 6px;
+}
+
+.vendedoras-section-header h2 {
+  font-family: var(--maris-font-display);
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--maris-wine, #802844);
+}
+
+.seller-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.seller-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seller-card-title-group h2 {
+  margin: 0;
+}
+
+.seller-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--maris-border) 60%, transparent);
+  color: var(--maris-black, #111);
+}
+
+.seller-rank-badge--gold {
+  background: #fff8e1;
+  color: #b78103;
+  border: 1px solid #ffe082;
+}
+
+.seller-rank-badge--silver {
+  background: #f5f5f5;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.seller-rank-badge--bronze {
+  background: #fbe9e7;
+  color: #a0522d;
+  border: 1px solid #ffccbc;
+}
+
+.seller-progress-track {
+  width: 100%;
+  height: 6px;
+  background: color-mix(in srgb, var(--maris-border) 45%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 6px 0 10px;
+}
+
+.seller-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #802844, #b93b62);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
 .channel-row span,
 .best-row span,
 .sale-row span {
@@ -1263,7 +1380,10 @@ dialog h2 {
     align-content: start;
   }
 
-  .view:has(> .seller-card) > .empty {
+  .view:has(> .seller-card) > .empty,
+  .view:has(> .seller-card) > .inicio-period-bar,
+  .view:has(> .seller-card) > .team-summary-banner,
+  .view:has(> .seller-card) > .vendedoras-section-header {
     grid-column: 1 / -1;
   }
 

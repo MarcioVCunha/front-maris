@@ -1344,7 +1344,10 @@ function paintVendas() {
 
 function paintVendedoras() {
   viewEl.classList.remove("view--inicio")
+  const currentMonth = currentMonthKey()
+  const activeMonth = state.selectedMonth || (state.sellers && state.sellers.month) || currentMonth
   viewEl.innerHTML = renderVendedoras(state.sellers, formatPrice, {
+    month: activeMonth,
     selectedSellerId: state.selectedSellerId,
     sales: state.recent || [],
     filterSales: filterSalesBySeller,
@@ -1353,6 +1356,25 @@ function paintVendedoras() {
       empty: "Nenhuma venda desta vendedora."
     })
   })
+
+  // Controles de navegação de período no topo de vendedoras
+  const monthInput = viewEl.querySelector("#inicio-month-input")
+  viewEl.querySelector("#btn-prev-month")?.addEventListener("click", () => {
+    changeVendedorasMonth(stepMonth(activeMonth, -1))
+  })
+  viewEl.querySelector("#btn-next-month")?.addEventListener("click", () => {
+    changeVendedorasMonth(stepMonth(activeMonth, 1))
+  })
+  viewEl.querySelector("#btn-current-month")?.addEventListener("click", () => {
+    changeVendedorasMonth(currentMonthKey())
+  })
+  monthInput?.addEventListener("change", (e) => {
+    const val = e.target.value
+    if (val && /^\d{4}-\d{2}$/.test(val)) {
+      changeVendedorasMonth(val)
+    }
+  })
+
   viewEl.querySelectorAll(".seller-card[data-seller-id]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-seller-id")
@@ -1365,15 +1387,37 @@ function paintVendedoras() {
   bindSaleCards()
 }
 
-async function loadSellers() {
-  if (state.sellers !== undefined) return state.sellers
-  const result = await fetchSellersMonth({ month: currentMonthKey() })
+async function changeVendedorasMonth(nextMonth) {
+  const currentMonth = currentMonthKey()
+  const target = (nextMonth || currentMonth).trim()
+  state.selectedMonth = target
+  state.sellers = undefined
+  state.sellersMonth = undefined
+  const url = new URL(location.href)
+  if (target === currentMonth) {
+    url.searchParams.delete("month")
+  } else {
+    url.searchParams.set("month", target)
+  }
+  history.replaceState(null, "", url.toString())
+  showMessage("Carregando vendedoras de " + formatMonthLabel(target) + "…")
+  await loadSellers(target)
+  paintVendedoras()
+}
+
+async function loadSellers(monthParam) {
+  const urlParam = new URLSearchParams(location.search).get("month")
+  const targetMonth = monthParam || state.selectedMonth || (urlParam && /^\d{4}-\d{2}$/.test(urlParam) ? urlParam : currentMonthKey())
+  if (state.sellers !== undefined && state.sellersMonth === targetMonth) return state.sellers
+  const result = await fetchSellersMonth({ month: targetMonth })
   if (result.ok) {
     state.sellers = normalizeSellersMonth(result.data)
+    state.sellersMonth = targetMonth
     return state.sellers
   }
   const listed = await window.MarisStaffData?.listActiveSellers?.()
   state.sellers = listed && !listed.error ? sellersFromDirectory(listed.data) : null
+  state.sellersMonth = targetMonth
   return state.sellers
 }
 
@@ -1422,8 +1466,14 @@ async function render(view, token) {
     return
   }
   if (view === "vendedoras") {
+    const urlMonth = new URLSearchParams(location.search).get("month") || currentMonthKey()
+    if (state.sellers && state.sellersMonth !== urlMonth) {
+      state.sellers = undefined
+      state.sellersMonth = undefined
+    }
+    state.selectedMonth = urlMonth
     if (state.sellers === undefined || state.recent === undefined || state.loadedStatus !== "all") viewEl.innerHTML = viewLoading()
-    await Promise.all([loadSellers(), loadRecent("all")])
+    await Promise.all([loadSellers(urlMonth), loadRecent("all")])
     if (stale()) return
     paintVendedoras()
     return

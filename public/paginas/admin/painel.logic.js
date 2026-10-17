@@ -738,7 +738,7 @@ export function normalizeRecentSales(data) {
 
 export function normalizeSellersMonth(data) {
   if (!data || data.ok === false || !Array.isArray(data.sellers)) return null
-  return data.sellers.map((seller) => ({
+  const sellers = data.sellers.map((seller, idx) => ({
     seller_id: seller.seller_id,
     name: seller.name || "Vendedora",
     month_ready: true,
@@ -747,8 +747,25 @@ export function normalizeSellersMonth(data) {
     charged_total: Number(seller.charged_total) || 0,
     commission_amount: Number(seller.commission_amount) || 0,
     commission_percent: seller.commission_percent == null ? null : Number(seller.commission_percent),
-    balance: seller.balance == null || seller.balance === "" ? null : Number(seller.balance)
+    balance: seller.balance == null || seller.balance === "" ? null : Number(seller.balance),
+    average_ticket: Number(seller.average_ticket) || (Number(seller.paid_orders_count) > 0 ? Math.round((Number(seller.charged_total) / Number(seller.paid_orders_count)) * 100) / 100 : 0),
+    rank: Number(seller.rank) || (idx + 1),
+    sem_comissao: Boolean(seller.sem_comissao)
   }))
+
+  const teamTotals = data.team_totals || {
+    total_charged: sellers.reduce((acc, s) => acc + s.charged_total, 0),
+    total_commission: sellers.reduce((acc, s) => acc + s.commission_amount, 0),
+    paid_orders_count: sellers.reduce((acc, s) => acc + s.paid_orders_count, 0),
+    paid_units_count: sellers.reduce((acc, s) => acc + s.paid_count, 0),
+    total_balance: sellers.reduce((acc, s) => acc + (s.balance || 0), 0),
+    active_sellers_count: sellers.length
+  }
+
+  sellers.team_totals = teamTotals
+  sellers.month = data.month
+  sellers.timezone = data.timezone
+  return sellers
 }
 
 export function sellersFromDirectory(sellers) {
@@ -1213,11 +1230,64 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
 }
 
 export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {
-  const rows = Array.isArray(sellers) ? sellers : normalizeSellersMonth(sellers)
-  if (!rows) return `<p class="empty">${NO_DATA}</p>`
+  const normalized = Array.isArray(sellers) ? sellers : normalizeSellersMonth(sellers)
+  if (!normalized) return `<p class="empty">${NO_DATA}</p>`
+  const rows = Array.isArray(normalized) ? normalized : (normalized.sellers || [])
   if (!rows.length) return `<p class="empty">Nenhuma vendedora ativa.</p>`
+
+  const selectedMonth = options.month || normalized.month || options.selectedMonth
+  const periodBar = options.showPeriod !== false && selectedMonth
+    ? renderPeriodFilter(selectedMonth, currentMonthKey())
+    : ""
+
+  const hasAnyMonthData = rows.some((s) => s.month_ready)
+  let teamSummary = ""
+  if (hasAnyMonthData) {
+    const teamTotals = options.teamTotals || normalized.team_totals || {
+      total_charged: rows.reduce((acc, s) => acc + (Number(s.charged_total) || 0), 0),
+      total_commission: rows.reduce((acc, s) => acc + (Number(s.commission_amount) || 0), 0),
+      paid_orders_count: rows.reduce((acc, s) => acc + (Number(s.paid_orders_count) || 0), 0),
+      paid_units_count: rows.reduce((acc, s) => acc + (Number(s.paid_count) || 0), 0),
+      total_balance: rows.reduce((acc, s) => acc + (Number(s.balance) || 0), 0),
+    }
+
+    teamSummary = `<section class="team-summary-banner">
+      <div class="team-summary-card">
+        <span class="team-summary-label">Vendas da Equipe</span>
+        <strong class="team-summary-val">${money(teamTotals.total_charged, formatMoney)}</strong>
+        <small class="team-summary-sub">${teamTotals.paid_units_count} peças em ${teamTotals.paid_orders_count} pedidos</small>
+      </div>
+      <div class="team-summary-card">
+        <span class="team-summary-label">Comissões a Pagar</span>
+        <strong class="team-summary-val team-summary-val--highlight">${money(teamTotals.total_commission, formatMoney)}</strong>
+        <small class="team-summary-sub">no período selecionado</small>
+      </div>
+      <div class="team-summary-card">
+        <span class="team-summary-label">Saldo a Receber</span>
+        <strong class="team-summary-val">${money(teamTotals.total_balance, formatMoney)}</strong>
+        <small class="team-summary-sub">pendente de clientes</small>
+      </div>
+    </section>`
+  }
+
   const selectedId = options.selectedSellerId
-  const cards = rows.map((seller) => {
+  const maxCharged = Math.max(...rows.map((r) => Number(r.charged_total) || 0), 1)
+
+  const cards = rows.map((seller, idx) => {
+    const rank = Number(seller.rank) || (idx + 1)
+    let rankBadge = ""
+    if (seller.month_ready) {
+      if (rank === 1) rankBadge = `<span class="seller-rank-badge seller-rank-badge--gold" title="1º lugar">#1 🥇</span>`
+      else if (rank === 2) rankBadge = `<span class="seller-rank-badge seller-rank-badge--silver" title="2º lugar">#2 🥈</span>`
+      else if (rank === 3) rankBadge = `<span class="seller-rank-badge seller-rank-badge--bronze" title="3º lugar">#3 🥉</span>`
+      else rankBadge = `<span class="seller-rank-badge">#${rank}</span>`
+    }
+
+    const charged = Number(seller.charged_total) || 0
+    const progressPercent = seller.month_ready
+      ? Math.min(100, Math.max(0, Math.round((charged / maxCharged) * 100)))
+      : 0
+
     const month = seller.month_ready
       ? `${seller.paid_count} peças em ${seller.paid_orders_count} pedidos · ${money(seller.charged_total, formatMoney)}`
       : NO_DATA
@@ -1227,11 +1297,25 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
     const balance = seller.balance == null || Number.isNaN(Number(seller.balance))
       ? NO_DATA
       : money(seller.balance, formatMoney)
+    const avgTicket = seller.month_ready && (seller.average_ticket || seller.paid_orders_count > 0)
+      ? money(seller.average_ticket || (charged / seller.paid_orders_count), formatMoney)
+      : null
+
     const pressed = selectedId != null && String(seller.seller_id) === String(selectedId)
+
     return `<button type="button" class="seller-card${pressed ? " seller-card--active" : ""}" data-seller-id="${escapeHtml(seller.seller_id)}" aria-pressed="${pressed ? "true" : "false"}">
-      <h2>${escapeHtml(seller.name || "Vendedora")}</h2>
+      <div class="seller-card-header">
+        <div class="seller-card-title-group">
+          ${rankBadge}
+          <h2>${escapeHtml(seller.name || "Vendedora")}</h2>
+        </div>
+      </div>
+      ${seller.month_ready ? `<div class="seller-progress-track" title="${progressPercent}% em relação ao líder">
+        <div class="seller-progress-fill" style="width: ${progressPercent}%;"></div>
+      </div>` : ""}
       <p>Mês: ${escapeHtml(month)}</p>
       <p>Comissão: ${escapeHtml(commission)}</p>
+      ${avgTicket ? `<p>Ticket médio: ${escapeHtml(avgTicket)}</p>` : ""}
       <p>Saldo a receber: ${escapeHtml(balance)}</p>
     </button>`
   }).join("")
@@ -1257,7 +1341,11 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
     </section>`
   }
 
-  return `${cards}${salesBlock}`
+  const sectionHeader = hasAnyMonthData
+    ? `<div class="vendedoras-section-header"><h2>🏆 Ranking de Vendas da Equipe</h2></div>`
+    : ""
+
+  return `${periodBar}${teamSummary}${sectionHeader}${cards}${salesBlock}`
 }
 
 /** Atalho flutuante (+) do painel — esconde na tela de adicionar peça. */

@@ -68,9 +68,9 @@ Vendas: as últimas vendas de todas as vendedoras.
 
 `payment_status` é `paid`, `partial` ou `receivable`. `payment_method` é `pix`, `dinheiro` ou `cartao`.
 
-## GET admin-sellers-month
+## GET admin-sellers-month (Etapa 4: Ranking e Totais)
 
-Vendedoras: resumo do mês e saldo a receber de cada uma.
+Vendedoras: ranking do mês ordenado por maior faturamento (`charged_total desc, name asc`), comissão calculada (30% para vendedoras, 0% sócios), ticket médio e totais da equipe (`team_totals`).
 
 `GET /functions/v1/admin-sellers-month?month=YYYY-MM`
 
@@ -79,6 +79,14 @@ Vendedoras: resumo do mês e saldo a receber de cada uma.
   "ok": true,
   "month": "2026-10",
   "timezone": "America/Sao_Paulo",
+  "team_totals": {
+    "total_charged": 1890.5,
+    "total_commission": 300,
+    "paid_orders_count": 5,
+    "paid_units_count": 8,
+    "total_balance": 420,
+    "active_sellers_count": 2
+  },
   "sellers": [
     {
       "seller_id": 2,
@@ -86,12 +94,18 @@ Vendedoras: resumo do mês e saldo a receber de cada uma.
       "paid_count": 4,
       "paid_orders_count": 3,
       "charged_total": 890.5,
-      "commission_amount": 89.05,
-      "commission_percent": 10,
-      "balance": 120
+      "commission_amount": 0,
+      "commission_percent": 0,
+      "balance": 120,
+      "average_ticket": 296.83,
+      "rank": 1,
+      "sem_comissao": true
     }
   ]
 }
 ```
 
-`balance` é o que ainda está a receber. `paid_count` é o número de peças.
+- `rank`: posição da vendedora no ranking de faturamento do mês.
+- `team_totals`: resumo consolidado da equipe para o banner de KPIs no topo da tela.
+- `balance`: saldo total de pedidos em aberto ("A receber") daquela vendedora.
+- `average_ticket`: ticket médio por pedido pago da vendedora.
