@@ -1150,7 +1150,10 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
     </header>
     <div class="inicio-actions-bar">
       <h2>Origem</h2>
-      <button type="button" id="btn-export-sales-csv" class="btn-ghost btn-sm" title="Baixar relatório de vendas do mês em CSV">📥 Exportar vendas (CSV)</button>
+      <div class="inicio-actions-buttons">
+        <button type="button" id="btn-send-weekly-summary" class="btn-ghost btn-sm" title="Enviar resumo semanal por e-mail para Marcio Cunha">📧 Resumo semanal por e-mail</button>
+        <button type="button" id="btn-export-sales-csv" class="btn-ghost btn-sm" title="Baixar relatório de vendas do mês em CSV">📥 Exportar vendas (CSV)</button>
+      </div>
     </div>
     <p class="hint origin-hint">Toque numa origem para ver as vendas. Toque de novo para voltar às mais vendidas.</p>
     ${origins}

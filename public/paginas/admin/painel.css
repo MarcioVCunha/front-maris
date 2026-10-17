@@ -787,6 +787,14 @@
   margin: 0;
 }
 
+.inicio-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+
 .origin-card__profit {
   font-size: 0.8rem;
   font-weight: 600;

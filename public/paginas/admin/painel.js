@@ -86,7 +86,8 @@ import {
   fetchPromotions,
   savePromotion,
   endPromotion,
-  setMonthlyGoal
+  setMonthlyGoal,
+  triggerWeeklySummaryEmail
 } from "./painel.api.js"
 import {
   filterCollections,
@@ -1294,6 +1295,15 @@ function bindInicio() {
     if (state.overview) state.overview.sales_goal = res.ok && res.sales_goal ? res.sales_goal : newGoal
     showMessage(res.ok ? "Meta mensal atualizada!" : "Meta atualizada no painel.")
     paintInicio()
+  })
+  viewEl.querySelector("#btn-send-weekly-summary")?.addEventListener("click", async () => {
+    showMessage("Enviando resumo semanal para seu e-mail…")
+    const res = await triggerWeeklySummaryEmail({ days: 7 })
+    if (res.ok) {
+      showMessage(res.data?.message || "Resumo semanal enviado por e-mail com sucesso!")
+    } else {
+      showMessage(res.error || "Não foi possível enviar o resumo.", "error")
+    }
   })
   viewEl.querySelector("#btn-export-sales-csv")?.addEventListener("click", () => {
     const csv = generateSalesCsv(state.recent || [])
