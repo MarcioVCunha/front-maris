@@ -30,6 +30,7 @@ import {
   renderStockPage,
   renderVendas,
   renderVendedoras,
+  renderCompras,
   sellersFromDirectory,
   shouldShowDashboard,
   shouldShowFab,
@@ -87,7 +88,8 @@ import {
   savePromotion,
   endPromotion,
   setMonthlyGoal,
-  triggerWeeklySummaryEmail
+  triggerWeeklySummaryEmail,
+  fetchPurchasesOverview
 } from "./painel.api.js"
 import {
   filterCollections,
@@ -125,6 +127,7 @@ const TITLES = {
   esgotadas: "Esgotadas",
   vendas: "Vendas",
   vendedoras: "Vendedoras",
+  compras: "Compras",
   colecoes: "Coleções",
   promocoes: "Promoções",
   peca: "Editar peça",
@@ -192,7 +195,10 @@ const state = {
   promoQuery: "",
   promoStatusFilter: "all",
   promoEditing: null,
-  selectedMonth: null
+  selectedMonth: null,
+  staleOnly: false,
+  purchases: undefined,
+  purchasesMonth: undefined
 }
 
 let pendingSaleCancel = null
@@ -1047,10 +1053,13 @@ function stockPool(mode) {
 
 function paintStock(mode = "estoque") {
   const pool = stockPool(mode)
-  const { rows, total } = visibleStock(pool, state.stockQuery, state.stockLimit)
+  const isStaleFilter = mode !== "esgotadas" && state.staleOnly
+  const { rows, total } = visibleStock(pool, state.stockQuery, state.stockLimit, { staleOnly: isStaleFilter })
   const empty = mode === "esgotadas"
     ? (state.stockQuery.trim() ? "Nenhuma esgotada com esse nome." : "Nenhuma peça esgotada.")
-    : (state.stockQuery.trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque.")
+    : (isStaleFilter
+      ? (state.stockQuery.trim() ? "Nenhuma peça parada (+60d) com esse nome." : "Nenhuma peça parada (+60d) no estoque.")
+      : (state.stockQuery.trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque."))
   const listHtml = rows.length
     ? renderStockList(rows, formatPrice, { empty })
     : `<p class="empty">${empty}</p>`
@@ -1061,7 +1070,8 @@ function paintStock(mode = "estoque") {
       total,
       query: state.stockQuery,
       mode,
-      typeBlock: mode === "esgotadas" ? "" : renderStockByType(state.products)
+      typeBlock: mode === "esgotadas" ? "" : renderStockByType(state.products),
+      staleOnly: state.staleOnly
     })
     const fresh = document.getElementById("stock-list")
     if (fresh) fresh.innerHTML = listHtml
@@ -1089,7 +1099,8 @@ function paintStock(mode = "estoque") {
 
 function bindStockCards() {
   viewEl.querySelectorAll(".entity-card[data-product-code]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      if (event.target.closest("[data-promo-shortcut]")) return
       const code = btn.getAttribute("data-product-code")
       const piece = (state.products || []).find((row) => String(row.code) === String(code))
       openPieceDialog(piece)
@@ -1108,6 +1119,15 @@ function bindStockOnce() {
     paintStock(mode)
   })
   viewEl.addEventListener("click", (event) => {
+    const filterBtn = event.target.closest("[data-stock-filter]")
+    if (filterBtn) {
+      const filter = filterBtn.getAttribute("data-stock-filter")
+      state.staleOnly = filter === "stale"
+      state.stockLimit = STOCK_PAGE_SIZE
+      const mode = viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") || "estoque"
+      paintStock(mode)
+      return
+    }
     if (event.target.id !== "stock-more") return
     state.stockLimit += STOCK_PAGE_SIZE
     const mode = viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") || "estoque"
@@ -1421,6 +1441,113 @@ async function loadSellers(monthParam) {
   return state.sellers
 }
 
+function paintCompras() {
+  viewEl.classList.remove("view--inicio")
+  const currentMonth = currentMonthKey()
+  const activeMonth = state.selectedMonth || (state.purchases && state.purchases.month) || currentMonth
+  viewEl.innerHTML = renderCompras(state.purchases, formatPrice, {
+    month: activeMonth
+  })
+
+  // Controles de navegação de período no topo de compras
+  const monthInput = viewEl.querySelector("#inicio-month-input")
+  viewEl.querySelector("#btn-prev-month")?.addEventListener("click", () => {
+    changeComprasMonth(stepMonth(activeMonth, -1))
+  })
+  viewEl.querySelector("#btn-next-month")?.addEventListener("click", () => {
+    changeComprasMonth(stepMonth(activeMonth, 1))
+  })
+  viewEl.querySelector("#btn-current-month")?.addEventListener("click", () => {
+    changeComprasMonth(currentMonthKey())
+  })
+  monthInput?.addEventListener("change", (e) => {
+    const val = e.target.value
+    if (val && /^\d{4}-\d{2}$/.test(val)) {
+      changeComprasMonth(val)
+    }
+  })
+
+  // Diálogo de contatos da lista de espera
+  viewEl.querySelectorAll("[data-view-contacts]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const code = btn.getAttribute("data-view-contacts")
+      const item = (state.purchases?.restock_requests || []).find((r) => String(r.code) === String(code))
+      openComprasContactsDialog(item)
+    })
+  })
+}
+
+async function changeComprasMonth(nextMonth) {
+  const currentMonth = currentMonthKey()
+  const target = (nextMonth || currentMonth).trim()
+  state.selectedMonth = target
+  state.purchases = undefined
+  state.purchasesMonth = undefined
+  const url = new URL(location.href)
+  if (target === currentMonth) {
+    url.searchParams.delete("month")
+  } else {
+    url.searchParams.set("month", target)
+  }
+  history.replaceState(null, "", url.toString())
+  showMessage("Carregando compras de " + formatMonthLabel(target) + "…")
+  await loadPurchases(target)
+  paintCompras()
+}
+
+async function loadPurchases(monthParam) {
+  const urlParam = new URLSearchParams(location.search).get("month")
+  const targetMonth = monthParam || state.selectedMonth || (urlParam && /^\d{4}-\d{2}$/.test(urlParam) ? urlParam : currentMonthKey())
+  if (state.purchases !== undefined && state.purchasesMonth === targetMonth) return state.purchases
+  const result = await fetchPurchasesOverview({ month: targetMonth })
+  if (result.ok) {
+    state.purchases = result.data || {}
+    state.purchasesMonth = targetMonth
+    return state.purchases
+  }
+  state.purchases = null
+  state.purchasesMonth = targetMonth
+  return null
+}
+
+function openComprasContactsDialog(item) {
+  if (!item) return
+  let dialog = document.getElementById("compras-contacts-dialog")
+  if (!dialog) {
+    dialog = document.createElement("dialog")
+    dialog.id = "compras-contacts-dialog"
+    dialog.className = "admin-dialog compras-contacts-dialog"
+    document.body.appendChild(dialog)
+  }
+  const contacts = Array.isArray(item.contacts) ? item.contacts : []
+  const contactsHtml = contacts.length === 0
+    ? `<p class="empty">Nenhum dado de contato registrado para esta peça.</p>`
+    : `<ul class="compras-contacts-list">${contacts.map((c) => {
+        const telDigits = String(c.buyer_whatsapp || "").replace(/\D/g, "")
+        const waLink = telDigits ? `<a href="https://wa.me/55${telDigits}" target="_blank" rel="noopener" class="btn-xs btn-whatsapp">💬 WhatsApp: ${escapeHtml(c.buyer_whatsapp)}</a>` : ""
+        const emailLink = c.buyer_email ? `<a href="mailto:${escapeHtml(c.buyer_email)}" class="btn-xs btn-email">✉️ ${escapeHtml(c.buyer_email)}</a>` : ""
+        const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : ""
+        return `<li class="compras-contact-item">
+          <div class="compras-contact-name"><strong>${escapeHtml(c.buyer_name || "Cliente")}</strong>${dateStr ? `<small class="hint">Pedido em ${dateStr}</small>` : ""}</div>
+          <div class="compras-contact-links">${waLink}${emailLink}</div>
+        </li>`
+      }).join("")}</ul>`
+
+  dialog.innerHTML = `<div class="dialog-content">
+    <div class="dialog-header">
+      <h2>Lista de Espera · ${escapeHtml(item.name || item.code)}</h2>
+      <p class="hint">${escapeHtml(item.code)} · ${contacts.length} interessada(s)</p>
+    </div>
+    ${contactsHtml}
+    <div class="dialog-actions">
+      <button type="button" class="btn-ghost" id="compras-contacts-close">Fechar</button>
+    </div>
+  </div>`
+
+  dialog.querySelector("#compras-contacts-close")?.addEventListener("click", () => dialog.close())
+  if (!dialog.open) dialog.showModal()
+}
+
 function navigate(href) {
   const url = new URL(href, location.origin)
   const next = `${url.pathname}${url.search}`
@@ -1478,6 +1605,19 @@ async function render(view, token) {
     paintVendedoras()
     return
   }
+  if (view === "compras") {
+    const urlMonth = new URLSearchParams(location.search).get("month") || currentMonthKey()
+    if (state.purchases && state.purchasesMonth !== urlMonth) {
+      state.purchases = undefined
+      state.purchasesMonth = undefined
+    }
+    state.selectedMonth = urlMonth
+    if (state.purchases === undefined) viewEl.innerHTML = viewLoading()
+    await loadPurchases(urlMonth)
+    if (stale()) return
+    paintCompras()
+    return
+  }
   if (view === "estoque" || view === "esgotadas") {
     if (!document.getElementById("stock-search")) viewEl.innerHTML = viewLoading()
     await loadProducts()
@@ -1520,6 +1660,14 @@ async function render(view, token) {
     await loadPromotions()
     if (stale()) return
     paintPromocoes()
+    const targetCode = new URLSearchParams(location.search).get("code")
+    if (targetCode) {
+      openPromoEditDialog({
+        scope: "produto",
+        product_codes: [targetCode],
+        name: `Promoção ${targetCode}`
+      })
+    }
     return
   }
   if (view === "adicionar") {

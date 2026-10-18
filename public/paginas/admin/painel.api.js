@@ -24,7 +24,8 @@ export const ADMIN_DASHBOARD_API = {
   promotionSave: "admin-promotion-save",
   promotionEnd: "admin-promotion-end",
   monthlyGoalUpdate: "admin-set-monthly-goal",
-  weeklySummary: "admin-weekly-summary"
+  weeklySummary: "admin-weekly-summary",
+  purchasesOverview: "admin-purchases-overview"
 }
 
 function withQuery(url, query) {
@@ -315,6 +316,16 @@ export async function endPromotion(id, client) {
 export async function triggerWeeklySummaryEmail(body = {}, client) {
   const result = await call(ADMIN_DASHBOARD_API.weeklySummary, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível enviar o resumo semanal.")
+  return { ok: true, data: result.data || {} }
+}
+
+/** GET admin-purchases-overview — { month } -> { ok, month, total_units_sold, total_orders_paid, top_pieces, restock_requests } */
+export async function fetchPurchasesOverview({ month }, client) {
+  const result = await call(ADMIN_DASHBOARD_API.purchasesOverview, {
+    method: "GET",
+    query: { month }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar a visão de compras.")
   return { ok: true, data: result.data || {} }
 }
 

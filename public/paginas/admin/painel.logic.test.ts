@@ -65,6 +65,7 @@ import {
   formatTicketDelta,
   renderTicketCard,
   renderPeriodFilter,
+  renderCompras,
 } from "./painel.logic.js"
 
 const anelDefaults = {
@@ -296,6 +297,7 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(dashboardView("/admin/conjuntos"), "conjuntos")
   assertEquals(dashboardView("/admin/tipos"), "conjuntos")
   assertEquals(dashboardView("/admin/promocoes"), "promocoes")
+  assertEquals(dashboardView("/admin/compras"), "compras")
   assertEquals(dashboardView("/paginas/admin/painel.html", "?view=tipos"), "conjuntos")
   const list = renderStockList([{
     code: "AN581-R",
@@ -1049,5 +1051,125 @@ Deno.test("etapa 3: renderPeriodFilter monta a barra com controles de navegaçã
   const filterPast = renderPeriodFilter(past, "2026-10")
   assert(filterPast.includes("btn-current-month"), "Deve exibir botão Mês atual quando em mês anterior/posterior")
   assert(filterPast.includes(`value="${past}"`))
+})
+
+Deno.test("etapa 4: peças paradas (+60d) recebem badge, atalho de promo e filtro staleOnly", () => {
+  const pieces = [
+    {
+      code: "AN1",
+      name: "Anel Solitário",
+      quantity: 5,
+      unit_price: 80,
+      days_without_sale: 75,
+      is_stale: true,
+    },
+    {
+      code: "BR2",
+      name: "Brinco Gota",
+      quantity: 10,
+      unit_price: 50,
+      days_without_sale: 15,
+      is_stale: false,
+    },
+  ]
+
+  // filterStock com staleOnly
+  const allFiltered = filterStock(pieces, "", { staleOnly: false })
+  assertEquals(allFiltered.length, 2)
+  const staleFiltered = filterStock(pieces, "", { staleOnly: true })
+  assertEquals(staleFiltered.length, 1)
+  assertEquals(staleFiltered[0].code, "AN1")
+
+  // renderStockList exibe badge e link Criar promo para peça parada
+  const html = renderStockList(pieces, (v) => `R$ ${v}`)
+  assert(html.includes("⏳ Sem saída há 75d"), "Deve exibir badge de dias sem saída")
+  assert(html.includes('data-promo-shortcut="true"'), "Deve exibir atalho de promoção")
+  assert(html.includes('/admin/promocoes?code=AN1'), "Link deve apontar para promoção com o código da peça")
+
+  // Peça sem saída recente (<60d) não recebe o badge nem atalho
+  assert(!html.includes("⏳ Sem saída há 15d"))
+
+  // renderStockPage renderiza o chip de filtro Paradas (+60d)
+  const pageHtml = renderStockPage({
+    rows: staleFiltered,
+    total: 1,
+    query: "",
+    mode: "estoque",
+    staleOnly: true,
+  })
+  assert(pageHtml.includes("stock-filter-chips"))
+  assert(pageHtml.includes("data-stock-filter=\"stale\""))
+  assert(pageHtml.includes("is-active"))
+})
+
+Deno.test("etapa 4: renderCompras exibe Top 10 com fotos, ranking de reposição e zero vazamento de custo", () => {
+  const purchasesData = {
+    ok: true,
+    month: "2026-10",
+    total_units_sold: 58,
+    total_orders_paid: 24,
+    top_pieces: [
+      {
+        code: "BM100",
+        name: "Brinco Dourado Flor",
+        categoria: "Brinco",
+        image_url: "https://example.com/bm100.jpg",
+        quantity_sold: 15,
+        custo: 12.5,
+        unit_cost: 12.5,
+        profit: 300,
+      },
+    ],
+    restock_requests: [
+      {
+        code: "CL200",
+        name: "Colar Ponto de Luz",
+        categoria: "Colar",
+        image_url: "https://example.com/cl200.jpg",
+        quantity: 0,
+        waiting_count: 7,
+        contacts: [
+          {
+            id: 1,
+            buyer_name: "Camila",
+            buyer_whatsapp: "11999998888",
+            buyer_email: "camila@example.com",
+            created_at: "2026-10-18T10:00:00Z",
+          },
+        ],
+      },
+    ],
+  }
+
+  const html = renderCompras(purchasesData, (v) => `R$ ${v}`, { month: "2026-10" })
+
+  // Título e resumo
+  assert(html.includes("Visão de Compras & Reposição"))
+  assert(html.includes("58 <small>unidades</small>"))
+  assert(html.includes("em 24 pedidos pagos no mês"))
+
+  // Top 10
+  assert(html.includes("Top 10 Peças Mais Vendidas no Mês"))
+  assert(html.includes("BM100"))
+  assert(html.includes("Brinco Dourado Flor"))
+  assert(html.includes("15 un."))
+  assert(html.includes("https://example.com/bm100.jpg"))
+
+  // Reposição esgotadas
+  assert(html.includes("Reposição — Peças Esgotadas Mais Pedidas"))
+  assert(html.includes("CL200"))
+  assert(html.includes("Colar Ponto de Luz"))
+  assert(html.includes("💖 7 clientes interessadas"))
+  assert(html.includes('data-view-contacts="CL200"'))
+  assert(html.includes("Ver contatos (1)"))
+
+  // Segurança estrita: zero vazamento de custo, lucro ou comissão
+  assertEquals(html.includes("custo"), false, "Nunca deve exibir custo na visão compras")
+  assertEquals(html.includes("unit_cost"), false, "Nunca deve exibir unit_cost na visão compras")
+  assertEquals(html.includes("profit"), false, "Nunca deve exibir profit na visão compras")
+  assertEquals(html.includes("comissao"), false, "Nunca deve exibir comissão na visão compras")
+  assertEquals(html.includes("commission"), false, "Nunca deve exibir commission na visão compras")
+  assertEquals(html.includes("12.5"), false, "Nunca deve exibir valor de custo na visão compras")
+  assertEquals(html.includes("300"), false, "Nunca deve exibir lucro na visão compras")
 })
 
