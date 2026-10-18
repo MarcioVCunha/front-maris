@@ -332,3 +332,80 @@ Deno.test("dry_run, pausa e validação usam o status e o erro do handler", () =
   })
   assertEquals(invalidPhone, { kind: "error", error: "Informe um WhatsApp do Brasil, com DDD." })
 })
+
+Deno.test("buildCreateOrderBody inclui coupon_code normalizado", () => {
+  const withCoupon = buildCreateOrderBody({
+    ...sampleInput,
+    couponCode: "  bemvinda10  "
+  })
+  assertEquals(withCoupon.coupon_code, "BEMVINDA10")
+
+  const withoutCoupon = buildCreateOrderBody({
+    ...sampleInput,
+    couponCode: ""
+  })
+  assertEquals("coupon_code" in withoutCoupon, false)
+})
+
+Deno.test("interpretCreateOrderResponse processa cupom e desconto", () => {
+  const withCouponData = {
+    ...CREATED_ORDER,
+    coupon_code: "BEMVINDA10",
+    coupon_discount: 17.64,
+    total: 158.76,
+    total_pix: 150.82
+  }
+  const result = interpretCreateOrderResponse({
+    ok: true,
+    status: 200,
+    data: withCouponData
+  })
+  assertEquals(result.kind, "confirmed")
+  if (result.kind !== "confirmed") return
+  assertEquals(result.order.couponCode, "BEMVINDA10")
+  assertEquals(result.order.couponDiscount, 17.64)
+  assertEquals(result.order.total, 158.76)
+  assertEquals(result.order.totalPix, 150.82)
+})
+
+Deno.test("submitValidateCoupon valida parâmetros e chama a função correta", async () => {
+  let calledFunction = ""
+  let calledPayload: unknown = null
+
+  const mockCaller = (fnName: string, payload: unknown) => {
+    calledFunction = fnName
+    calledPayload = payload
+    return Promise.resolve({
+      ok: true,
+      data: {
+        ok: true,
+        coupon: { code: "BEMVINDA10", discount_type: "percent", discount_value: 10 },
+        coupon_discount: 10.0,
+        final_total: 90.0,
+        pix_total: 85.5
+      }
+    })
+  }
+
+  // Sem código
+  const emptyRes = await MarisPedido.submitValidateCoupon(mockCaller, { code: "" })
+  assertEquals(emptyRes.ok, false)
+  assertEquals(emptyRes.error, "Informe o código do cupom.")
+
+  // Com código válido
+  const validRes = await MarisPedido.submitValidateCoupon(mockCaller, {
+    code: " bemvinda10 ",
+    whatsapp: "(19) 99999-8888",
+    items: [{ product_code: "AN651-R", quantity: 1 }]
+  })
+  assertEquals(calledFunction, "coupon-validate")
+  assertEquals(calledPayload, {
+    code: "BEMVINDA10",
+    whatsapp: "19999998888",
+    items: [{ product_code: "AN651-R", quantity: 1 }]
+  })
+  assertEquals(validRes.ok, true)
+  assertEquals(validRes.data?.coupon?.code, "BEMVINDA10")
+  assertEquals(validRes.data?.coupon_discount, 10.0)
+})
+

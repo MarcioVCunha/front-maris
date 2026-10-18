@@ -304,6 +304,8 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(dashboardView("/admin/conjuntos"), "conjuntos")
   assertEquals(dashboardView("/admin/tipos"), "conjuntos")
   assertEquals(dashboardView("/admin/promocoes"), "promocoes")
+  assertEquals(dashboardView("/admin/cupons"), "cupons")
+  assertEquals(dashboardView("/admin/indicacoes"), "cupons")
   assertEquals(dashboardView("/admin/compras"), "compras")
   assertEquals(dashboardView("/paginas/admin/painel.html", "?view=tipos"), "conjuntos")
   const list = renderStockList([{

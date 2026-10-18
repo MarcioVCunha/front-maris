@@ -2,6 +2,7 @@
 // A flag fica desligada até o Backend existir. Com ela desligada, a cesta não chama nada daqui.
 
 export const CREATE_ORDER_FUNCTION = "create-order"
+export const VALIDATE_COUPON_FUNCTION = "coupon-validate"
 export const RESERVE_DAYS = 7
 export const MAX_ORDER_ITEMS = 30
 export const MAX_UNITS_PER_LINE = 10
@@ -46,7 +47,7 @@ export function orderItemsFromCart(lines) {
 
 export function buildCreateOrderBody(input = {}) {
   const seller = Number(input.sellerId)
-  return {
+  const body = {
     client_request_id: String(input.clientRequestId || ""),
     customer: {
       name: String(input.name || "").trim(),
@@ -57,6 +58,10 @@ export function buildCreateOrderBody(input = {}) {
     dry_run: Boolean(input.dryRun),
     website: String(input.website || "")
   }
+  if (input.couponCode) {
+    body.coupon_code = String(input.couponCode).trim().toUpperCase()
+  }
+  return body
 }
 
 export function validateCreateOrderBody(body) {
@@ -102,6 +107,8 @@ export function orderFromResponse(data) {
     subtotal,
     total: total != null ? total : subtotal,
     totalPix: numberOrNull(data?.total_pix),
+    couponCode: data?.coupon_code || null,
+    couponDiscount: numberOrNull(data?.coupon_discount) || 0,
     reservedUntil: data?.reserved_until || null,
     items
   }
@@ -207,9 +214,25 @@ export async function submitCreateOrder(callFunction, input, options = {}) {
   return interpretCreateOrderResponse(result, { dryRun: body.dry_run })
 }
 
+export async function submitValidateCoupon(callFunction, { code, whatsapp, items } = {}) {
+  const trimmed = String(code || "").trim().toUpperCase()
+  if (!trimmed) return { ok: false, error: "Informe o código do cupom." }
+  if (typeof callFunction !== "function") return { ok: false, error: "Não foi possível validar o cupom." }
+  const result = await callFunction(VALIDATE_COUPON_FUNCTION, {
+    code: trimmed,
+    whatsapp: normalizeWhatsapp(whatsapp),
+    items: orderItemsFromCart(items)
+  })
+  if (!result?.ok || result?.data?.ok === false) {
+    return { ok: false, error: result?.data?.error || "Cupom inválido ou expirado." }
+  }
+  return { ok: true, data: result.data }
+}
+
 export const MarisPedido = {
   ORDERS_ENABLED: true,
   CREATE_ORDER_FUNCTION,
+  VALIDATE_COUPON_FUNCTION,
   RESERVE_DAYS,
   MAX_ORDER_ITEMS,
   MAX_UNITS_PER_LINE,
@@ -225,7 +248,8 @@ export const MarisPedido = {
   stockIssueText,
   cartKeysForStockIssues,
   interpretCreateOrderResponse,
-  submitCreateOrder
+  submitCreateOrder,
+  submitValidateCoupon
 }
 
 if (typeof globalThis.window !== "undefined") {

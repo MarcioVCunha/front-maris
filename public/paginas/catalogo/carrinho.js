@@ -14,9 +14,17 @@ const stockIssuesEl = document.getElementById("stock-issues")
 const messageEl = document.getElementById("cart-page-message")
 const stepEls = Array.from(document.querySelectorAll(".cart-step"))
 const orderConfirmationEl = document.getElementById("order-confirmation")
+const cartSubtotalEl = document.getElementById("cart-subtotal")
+const cartCouponRowEl = document.getElementById("cart-coupon-row")
+const cartCouponLabelEl = document.getElementById("cart-coupon-label")
+const cartCouponDiscountEl = document.getElementById("cart-coupon-discount")
+const couponCodeInputEl = document.getElementById("coupon-code-input")
+const applyCouponBtn = document.getElementById("apply-coupon-btn")
+const couponFeedbackEl = document.getElementById("coupon-feedback")
 const websiteEl = document.getElementById("buyer-website")
 let pendingRequestId = null
 let orderConfirmed = false
+let appliedCoupon = null
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -61,16 +69,33 @@ function showCartLoading() {
     : `<div class="maris-loading maris-loading--md" role="status" aria-label="Carregando"></div>`
 }
 
+function setCouponFeedback(text, type = "") {
+  if (!couponFeedbackEl) return
+  if (!text) {
+    couponFeedbackEl.hidden = true
+    couponFeedbackEl.textContent = ""
+    couponFeedbackEl.className = "coupon-feedback"
+    return
+  }
+  couponFeedbackEl.hidden = false
+  couponFeedbackEl.textContent = text
+  couponFeedbackEl.className = `coupon-feedback ${type}`.trim()
+}
+
 function renderCart() {
   if (orderConfirmed) return
   cartLinesEl?.classList.remove("cart-lines--loading")
   const lines = window.MarisCatalogCart.getLineDetails()
   if (!lines.length) {
-    cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta est\u00e1 vazia. Volte ao cat\u00e1logo para adicionar produtos.</p>"
+    cartLinesEl.innerHTML = "<p class=\"cart-help\">Sua cesta está vazia. Volte ao catálogo para adicionar produtos.</p>"
+    if (cartSubtotalEl) cartSubtotalEl.textContent = formatMoneyBRL(0)
+    if (cartCouponRowEl) cartCouponRowEl.hidden = true
     cartTotalEl.textContent = formatMoneyBRL(0)
     if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(0)
     if (placeOrderBtn) placeOrderBtn.disabled = true
     if (checkStockBtn) checkStockBtn.disabled = true
+    appliedCoupon = null
+    setCouponFeedback("")
     setActiveStep(1)
     return
   }
@@ -78,9 +103,13 @@ function renderCart() {
   if (placeOrderBtn) placeOrderBtn.disabled = false
   if (checkStockBtn) checkStockBtn.disabled = false
   setActiveStep(2)
-  let total = 0
+  let subtotal = 0
+  let eligibleSubtotal = 0
   cartLinesEl.innerHTML = lines.map((line) => {
-    total += line.total
+    subtotal += line.total
+    if (!line.onSale) {
+      eligibleSubtotal += line.total
+    }
     const stockLabel = line.available > 0 ? `${line.available} em estoque` : "Sem estoque"
     const priceLabel = line.onSale
       ? window.MarisUI.renderPricePair(line.originalPrice * line.quantity, line.total)
@@ -91,7 +120,7 @@ function renderCart() {
           <img class="cart-line-image" src="${window.MarisUI.escapeHtml(line.image_url || "")}" alt="${window.MarisUI.escapeHtml(line.name)}">
           <div>
             <p class="cart-line-name">${window.MarisUI.escapeHtml(line.name)}</p>
-            <p class="cart-line-code">${window.MarisUI.escapeHtml(line.code)} \u2014 ${priceLabel}</p>
+            <p class="cart-line-code">${window.MarisUI.escapeHtml(line.code)} — ${priceLabel}</p>
             <p class="cart-line-stock">${stockLabel}</p>
           </div>
         </div>
@@ -104,9 +133,89 @@ function renderCart() {
       </article>
     `
   }).join("")
-  const totals = window.MarisCatalogLogic?.cartMoneyTotals?.(window.MarisCatalogCart.getItems()) || { total, pixTotal: 0 }
-  cartTotalEl.textContent = formatMoneyBRL(totals.total)
-  if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(totals.pixTotal)
+
+  if (cartSubtotalEl) {
+    cartSubtotalEl.textContent = formatMoneyBRL(subtotal)
+  }
+
+  let couponDiscount = 0
+  if (appliedCoupon && appliedCoupon.details) {
+    const coup = appliedCoupon.details
+    if (coup.min_order_value > 0 && subtotal < coup.min_order_value) {
+      setCouponFeedback(`Pedido mínimo de ${formatMoneyBRL(coup.min_order_value)} para este cupom.`, "error")
+    } else if (eligibleSubtotal <= 0) {
+      setCouponFeedback("O cupom não acumula com itens já em promoção.", "error")
+    } else {
+      if (coup.discount_type === "percent") {
+        couponDiscount = Math.round((eligibleSubtotal * Number(coup.discount_value) / 100) * 100) / 100
+      } else {
+        couponDiscount = Math.min(eligibleSubtotal, Number(coup.discount_value))
+      }
+    }
+  }
+
+  if (couponDiscount > 0 && appliedCoupon) {
+    if (cartCouponRowEl) cartCouponRowEl.hidden = false
+    if (cartCouponLabelEl) cartCouponLabelEl.textContent = `Cupom (${appliedCoupon.code})`
+    if (cartCouponDiscountEl) cartCouponDiscountEl.textContent = `-${formatMoneyBRL(couponDiscount)}`
+  } else {
+    if (cartCouponRowEl) cartCouponRowEl.hidden = true
+  }
+
+  const finalTotal = Math.max(0, subtotal - couponDiscount)
+  const pixTotal = Math.round(finalTotal * 0.95 * 100) / 100
+  cartTotalEl.textContent = formatMoneyBRL(finalTotal)
+  if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(pixTotal)
+}
+
+async function handleApplyCoupon() {
+  const code = String(couponCodeInputEl?.value || "").trim().toUpperCase()
+  if (!code) {
+    appliedCoupon = null
+    setCouponFeedback("")
+    renderCart()
+    return
+  }
+  if (applyCouponBtn) applyCouponBtn.disabled = true
+  setCouponFeedback("Validando cupom...")
+  try {
+    const rawWhatsapp = buyerWhatsappEl?.value || ""
+    const result = await window.MarisPedido.submitValidateCoupon(callCreateOrder, {
+      code,
+      whatsapp: rawWhatsapp,
+      items: window.MarisCatalogCart.getItems()
+    })
+    if (!result.ok) {
+      appliedCoupon = null
+      setCouponFeedback(result.error, "error")
+      renderCart()
+      return
+    }
+    appliedCoupon = {
+      code: result.data.code,
+      details: {
+        id: result.data.coupon_id,
+        code: result.data.code,
+        discount_type: result.data.discount_type,
+        discount_value: result.data.value,
+        discount_amount: result.data.discount_amount,
+        is_referral: Boolean(result.data.is_referral),
+        referrer_name: result.data.referrer_name
+      }
+    }
+    const discountFormatted = formatMoneyBRL(result.data.discount_amount)
+    const referralMsg = result.data.is_referral && result.data.referrer_name
+      ? ` Indicação de ${result.data.referrer_name}!`
+      : ""
+    setCouponFeedback(`Cupom ${appliedCoupon.code} aplicado! Economia de ${discountFormatted}.${referralMsg}`, "success")
+    renderCart()
+  } catch (_err) {
+    appliedCoupon = null
+    setCouponFeedback("Erro ao validar cupom.", "error")
+    renderCart()
+  } finally {
+    if (applyCouponBtn) applyCouponBtn.disabled = false
+  }
 }
 
 async function loadCatalogData() {
@@ -179,6 +288,25 @@ function renderOrderConfirmation(order) {
         </article>`
     }).join("")
   }
+  const orderSubtotalRow = document.getElementById("order-subtotal-row")
+  const orderSubtotalEl = document.getElementById("order-subtotal")
+  const orderCouponRow = document.getElementById("order-coupon-row")
+  const orderCouponLabel = document.getElementById("order-coupon-label")
+  const orderCouponDiscount = document.getElementById("order-coupon-discount")
+  if (order.couponDiscount && order.couponDiscount > 0) {
+    if (orderSubtotalRow) {
+      orderSubtotalRow.hidden = false
+      if (orderSubtotalEl) orderSubtotalEl.textContent = formatMoneyBRL(order.subtotal)
+    }
+    if (orderCouponRow) {
+      orderCouponRow.hidden = false
+      if (orderCouponLabel) orderCouponLabel.textContent = order.couponCode ? `Cupom (${order.couponCode})` : "Cupom de desconto"
+      if (orderCouponDiscount) orderCouponDiscount.textContent = `-${formatMoneyBRL(order.couponDiscount)}`
+    }
+  } else {
+    if (orderSubtotalRow) orderSubtotalRow.hidden = true
+    if (orderCouponRow) orderCouponRow.hidden = true
+  }
   if (totalEl) totalEl.textContent = order.total == null ? "—" : formatMoneyBRL(order.total)
   if (pixEl) pixEl.textContent = order.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
   setActiveStep(3)
@@ -210,6 +338,7 @@ async function placeOrder(dryRun) {
       name: buyerNameEl?.value || "",
       whatsapp: buyerWhatsappEl?.value || "",
       sellerId: sellerSelectEl?.value || "",
+      couponCode: appliedCoupon?.code || "",
       items: window.MarisCatalogCart.getItems(),
       dryRun,
       website: websiteEl?.value || ""
@@ -235,6 +364,9 @@ async function placeOrder(dryRun) {
     if (result.kind === "confirmed") {
       saveBuyer()
       pendingRequestId = null
+      appliedCoupon = null
+      if (couponCodeInputEl) couponCodeInputEl.value = ""
+      setCouponFeedback("")
       renderOrderConfirmation(result.order)
       window.MarisCatalogCart.clear()
       setMessage("")
@@ -269,6 +401,16 @@ cartLinesEl.addEventListener("click", (event) => {
   pendingRequestId = null
   renderCart()
 })
+
+if (applyCouponBtn) applyCouponBtn.addEventListener("click", handleApplyCoupon)
+if (couponCodeInputEl) {
+  couponCodeInputEl.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      handleApplyCoupon()
+    }
+  })
+}
 
 if (buyerNameEl) buyerNameEl.addEventListener("blur", saveBuyer)
 if (buyerWhatsappEl) {

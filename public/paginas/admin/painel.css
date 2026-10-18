@@ -3147,4 +3147,367 @@ dialog h2 {
   border-radius: 3px;
 }
 
+/* ==========================================================================
+   Etapa 5: Cupons de Desconto & Programa de Indicação
+   ========================================================================== */
+
+.coupons-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.coupons-view__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--maris-border);
+  padding-bottom: 12px;
+}
+
+.coupons-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.coupons-tab {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--maris-text-muted);
+  transition: all 0.15s ease;
+}
+
+.coupons-tab--active {
+  background: var(--maris-black);
+  color: #fff;
+  border-color: var(--maris-black);
+}
+
+.coupons-head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.dash-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.dash-btn--primary {
+  background: var(--maris-black);
+  color: #fff;
+}
+
+.dash-btn--primary:hover {
+  background: #333;
+}
+
+.dash-btn--secondary {
+  background: var(--maris-surface);
+  border-color: var(--maris-border);
+  color: var(--maris-black);
+}
+
+.dash-btn--secondary:hover {
+  background: var(--maris-gold-light);
+  border-color: var(--maris-gold-dark);
+}
+
+.coupons-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.coupons-search-field {
+  flex: 1;
+  min-width: 220px;
+}
+
+.coupons-search-field input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--maris-border);
+  font-family: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.coupons-search-field input:focus {
+  outline: none;
+  border-color: var(--maris-gold-dark);
+}
+
+.coupons-filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.coupon-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--maris-text-muted);
+}
+
+.coupon-chip--active {
+  background: var(--maris-gold-light);
+  color: var(--maris-gold-dark);
+  border-color: var(--maris-gold-dark);
+}
+
+.coupons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.coupon-card {
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: opacity 0.15s ease;
+}
+
+.coupon-card--inactive {
+  opacity: 0.65;
+  background: #fafafa;
+}
+
+.coupon-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.coupon-card__badge-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.coupon-card__code {
+  font-size: 1.1rem;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  color: var(--maris-black);
+}
+
+.coupon-status-badge {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status--active {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status--inactive {
+  background: #f1f3f4;
+  color: #5f6368;
+}
+
+.status--expired {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.status--scheduled {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.status--pending {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.status--confirmed {
+  background: #e6f4ea;
+  color: #137333;
+}
+
+.status--cancelled {
+  background: #fce8e6;
+  color: #c5221f;
+}
+
+.coupon-referral-tag {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e8f0fe;
+  color: #1967d2;
+  font-weight: 600;
+}
+
+.coupon-card__discount {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--maris-gold-dark, #b58d3d);
+}
+
+.coupon-card__desc {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--maris-text-muted);
+}
+
+.coupon-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--maris-text-muted);
+  border-top: 1px dashed var(--maris-border);
+  padding-top: 8px;
+}
+
+.coupon-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+}
+
+.btn-coupon-toggle {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--maris-border);
+  background: transparent;
+}
+
+.btn-coupon-toggle--on {
+  color: #c5221f;
+}
+
+.btn-coupon-toggle--off {
+  color: #137333;
+}
+
+.referrals-summary-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.ref-stat {
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.ref-stat__num {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-family: var(--maris-font-display);
+}
+
+.ref-stat__label {
+  font-size: 0.8rem;
+  color: var(--maris-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ref-stat--pending .ref-stat__num {
+  color: #b06000;
+}
+
+.ref-stat--confirmed .ref-stat__num {
+  color: #137333;
+}
+
+.referrals-rules-banner {
+  background: var(--maris-gold-light, #faf6f0);
+  border: 1px solid var(--maris-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: #555;
+}
+
+.referrals-rules-banner p {
+  margin: 0;
+}
+
+.referrals-table-wrapper {
+  overflow-x: auto;
+  background: var(--maris-surface);
+  border: 1px solid var(--maris-border);
+  border-radius: 10px;
+}
+
+.referrals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.referrals-table th,
+.referrals-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--maris-border);
+}
+
+.referrals-table th {
+  background: #fdfdfd;
+  font-weight: 600;
+  color: var(--maris-text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reward-code-pill {
+  display: inline-block;
+  font-family: monospace;
+  background: #e6f4ea;
+  color: #137333;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.88rem;
+}
+
 

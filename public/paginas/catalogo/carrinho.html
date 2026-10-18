@@ -68,6 +68,22 @@
             </svg>
           </div>
         </div>
+        <div class="cart-coupon-section">
+          <label for="coupon-code-input">Tem um cupom de desconto?</label>
+          <div class="cart-coupon-input-group">
+            <input id="coupon-code-input" type="text" placeholder="Ex: BEMVINDA10 ou indicação" autocomplete="off" autocapitalize="characters">
+            <button id="apply-coupon-btn" type="button" class="btn-coupon">Aplicar</button>
+          </div>
+          <p id="coupon-feedback" class="coupon-feedback" hidden></p>
+        </div>
+        <div class="cart-summary">
+          <span>Subtotal</span>
+          <strong id="cart-subtotal">R$ 0,00</strong>
+        </div>
+        <div id="cart-coupon-row" class="cart-summary cart-summary--discount" hidden>
+          <span id="cart-coupon-label">Desconto</span>
+          <strong id="cart-coupon-discount">-R$ 0,00</strong>
+        </div>
         <div class="cart-summary">
           <span>Total</span>
           <strong id="cart-total">R$ 0,00</strong>
@@ -104,6 +120,14 @@
         <h2 id="order-title">Pedido</h2>
         <p id="order-reservation" class="order-reservation"></p>
         <div id="order-lines" class="cart-lines"></div>
+        <div id="order-subtotal-row" class="cart-summary" hidden>
+          <span>Subtotal</span>
+          <strong id="order-subtotal">R$ 0,00</strong>
+        </div>
+        <div id="order-coupon-row" class="cart-summary cart-summary--discount" hidden>
+          <span id="order-coupon-label">Cupom</span>
+          <strong id="order-coupon-discount">-R$ 0,00</strong>
+        </div>
         <div class="cart-summary">
           <span>Total</span>
           <strong id="order-total">R$ 0,00</strong>

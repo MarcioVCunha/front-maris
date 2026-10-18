@@ -25,6 +25,11 @@ import {
   fetchPurchasesOverview,
   batchProducts,
   fetchProductHistory,
+  fetchCoupons,
+  saveCoupon,
+  toggleCoupon,
+  createReferralCode,
+  fetchReferrals,
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
@@ -63,6 +68,9 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.purchasesOverview, "admin-purchases-overview")
   assertEquals(ADMIN_DASHBOARD_API.batchProducts, "admin-product-batch")
   assertEquals(ADMIN_DASHBOARD_API.productHistory, "admin-product-history")
+  assertEquals(ADMIN_DASHBOARD_API.couponList, "admin-coupon-list")
+  assertEquals(ADMIN_DASHBOARD_API.couponSave, "admin-coupon-save")
+  assertEquals(ADMIN_DASHBOARD_API.referralList, "admin-referral-list")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -304,5 +312,48 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(historyClient.calls[0].name, "admin-product-history")
   assertEquals(historyClient.calls[0].options.method, "GET")
   assertEquals(historyClient.calls[0].options.query, { code: "BR01" })
+
+  // Cupons & Indicações
+  const couponListClient = client({
+    ok: true,
+    coupons: [{ id: 1, code: "BEMVINDA10" }]
+  })
+  const couponsRes = await fetchCoupons(couponListClient)
+  assertEquals(couponsRes.ok, true)
+  assertEquals(couponsRes.coupons.length, 1)
+  assertEquals(couponListClient.calls[0].name, "admin-coupon-list")
+  assertEquals(couponListClient.calls[0].options.method, "POST")
+
+  const couponSaveClient = client({ ok: true, data: { id: 1, code: "BEMVINDA10" } })
+  const couponSaveRes = await saveCoupon({ action: "save", code: "BEMVINDA10" }, couponSaveClient)
+  assertEquals(couponSaveRes.ok, true)
+  assertEquals(couponSaveClient.calls[0].name, "admin-coupon-save")
+  assertEquals(couponSaveClient.calls[0].options.method, "POST")
+
+  const toggleClient = client({ ok: true })
+  const toggleRes = await toggleCoupon(1, false, toggleClient)
+  assertEquals(toggleRes.ok, true)
+  assertEquals(toggleClient.calls[0].name, "admin-coupon-save")
+  assertEquals(toggleClient.calls[0].options.body, { action: "toggle", coupon_id: 1, is_active: false })
+
+  const referralCodeClient = client({ ok: true, data: { code: "ANA-ABC123" } })
+  const refCodeRes = await createReferralCode({
+    referrer_name: "Ana",
+    referrer_whatsapp: "5519999998888",
+    discount_percent: 10
+  }, referralCodeClient)
+  assertEquals(refCodeRes.ok, true)
+  assertEquals(referralCodeClient.calls[0].name, "admin-coupon-save")
+
+  const refListClient = client({
+    ok: true,
+    referrals: [{ id: 1, referrer_name: "Ana", status: "pendente" }]
+  })
+  const refListRes = await fetchReferrals(refListClient)
+  assertEquals(refListRes.ok, true)
+  assertEquals(refListRes.referrals.length, 1)
+  assertEquals(refListClient.calls[0].name, "admin-referral-list")
+  assertEquals(refListClient.calls[0].options.method, "POST")
 })
+
 
