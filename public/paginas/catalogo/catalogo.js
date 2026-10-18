@@ -537,7 +537,7 @@ function renderCatalogGroup(group) {
 
   // Com tipos: só abre o modal (estoque/venda são por tipo, não pelo pai).
   const actionHtml = soldOut
-    ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+    ? `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">💖 Quero essa peça</button>`
     : components.length
       ? `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
       : `<button type="button" class="add-cart-card-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
@@ -595,7 +595,7 @@ function renderModalActions(product, components, soldOut) {
     return
   }
   if (soldOut) {
-    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-waitlist-btn" data-waitlist-code="${escapeHtml(product.code)}">Entrar na lista de espera</button>`
+    productModalActions.innerHTML = `<button type="button" class="btn-primary modal-waitlist-btn" data-waitlist-code="${escapeHtml(product.code)}">💖 Quero essa peça</button>`
   } else {
     productModalActions.innerHTML = `<button type="button" class="btn-primary modal-add-btn" data-add-code="${escapeHtml(product.code)}">Adicionar à cesta</button>`
   }
@@ -625,7 +625,8 @@ function openWaitlistModal({ productCode = null, componentId = null }) {
     if (waitlistEmailInput) waitlistEmailInput.value = buyer.email || ""
   }
   waitlistModal.hidden = false
-  if (waitlistEmailInput) waitlistEmailInput.focus()
+  if (waitlistWhatsappInput) waitlistWhatsappInput.focus()
+  else if (waitlistEmailInput) waitlistEmailInput.focus()
   else if (waitlistNameInput) waitlistNameInput.focus()
 }
 
@@ -635,6 +636,18 @@ function closeWaitlistModal() {
 }
 
 function joinWaitlist({ productCode = null, componentId = null }) {
+  // 1-tap: registra imediatamente no backend como interesse da cliente
+  try {
+    const payload = {
+      anonymous: true,
+      product_code: productCode ? String(productCode).trim() : null,
+      component_id: componentId ? Number(componentId) : null,
+    }
+    window.MarisApi?.callFunction?.(window.ENV.fn("customer-waitlist-add"), {
+      body: payload,
+    }).catch(() => {})
+  } catch {}
+
   openWaitlistModal({ productCode, componentId })
 }
 
@@ -646,7 +659,8 @@ async function submitWaitlist() {
   const whatsapp = window.MarisUtils.onlyDigits(rawWhatsapp)
 
   if (!email && !whatsapp) {
-    setWaitlistFeedback("Informe seu e-mail para receber o aviso de reposição.", "error")
+    closeWaitlistModal()
+    setCatalogFeedback("Interesse registrado! 💖", "success")
     return
   }
 
@@ -785,7 +799,7 @@ function renderPieceActions(product, components, soldOut) {
 
   let primaryActionHtml = ""
   if (soldOut) {
-    primaryActionHtml = `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">Lista de espera</button>`
+    primaryActionHtml = `<button type="button" class="waitlist-card-btn" data-waitlist-code="${escapeHtml(product.code)}">💖 Quero essa peça</button>`
   } else if (components.length) {
     primaryActionHtml = `<button type="button" class="view-types-card-btn" data-view-code="${escapeHtml(product.code)}">Ver tipos</button>`
   } else {

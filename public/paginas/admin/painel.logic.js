@@ -28,6 +28,7 @@ export const DASHBOARD_VIEWS = [
   { id: "estoque", href: "/admin/estoque", label: "Estoque" },
   { id: "vendas", href: "/admin/vendas", label: "Vendas" },
   { id: "vendedoras", href: "/admin/vendedoras", label: "Vendedoras" },
+  { id: "compras", href: "/admin/compras", label: "Compras" },
   { id: "colecoes", href: "/admin/colecoes", label: "Coleções" },
   { id: "promocoes", href: "/admin/promocoes", label: "Promoções" }
 ]
@@ -68,6 +69,7 @@ export function dashboardView(pathname, search = "") {
     "/admin/esgotadas": "esgotadas",
     "/admin/vendas": "vendas",
     "/admin/vendedoras": "vendedoras",
+    "/admin/compras": "compras",
     "/admin/colecoes": "colecoes",
     "/admin/promocoes": "promocoes",
     "/admin/peca": "peca",
@@ -367,8 +369,17 @@ export function renderStockList(products, formatMoney = formatPrice, options = {
       code: piece.code,
       name: piece.name
     })
-    const meta = [[piece.code, piece.categoria].filter(Boolean).join(" · ")].filter(Boolean)
-    return `<li>${renderEntityCard({
+    const isStale = Boolean(piece.is_stale || (piece.days_without_sale != null && piece.days_without_sale >= 60))
+    const staleDays = piece.days_without_sale != null ? `${piece.days_without_sale}d` : "+60d"
+    const staleBadge = isStale ? `⏳ Sem saída há ${staleDays}` : ""
+    const promoShortcut = isStale
+      ? `<a href="/admin/promocoes?code=${encodeURIComponent(piece.code || "")}" class="btn-xs stock-promo-shortcut" data-promo-shortcut="true" title="Criar promoção para esta peça">Criar promo</a>`
+      : ""
+    const meta = [
+      [piece.code, piece.categoria].filter(Boolean).join(" · "),
+      staleBadge
+    ].filter(Boolean)
+    return `<li class="stock-item-wrap">${renderEntityCard({
       title: piece.name || piece.code || "Peça",
       meta,
       sideTitle: formatMoney(piece.unit_price),
@@ -376,7 +387,7 @@ export function renderStockList(products, formatMoney = formatPrice, options = {
       photo,
       attrs: `data-product-code="${escapeHtml(piece.code || "")}"`,
       clickable: options.clickable !== false
-    })}</li>`
+    })}${promoShortcut}</li>`
   }).join("")}</ul>`
 }
 
@@ -486,9 +497,12 @@ export function renderImportHelp() {
   return `<p class="hint">O JSON pode trazer, além de código, nome, preço e quantidade: descricao, peso_g, largura_cm, altura_cm, comprimento_cm, ncm, origem e gtin.</p>`
 }
 
-export function filterStock(products, query) {
+export function filterStock(products, query, options = {}) {
+  let rows = products || []
+  if (options && options.staleOnly) {
+    rows = rows.filter((piece) => Boolean(piece.is_stale || (piece.days_without_sale != null && piece.days_without_sale >= 60)))
+  }
   const needle = String(query || "").trim().toLocaleLowerCase("pt-BR")
-  const rows = products || []
   if (!needle) return rows
   return rows.filter((piece) => {
     const hay = [piece?.code, piece?.name, piece?.categoria].join(" ").toLocaleLowerCase("pt-BR")
@@ -496,13 +510,13 @@ export function filterStock(products, query) {
   })
 }
 
-export function visibleStock(products, query, limit = STOCK_PAGE_SIZE) {
-  const filtered = filterStock(products, query)
+export function visibleStock(products, query, limit = STOCK_PAGE_SIZE, options = {}) {
+  const filtered = filterStock(products, query, options)
   const size = Math.max(1, Number(limit) || STOCK_PAGE_SIZE)
   return { rows: filtered.slice(0, size), total: filtered.length }
 }
 
-export function renderStockPage({ rows, total, query, mode = "estoque", typeBlock = "" }) {
+export function renderStockPage({ rows, total, query, mode = "estoque", typeBlock = "", staleOnly = false }) {
   const shown = (rows || []).length
   const esgotadas = mode === "esgotadas"
   const more = total > shown
@@ -511,13 +525,22 @@ export function renderStockPage({ rows, total, query, mode = "estoque", typeBloc
   const meta = total ? `<p class="hint" id="stock-meta">${shown} de ${total}</p>` : ""
   const empty = esgotadas
     ? (String(query || "").trim() ? "Nenhuma esgotada com esse nome." : "Nenhuma peça esgotada.")
-    : (String(query || "").trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque.")
+    : (staleOnly
+      ? (String(query || "").trim() ? "Nenhuma peça parada (+60d) com esse nome." : "Nenhuma peça parada (+60d) no estoque.")
+      : (String(query || "").trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque."))
+  const staleFilterHtml = !esgotadas
+    ? `<div class="stock-filter-chips" role="group" aria-label="Filtro de estoque">
+        <button type="button" class="stock-filter-chip${!staleOnly ? " is-active" : ""}" data-stock-filter="all">Todas as peças</button>
+        <button type="button" class="stock-filter-chip${staleOnly ? " is-active" : ""}" data-stock-filter="stale">⏳ Paradas (+60d)</button>
+      </div>`
+    : ""
   return `<section class="report report--estoque" data-stock-mode="${escapeHtml(mode)}">
     ${typeBlock || ""}
     <form id="stock-search" class="stock-tools" role="search">
       <label class="field"><span>Buscar</span>
         <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
       </label>
+      ${staleFilterHtml}
     </form>
     ${meta}
     <div id="stock-list">${renderStockList(rows, formatPrice, { empty })}</div>
@@ -1346,6 +1369,108 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
     : ""
 
   return `${periodBar}${teamSummary}${sectionHeader}${cards}${salesBlock}`
+}
+
+export function renderCompras(purchases, formatMoney = formatPrice, options = {}) {
+  const data = purchases || {}
+  const month = String(options.month || data.month || currentMonthKey()).trim()
+  const periodBar = renderPeriodFilter(month, currentMonthKey())
+
+  const totalUnits = Number(data.total_units_sold) || 0
+  const totalOrders = Number(data.total_orders_paid) || 0
+  const topPieces = Array.isArray(data.top_pieces) ? data.top_pieces : []
+  const restockRequests = Array.isArray(data.restock_requests) ? data.restock_requests : []
+
+  const summaryBanner = `<section class="compras-summary-banner">
+    <div class="compras-summary-card">
+      <span class="compras-summary-label">Peças Vendidas</span>
+      <strong class="compras-summary-val">${totalUnits} <small>unidades</small></strong>
+      <span class="compras-summary-sub">em ${totalOrders} pedidos pagos no mês</span>
+    </div>
+    <div class="compras-summary-card">
+      <span class="compras-summary-label">Esgotadas Mais Pedidas</span>
+      <strong class="compras-summary-val">${restockRequests.length} <small>peças</small></strong>
+      <span class="compras-summary-sub">com clientes na lista de espera</span>
+    </div>
+  </section>`
+
+  let topPiecesHtml = ""
+  if (topPieces.length === 0) {
+    topPiecesHtml = `<p class="empty">Nenhuma venda registrada no período selecionado.</p>`
+  } else {
+    topPiecesHtml = `<ul class="compras-piece-list">${topPieces.map((piece, idx) => {
+      const photo = entityPhotoHtml({
+        image_url: piece.image_url,
+        code: piece.code,
+        name: piece.name
+      })
+      const rank = idx + 1
+      return `<li class="compras-piece-card">
+        <span class="compras-rank-badge">#${rank}</span>
+        <div class="compras-piece-photo">${photo}</div>
+        <div class="compras-piece-info">
+          <small class="compras-piece-meta">${escapeHtml(piece.code || "")} · ${escapeHtml(piece.categoria || "Outros")}</small>
+          <strong class="compras-piece-title">${escapeHtml(piece.name || piece.code)}</strong>
+        </div>
+        <div class="compras-piece-stat">
+          <b class="compras-piece-units">${Number(piece.quantity_sold) || 0} un.</b>
+          <small>vendidas</small>
+        </div>
+      </li>`
+    }).join("")}</ul>`
+  }
+
+  let restockHtml = ""
+  if (restockRequests.length === 0) {
+    restockHtml = `<p class="empty">Nenhuma cliente aguardando peças esgotadas no momento.</p>`
+  } else {
+    restockHtml = `<ul class="compras-piece-list">${restockRequests.map((piece) => {
+      const photo = entityPhotoHtml({
+        image_url: piece.image_url,
+        code: piece.code,
+        name: piece.name
+      })
+      const waiting = Number(piece.waiting_count) || 0
+      const contacts = Array.isArray(piece.contacts) ? piece.contacts : []
+      const contactsCount = contacts.length || waiting
+      return `<li class="compras-piece-card compras-piece-card--restock">
+        <div class="compras-piece-photo">${photo}</div>
+        <div class="compras-piece-info">
+          <small class="compras-piece-meta">${escapeHtml(piece.code || "")} · ${escapeHtml(piece.categoria || "Outros")}</small>
+          <strong class="compras-piece-title">${escapeHtml(piece.name || piece.code)}</strong>
+          <span class="badge badge--waitlist">💖 ${waiting} ${waiting === 1 ? "cliente interessada" : "clientes interessadas"}</span>
+        </div>
+        <div class="compras-piece-action">
+          <button type="button" class="btn-sm btn-outline btn-compras-contacts" data-view-contacts="${escapeHtml(piece.code || "")}">
+            Ver contatos (${contactsCount})
+          </button>
+        </div>
+      </li>`
+    }).join("")}</ul>`
+  }
+
+  return `<section class="report report--compras">
+    <div class="compras-header">
+      <h2>📦 Visão de Compras & Reposição</h2>
+      <p class="hint">Volume de saída para reordenar com fornecedores e lista de espera das clientes.</p>
+    </div>
+    ${periodBar}
+    ${summaryBanner}
+    <section class="compras-section">
+      <div class="compras-section-header">
+        <h3>🏆 Top 10 Peças Mais Vendidas no Mês</h3>
+        <p class="hint">Prioridade de reposição com base no giro recente.</p>
+      </div>
+      ${topPiecesHtml}
+    </section>
+    <section class="compras-section">
+      <div class="compras-section-header">
+        <h3>💖 Reposição — Peças Esgotadas Mais Pedidas</h3>
+        <p class="hint">Peças com estoque zero e alta demanda de clientes na lista de espera.</p>
+      </div>
+      ${restockHtml}
+    </section>
+  </section>`
 }
 
 /** Atalho flutuante (+) do painel — esconde na tela de adicionar peça. */

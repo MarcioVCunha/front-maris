@@ -6,6 +6,11 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Peças Paradas (>60 dias), Reposição ("Quero essa peça") e Visão Compras da Marineide (Etapa 4):
+  - **Peças paradas há mais de 60 dias (`/admin/estoque`)**: Filtro com chip `⏳ Paradas (+60d)` no estoque com identificação visual clara (`⏳ Sem saída há Xd`) para itens com estoque e sem vendas nos últimos 60 dias, e atalho direto `Criar promo` que abre a tela de promoções já pré-preenchida com o código da peça.
+  - **"Quero essa peça" nas esgotadas (`/catalog`)**: Botão de 1 toque `💖 Quero essa peça` em itens esgotados, registrando o interesse da cliente instantaneamente no banco sem fricção, seguido de convite acolhedor e opcional para deixar WhatsApp ou e-mail caso queira receber aviso imediato de reposição.
+  - **Visão Compras da Marineide (`/admin/compras`)**: Painel limpo com tipografia ampliada e amigável para celular/desktop, seletor de mês, contadores consolidados de peças vendidas e pedidos concluídos, **Top 10 Peças Mais Vendidas** no mês com fotos destacadas para programação de pedidos com fornecedores, e **Ranking de Peças Esgotadas Mais Pedidas** com contadores e botão para visualização de contatos (WhatsApp clicável e e-mail). Rigorosamente sem exposição de custos, margem, lucro ou comissões.
+
 - Ranking de Vendedoras com Comissão e Gestão de Equipe (Etapa 4):
   - **Navegação de período em `/admin/vendedoras`**: Barra de navegação mês a mês (`◀`, `input[type="month"]`, `▶`, botão `Mês atual`) com persistência da consulta na URL (`?month=YYYY-MM`) para consulta histórica de repasses e fechamento de comissões.
   - **Banner de KPIs da Equipe**: Resumo executivo consolidado no topo da tela com faturamento total vendido pela equipe, comissões totais a pagar no mês selecionado e saldo pendente a receber de clientes.

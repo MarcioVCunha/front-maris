@@ -22,6 +22,7 @@ import {
   fetchPromotions,
   savePromotion,
   endPromotion,
+  fetchPurchasesOverview,
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
@@ -57,6 +58,7 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.promotionList, "admin-promotion-list")
   assertEquals(ADMIN_DASHBOARD_API.promotionSave, "admin-promotion-save")
   assertEquals(ADMIN_DASHBOARD_API.promotionEnd, "admin-promotion-end")
+  assertEquals(ADMIN_DASHBOARD_API.purchasesOverview, "admin-purchases-overview")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -244,4 +246,20 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(promoEndClient.calls[0].name, "admin-promotion-end")
   assertEquals(promoEndClient.calls[0].options.method, "POST")
   assertEquals(promoEndClient.calls[0].options.body, { id: 5 })
+
+  // Compras
+  const purchasesClient = client({
+    ok: true,
+    month: "2026-10",
+    total_units_sold: 42,
+    total_orders_paid: 18,
+    top_pieces: [],
+    restock_requests: []
+  })
+  const purchasesRes = await fetchPurchasesOverview({ month: "2026-10" }, purchasesClient)
+  assertEquals(purchasesRes.ok, true)
+  assertEquals(purchasesRes.data.total_units_sold, 42)
+  assertEquals(purchasesClient.calls[0].name, "admin-purchases-overview")
+  assertEquals(purchasesClient.calls[0].options.method, "GET")
+  assertEquals(purchasesClient.calls[0].options.query, { month: "2026-10" })
 })
