@@ -66,6 +66,13 @@ import {
   renderTicketCard,
   renderPeriodFilter,
   renderCompras,
+  renderStockBatchBar,
+  renderBatchArchiveDialog,
+  renderBatchQuantityDialog,
+  renderBatchPriceDialog,
+  formatActionDateTime,
+  formatActionLabel,
+  renderProductHistoryDialog,
 } from "./painel.logic.js"
 
 const anelDefaults = {
@@ -1172,4 +1179,131 @@ Deno.test("etapa 4: renderCompras exibe Top 10 com fotos, ranking de reposição
   assertEquals(html.includes("12.5"), false, "Nunca deve exibir valor de custo na visão compras")
   assertEquals(html.includes("300"), false, "Nunca deve exibir lucro na visão compras")
 })
+
+Deno.test("etapa 5: renderStockBatchBar exibe barra apenas quando houver seleção", () => {
+  assertEquals(renderStockBatchBar(0, 10), "")
+  const barSingle = renderStockBatchBar(1, 10)
+  assert(barSingle.includes("1 peça selecionada"))
+  assert(barSingle.includes("stock-batch-clear"))
+  assert(barSingle.includes("stock-batch-select-all"))
+  assert(barSingle.includes("stock-batch-quantity-btn"))
+  assert(barSingle.includes("stock-batch-price-btn"))
+  assert(barSingle.includes("stock-batch-promo-btn"))
+  assert(barSingle.includes("stock-batch-archive-btn"))
+
+  const barMultiple = renderStockBatchBar(4, 10)
+  assert(barMultiple.includes("4 peças selecionadas"))
+})
+
+Deno.test("etapa 5: modais de lote montam HTML com acessibilidade e controles corretos", () => {
+  // Modal de arquivamento
+  const archiveDialog = renderBatchArchiveDialog(2, ["BR01", "BR02"])
+  assert(archiveDialog.includes("Arquivar em lote"))
+  assert(archiveDialog.includes("2 peças selecionadas"))
+  assert(archiveDialog.includes("<code>BR01</code>"))
+  assert(archiveDialog.includes("batch-archive-confirm"))
+
+  // Modal de ajuste de estoque
+  const qtyDialog = renderBatchQuantityDialog(3)
+  assert(qtyDialog.includes("Ajustar estoque em lote"))
+  assert(qtyDialog.includes("Definir quantidade fixa"))
+  assert(qtyDialog.includes("Somar ou subtrair quantidade"))
+  assert(qtyDialog.includes("batch-quantity-input"))
+  assert(qtyDialog.includes("Repor para 1"))
+  assert(qtyDialog.includes("+1 em cada"))
+  assert(qtyDialog.includes("Zerar estoque"))
+
+  // Modal de reajuste de preço
+  const priceDialog = renderBatchPriceDialog(3)
+  assert(priceDialog.includes("Reajustar preços em lote"))
+  assert(priceDialog.includes("Porcentagem (%)"))
+  assert(priceDialog.includes("Preço fixo (R$)"))
+  assert(priceDialog.includes("batch-price-input"))
+  assert(priceDialog.includes("+10%"))
+  assert(priceDialog.includes("-10%"))
+})
+
+Deno.test("etapa 5: formatActionLabel e formatActionDateTime formatam eventos de auditoria", () => {
+  const dt = formatActionDateTime("2026-10-18T10:30:00.000Z")
+  assert(dt !== "—")
+
+  // Quantidade em lote
+  const qtyEvent = {
+    action: "admin-product-batch:quantity",
+    detail: { old_quantity: 0, new_quantity: 2 }
+  }
+  assertEquals(formatActionLabel(qtyEvent), "Estoque alterado de 0 para 2 un. (+2)")
+
+  // Preço em lote
+  const priceEvent = {
+    action: "admin-product-batch:price",
+    detail: { old_price: 50, new_price: 55, delta_percent: 10 }
+  }
+  assert(formatActionLabel(priceEvent).includes("50,00"))
+  assert(formatActionLabel(priceEvent).includes("55,00"))
+  assert(formatActionLabel(priceEvent).includes("+10%"))
+
+  // Arquivamento
+  assertEquals(formatActionLabel({ action: "admin-product-batch:archive" }), "Peça arquivada em lote")
+  assertEquals(formatActionLabel({ action: "admin-product-batch:unarchive" }), "Peça desarquivada em lote")
+  assertEquals(formatActionLabel({ action: "admin-product-archive" }), "Peça arquivada")
+  assertEquals(formatActionLabel({ action: "admin-product-unarchive" }), "Peça desarquivada")
+
+  // Atualização cadastral
+  assertEquals(formatActionLabel({ action: "admin-product-update", detail: { fields: ["name", "unit_price"] } }), "Cadastro atualizado (name, unit_price)")
+})
+
+Deno.test("etapa 5: renderProductHistoryDialog monta timeline e respeita blindagem de dados", () => {
+  const events = [
+    {
+      id: 1,
+      created_at: "2026-10-18T10:00:00Z",
+      actor_name: "Marcio",
+      role: "admin",
+      action: "admin-product-batch:quantity",
+      entity_id: "BR01",
+      detail: { old_quantity: 0, new_quantity: 1 }
+    }
+  ]
+
+  const dialogHtml = renderProductHistoryDialog({
+    code: "BR01",
+    events,
+    productName: "Brinco Gota"
+  })
+
+  assert(dialogHtml.includes("Histórico de Estoque: Brinco Gota (BR01)"))
+  assert(dialogHtml.includes("Marcio"))
+  assert(dialogHtml.includes("(admin)"))
+  assert(dialogHtml.includes("Estoque alterado de 0 para 1 un. (+1)"))
+  assert(dialogHtml.includes("history-timeline"))
+
+  // Zero vazamento
+  assertEquals(dialogHtml.includes("custo"), false)
+  assertEquals(dialogHtml.includes("unit_cost"), false)
+})
+
+Deno.test("etapa 5: renderStockList suporta checkboxes de seleção e botões de histórico", () => {
+  const pieces = [
+    { code: "P1", name: "Peça 1", quantity: 3, unit_price: 49.9 },
+    { code: "P2", name: "Peça 2", quantity: 0, unit_price: 89.9 }
+  ]
+  const selected = new Set(["P1"])
+
+  const html = renderStockList(pieces, (v) => `R$ ${v}`, { selectedCodes: selected })
+  assert(html.includes('data-stock-select="P1"'))
+  assert(html.includes('data-stock-select="P2"'))
+  assert(html.includes("is-selected"), "P1 deve ter classe is-selected")
+  assert(html.includes('data-history-code="P1"'))
+  assert(html.includes('data-history-code="P2"'))
+})
+
+Deno.test("etapa 5: renderPieceForm contém botão para abrir histórico de estoque", () => {
+  const piece = { code: "AN10", name: "Anel Flor", quantity: 2, unit_price: 35.0, categoria: "Anel" }
+  const html = renderPieceForm(piece, anelDefaults)
+  assert(html.includes("piece-history-open"))
+  assert(html.includes('data-piece-code="AN10"'))
+  assert(html.includes("Ver histórico de estoque"))
+})
+
 

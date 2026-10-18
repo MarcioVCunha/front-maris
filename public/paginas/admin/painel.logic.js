@@ -362,6 +362,7 @@ export function renderStockList(products, formatMoney = formatPrice, options = {
   const rows = products || []
   const empty = options.empty || "Nenhuma peça no estoque."
   if (!rows.length) return `<p class="empty">${escapeHtml(empty)}</p>`
+  const selectedCodes = options.selectedCodes || new Set()
   return `<ul class="entity-card-list stock-card-list">${rows.map((piece) => {
     const qty = displayQuantity(piece.quantity)
     const photo = entityPhotoHtml({
@@ -375,11 +376,18 @@ export function renderStockList(products, formatMoney = formatPrice, options = {
     const promoShortcut = isStale
       ? `<a href="/admin/promocoes?code=${encodeURIComponent(piece.code || "")}" class="btn-xs stock-promo-shortcut" data-promo-shortcut="true" title="Criar promoção para esta peça">Criar promo</a>`
       : ""
+    const historyBtn = `<button type="button" class="btn-xs stock-history-shortcut" data-history-code="${escapeHtml(piece.code || "")}" title="Ver histórico de estoque">Histórico</button>`
+    const isSelected = selectedCodes.has(piece.code)
+    const checkbox = options.selectable !== false
+      ? `<label class="stock-select-control" title="Selecionar para ações em lote" onclick="event.stopPropagation()">
+          <input type="checkbox" class="stock-checkbox" data-stock-select="${escapeHtml(piece.code || "")}"${isSelected ? " checked" : ""}>
+         </label>`
+      : ""
     const meta = [
       [piece.code, piece.categoria].filter(Boolean).join(" · "),
       staleBadge
     ].filter(Boolean)
-    return `<li class="stock-item-wrap">${renderEntityCard({
+    return `<li class="stock-item-wrap${isSelected ? " is-selected" : ""}">${checkbox}${renderEntityCard({
       title: piece.name || piece.code || "Peça",
       meta,
       sideTitle: formatMoney(piece.unit_price),
@@ -387,7 +395,7 @@ export function renderStockList(products, formatMoney = formatPrice, options = {
       photo,
       attrs: `data-product-code="${escapeHtml(piece.code || "")}"`,
       clickable: options.clickable !== false
-    })}${promoShortcut}</li>`
+    })}<div class="stock-item-actions">${promoShortcut}${historyBtn}</div></li>`
   }).join("")}</ul>`
 }
 
@@ -434,6 +442,7 @@ export function renderPieceForm(piece, defaults = {}, options = {}) {
     ${field("Origem", input("origem", state.origem, ` inputmode="numeric" placeholder="${escapeHtml(fieldPlaceholder("origem", defaults))}"`))}
     ${field("GTIN", input("gtin", state.gtin, ` placeholder="Opcional"`))}
     <button class="btn-primary" type="submit">Salvar peça</button>
+    <button class="btn-ghost" id="piece-history-open" type="button" data-piece-code="${escapeHtml(state.code)}">Ver histórico de estoque</button>
     <button class="btn-danger" id="archive-open" type="button">Arquivar peça</button>
   </form>`
 }
@@ -516,7 +525,7 @@ export function visibleStock(products, query, limit = STOCK_PAGE_SIZE, options =
   return { rows: filtered.slice(0, size), total: filtered.length }
 }
 
-export function renderStockPage({ rows, total, query, mode = "estoque", typeBlock = "", staleOnly = false }) {
+export function renderStockPage({ rows, total, query, mode = "estoque", typeBlock = "", staleOnly = false, selectedCodes = new Set() }) {
   const shown = (rows || []).length
   const esgotadas = mode === "esgotadas"
   const more = total > shown
@@ -534,18 +543,207 @@ export function renderStockPage({ rows, total, query, mode = "estoque", typeBloc
         <button type="button" class="stock-filter-chip${staleOnly ? " is-active" : ""}" data-stock-filter="stale">⏳ Paradas (+60d)</button>
       </div>`
     : ""
+  const batchBarHtml = renderStockBatchBar(selectedCodes.size, shown)
   return `<section class="report report--estoque" data-stock-mode="${escapeHtml(mode)}">
     ${typeBlock || ""}
     <form id="stock-search" class="stock-tools" role="search">
-      <label class="field"><span>Buscar</span>
-        <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
-      </label>
+      <div class="stock-tools-top">
+        <label class="field"><span>Buscar</span>
+          <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
+        </label>
+        <button type="button" id="stock-general-history-btn" class="btn-xs btn-ghost stock-general-history-btn" title="Ver últimas alterações no estoque">📜 Histórico geral</button>
+      </div>
       ${staleFilterHtml}
     </form>
     ${meta}
-    <div id="stock-list">${renderStockList(rows, formatPrice, { empty })}</div>
+    <div id="stock-list">${renderStockList(rows, formatPrice, { empty, selectedCodes })}</div>
     ${more}
+    <div id="stock-batch-bar-root">${batchBarHtml}</div>
   </section>`
+}
+
+export function renderStockBatchBar(selectedCount = 0, totalCount = 0) {
+  if (selectedCount <= 0) return ""
+  const countLabel = `${selectedCount} ${selectedCount === 1 ? "peça selecionada" : "peças selecionadas"}`
+  return `<aside class="stock-batch-bar" role="toolbar" aria-label="Ações em lote">
+    <div class="stock-batch-bar__info">
+      <span class="stock-batch-bar__count"><strong>${countLabel}</strong></span>
+      <button type="button" class="btn-xs btn-ghost" id="stock-batch-clear" title="Desmarcar todas">Desmarcar</button>
+      <button type="button" class="btn-xs btn-ghost" id="stock-batch-select-all" title="Selecionar todas as peças exibidas">Selecionar todas</button>
+    </div>
+    <div class="stock-batch-bar__actions">
+      <button type="button" class="btn-sm btn-outline" id="stock-batch-quantity-btn" title="Definir nova quantidade ou somar estoque">📦 Ajustar estoque</button>
+      <button type="button" class="btn-sm btn-outline" id="stock-batch-price-btn" title="Reajustar preço por porcentagem ou valor fixo">💲 Reajustar preço</button>
+      <button type="button" class="btn-sm btn-outline" id="stock-batch-promo-btn" title="Criar promoção com as peças selecionadas">🏷️ Criar promoção</button>
+      <button type="button" class="btn-sm btn-danger-outline" id="stock-batch-archive-btn" title="Arquivar peças selecionadas">🗑️ Arquivar</button>
+    </div>
+  </aside>`
+}
+
+export function renderBatchArchiveDialog(selectedCount, codes = []) {
+  const countText = `${selectedCount} ${selectedCount === 1 ? "peça selecionada" : "peças selecionadas"}`
+  const preview = codes.slice(0, 10).map((c) => `<code>${escapeHtml(c)}</code>`).join(" ")
+  const more = codes.length > 10 ? `<small> e mais ${codes.length - 10}...</small>` : ""
+  return `<h2>Arquivar em lote</h2>
+    <p>Tem certeza de que deseja arquivar <strong>${countText}</strong>?</p>
+    <div class="batch-codes-preview">${preview}${more}</div>
+    <p class="hint">Elas sairão da listagem principal do estoque e da loja.</p>
+    <div class="dialog-actions">
+      <button type="button" id="batch-dialog-cancel" class="btn-ghost">Cancelar</button>
+      <button type="button" id="batch-archive-confirm" class="btn-danger">Confirmar arquivamento</button>
+    </div>`
+}
+
+export function renderBatchQuantityDialog(selectedCount) {
+  const countText = `${selectedCount} ${selectedCount === 1 ? "peça" : "peças"}`
+  return `<h2>Ajustar estoque em lote</h2>
+    <p class="hint">Atualizando estoque de <strong>${countText}</strong>.</p>
+    <form id="batch-quantity-form" class="stack">
+      <div class="batch-options-group">
+        <label class="radio-label">
+          <input type="radio" name="quantity_mode" value="set" checked>
+          <span>Definir quantidade fixa</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="quantity_mode" value="add">
+          <span>Somar ou subtrair quantidade</span>
+        </label>
+      </div>
+      <label class="field" id="batch-quantity-value-field">
+        <span id="batch-quantity-label">Nova quantidade</span>
+        <input type="number" id="batch-quantity-input" min="0" step="1" value="1" required inputmode="numeric">
+      </label>
+      <div class="batch-shortcuts" role="group" aria-label="Atalhos rápidos">
+        <button type="button" class="btn-xs btn-ghost batch-qty-shortcut" data-qty-mode="set" data-qty-val="1">Repor para 1</button>
+        <button type="button" class="btn-xs btn-ghost batch-qty-shortcut" data-qty-mode="add" data-qty-val="1">+1 em cada</button>
+        <button type="button" class="btn-xs btn-ghost batch-qty-shortcut" data-qty-mode="set" data-qty-val="0">Zerar estoque</button>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="batch-dialog-cancel" class="btn-ghost">Cancelar</button>
+        <button type="submit" id="batch-quantity-submit" class="btn-primary">Aplicar ajuste</button>
+      </div>
+    </form>`
+}
+
+export function renderBatchPriceDialog(selectedCount) {
+  const countText = `${selectedCount} ${selectedCount === 1 ? "peça" : "peças"}`
+  return `<h2>Reajustar preços em lote</h2>
+    <p class="hint">Reajustando preços de <strong>${countText}</strong>.</p>
+    <form id="batch-price-form" class="stack">
+      <div class="batch-options-group">
+        <label class="radio-label">
+          <input type="radio" name="price_mode" value="percent" checked>
+          <span>Porcentagem (%)</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="price_mode" value="fixed">
+          <span>Preço fixo (R$)</span>
+        </label>
+      </div>
+      <label class="field" id="batch-price-value-field">
+        <span id="batch-price-label">Variação percentual (%)</span>
+        <input type="text" id="batch-price-input" placeholder="Ex: 10 para +10%, ou -5 para desconto" required inputmode="decimal">
+      </label>
+      <div class="batch-shortcuts" role="group" aria-label="Atalhos rápidos">
+        <button type="button" class="btn-xs btn-ghost batch-price-shortcut" data-price-mode="percent" data-price-val="10">+10%</button>
+        <button type="button" class="btn-xs btn-ghost batch-price-shortcut" data-price-mode="percent" data-price-val="5">+5%</button>
+        <button type="button" class="btn-xs btn-ghost batch-price-shortcut" data-price-mode="percent" data-price-val="-10">-10%</button>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="batch-dialog-cancel" class="btn-ghost">Cancelar</button>
+        <button type="submit" id="batch-price-submit" class="btn-primary">Aplicar reajuste</button>
+      </div>
+    </form>`
+}
+
+export function formatActionDateTime(isoString) {
+  if (!isoString) return "—"
+  const d = new Date(isoString)
+  if (Number.isNaN(d.getTime())) return "—"
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo"
+  }).format(d)
+}
+
+export function formatActionLabel(event) {
+  const action = String(event?.action || "").trim()
+  const detail = event?.detail || {}
+
+  if (action === "admin-product-batch:quantity") {
+    if (detail.old_quantity != null && detail.new_quantity != null) {
+      const diff = detail.new_quantity - detail.old_quantity
+      const signal = diff > 0 ? `+${diff}` : `${diff}`
+      return `Estoque alterado de ${detail.old_quantity} para ${detail.new_quantity} un. (${signal})`
+    }
+    return "Estoque ajustado em lote"
+  }
+  if (action === "admin-product-batch:price") {
+    if (detail.old_price != null && detail.new_price != null) {
+      const pct = detail.delta_percent != null ? ` (${detail.delta_percent > 0 ? "+" : ""}${detail.delta_percent}%)` : ""
+      return `Preço alterado de R$ ${Number(detail.old_price).toFixed(2).replace(".", ",")} para R$ ${Number(detail.new_price).toFixed(2).replace(".", ",")}${pct}`
+    }
+    return "Preço reajustado em lote"
+  }
+  if (action === "admin-product-batch:archive") {
+    return "Peça arquivada em lote"
+  }
+  if (action === "admin-product-batch:unarchive") {
+    return "Peça desarquivada em lote"
+  }
+  if (action === "admin-product-archive") {
+    return "Peça arquivada"
+  }
+  if (action === "admin-product-unarchive") {
+    return "Peça desarquivada"
+  }
+  if (action === "admin-product-update") {
+    const fields = Array.isArray(detail.fields) ? detail.fields.join(", ") : ""
+    return fields ? `Cadastro atualizado (${fields})` : "Cadastro da peça atualizado"
+  }
+  if (action === "add-product") {
+    return "Peça cadastrada no sistema"
+  }
+  if (action === "set-product-promotion" || action === "admin-promotion-save") {
+    return "Promoção vinculada"
+  }
+  return action || "Alteração registrada"
+}
+
+export function renderProductHistoryDialog({ code, events, productName } = {}) {
+  const list = events || []
+  const title = code
+    ? `Histórico de Estoque: ${productName ? `${productName} (${code})` : code}`
+    : "Auditoria Recente do Estoque"
+
+  const content = list.length
+    ? `<ul class="history-timeline">${list.map((ev) => `
+        <li class="history-event">
+          <div class="history-event__header">
+            <span class="history-event__actor"><strong>${escapeHtml(ev.actor_name || "Equipe")}</strong> <small>(${escapeHtml(ev.role || "staff")})</small></span>
+            <time class="history-event__time">${escapeHtml(formatActionDateTime(ev.created_at))}</time>
+          </div>
+          <div class="history-event__body">
+            ${ev.entity_id && !code ? `<span class="history-event__code">Peça <code>${escapeHtml(ev.entity_id)}</code>:</span> ` : ""}
+            <span>${escapeHtml(formatActionLabel(ev))}</span>
+          </div>
+        </li>
+      `).join("")}</ul>`
+    : `<p class="empty">Nenhum registro de alteração encontrado.</p>`
+
+  return `<div class="history-dialog-inner">
+    <div class="history-dialog-header">
+      <h2>${escapeHtml(title)}</h2>
+      <button type="button" class="btn-ghost" id="history-close-btn" aria-label="Fechar">✕</button>
+    </div>
+    <div class="history-dialog-content">
+      ${content}
+    </div>
+    <div class="dialog-actions">
+      <button type="button" class="btn-ghost" id="history-close-bottom-btn">Fechar</button>
+    </div>
+  </div>`
 }
 
 const CHANNEL_LABELS = {
