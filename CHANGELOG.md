@@ -6,6 +6,12 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Ranking de Vendedoras com Comissão e Gestão de Equipe (Etapa 4):
+  - **Navegação de período em `/admin/vendedoras`**: Barra de navegação mês a mês (`◀`, `input[type="month"]`, `▶`, botão `Mês atual`) com persistência da consulta na URL (`?month=YYYY-MM`) para consulta histórica de repasses e fechamento de comissões.
+  - **Banner de KPIs da Equipe**: Resumo executivo consolidado no topo da tela com faturamento total vendido pela equipe, comissões totais a pagar no mês selecionado e saldo pendente a receber de clientes.
+  - **Ranking com medalhas de pódio e barra de desempenho**: Cards ordenados pelo maior faturamento da vendedora no mês, com medalhas de destaque (`#1 🥇`, `#2 🥈`, `#3 🥉`), barra visual proporcional ao líder da equipe, exibição de comissão calculada (30% para vendedoras ou indicação de sócia), ticket médio por pedido pago e saldo a receber.
+  - **Detalhamento de vendas da vendedora**: Ao selecionar o card, exibe a gaveta com todas as vendas associadas àquela vendedora no período.
+
 - Números do Negócio e Métricas Admin (Etapa 3):
   - **Filtro e navegação de período no Início**: Barra de navegação mês a mês (`◀`, `input[type="month"]`, `▶`, botão `Mês atual`) com persistência da consulta na URL (`?month=YYYY-MM`) e recarregamento dinâmico sem reload completo.
   - **Ticket médio por pedido pago**: Card de destaque no cabeçalho do Início calculando o ticket médio mensal com comparação delta vs mês anterior (ex: `+R$ 45,00 vs mês anterior`).
