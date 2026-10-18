@@ -25,7 +25,9 @@ export const ADMIN_DASHBOARD_API = {
   promotionEnd: "admin-promotion-end",
   monthlyGoalUpdate: "admin-set-monthly-goal",
   weeklySummary: "admin-weekly-summary",
-  purchasesOverview: "admin-purchases-overview"
+  purchasesOverview: "admin-purchases-overview",
+  batchProducts: "admin-product-batch",
+  productHistory: "admin-product-history"
 }
 
 function withQuery(url, query) {
@@ -328,5 +330,39 @@ export async function fetchPurchasesOverview({ month }, client) {
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível carregar a visão de compras.")
   return { ok: true, data: result.data || {} }
 }
+
+/**
+ * POST admin-product-batch (Etapa 5)
+ * Corpo: { action, codes, value?, delta_percent?, quantity_mode? }
+ */
+export async function batchProducts(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.batchProducts, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível processar a ação em lote.")
+  }
+  return {
+    ok: true,
+    action: result.data?.action,
+    count: result.data?.count || 0,
+    updated: Array.isArray(result.data?.updated) ? result.data.updated : []
+  }
+}
+
+/**
+ * GET admin-product-history (Etapa 5)
+ * Query: { code?, limit? }
+ */
+export async function fetchProductHistory(query = {}, client) {
+  const result = await call(ADMIN_DASHBOARD_API.productHistory, { method: "GET", query }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível consultar o histórico de estoque.")
+  }
+  return {
+    ok: true,
+    code: result.data?.code || null,
+    events: Array.isArray(result.data?.events) ? result.data.events : []
+  }
+}
+
 
 

@@ -23,6 +23,8 @@ import {
   savePromotion,
   endPromotion,
   fetchPurchasesOverview,
+  batchProducts,
+  fetchProductHistory,
 } from "./painel.api.js"
 
 function client(data: unknown = { ok: true }) {
@@ -59,6 +61,8 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.promotionSave, "admin-promotion-save")
   assertEquals(ADMIN_DASHBOARD_API.promotionEnd, "admin-promotion-end")
   assertEquals(ADMIN_DASHBOARD_API.purchasesOverview, "admin-purchases-overview")
+  assertEquals(ADMIN_DASHBOARD_API.batchProducts, "admin-product-batch")
+  assertEquals(ADMIN_DASHBOARD_API.productHistory, "admin-product-history")
   const source = await Deno.readTextFile(new URL("./painel.api.js", import.meta.url))
   assertEquals(source.includes('auth: "staff"'), true)
 })
@@ -262,4 +266,43 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   assertEquals(purchasesClient.calls[0].name, "admin-purchases-overview")
   assertEquals(purchasesClient.calls[0].options.method, "GET")
   assertEquals(purchasesClient.calls[0].options.query, { month: "2026-10" })
+
+  // Ações em lote
+  const batchClient = client({
+    ok: true,
+    action: "quantity",
+    count: 2,
+    updated: [{ code: "BR01", quantity: 1 }, { code: "BR02", quantity: 1 }]
+  })
+  const batchRes = await batchProducts({ action: "quantity", codes: ["BR01", "BR02"], value: 1 }, batchClient)
+  assertEquals(batchRes.ok, true)
+  assertEquals(batchRes.count, 2)
+  assertEquals(batchClient.calls[0].name, "admin-product-batch")
+  assertEquals(batchClient.calls[0].options.method, "POST")
+  assertEquals(batchClient.calls[0].options.body, { action: "quantity", codes: ["BR01", "BR02"], value: 1 })
+
+  // Histórico de estoque
+  const historyClient = client({
+    ok: true,
+    code: "BR01",
+    events: [
+      {
+        id: 1,
+        created_at: "2026-10-18T10:00:00Z",
+        actor_name: "Marcio",
+        role: "admin",
+        action: "admin-product-batch:quantity",
+        entity_id: "BR01",
+        detail: { old_quantity: 0, new_quantity: 1 }
+      }
+    ]
+  })
+  const historyRes = await fetchProductHistory({ code: "BR01" }, historyClient)
+  assertEquals(historyRes.ok, true)
+  assertEquals(historyRes.code, "BR01")
+  assertEquals(historyRes.events.length, 1)
+  assertEquals(historyClient.calls[0].name, "admin-product-history")
+  assertEquals(historyClient.calls[0].options.method, "GET")
+  assertEquals(historyClient.calls[0].options.query, { code: "BR01" })
 })
+

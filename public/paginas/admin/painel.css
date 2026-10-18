@@ -2820,3 +2820,331 @@ dialog h2 {
   align-items: center;
 }
 
+/* Etapa 5: Ações em lote e histórico de estoque */
+.stock-item-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  border-radius: 8px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.stock-item-wrap.is-selected {
+  background: var(--maris-gold-light, #fbf7f0);
+  border: 1px solid var(--maris-gold, #c5a059);
+}
+
+.stock-select-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stock-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--maris-gold, #c5a059);
+}
+
+.stock-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  margin-left: 12px;
+}
+
+.stock-history-shortcut {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.stock-history-shortcut:hover {
+  background: #eee;
+  color: #111;
+  border-color: #bbb;
+}
+
+.stock-tools-top {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.stock-tools-top .field {
+  flex: 1;
+}
+
+.stock-general-history-btn {
+  white-space: nowrap;
+  padding: 8px 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  height: 38px;
+  margin-bottom: 2px;
+}
+
+.stock-general-history-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+/* Barra flutuante de ações em lote */
+.stock-batch-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #ddd;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 1000;
+  max-width: 90vw;
+  animation: slideUpBatch 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpBatch {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.stock-batch-bar__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.stock-batch-bar__count {
+  font-size: 0.9rem;
+  color: #222;
+}
+
+.stock-batch-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #ccc;
+  color: #333;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-outline:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.btn-danger-outline {
+  background: #fff;
+  border: 1px solid #e53e3e;
+  color: #e53e3e;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-danger-outline:hover {
+  background: #fff5f5;
+}
+
+/* Modais de Lote */
+.batch-dialog {
+  max-width: 480px;
+  width: 90vw;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.batch-codes-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 10px 0;
+  max-height: 100px;
+  overflow-y: auto;
+  padding: 8px;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.batch-codes-preview code {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.batch-options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.batch-options-group .radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.batch-shortcuts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+/* Modal de Histórico */
+.history-dialog {
+  max-width: 600px;
+  width: 90vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.history-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.history-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.history-dialog-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.history-dialog-content {
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+
+.history-timeline::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 6px;
+  width: 2px;
+  background: #eee;
+}
+
+.history-event {
+  position: relative;
+  padding-left: 22px;
+}
+
+.history-event::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--maris-gold, #c5a059);
+}
+
+.history-event__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.history-event__actor {
+  font-size: 0.88rem;
+  color: #222;
+}
+
+.history-event__actor small {
+  color: #777;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.history-event__time {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.history-event__body {
+  font-size: 0.88rem;
+  color: #444;
+  line-height: 1.4;
+}
+
+.history-event__code code {
+  font-weight: 600;
+  background: #f0f0f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+
