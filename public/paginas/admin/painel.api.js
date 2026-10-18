@@ -27,7 +27,10 @@ export const ADMIN_DASHBOARD_API = {
   weeklySummary: "admin-weekly-summary",
   purchasesOverview: "admin-purchases-overview",
   batchProducts: "admin-product-batch",
-  productHistory: "admin-product-history"
+  productHistory: "admin-product-history",
+  couponList: "admin-coupon-list",
+  couponSave: "admin-coupon-save",
+  referralList: "admin-referral-list"
 }
 
 function withQuery(url, query) {
@@ -361,6 +364,72 @@ export async function fetchProductHistory(query = {}, client) {
     ok: true,
     code: result.data?.code || null,
     events: Array.isArray(result.data?.events) ? result.data.events : []
+  }
+}
+
+export async function fetchCoupons(client) {
+  const result = await call(ADMIN_DASHBOARD_API.couponList, { method: "POST" }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível carregar os cupons.")
+  }
+  return {
+    ok: true,
+    coupons: Array.isArray(result.data?.coupons) ? result.data.coupons : []
+  }
+}
+
+export async function saveCoupon(payload, client) {
+  const result = await call(ADMIN_DASHBOARD_API.couponSave, { method: "POST", body: payload }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível salvar o cupom.")
+  }
+  return {
+    ok: true,
+    data: result.data || {}
+  }
+}
+
+export async function toggleCoupon(couponId, isActive, client) {
+  const result = await call(ADMIN_DASHBOARD_API.couponSave, {
+    method: "POST",
+    body: { action: "toggle", coupon_id: couponId, is_active: isActive }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível alterar a situação do cupom.")
+  }
+  return {
+    ok: true,
+    data: result.data || {}
+  }
+}
+
+export async function createReferralCode(payload, client) {
+  const result = await call(ADMIN_DASHBOARD_API.couponSave, {
+    method: "POST",
+    body: {
+      action: "create_referral",
+      referrer_name: payload.referrer_name,
+      referrer_whatsapp: payload.referrer_whatsapp,
+      discount_percent: payload.discount_percent
+    }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível gerar código de indicação.")
+  }
+  return {
+    ok: true,
+    data: result.data || {}
+  }
+}
+
+export async function fetchReferrals(client) {
+  const result = await call(ADMIN_DASHBOARD_API.referralList, { method: "POST" }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível carregar as indicações.")
+  }
+  return {
+    ok: true,
+    referrals: Array.isArray(result.data?.referrals) ? result.data.referrals : []
   }
 }
 

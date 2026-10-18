@@ -30,7 +30,8 @@ export const DASHBOARD_VIEWS = [
   { id: "vendedoras", href: "/admin/vendedoras", label: "Vendedoras" },
   { id: "compras", href: "/admin/compras", label: "Compras" },
   { id: "colecoes", href: "/admin/colecoes", label: "Coleções" },
-  { id: "promocoes", href: "/admin/promocoes", label: "Promoções" }
+  { id: "promocoes", href: "/admin/promocoes", label: "Promoções" },
+  { id: "cupons", href: "/admin/cupons", label: "Cupons & Indicação" }
 ]
 
 export const STOCK_LINKS = [
@@ -72,6 +73,8 @@ export function dashboardView(pathname, search = "") {
     "/admin/compras": "compras",
     "/admin/colecoes": "colecoes",
     "/admin/promocoes": "promocoes",
+    "/admin/cupons": "cupons",
+    "/admin/indicacoes": "cupons",
     "/admin/peca": "peca",
     "/admin/conjuntos": "conjuntos",
     "/admin/tipos": "conjuntos",
