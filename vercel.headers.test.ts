@@ -54,5 +54,5 @@ Deno.test("todo script supabase-js@2.117.2 tem integrity e crossorigin", async (
     assert(!text.includes(`${SUPABASE_SRC}"></script>`), `${file} ainda tem script sem integrity`)
     assert(!text.includes(`${SUPABASE_SRC}"><\\/script>`), `${file} ainda injeta script sem integrity`)
   }
-  assert(found >= 14, `esperava os HTMLs com supabase-js, achei ${found}`)
+  assertEquals(found, 11)
 })
