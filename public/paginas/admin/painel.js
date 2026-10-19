@@ -127,6 +127,7 @@ import {
   filterPromotions,
   renderPromoCard,
   renderPromotionsPage,
+  promoPriceExample,
   renderPromoDialogContent,
   validatePromotionPayload as validatePromoPayload
 } from "../estoque/promocoes/promocoes.logic.js"
@@ -1026,10 +1027,13 @@ function openPromoEditDialog(promo = null) {
       if (isPercent) valueInput.max = "100"
       else valueInput.removeAttribute("max")
     }
+    const hint = promoDialog.querySelector("#promo-price-hint")
+    if (hint) hint.textContent = promoPriceExample(discountTypeSelect?.value, valueInput?.value)
   }
 
   scopeSelect?.addEventListener("change", syncScope)
   discountTypeSelect?.addEventListener("change", syncDiscount)
+  valueInput?.addEventListener("input", syncDiscount)
   closeBtn?.addEventListener("click", () => promoDialog.close())
   cancelBtn?.addEventListener("click", () => promoDialog.close())
 

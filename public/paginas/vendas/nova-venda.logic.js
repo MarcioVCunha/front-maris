@@ -1,6 +1,7 @@
 // Regras da tela de venda. A flag está ligada: /vendas/nova é a tela da equipe.
 // Marketplace (Shopee / Mercado Livre / TikTok Shop) em MARKETPLACE_SALE_ENABLED.
 import { newClientRequestId, stockIssueText } from "../catalogo/pedido.logic.js"
+import { pixDiscountPrice, resolveRowPrice, sameMoney } from "../../compartilhado/promo-price.js"
 
 export const NEW_SALE_ENABLED = true
 /** Liga o fluxo de venda marketplace em /vendas/nova. */
@@ -194,6 +195,21 @@ export function totalPiecesCount(selected) {
   return (selected || []).reduce((sum, item) => sum + (Number(item?.quantity) || 0), 0)
 }
 
+export function piecePrice(piece) {
+  const list = Number(piece?.unit_price) || 0
+  const finalPrice = roundMoney(resolveRowPrice(piece))
+  const bank = Number(piece?.preco_efetivo)
+  const bankOk = piece?.preco_efetivo != null && piece?.preco_efetivo !== "" && Number.isFinite(bank) && bank >= 0
+  const lifted = bankOk && !sameMoney(bank, finalPrice)
+  const pixBank = Number(piece?.preco_pix)
+  const pix = lifted
+    ? (finalPrice > 0 ? pixDiscountPrice(finalPrice) : null)
+    : (Number.isFinite(pixBank) ? roundMoney(pixBank) : null)
+  const percent = Number(piece?.discount_percent) || 0
+  const onSale = (Boolean(piece?.is_on_sale) && percent > 0) || (finalPrice < list && list > 0)
+  return { listPrice: list, finalPrice, onSale, pix }
+}
+
 export function addPiece(selected, piece, quantity = 1) {
   const stock = Number(piece?.quantity ?? piece?.stock) || 0
   if (stock <= 0) return selected || []
@@ -203,8 +219,7 @@ export function addPiece(selected, piece, quantity = 1) {
     const next = Math.min(existing.quantity + quantity, stock)
     return setPieceQuantity(current, piece.id, next)
   }
-  const pix = Number(piece.preco_pix)
-  const effective = Number.isFinite(Number(piece.preco_efetivo)) ? Number(piece.preco_efetivo) : piece.unit_price
+  const quoted = piecePrice(piece)
   return [...current, {
     id: piece.id,
     code: piece.code,
@@ -213,8 +228,8 @@ export function addPiece(selected, piece, quantity = 1) {
     component_name: piece.component_name || "",
     categoria: piece.categoria || resolvePieceCategory(piece),
     image_url: piece.image_url || "",
-    unit_price: roundMoney(effective),
-    preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,
+    unit_price: quoted.finalPrice,
+    preco_pix: quoted.pix,
     item_type: piece.item_type || "",
     component_id: piece.component_id ?? null,
     quantity: Math.min(Math.max(1, quantity), stock),
@@ -239,16 +254,15 @@ export function togglePiece(selected, piece) {
   if (current.some((item) => sameId(item.id, piece.id))) {
     return current.filter((item) => !sameId(item.id, piece.id))
   }
-  const pix = Number(piece.preco_pix)
-  const effective = Number.isFinite(Number(piece.preco_efetivo)) ? Number(piece.preco_efetivo) : piece.unit_price
+  const quoted = piecePrice(piece)
   return [...current, {
     id: piece.id,
     code: piece.code,
     name: piece.name,
     categoria: piece.categoria || resolvePieceCategory(piece),
     image_url: piece.image_url || "",
-    unit_price: roundMoney(effective),
-    preco_pix: Number.isFinite(pix) ? roundMoney(pix) : null,
+    unit_price: quoted.finalPrice,
+    preco_pix: quoted.pix,
     item_type: piece.item_type || "",
     component_id: piece.component_id ?? null,
     quantity: 1,

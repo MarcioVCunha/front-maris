@@ -5,6 +5,7 @@ import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1"
 
 // deno-lint-ignore no-explicit-any
 ;(globalThis as any).window = {}
+await import("./promo-price.js")
 await import("./utils.js")
 // deno-lint-ignore no-explicit-any
 const U = (globalThis as any).window.MarisUtils as any
@@ -24,6 +25,20 @@ Deno.test("roundMoney arredonda para 2 casas", () => {
 Deno.test("effectivePrice aplica desconto só com promoção ativa e percentual > 0", () => {
   assertEquals(U.effectivePrice({ unit_price: 100 }), 100)
   assertEquals(U.effectivePrice({ unit_price: 100, is_on_sale: true, discount_percent: 10 }), 90)
+  // 20% de 100 é 80,00. O piso ,90 do banco (79,90) não entra.
+  assertEquals(U.effectivePrice({
+    unit_price: 100,
+    is_on_sale: true,
+    discount_percent: 20,
+    preco_efetivo: 79.9
+  }), 80)
+  assertEquals(U.effectivePrice({
+    parent_unit_price: 100,
+    price_percent: 50,
+    is_on_sale: true,
+    discount_percent: 20,
+    preco_efetivo: 39.95
+  }), 40)
   assertEquals(U.effectivePrice({ unit_price: 100, is_on_sale: false, discount_percent: 10 }), 100)
   assertEquals(U.effectivePrice({ unit_price: 100, is_on_sale: true, discount_percent: 0 }), 100)
   assertEquals(U.effectivePrice(null), 0)

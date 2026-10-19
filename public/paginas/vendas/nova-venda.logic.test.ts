@@ -26,6 +26,7 @@ import {
   setPieceQuantity,
   shouldShowMarketplaceSale,
   sumPaidChargesInMonth,
+  piecePrice,
   togglePiece,
   whatsappLink,
   addPiece,
@@ -153,6 +154,25 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
   const promoSelected = togglePiece([], promo)
   assertEquals(promoSelected[0].unit_price, 79.9)
   assertEquals(promoSelected[0].preco_pix, 75.91)
+
+  // Percentual conhecido: 20% de 100 é 80,00. Pix 5% sobre 80.
+  const exato = {
+    id: 4,
+    code: "PR2",
+    name: "Exato",
+    unit_price: 100,
+    is_on_sale: true,
+    discount_percent: 20,
+    preco_efetivo: 79.9,
+    preco_pix: 75.91,
+    quantity: 5
+  }
+  assertEquals(piecePrice(exato).finalPrice, 80)
+  assertEquals(piecePrice(exato).pix, 76)
+  const exatoSelected = togglePiece([], exato)
+  assertEquals(exatoSelected[0].unit_price, 80)
+  assertEquals(exatoSelected[0].preco_pix, 76)
+  assertEquals(saleTotals(exatoSelected, "pix").total, 76)
 })
 
 Deno.test("peças com subtipos/conjunto permitem vender partes individuais (só brinco, só colar) ou ambos", () => {

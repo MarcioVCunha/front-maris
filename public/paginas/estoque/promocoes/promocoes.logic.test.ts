@@ -12,6 +12,7 @@ import {
   filterProductsForPromo,
   renderPromoCard,
   renderPromotionsPage,
+  promoPriceExample,
   renderPromoDialogContent,
 } from "./promocoes.logic.js"
 
@@ -207,6 +208,28 @@ Deno.test("renderPromotionsPage e renderPromoDialogContent montam o HTML com ace
   const dialogNew = renderPromoDialogContent(null)
   assert(dialogNew.includes("Nova promoção"))
   assert(dialogNew.includes("Salvar promoção"))
+  assert(dialogNew.includes("R$ 90,00"))
+  assertEquals(dialogNew.includes("79,90"), false)
+})
+
+Deno.test("exemplo do painel mostra o promocional exato, sem piso ,90", () => {
+  const hint = promoPriceExample("percent", 20, 100)
+  assert(hint.includes("R$ 80,00"))
+  assertEquals(hint.includes("79,90"), false)
+  const fixed = promoPriceExample("fixed", 20, 100)
+  assert(fixed.includes("R$ 80,00"))
+  const dialog = renderPromoDialogContent({
+    id: 2,
+    name: "Vinte",
+    scope: "categoria",
+    category: "Anel",
+    discount_type: "percent",
+    value: 20,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z"
+  })
+  assert(dialog.includes("R$ 80,00"))
+  assertEquals(dialog.includes("79,90"), false)
 })
 
 Deno.test("renderPromoCard exibe caixa de desempenho quando houver métricas de vendas", () => {

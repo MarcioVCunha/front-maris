@@ -4,6 +4,7 @@ import { assertEquals } from "jsr:@std/assert@1"
 
 // deno-lint-ignore no-explicit-any
 ;(globalThis as any).window = {}
+await import("./promo-price.js")
 await import("./utils.js")
 await import("./cart-resolver.js")
 // deno-lint-ignore no-explicit-any
@@ -120,5 +121,41 @@ Deno.test("resolveLine respeita preco_efetivo do banco no produto e no component
   assertEquals(lineComp.unitPrice, 39.95)
   assertEquals(lineComp.originalPrice, 50)
   assertEquals(lineComp.onSale, true)
+})
+
+Deno.test("resolveLine usa o promocional exato quando o banco só pisou no ,90", () => {
+  const mapsExato = {
+    productsByCode: {
+      ANEL: {
+        code: "ANEL",
+        name: "Anel",
+        unit_price: 100,
+        is_on_sale: true,
+        discount_percent: 20,
+        preco_efetivo: 79.9,
+        quantity: 2
+      }
+    },
+    componentsById: {
+      7: {
+        id: 7,
+        product_code: "ANEL",
+        name: "Metade",
+        unit_price: 50,
+        parent_unit_price: 100,
+        price_percent: 50,
+        is_on_sale: true,
+        discount_percent: 20,
+        preco_efetivo: 39.95,
+        quantity: 1
+      }
+    },
+    productImagesByCode: {}
+  }
+  const line = Cart.resolveLine({ product_code: "ANEL", component_id: null }, mapsExato, "cart")
+  assertEquals(line.unitPrice, 80)
+  assertEquals(line.originalPrice, 100)
+  const part = Cart.resolveLine({ product_code: null, component_id: 7 }, mapsExato, "cart")
+  assertEquals(part.unitPrice, 40)
 })
 
