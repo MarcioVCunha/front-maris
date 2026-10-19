@@ -13,9 +13,14 @@ import {
   archiveConfirmText,
   archivePayload,
   ceilMarketplacePrice,
+  CHANNEL_COLORS,
   channelLabel,
   computeSalesGoalProgress,
   currentMonthKey,
+  renderDailySalesChart,
+  renderChannelShareChart,
+  renderShortcutsDialog,
+  resolveKeyboardShortcut,
   filterStock,
   generateSalesCsv,
   inStockProducts,
@@ -1334,6 +1339,126 @@ Deno.test("etapa 5: renderPieceForm contém botão para abrir histórico de esto
   assert(html.includes("piece-history-open"))
   assert(html.includes('data-piece-code="AN10"'))
   assert(html.includes("Ver histórico de estoque"))
+})
+
+Deno.test("etapa 6 / item 2: normalizeOverview normaliza daily_sales", () => {
+  const normalized = normalizeOverview({
+    month: "2026-10",
+    charged_total: 1000,
+    daily_sales: [
+      { date: "2026-10-01", day: 1, total: 250, orders_count: 2 },
+      { date: "2026-10-02", day: "2", total: "150.5", orders_count: "1" }
+    ]
+  })
+  assertEquals(normalized.daily_sales.length, 2)
+  assertEquals(normalized.daily_sales[0], { date: "2026-10-01", day: 1, total: 250, orders_count: 2 })
+  assertEquals(normalized.daily_sales[1], { date: "2026-10-02", day: 2, total: 150.5, orders_count: 1 })
+
+  const empty = normalizeOverview({})
+  assertEquals(empty.daily_sales, [])
+})
+
+Deno.test("etapa 6 / item 2: renderDailySalesChart gera SVG com barras, gridlines e tooltips", () => {
+  const sales = [
+    { date: "2026-10-01", day: 1, total: 300, orders_count: 2 },
+    { date: "2026-10-05", day: 5, total: 600, orders_count: 4 }
+  ]
+  const svg = renderDailySalesChart(sales, (v: unknown) => `R$ ${v}`, "2026-10")
+  assert(svg.includes("daily-sales-svg"))
+  assert(svg.includes('viewBox="0 0 600 160"'))
+  assert(svg.includes("chart-gridline"))
+  assert(svg.includes("chart-baseline"))
+  assert(svg.includes("chart-bar--active"))
+  assert(svg.includes("Dia 1: R$ 300 (2 pedidos)"))
+  assert(svg.includes("Dia 5: R$ 600 (4 pedidos)"))
+  assert(svg.includes("Pico:"))
+  assert(svg.includes("Média diária:"))
+
+  // Mês com vendas vazias ainda gera todos os dias com barras zeradas e sem quebrar
+  const emptySvg = renderDailySalesChart([], (v: unknown) => `R$ ${v}`, "2026-09")
+  assert(emptySvg.includes("daily-sales-svg"))
+  assert(emptySvg.includes("chart-bar--zero"))
+})
+
+Deno.test("etapa 6 / item 2: renderChannelShareChart gera barra empilhada e legenda com porcentagens", () => {
+  const channels = [
+    { channel: "site", orders: 2, charged_total: 400 },
+    { channel: "equipe", orders: 4, charged_total: 1600 }
+  ]
+  const html = renderChannelShareChart(channels, (v: unknown) => `R$ ${v}`)
+  assert(html.includes("channel-share-bar"))
+  assert(html.includes(CHANNEL_COLORS.site.fill))
+  assert(html.includes(CHANNEL_COLORS.equipe.fill))
+  assert(html.includes("20.0%"))
+  assert(html.includes("80.0%"))
+  assert(html.includes("channel-legend-dot"))
+  assert(html.includes("Site"))
+  assert(html.includes("Equipe"))
+
+  // Total zero
+  const emptyHtml = renderChannelShareChart([])
+  assert(emptyHtml.includes("channel-share-empty"))
+  assert(emptyHtml.includes("Nenhuma venda registrada nos canais"))
+})
+
+Deno.test("etapa 6 / item 2: resolveKeyboardShortcut responde às teclas /, n, v, Esc e ?", () => {
+  // Tecla / foca na busca
+  assertEquals(resolveKeyboardShortcut({ key: "/", target: { tagName: "BODY" } } as unknown as KeyboardEvent), { action: "focus-search" })
+  assertEquals(resolveKeyboardShortcut({ key: "k", ctrlKey: true, target: { tagName: "BODY" } } as unknown as KeyboardEvent), { action: "focus-search" })
+
+  // Tecla / dentro de input não faz nada
+  assertEquals(resolveKeyboardShortcut({ key: "/", target: { tagName: "INPUT" } } as unknown as KeyboardEvent), { action: "none" })
+  assertEquals(resolveKeyboardShortcut({ key: "/", target: { tagName: "TEXTAREA" } } as unknown as KeyboardEvent), { action: "none" })
+
+  // Tecla n cria peça, v ou Shift+N cria venda
+  assertEquals(resolveKeyboardShortcut({ key: "n", target: { tagName: "DIV" } } as unknown as KeyboardEvent), { action: "new-piece" })
+  assertEquals(resolveKeyboardShortcut({ key: "N", shiftKey: true, target: { tagName: "DIV" } } as unknown as KeyboardEvent), { action: "new-sale" })
+  assertEquals(resolveKeyboardShortcut({ key: "v", target: { tagName: "DIV" } } as unknown as KeyboardEvent), { action: "new-sale" })
+
+  // Tecla n dentro de input não dispara
+  assertEquals(resolveKeyboardShortcut({ key: "n", target: { tagName: "INPUT" } } as unknown as KeyboardEvent), { action: "none" })
+
+  // Escape fecha modal ou limpa
+  assertEquals(resolveKeyboardShortcut({ key: "Escape", target: { tagName: "INPUT" } } as unknown as KeyboardEvent), { action: "escape" })
+  assertEquals(resolveKeyboardShortcut({ key: "Escape", target: { tagName: "BODY" } } as unknown as KeyboardEvent), { action: "escape" })
+
+  // ? abre ajuda
+  assertEquals(resolveKeyboardShortcut({ key: "?", target: { tagName: "BODY" } } as unknown as KeyboardEvent), { action: "toggle-shortcuts-help" })
+  assertEquals(resolveKeyboardShortcut({ key: "?", target: { tagName: "INPUT" } } as unknown as KeyboardEvent), { action: "none" })
+})
+
+Deno.test("etapa 6 / item 2: renderShortcutsDialog gera conteúdo de ajuda com atalhos principais", () => {
+  const dialog = renderShortcutsDialog()
+  assert(dialog.includes("Atalhos de Teclado"))
+  assert(dialog.includes('<kbd class="shortcut-key">/</kbd>'))
+  assert(dialog.includes('<kbd class="shortcut-key">n</kbd>'))
+  assert(dialog.includes('<kbd class="shortcut-key">v</kbd>'))
+  assert(dialog.includes('<kbd class="shortcut-key">Esc</kbd>'))
+  assert(dialog.includes('<kbd class="shortcut-key">?</kbd>'))
+})
+
+Deno.test("etapa 6 / item 2: renderInicio integra a seção de gráficos visuais", () => {
+  const overview = {
+    month: "2026-10",
+    charged_total: 2000,
+    paid_count: 10,
+    paid_orders_count: 5,
+    channels: [
+      { channel: "site", orders: 2, charged_total: 500 },
+      { channel: "equipe", orders: 3, charged_total: 1500 }
+    ],
+    daily_sales: [
+      { date: "2026-10-01", day: 1, total: 500, orders_count: 2 },
+      { date: "2026-10-02", day: 2, total: 1500, orders_count: 3 }
+    ],
+    best_sellers: []
+  }
+  const html = renderInicio(overview)
+  assert(html.includes("inicio-charts-section"))
+  assert(html.includes("Evolução diária"))
+  assert(html.includes("Divisão por canal"))
+  assert(html.includes("daily-sales-svg"))
+  assert(html.includes("channel-share-bar"))
 })
 
 

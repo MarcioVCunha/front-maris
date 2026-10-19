@@ -6,6 +6,17 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Gráficos Visuais no Início e Atalhos de Teclado (Item 2):
+  - **Gráficos Visuais em SVG nativo (`/admin`)**:
+    - **Evolução Diária das Vendas**: Gráfico SVG interativo e responsivo mostrando o faturamento dia a dia do mês selecionado, com linhas de grade, tooltips detalhados acessíveis ao passar o mouse ou tocar em cada coluna (dia, total em R$, pedidos e indicação do dia atual), além de indicadores de pico e média diária.
+    - **Divisão por Canal de Venda**: Barra empilhada SVG proporcional com a paleta de cores dos canais (Site, Equipe, Shopee, Mercado Livre, TikTok Shop) e grade de legenda com porcentagens e valores absolutos.
+  - **Atalhos de Teclado no Painel Admin**:
+    - Tecla `/` (ou `Ctrl/Cmd+K`): foca instantaneamente no campo de busca de peças no estoque (se estiver em outra aba, navega para o estoque com foco imediato).
+    - Tecla `n`: navega direto para adicionar nova peça (`/admin/adicionar`).
+    - Teclas `v` ou `Shift+N`: navega direto para registrar nova venda (`/vendas/nova`).
+    - Tecla `Esc`: fecha qualquer modal/diálogo aberto ou limpa e desfoca a busca.
+    - Tecla `?`: abre a janela de ajuda com o resumo de todos os atalhos de teclado (também acessível pelo botão `⌨️ Atalhos (?)` no menu lateral).
+
 - Dropdown amigável para Origem da Peça (`/admin/adicionar` e `/admin/peca`):
   - Substituição do input numérico cru por `<select id="origem">` com opções amigáveis e padronizadas de 0 a 8 (`0 — Nacional (padrão)`, `1 — Importada direto`, `2 — Importada comprada no Brasil`, etc.).
   - Integração nos formulários de cadastro de nova peça (`renderAddForm`) e de edição de peça existente (`renderPieceForm`), com seleção correta do valor atual ou padrão (0).

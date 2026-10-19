@@ -914,6 +914,14 @@ export function normalizeOverview(data) {
       : null,
     paid_count: Number(data.paid_count) || 0,
     paid_orders_count: Number(data.paid_orders_count) || 0,
+    daily_sales: Array.isArray(data.daily_sales)
+      ? data.daily_sales.map((row) => ({
+        date: String(row?.date || ""),
+        day: Number(row?.day) || 0,
+        total: Number(row?.total) || 0,
+        orders_count: Number(row?.orders_count) || 0
+      }))
+      : [],
     previous,
     channels,
     best_sellers: Array.isArray(data.best_sellers) ? data.best_sellers.map(normalizeBestSeller) : []
@@ -1322,6 +1330,228 @@ export function renderPeriodFilter(selectedMonth, currentMonth = currentMonthKey
   </div>`
 }
 
+export const CHANNEL_COLORS = {
+  site: { fill: "#7c3aed", label: "Site" },
+  equipe: { fill: "#db2777", label: "Equipe" },
+  shopee: { fill: "#ea580c", label: "Shopee" },
+  mercado_livre: { fill: "#eab308", label: "Mercado Livre" },
+  tiktok: { fill: "#0f172a", label: "TikTok Shop" }
+}
+
+export function renderDailySalesChart(dailySales = [], formatMoney = formatPrice, month = "") {
+  const targetMonth = String(month || currentMonthKey()).slice(0, 7)
+  const [yStr, mStr] = targetMonth.split("-")
+  const year = Number(yStr) || new Date().getFullYear()
+  const mon = Number(mStr) || (new Date().getMonth() + 1)
+  const totalDays = new Date(year, mon, 0).getDate()
+
+  const salesMap = new Map()
+  if (Array.isArray(dailySales)) {
+    for (const item of dailySales) {
+      if (item && item.day != null) {
+        salesMap.set(Number(item.day), item)
+      }
+    }
+  }
+
+  const days = []
+  let maxTotal = 0
+  let monthTotal = 0
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  for (let d = 1; d <= totalDays; d++) {
+    const existing = salesMap.get(d)
+    const total = existing ? Number(existing.total) || 0 : 0
+    const orders_count = existing ? Number(existing.orders_count) || 0 : 0
+    const date = `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`
+    if (total > maxTotal) maxTotal = total
+    monthTotal += total
+    days.push({ day: d, date, total, orders_count })
+  }
+
+  const chartCeil = maxTotal > 0 ? maxTotal : 100
+  const svgWidth = 600
+  const svgHeight = 160
+  const chartTop = 25
+  const chartBottom = 130
+  const chartHeight = chartBottom - chartTop
+  const chartLeft = 15
+  const chartRight = 585
+  const usableWidth = chartRight - chartLeft
+  const step = usableWidth / totalDays
+  const barWidth = Math.max(3, Math.min(14, step - 3))
+
+  const midVal = chartCeil / 2
+  const midY = chartTop + chartHeight / 2
+  const gridlines = `
+    <line x1="${chartLeft}" y1="${chartTop}" x2="${chartRight}" y2="${chartTop}" class="chart-gridline" />
+    <line x1="${chartLeft}" y1="${midY}" x2="${chartRight}" y2="${midY}" class="chart-gridline" />
+    <line x1="${chartLeft}" y1="${chartBottom}" x2="${chartRight}" y2="${chartBottom}" class="chart-baseline" />
+    <text x="${chartRight}" y="${chartTop - 4}" class="chart-grid-label" text-anchor="end">${escapeHtml(money(chartCeil, formatMoney))}</text>
+    <text x="${chartRight}" y="${midY - 4}" class="chart-grid-label" text-anchor="end">${escapeHtml(money(midVal, formatMoney))}</text>
+  `
+
+  const bars = days.map((d, index) => {
+    const x = chartLeft + (index * step) + (step - barWidth) / 2
+    const barH = d.total > 0 ? Math.max(4, Math.round((d.total / chartCeil) * chartHeight)) : 2
+    const y = chartBottom - barH
+    const isToday = d.date === todayStr
+    const hasSales = d.total > 0
+    const cls = ["chart-bar", hasSales ? "chart-bar--active" : "chart-bar--zero", isToday ? "chart-bar--today" : ""].filter(Boolean).join(" ")
+    const titleText = `Dia ${d.day}: ${money(d.total, formatMoney)} (${d.orders_count} pedido${d.orders_count === 1 ? "" : "s"})${isToday ? " — Hoje" : ""}`
+    
+    const showLabel = d.day === 1 || d.day === 5 || d.day === 10 || d.day === 15 || d.day === 20 || d.day === 25 || d.day === totalDays
+    const labelSvg = showLabel ? `<text x="${(x + barWidth / 2).toFixed(1)}" y="${chartBottom + 16}" class="chart-axis-label">${d.day}</text>` : ""
+
+    return `<g class="chart-day-group">
+      <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barH.toFixed(1)}" rx="2" ry="2" class="${cls}" tabindex="0" role="graphics-symbol" aria-label="${escapeHtml(titleText)}">
+        <title>${escapeHtml(titleText)}</title>
+      </rect>
+      ${labelSvg}
+    </g>`
+  }).join("")
+
+  return `<div class="chart-container chart-container--daily">
+    <svg class="daily-sales-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Gráfico de faturamento diário de ${escapeHtml(targetMonth)}">
+      ${gridlines}
+      ${bars}
+    </svg>
+    <div class="chart-daily-summary">
+      <small class="chart-summary-stat">Pico: <b>${escapeHtml(money(maxTotal, formatMoney))}</b></small>
+      <small class="chart-summary-stat">Média diária: <b>${escapeHtml(money(monthTotal / totalDays, formatMoney))}</b></small>
+    </div>
+  </div>`
+}
+
+export function renderChannelShareChart(channels = [], formatMoney = formatPrice) {
+  const rows = Array.isArray(channels) ? channels : []
+  const totalCharged = rows.reduce((acc, row) => acc + (Number(row?.charged_total) || 0), 0)
+
+  if (totalCharged <= 0) {
+    return `<div class="channel-share-empty">
+      <div class="channel-bar-empty"></div>
+      <p class="hint">Nenhuma venda registrada nos canais este mês.</p>
+    </div>`
+  }
+
+  const segments = rows.map((row) => {
+    const channel = String(row?.channel || "outros")
+    const total = Number(row?.charged_total) || 0
+    const orders = Number(row?.orders) || 0
+    const pct = (total / totalCharged) * 100
+    const meta = CHANNEL_COLORS[channel] || { fill: "#64748b", label: channelLabel(channel) }
+    return {
+      channel,
+      label: meta.label,
+      fill: meta.fill,
+      total,
+      orders,
+      pct,
+      pctFormatted: Math.round(pct)
+    }
+  }).filter((seg) => seg.total > 0)
+
+  let cumulativePct = 0
+  const barSegments = segments.map((seg) => {
+    const x = cumulativePct
+    const width = seg.pct
+    cumulativePct += seg.pct
+    const title = `${seg.label}: ${money(seg.total, formatMoney)} (${seg.pct.toFixed(1)}%) · ${seg.orders} pedido(s)`
+    return `<rect x="${x.toFixed(2)}%" y="0" width="${width.toFixed(2)}%" height="24" fill="${seg.fill}" class="channel-segment" tabindex="0" role="graphics-symbol" aria-label="${escapeHtml(title)}">
+      <title>${escapeHtml(title)}</title>
+    </rect>`
+  }).join("")
+
+  const legendItems = segments.map((seg) => `
+    <div class="channel-legend-item">
+      <span class="channel-legend-dot" style="background-color: ${seg.fill};"></span>
+      <span class="channel-legend-name">${escapeHtml(seg.label)}</span>
+      <b class="channel-legend-pct">${seg.pct.toFixed(1)}%</b>
+      <small class="channel-legend-val">${escapeHtml(money(seg.total, formatMoney))}</small>
+    </div>
+  `).join("")
+
+  return `<div class="chart-container chart-container--channels">
+    <svg class="channel-share-bar" viewBox="0 0 100 24" preserveAspectRatio="none" role="img" aria-label="Divisão de vendas por canal">
+      <clipPath id="channel-bar-clip">
+        <rect x="0" y="0" width="100%" height="24" rx="6" ry="6" />
+      </clipPath>
+      <g clip-path="url(#channel-bar-clip)">
+        ${barSegments}
+      </g>
+    </svg>
+    <div class="channel-legend-grid">
+      ${legendItems}
+    </div>
+  </div>`
+}
+
+export function resolveKeyboardShortcut(event, context = {}) {
+  const key = event.key
+  const targetTag = (event.target?.tagName || "").toLowerCase()
+  const isInput = targetTag === "input" || targetTag === "textarea" || targetTag === "select" || Boolean(event.target?.isContentEditable)
+
+  if (key === "Escape") {
+    return { action: "escape" }
+  }
+
+  if (isInput) {
+    return { action: "none" }
+  }
+
+  if (key === "/" || (key === "k" && (event.ctrlKey || event.metaKey))) {
+    return { action: "focus-search" }
+  }
+
+  if ((key === "n" || key === "N") && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    if (event.shiftKey) {
+      return { action: "new-sale" }
+    }
+    return { action: "new-piece" }
+  }
+
+  if ((key === "v" || key === "V") && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    return { action: "new-sale" }
+  }
+
+  if (key === "?" && !event.ctrlKey && !event.metaKey) {
+    return { action: "toggle-shortcuts-help" }
+  }
+
+  return { action: "none" }
+}
+
+export function renderShortcutsDialog() {
+  return `<div class="shortcuts-dialog__content">
+    <div class="shortcuts-dialog__header">
+      <h2>Atalhos de Teclado</h2>
+      <button type="button" class="btn-close-dialog" id="shortcuts-dialog-close" aria-label="Fechar">✕</button>
+    </div>
+    <div class="shortcuts-dialog__list">
+      <div class="shortcut-row">
+        <kbd class="shortcut-key">/</kbd>
+        <span class="shortcut-desc">Focar campo de busca de peças</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd class="shortcut-key">n</kbd>
+        <span class="shortcut-desc">Adicionar nova peça</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd class="shortcut-key">v</kbd>
+        <span class="shortcut-desc">Registrar nova venda</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd class="shortcut-key">Esc</kbd>
+        <span class="shortcut-desc">Fechar modal ou limpar busca</span>
+      </div>
+      <div class="shortcut-row">
+        <kbd class="shortcut-key">?</kbd>
+        <span class="shortcut-desc">Abrir / fechar esta ajuda de atalhos</span>
+      </div>
+    </div>
+  </div>`
+}
+
 /**
  * Início: totais do mês + origem em faixa horizontal.
  * options.selectedChannel: filtra vendas no lugar de Mais vendidas.
@@ -1390,6 +1620,25 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
     </div>`
   }
 
+  const chartsSection = `<section class="inicio-charts-section" aria-label="Desempenho visual das vendas">
+    <div class="inicio-charts-grid">
+      <div class="inicio-chart-card">
+        <div class="inicio-chart-card__header">
+          <h3>Evolução diária</h3>
+          <span class="chart-subtitle">Faturamento por dia</span>
+        </div>
+        ${renderDailySalesChart(data.daily_sales, formatMoney, data.month)}
+      </div>
+      <div class="inicio-chart-card">
+        <div class="inicio-chart-card__header">
+          <h3>Divisão por canal</h3>
+          <span class="chart-subtitle">Participação percentual</span>
+        </div>
+        ${renderChannelShareChart(data.channels, formatMoney)}
+      </div>
+    </div>
+  </section>`
+
   return `<section class="report report--inicio">
     ${overdueBanner}
     <header class="inicio-hero">
@@ -1409,6 +1658,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
       </div>
       ${goalBar}
     </header>
+    ${chartsSection}
     <div class="inicio-actions-bar">
       <h2>Origem</h2>
       <div class="inicio-actions-buttons">
