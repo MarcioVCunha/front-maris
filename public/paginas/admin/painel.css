@@ -3421,32 +3421,116 @@ dialog h2 {
   color: #137333;
 }
 
+.coupon-card__perf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--maris-border);
+}
+
+.coupon-perf-pill {
+  font-size: 0.74rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--maris-gold-light, #faf6f0);
+  color: var(--maris-text);
+  font-weight: 500;
+}
+
+.coupon-perf-pill--sales {
+  background: #e6f4ea;
+  color: #137333;
+  font-weight: 600;
+}
+
+.coupon-perf-pill--discount {
+  background: #fef7e0;
+  color: #b06000;
+}
+
+.coupons-summary-bar,
 .referrals-summary-bar {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
+@media (max-width: 900px) {
+  .coupons-summary-bar,
+  .referrals-summary-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .coupons-summary-bar,
+  .referrals-summary-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.coupon-stat,
 .ref-stat {
   background: var(--maris-surface);
   border: 1px solid var(--maris-border);
   border-radius: 10px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 90px;
 }
 
+.coupon-stat__num,
 .ref-stat__num {
   display: block;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-family: var(--maris-font-display);
+  color: var(--maris-black);
+  line-height: 1.2;
 }
 
+.ref-stat__num--small {
+  font-size: 1.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.coupon-stat__label,
 .ref-stat__label {
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   color: var(--maris-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.coupon-stat__sub,
+.ref-stat__sub {
+  font-size: 0.72rem;
+  color: var(--maris-text-muted);
+  margin-top: 3px;
+  display: block;
+}
+
+.coupon-stat--sales .coupon-stat__num {
+  color: #137333;
+}
+
+.coupon-stat--discount .coupon-stat__num {
+  color: #b06000;
+}
+
+.coupon-stat--active .coupon-stat__num {
+  color: var(--maris-gold-dark, #b58d3d);
 }
 
 .ref-stat--pending .ref-stat__num {
@@ -3455,6 +3539,42 @@ dialog h2 {
 
 .ref-stat--confirmed .ref-stat__num {
   color: #137333;
+}
+
+.ref-stat--reward .ref-stat__num {
+  color: #1967d2;
+}
+
+.ref-stat--top .ref-stat__num {
+  color: var(--maris-gold-dark, #b58d3d);
+}
+
+.bonus-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bonus-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.bonus-badge--used {
+  background: #e6f4ea;
+  color: #137333;
+  border: 1px solid #ceead6;
+}
+
+.bonus-badge--available {
+  background: #e8f0fe;
+  color: #1967d2;
+  border: 1px solid #d2e3fc;
 }
 
 .referrals-rules-banner {
