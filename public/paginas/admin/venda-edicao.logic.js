@@ -356,10 +356,22 @@ export function readSaleEditForm(root) {
   }
 }
 
-function parseMoneyInput(raw) {
+/**
+ * Aceita "882,55", "1.234,56", "R$ 882,55" e também "882.55" (o campo vem
+ * preenchido com o número do banco, com ponto decimal). Antes, "882.55" virava
+ * 88255 e "882.6" virava 8826 (bug da venda #146).
+ */
+export function parseMoneyInput(raw) {
   if (raw == null || raw === "") return null
-  if (typeof raw === "number" && Number.isFinite(raw)) return raw
-  const text = String(raw).trim().replace(/\s/g, "").replace(/\./g, "").replace(",", ".")
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null
+  let text = String(raw).trim().replace(/\s/g, "").replace(/^R\$/i, "")
+  if (!text) return null
+  if (text.includes(",")) {
+    text = text.replace(/\./g, "").replace(",", ".")
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(text)) {
+    text = text.replace(/\./g, "")
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(text)) return null
   const number = Number(text)
   return Number.isFinite(number) ? number : null
 }
