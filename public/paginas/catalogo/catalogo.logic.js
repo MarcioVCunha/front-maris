@@ -1,10 +1,3 @@
-import {
-  exactPercentPrice,
-  pixDiscountPrice,
-  resolvePromoPrice,
-  sameMoney
-} from "../../compartilhado/promo-price.js"
-
 export const STORE_WHATSAPP_NUMBER = "5519992732874"
 export const CATALOG_WHATSAPP_MESSAGE = "Oi, vi o catálogo e queria tirar uma dúvida"
 
@@ -182,7 +175,10 @@ export const PIX_PRICE_FIELD = "preco_pix"
 export const EFFECTIVE_PRICE_FIELD = "preco_efetivo"
 
 export function pixPrice(amount) {
-  return pixDiscountPrice(amount)
+  const value = Number(amount)
+  if (!Number.isFinite(value) || value <= 0) return 0
+  const cents = Math.round(value * 100)
+  return Math.round((cents * 95) / 100) / 100
 }
 
 export function moneyFromSource(product, field) {
@@ -200,7 +196,7 @@ export function pixPriceFromSource(product, finalPrice, field = PIX_PRICE_FIELD)
 
 export function localFinalPrice(listPrice, onSale, percent) {
   if (!onSale) return listPrice
-  return exactPercentPrice(listPrice, percent)
+  return Math.round(listPrice * (1 - percent / 100) * 100) / 100
 }
 
 export function offerFromProduct(product) {
@@ -208,13 +204,7 @@ export function offerFromProduct(product) {
   const legacyPercent = product?.is_on_sale ? Number(product?.discount_percent) || 0 : 0
   const legacyOnSale = Boolean(product?.is_on_sale) && legacyPercent > 0
   const fromBank = moneyFromSource(product, EFFECTIVE_PRICE_FIELD)
-  const finalPrice = resolvePromoPrice({
-    listPrice,
-    percent: legacyPercent,
-    onSale: legacyOnSale,
-    bankPrice: fromBank
-  })
-  const lifted = fromBank != null && legacyOnSale && !sameMoney(fromBank, finalPrice)
+  const finalPrice = fromBank == null ? localFinalPrice(listPrice, legacyOnSale, legacyPercent) : fromBank
   const onSale = fromBank != null ? (fromBank < listPrice && listPrice > 0) : legacyOnSale
   let percentOff = 0
   if (onSale) {
@@ -229,7 +219,7 @@ export function offerFromProduct(product) {
     finalPrice,
     onSale,
     percentOff,
-    pixPrice: lifted ? pixPrice(finalPrice) : pixPriceFromSource(product, finalPrice),
+    pixPrice: pixPriceFromSource(product, finalPrice),
   }
 }
 

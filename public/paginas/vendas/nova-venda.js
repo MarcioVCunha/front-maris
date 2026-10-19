@@ -20,7 +20,6 @@ import {
   removePiece,
   renderRecentSales,
   renderSaleDetail,
-  piecePrice,
   resolvePieceCategory,
   saleTotals,
   setPieceQuantity,
@@ -515,16 +514,15 @@ function renderPieces() {
       let lowestPrice = Infinity
       let lowestPix = null
       for (const c of inStockComps) {
-        const quoted = piecePrice(c)
-        if (quoted.finalPrice < lowestPrice) {
-          lowestPrice = quoted.finalPrice
-          lowestPix = quoted.pix
+        const p = Number.isFinite(Number(c.preco_efetivo)) ? c.preco_efetivo : c.unit_price
+        if (p < lowestPrice) {
+          lowestPrice = p
+          lowestPix = c.preco_pix
         }
       }
       if (lowestPrice === Infinity && components.length > 0) {
-        const quoted = piecePrice(components[0])
-        lowestPrice = quoted.finalPrice
-        lowestPix = quoted.pix
+        lowestPrice = components[0].unit_price
+        lowestPix = components[0].preco_pix
       }
 
       const parentInCart = state.selected.find((item) => String(item.id) === String(piece.id))
@@ -547,7 +545,7 @@ function renderPieces() {
             <div class="piece-card-prices">
               <span class="price-from-label">Subtipos a partir de:</span>
               <strong class="price-current">${money(lowestPrice)}</strong>
-              ${lowestPix != null ? `<span class="price-pix">${money(lowestPix)} no Pix</span>` : ""}
+              ${Number.isFinite(Number(lowestPix)) ? `<span class="price-pix">${money(lowestPix)} no Pix</span>` : ""}
             </div>
           </div>
 
@@ -558,7 +556,7 @@ function renderPieces() {
                 const selectedItem = state.selected.find((item) => String(item.id) === String(comp.id))
                 const isPicked = Boolean(selectedItem)
                 const quantityInCart = selectedItem ? selectedItem.quantity : 0
-                const price = piecePrice(comp).finalPrice
+                const price = Number.isFinite(Number(comp.preco_efetivo)) ? comp.preco_efetivo : comp.unit_price
                 const stock = Number(comp.quantity) || 0
                 const isMax = quantityInCart >= stock
                 const isSoldOut = stock <= 0
@@ -630,9 +628,8 @@ function renderPieces() {
     const selectedItem = state.selected.find((item) => String(item.id) === String(piece.id))
     const isPicked = Boolean(selectedItem)
     const quantityInCart = selectedItem ? selectedItem.quantity : 0
-    const quoted = piecePrice(piece)
-    const price = quoted.finalPrice
-    const isPromo = Boolean(piece.is_on_sale && piece.discount_percent > 0) || (quoted.onSale && quoted.finalPrice < quoted.listPrice)
+    const price = Number.isFinite(Number(piece.preco_efetivo)) ? piece.preco_efetivo : piece.unit_price
+    const isPromo = Boolean(piece.is_on_sale && piece.discount_percent > 0)
     const stock = Number(piece.quantity) || 0
     const isMax = quantityInCart >= stock
 
@@ -648,9 +645,9 @@ function renderPieces() {
           <h3 class="piece-card-title">${escapeHtml(piece.name)}</h3>
           <p class="piece-card-code">${escapeHtml(piece.code)}</p>
           <div class="piece-card-prices">
-            ${isPromo ? `<span class="price-original">${money(quoted.listPrice)}</span>` : ""}
+            ${isPromo ? `<span class="price-original">${money(piece.unit_price)}</span>` : ""}
             <strong class="price-current">${money(price)}</strong>
-            ${quoted.pix != null ? `<span class="price-pix">${money(quoted.pix)} no Pix</span>` : ""}
+            ${Number.isFinite(Number(piece.preco_pix)) ? `<span class="price-pix">${money(piece.preco_pix)} no Pix</span>` : ""}
           </div>
         </div>
         <div class="piece-card-actions">

@@ -56,11 +56,8 @@ window.MarisUtils = {
   // Preço final considerando promoção. Aplica desconto somente quando
   // is_on_sale = true E discount_percent > 0; caso contrário, preço cheio.
   // Componente com parent_unit_price + price_percent: um único round (igual à view).
-  // preco_efetivo do banco entra, exceto quando ele só aplicou o piso ,90 em cima do percentual.
-  // Nesse caso o promocional fica o valor exato (2 casas). Pix continua 5% sobre esse final.
+  // preco_efetivo (do banco em products_public ou product_components_priced), quando vem preenchido, substitui essa conta.
   effectivePrice(row) {
-    const shared = window.MarisPromoPrice
-    if (shared?.resolveRowPrice) return shared.resolveRowPrice(row)
     const fromBank = window.MarisUtils.priceFromColumn(row, window.MarisUtils.EFFECTIVE_PRICE_FIELD)
     if (fromBank != null) return fromBank
     const parent = Number(row?.parent_unit_price)
