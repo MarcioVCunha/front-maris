@@ -8,6 +8,7 @@ import {
   isSaleOverdueReceivable,
   normalizeAdminSale,
   normalizeSaleItems,
+  parseMoneyInput,
   readSaleEditForm,
   renderSaleCards,
   renderSaleEditDialog,
@@ -249,4 +250,23 @@ Deno.test("etapa 3: identifica venda a receber há mais de 7 dias e renderiza ch
   assert(chipsHtml.includes("sale-chip--overdue"))
   assert(chipsHtml.includes("⏳ 10d em aberto"))
   assert(chipsHtml.includes("sale-chip--receivable"))
+})
+
+Deno.test("valor da edição de venda aceita ponto decimal do banco (bug venda #146)", () => {
+  assertEquals(parseMoneyInput("882,55"), 882.55)
+  assertEquals(parseMoneyInput("882.55"), 882.55)
+  assertEquals(parseMoneyInput("882.6"), 882.6)
+  assertEquals(parseMoneyInput("56.81"), 56.81)
+  assertEquals(parseMoneyInput("1.234,56"), 1234.56)
+  assertEquals(parseMoneyInput("1.234"), 1234)
+  assertEquals(parseMoneyInput("R$ 90,13"), 90.13)
+  assertEquals(parseMoneyInput("929"), 929)
+  assertEquals(parseMoneyInput(94.87), 94.87)
+  assertEquals(parseMoneyInput(""), null)
+  assertEquals(parseMoneyInput("abc"), null)
+  // Salvar sem mexer: o campo vem "94.87" e a peça "56.81"; nada multiplica por 100.
+  assertEquals(saleUpdatePayload(147, {
+    total: "94.87",
+    pieces: [{ id: "1", code: "X", quantity: "1", unit_price: "56.81" }],
+  }), { order_id: 147, total: 94.87, items: [{ id: 1, code: "X", quantity: 1, unit_price: 56.81 }] })
 })
