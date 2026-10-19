@@ -682,12 +682,62 @@ export function relatedGroups(groups, group, isAvailable, limit = 4) {
 }
 
 function escapeHtml(str) {
-  return String(str || "")
+  return String(str ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;")
+}
+
+export function renderCategoryFilterButtons(names, selected) {
+  return (names || []).map((name) => {
+    const label = String(name ?? "")
+    const on = label === selected
+    return `<button type="button" class="catalog-filter${on ? " is-selected" : ""}" data-category="${escapeHtml(label)}" aria-pressed="${on ? "true" : "false"}">${escapeHtml(label)}</button>`
+  }).join("")
+}
+
+export function renderCatalogIdentityHtml(name, code) {
+  return `<h3>${escapeHtml(name)}</h3><div class="code">${escapeHtml(code)}</div>`
+}
+
+export function renderCatalogPhotoStrip(urls, alt) {
+  const shown = (urls || []).filter(Boolean).slice(0, 2)
+  if (!shown.length) return `<div class="product-media"><div class="product-photos product-photos-empty"></div></div>`
+  const dots = shown.length > 1 ? `<div class="product-photo-dots" aria-hidden="true"><span></span><span></span></div>` : ""
+  return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}</div>`
+}
+
+export function renderSearchSuggestionsHtml(suggestions, query) {
+  const items = suggestions || []
+  if (!items.length) return ""
+  if (!query) {
+    return `
+      <div class="catalog-suggestion-header">Sugestões rápidas</div>
+      <div class="catalog-suggestion-chips">
+        ${items.map((s) => `
+          <button type="button" class="catalog-suggestion-chip" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}">
+            ${escapeHtml(s.text)}
+          </button>
+        `).join("")}
+      </div>
+    `
+  }
+  return `
+      <div class="catalog-suggestion-header">Sugestões</div>
+      <div class="catalog-suggestion-list">
+        ${items.map((s) => {
+          const badge = s.kind === "category" ? "Categoria" : s.kind === "collection" ? "Coleção" : "Peça"
+          return `
+            <button type="button" class="catalog-suggestion-item" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}" ${s.groupKey ? `data-group-key="${escapeHtml(s.groupKey)}"` : ""}>
+              <span class="catalog-suggestion-text">${escapeHtml(s.text)}</span>
+              <span class="catalog-suggestion-badge">${badge}</span>
+            </button>
+          `
+        }).join("")}
+      </div>
+    `
 }
 
 export const COMPLEMENTARY_CATEGORIES = {
@@ -1136,6 +1186,10 @@ if (typeof globalThis.window !== "undefined") {
     getComplementaryCategories,
     combinaGroups,
     renderCombinaComponentCard,
+    renderCategoryFilterButtons,
+    renderCatalogIdentityHtml,
+    renderCatalogPhotoStrip,
+    renderSearchSuggestionsHtml,
     normalizeCategoryParam,
     readCatalogLink,
     buildCatalogQuery,

@@ -568,6 +568,34 @@ function itemPayView(item, saleStatus) {
   return { kind: "open", text: "A receber" }
 }
 
+export function renderCategoryChipsHtml(categories, activeCategory) {
+  const active = String(activeCategory || "Todas").toLowerCase()
+  return (categories || []).map((entry) => {
+    const cat = entry?.name ?? entry
+    const count = entry?.count
+    const isActive = active === String(cat).toLowerCase()
+    const countHtml = count == null ? "" : ` <span class="chip-count">${Number(count) || 0}</span>`
+    return `
+      <button type="button" class="category-chip" data-category="${escapeHtml(cat)}" aria-pressed="${isActive ? "true" : "false"}">
+        ${escapeHtml(cat)}${countHtml}
+      </button>
+    `
+  }).join("")
+}
+
+export function renderPieceIdentityHtml(piece) {
+  return `<h3 class="piece-card-title">${escapeHtml(piece?.name)}</h3><p class="piece-card-code">${escapeHtml(piece?.code)}</p>`
+}
+
+export function renderCustomerHitHtml(customer, picked) {
+  return `<button type="button" class="customer-hit" data-customer="${escapeHtml(customer?.id)}" aria-pressed="${picked ? "true" : "false"}">
+      <span>
+        <strong>${escapeHtml(customer?.name)}</strong>
+        <small>${escapeHtml(formatWhatsapp(customer?.whatsapp))}</small>
+      </span>
+    </button>`
+}
+
 export function renderRecentSales(sales, formatMoney) {
   const rows = sales || []
   if (!rows.length) return `<p class="recent-empty">Nenhuma venda recente.</p>`
@@ -694,6 +722,9 @@ if (typeof globalThis.window !== "undefined") {
     buildMarketplaceSaleBody,
     cancelMarketplaceOrderPayload,
     escapeHtml,
+    renderCategoryChipsHtml,
+    renderPieceIdentityHtml,
+    renderCustomerHitHtml,
     renderRecentSales,
     renderSaleDetail,
     whatsappLink,

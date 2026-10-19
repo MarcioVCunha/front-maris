@@ -37,6 +37,36 @@ export function newClientRequestId() {
   })
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+export function renderCartLineHtml(line, priceLabel) {
+  const stockLabel = Number(line?.available) > 0 ? `${Number(line.available) || 0} em estoque` : "Sem estoque"
+  return `
+      <article class="cart-line" data-key="${escapeHtml(line?.key)}">
+        <div class="cart-line-main">
+          <img class="cart-line-image" src="${escapeHtml(line?.image_url || "")}" alt="${escapeHtml(line?.name)}">
+          <div>
+            <p class="cart-line-name">${escapeHtml(line?.name)}</p>
+            <p class="cart-line-code">${escapeHtml(line?.code)} — ${priceLabel}</p>
+            <p class="cart-line-stock">${stockLabel}</p>
+          </div>
+        </div>
+        <div class="cart-line-actions">
+          <button type="button" data-action="minus">-</button>
+          <span>${Number(line?.quantity) || 0}</span>
+          <button type="button" data-action="plus">+</button>
+          <button type="button" data-action="remove" class="remove">Remover</button>
+        </div>
+      </article>
+    `
+}
+
 export function orderItemsFromCart(lines) {
   return (Array.isArray(lines) ? lines : []).map((line) => {
     const quantity = Number(line?.quantity) || 0
@@ -246,6 +276,7 @@ export const MarisPedido = {
   orderFromResponse,
   reservationText,
   stockIssueText,
+  renderCartLineHtml,
   cartKeysForStockIssues,
   interpretCreateOrderResponse,
   submitCreateOrder,

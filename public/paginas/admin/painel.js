@@ -117,6 +117,7 @@ import {
   filterProductsForPicker,
   renderCollectionEditDialog,
   renderCollectionsPage,
+  renderCollectionPieceSuggestions,
   renderSelectedPieceChips,
   slugify,
   validateCollectionPayload
@@ -845,16 +846,7 @@ function openCollectionEditDialog(collection) {
         }
         return
       }
-      suggestionsEl.innerHTML = matches
-        .map(
-          (p) => `
-          <div class="collection-piece-suggestion-item">
-            <span><strong>${p.code}</strong> — ${p.name}</span>
-            <button type="button" class="btn-secondary btn-sm" data-add-piece="${p.code}">+ Adicionar</button>
-          </div>
-        `
-        )
-        .join("")
+      suggestionsEl.innerHTML = renderCollectionPieceSuggestions(matches)
       suggestionsEl.hidden = false
     })
 

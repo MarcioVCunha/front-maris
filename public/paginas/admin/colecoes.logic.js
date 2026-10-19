@@ -180,6 +180,18 @@ export function filterCollections(collections, term) {
   })
 }
 
+export function renderCollectionPieceSuggestions(products) {
+  return (products || []).map((product) => {
+    const code = product?.code ?? ""
+    const name = product?.name ?? ""
+    return `
+          <div class="collection-piece-suggestion-item">
+            <span><strong>${escapeHtml(code)}</strong> — ${escapeHtml(name)}</span>
+            <button type="button" class="btn-secondary btn-sm" data-add-piece="${escapeHtml(code)}">+ Adicionar</button>
+          </div>`
+  }).join("")
+}
+
 export function renderSelectedPieceChips(productCodes = [], allProducts = []) {
   if (!productCodes.length) {
     return `<p class="collection-picker-empty">Nenhuma peça adicionada manualmente (opcional se usar teto de preço).</p>`

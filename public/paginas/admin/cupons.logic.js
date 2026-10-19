@@ -373,7 +373,7 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
   const discount = Number(coupon.total_discount ?? 0) || 0
 
   return `
-    <article class="coupon-card ${isActive ? "" : "coupon-card--inactive"}" data-coupon-id="${coupon.id}">
+    <article class="coupon-card ${isActive ? "" : "coupon-card--inactive"}" data-coupon-id="${escapeHtml(coupon.id)}">
       <div class="coupon-card__header">
         <div class="coupon-card__badge-group">
           <strong class="coupon-card__code">${escapeHtml(coupon.code)}</strong>
@@ -386,7 +386,7 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
       ${coupon.description ? `<p class="coupon-card__desc">${escapeHtml(coupon.description)}</p>` : ""}
 
       <div class="coupon-card__details">
-        <span class="coupon-card__rule-item">${rulesText}</span>
+        <span class="coupon-card__rule-item">${escapeHtml(rulesText)}</span>
         ${coupon.expires_at || coupon.ends_at ? `<span class="coupon-card__date">Vence em: ${formatDateBR(coupon.expires_at || coupon.ends_at)}</span>` : `<span class="coupon-card__date">Sem expiração</span>`}
       </div>
 
@@ -399,7 +399,7 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
       ` : ""}
 
       <div class="coupon-card__actions">
-        <button type="button" class="btn-coupon-toggle ${isActive ? "btn-coupon-toggle--on" : "btn-coupon-toggle--off"}" data-action="toggle" data-id="${coupon.id}" data-active="${isActive}">
+        <button type="button" class="btn-coupon-toggle ${isActive ? "btn-coupon-toggle--on" : "btn-coupon-toggle--off"}" data-action="toggle" data-id="${escapeHtml(coupon.id)}" data-active="${isActive}">
           ${isActive ? "Desativar" : "Ativar"}
         </button>
       </div>
@@ -542,7 +542,7 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
               ${filteredReferrals.length ? filteredReferrals.map((r) => {
                 const status = computeReferralStatus(r)
                 const orderText = r.order_id
-                  ? `#${r.order_id}${r.order_total != null ? ` · ${formatMoney(r.order_total)}` : ""}`
+                  ? `#${escapeHtml(r.order_id)}${r.order_total != null ? ` · ${escapeHtml(formatMoney(r.order_total))}` : ""}`
                   : "—"
                 let bonusMarkup = `<span class="text-muted">Aguardando pagamento</span>`
                 if (r.reward_coupon_code) {
