@@ -48,6 +48,10 @@ const {
   buildProductOgMetadata,
   combinaGroups,
   renderCombinaComponentCard,
+  renderCategoryFilterButtons,
+  renderCatalogIdentityHtml,
+  renderCatalogPhotoStrip,
+  renderSearchSuggestionsHtml,
   getSearchSuggestions,
   updateOpenGraphTags,
 } = window.MarisCatalogLogic
@@ -308,10 +312,7 @@ function renderCategoryFilters() {
   if (signature !== categoryFilterSignature) {
     categoryFilterSignature = signature
     const buttons = ["Todos", ...categories]
-    catalogFiltersEl.innerHTML = buttons.map((name) => {
-      const selected = name === selectedCategory
-      return `<button type="button" class="catalog-filter${selected ? " is-selected" : ""}" data-category="${name}" aria-pressed="${selected ? "true" : "false"}">${name}</button>`
-    }).join("")
+    catalogFiltersEl.innerHTML = renderCategoryFilterButtons(buttons, selectedCategory)
     return
   }
   catalogFiltersEl.querySelectorAll("[data-category]").forEach((button) => {
@@ -464,10 +465,7 @@ function renderOfferHtml(product) {
 }
 
 function renderPhotoStrip(urls, alt) {
-  const shown = (urls || []).filter(Boolean).slice(0, 2)
-  if (!shown.length) return `<div class="product-media"><div class="product-photos product-photos-empty"></div></div>`
-  const dots = shown.length > 1 ? `<div class="product-photo-dots" aria-hidden="true"><span></span><span></span></div>` : ""
-  return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}</div>`
+  return renderCatalogPhotoStrip(urls, alt)
 }
 
 function renderNoteBadges(product, soldOut) {
@@ -553,8 +551,7 @@ function renderCatalogGroup(group) {
       ${renderNoteBadges(product, soldOut)}
       ${renderPhotoStrip(imageUrls, product.name || "Peça")}
       <div class="product-body">
-        <h3>${escapeHtml(product.name)}</h3>
-        <div class="code">${escapeHtml(product.code)}</div>
+        ${renderCatalogIdentityHtml(product.name, product.code)}
         ${colorHtml ? `<div class="color-options" role="group" aria-label="Cor">${colorHtml}</div>` : ""}
         ${splitInfo}
         ${priceHtml}
@@ -1633,33 +1630,7 @@ function renderSearchSuggestions() {
     return
   }
 
-  if (!query) {
-    catalogSearchSuggestionsEl.innerHTML = `
-      <div class="catalog-suggestion-header">Sugestões rápidas</div>
-      <div class="catalog-suggestion-chips">
-        ${suggestions.map((s) => `
-          <button type="button" class="catalog-suggestion-chip" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}">
-            ${escapeHtml(s.text)}
-          </button>
-        `).join("")}
-      </div>
-    `
-  } else {
-    catalogSearchSuggestionsEl.innerHTML = `
-      <div class="catalog-suggestion-header">Sugestões</div>
-      <div class="catalog-suggestion-list">
-        ${suggestions.map((s) => {
-          const badge = s.kind === "category" ? "Categoria" : s.kind === "collection" ? "Coleção" : "Peça"
-          return `
-            <button type="button" class="catalog-suggestion-item" data-suggestion-kind="${escapeHtml(s.kind)}" data-suggestion-value="${escapeHtml(s.value)}" ${s.groupKey ? `data-group-key="${escapeHtml(s.groupKey)}"` : ""}>
-              <span class="catalog-suggestion-text">${escapeHtml(s.text)}</span>
-              <span class="catalog-suggestion-badge">${badge}</span>
-            </button>
-          `
-        }).join("")}
-      </div>
-    `
-  }
+  catalogSearchSuggestionsEl.innerHTML = renderSearchSuggestionsHtml(suggestions, query)
   catalogSearchSuggestionsEl.hidden = false
 }
 

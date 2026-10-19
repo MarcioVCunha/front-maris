@@ -1,6 +1,7 @@
 import {
   orderPaidHint,
   paidIdsToRemove,
+  renderAccountsSaleCards,
   rowsForUnpaidView,
   toggleSaleSelection,
   withoutPaidIds
@@ -135,19 +136,6 @@ function getSaleImageUrl(row) {
   const code = catalogCodeForSale(row)
   if (!code) return ""
   return imageUrlByProductCode[code] || ""
-}
-
-function escapeHtml(text) {
-  return window.MarisUI.escapeHtml(text)
-}
-
-function renderProductPhoto(row) {
-  const url = getSaleImageUrl(row)
-  const name = String(row.product_name || "Produto")
-  if (!url) {
-    return `<div class="sale-card-photo sale-card-photo--empty" aria-hidden="true"><span>Sem foto</span></div>`
-  }
-  return `<img class="sale-card-photo" src="${escapeHtml(url)}" alt="${escapeHtml(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'sale-card-photo sale-card-photo--empty',innerHTML:'<span>Sem foto</span>'}))">`
 }
 
 async function loadProductImagesForSales(sales) {
@@ -334,63 +322,15 @@ function renderRows(rows) {
     }
   }
 
-  salesGrid.innerHTML = rows
-    .map((row) => {
-      const cancelled = String(row.status || "active") === "cancelled"
-      const paid = isPaidValue(row)
-      const type = String(row.sale_item_type || "product") === "component" ? "Tipo" : "Produto"
-      const id = saleIdKey(row)
-      const dateLabel = paid && row.paid_at ? "Paga em" : "Data"
-      const dateValue = paid && row.paid_at ? row.paid_at : row.created_at
-      const hint = orderPaidHint(row)
-
-      let badgeClass = paid ? "badge-paid" : "badge-unpaid"
-      let badgeText = paid ? "Paga" : "A receber"
-      if (cancelled) {
-        badgeClass = "badge-cancelled"
-        badgeText = "Cancelada"
-      }
-
-      const meta = `
-        ${renderProductPhoto(row)}
-        <h3 class="sale-card-title">${escapeHtml(row.product_name || "—")}</h3>
-        <p class="sale-card-code">${type} · ${escapeHtml(row.product_code || "")}</p>
-        ${hint ? `<p class="sale-order-hint">${escapeHtml(hint)}</p>` : ""}
-        <dl class="sale-card-meta">
-          <div><dt>${dateLabel}</dt><dd>${formatDate(dateValue)}</dd></div>
-          <div><dt>Quantidade</dt><dd>${Number(row.quantity) || 0}</dd></div>
-          <div><dt>Vendedora</dt><dd>${escapeHtml(row.seller_name || "—")}</dd></div>
-          <div><dt>Pagamento</dt><dd>${escapeHtml(paymentLabel(row.payment_method))}</dd></div>
-        </dl>
-        <div class="sale-card-footer">
-          <span class="badge ${badgeClass}">${badgeText}</span>
-          <span class="sale-card-value">${formatMoneyBRL(row.total_value)}</span>
-        </div>
-      `
-
-      if (cancelled) {
-        return `
-          <div class="sale-card sale-card--cancelled" role="listitem" data-sale-id="${escapeHtml(id)}">
-            ${meta}
-          </div>
-        `
-      }
-
-      const checked = id && selectedSaleIds.has(id) ? "checked" : ""
-      const selectedClass = checked ? "sale-card--selected" : ""
-      const cancelBtn = paid
-        ? `<button type="button" class="btn-return-sale" data-return-sale-id="${escapeHtml(id)}">Devolver venda</button>`
-        : `<button type="button" class="btn-cancel-sale" data-cancel-sale-id="${escapeHtml(id)}">Cancelar venda</button>`
-
-      return `
-        <label class="sale-card ${selectedClass}" role="listitem" data-sale-id="${escapeHtml(id)}">
-          <input type="checkbox" class="row-select sale-card-checkbox" data-sale-id="${escapeHtml(id)}" ${checked} aria-label="Selecionar venda de ${escapeHtml(row.product_name || "produto")}">
-          ${meta}
-          ${cancelBtn ? `<div class="sale-card-actions">${cancelBtn}</div>` : ""}
-        </label>
-      `
-    })
-    .join("")
+  salesGrid.innerHTML = renderAccountsSaleCards(rows, {
+    formatMoney: formatMoneyBRL,
+    formatDate,
+    paymentLabel,
+    imageUrlFor: getSaleImageUrl,
+    isPaid: isPaidValue,
+    selectedIds: selectedSaleIds,
+    orderPaidHint
+  })
 
   syncSelectAllCheckbox(rows)
   syncActionButtons(rows)

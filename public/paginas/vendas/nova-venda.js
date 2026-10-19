@@ -14,6 +14,9 @@ import {
   filterCustomers,
   filterPieces,
   formatWhatsapp,
+  renderCategoryChipsHtml,
+  renderCustomerHitHtml,
+  renderPieceIdentityHtml,
   isMarketplaceSale,
   monthCardFromSummary,
   newClientRequestId,
@@ -346,15 +349,13 @@ function renderCategoryChips() {
     if (!categories.includes(cat) && counts[cat]) categories.push(cat)
   }
 
-  pieceCategoriesEl.innerHTML = categories.map((cat) => {
-    const count = cat === "Todas" ? totalCount : (counts[cat] || 0)
-    const isActive = (state.activeCategory || "Todas").toLowerCase() === cat.toLowerCase()
-    return `
-      <button type="button" class="category-chip" data-category="${escapeHtml(cat)}" aria-pressed="${isActive ? "true" : "false"}">
-        ${escapeHtml(cat)} <span class="chip-count">${count}</span>
-      </button>
-    `
-  }).join("")
+  pieceCategoriesEl.innerHTML = renderCategoryChipsHtml(
+    categories.map((cat) => ({
+      name: cat,
+      count: cat === "Todas" ? totalCount : (counts[cat] || 0)
+    })),
+    state.activeCategory || "Todas"
+  )
 }
 
 function showFlow(step) {
@@ -540,8 +541,7 @@ function renderPieces() {
               <span class="piece-card-cat">${escapeHtml(resolvePieceCategory(piece))}</span>
               <span class="badge-subtipos">Peça com divisões</span>
             </div>
-            <h3 class="piece-card-title">${escapeHtml(piece.name)}</h3>
-            <p class="piece-card-code">${escapeHtml(piece.code)}</p>
+            ${renderPieceIdentityHtml(piece)}
             <div class="piece-card-prices">
               <span class="price-from-label">Subtipos a partir de:</span>
               <strong class="price-current">${money(lowestPrice)}</strong>
@@ -642,8 +642,7 @@ function renderPieces() {
         </div>
         <div class="piece-card-info">
           <span class="piece-card-cat">${escapeHtml(resolvePieceCategory(piece))}</span>
-          <h3 class="piece-card-title">${escapeHtml(piece.name)}</h3>
-          <p class="piece-card-code">${escapeHtml(piece.code)}</p>
+          ${renderPieceIdentityHtml(piece)}
           <div class="piece-card-prices">
             ${isPromo ? `<span class="price-original">${money(piece.unit_price)}</span>` : ""}
             <strong class="price-current">${money(price)}</strong>
@@ -681,12 +680,7 @@ function renderCustomers() {
   }
   customerResultsEl.innerHTML = visible.map((customer) => {
     const picked = state.pickedCustomer && String(state.pickedCustomer.id) === String(customer.id)
-    return `<button type="button" class="customer-hit" data-customer="${escapeHtml(customer.id)}" aria-pressed="${picked ? "true" : "false"}">
-      <span>
-        <strong>${escapeHtml(customer.name)}</strong>
-        <small>${escapeHtml(formatWhatsapp(customer.whatsapp))}</small>
-      </span>
-    </button>`
+    return renderCustomerHitHtml(customer, picked)
   }).join("")
 }
 

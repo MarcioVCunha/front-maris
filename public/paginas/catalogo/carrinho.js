@@ -114,28 +114,10 @@ function renderCart() {
     if (!line.onSale) {
       eligibleSubtotal += line.total
     }
-    const stockLabel = line.available > 0 ? `${line.available} em estoque` : "Sem estoque"
     const priceLabel = line.onSale
       ? window.MarisUI.renderPricePair(line.originalPrice * line.quantity, line.total)
       : formatMoneyBRL(line.total)
-    return `
-      <article class="cart-line" data-key="${line.key}">
-        <div class="cart-line-main">
-          <img class="cart-line-image" src="${window.MarisUI.escapeHtml(line.image_url || "")}" alt="${window.MarisUI.escapeHtml(line.name)}">
-          <div>
-            <p class="cart-line-name">${window.MarisUI.escapeHtml(line.name)}</p>
-            <p class="cart-line-code">${window.MarisUI.escapeHtml(line.code)} — ${priceLabel}</p>
-            <p class="cart-line-stock">${stockLabel}</p>
-          </div>
-        </div>
-        <div class="cart-line-actions">
-          <button type="button" data-action="minus">-</button>
-          <span>${line.quantity}</span>
-          <button type="button" data-action="plus">+</button>
-          <button type="button" data-action="remove" class="remove">Remover</button>
-        </div>
-      </article>
-    `
+    return window.MarisPedido.renderCartLineHtml(line, priceLabel)
   }).join("")
 
   if (cartSubtotalEl) {
