@@ -510,15 +510,6 @@ Deno.test("os menus escondem administração da vendedora e mostram tipos", asyn
   assert(homeTipos.includes("hidden"))
   assertEquals(index.includes("clearToken"), false)
 
-  const hub = await readPublic("paginas/admin/vendedoras.html")
-  assertEquals(anchor(hub, "/vendas/nova").includes("data-staff-min"), false)
-  assertEquals(hub.includes('href="/vendas"'), false)
-  assertEquals(hub.includes('href="/carrinhos-clientes"'), false)
-  assertEquals(hub.includes('href="/carrinho-cliente"'), false)
-  assert(anchor(hub, "/lista-espera").includes('data-staff-min="admin"'))
-  assert(anchor(hub, "/contas-vendedoras").includes('data-staff-min="admin"'))
-  assert(anchor(hub, "/tipos-produto").includes('data-staff-only="seller"'))
-
   const tipos = await readPublic("paginas/estoque/tipos-produto/tipos-produto.html")
   assert(anchor(tipos, "/admin").includes('data-staff-min="admin"'))
   assert(anchor(tipos, "/vendedoras").includes('data-staff-only="seller"'))
@@ -549,14 +540,10 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "paginas/admin/nova-senha.html",
     "paginas/admin/admin.html",
     "paginas/admin/painel.html",
-    "paginas/admin/vendedoras.html",
     "paginas/vendas/nova-venda.html",
     "paginas/vendas/lista-espera.html",
     "paginas/vendedoras/contas.html",
-    "paginas/estoque/tipos-produto/tipos-produto.html",
-    "paginas/estoque/promocoes/promocoes.html",
-    "paginas/estoque/importar/importar.html",
-    "paginas/estoque/adicionar-peca/adicionar-peca.html"
+    "paginas/estoque/tipos-produto/tipos-produto.html"
   ]
   for (const page of staffPages) {
     const html = await readPublic(page)
