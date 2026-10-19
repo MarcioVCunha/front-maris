@@ -6,6 +6,13 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Importação com Prévia Editável (`/admin/importar`, Etapa 6):
+  - **Área de upload com drag-and-drop**: Seleção de arquivo JSON por clique ou arrastar, com leitura instantânea do arquivo sem gravação direta no banco.
+  - **Grade de conferência visual e cards editáveis**: Exibição de cards individuais com miniatura da foto, campos editáveis de Código (com validação obrigatória e trava contra duplicatas no lote), Nome da peça, Categoria (select com opções padronizadas da loja), Estoque/Qtd e Preço de Venda (R$) com suporte à formatação brasileira.
+  - **Exclusão de peças indesejadas**: Botão de 1 clique em cada card para descartar qualquer item do lote antes da importação.
+  - **Barra de controle e contadores**: Resumo com total de peças, busca em tempo real para filtrar itens na grade, botão de cancelamento para escolher outro arquivo e botão "Confirmar Importação (X peças)" com validação de consistência.
+  - **Feedback e navegação pós-importação**: Exibição de métricas de sucesso (criados e atualizados), aviso de falhas de foto se houver e botões diretos para navegar até `/admin/estoque` ou importar um novo lote.
+
 - Peças Paradas (>60 dias), Reposição ("Quero essa peça") e Visão Compras da Marineide (Etapa 4):
   - **Peças paradas há mais de 60 dias (`/admin/estoque`)**: Filtro com chip `⏳ Paradas (+60d)` no estoque com identificação visual clara (`⏳ Sem saída há Xd`) para itens com estoque e sem vendas nos últimos 60 dias, e atalho direto `Criar promo` que abre a tela de promoções já pré-preenchida com o código da peça.
   - **"Quero essa peça" nas esgotadas (`/catalog`)**: Botão de 1 toque `💖 Quero essa peça` em itens esgotados, registrando o interesse da cliente instantaneamente no banco sem fricção, seguido de convite acolhedor e opcional para deixar WhatsApp ou e-mail caso queira receber aviso imediato de reposição.
