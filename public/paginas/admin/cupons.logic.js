@@ -38,13 +38,13 @@ export function computeCouponStatus(coupon, now = Date.now()) {
   }
 
   const maxUses = Number(coupon.max_uses)
-  const currentUses = Number(coupon.current_uses) || 0
+  const currentUses = Number(coupon.current_uses ?? coupon.uses_count) || 0
   if (Number.isFinite(maxUses) && maxUses > 0 && currentUses >= maxUses) {
     return { label: "Esgotado", tone: "expired" }
   }
 
   const startMs = Date.parse(String(coupon.starts_at || ""))
-  const endMs = Date.parse(String(coupon.expires_at || ""))
+  const endMs = Date.parse(String(coupon.expires_at || coupon.ends_at || ""))
 
   if (Number.isFinite(startMs) && startMs > now) {
     return { label: "Agendado", tone: "scheduled" }
@@ -59,7 +59,7 @@ export function computeCouponStatus(coupon, now = Date.now()) {
 
 export function formatCouponDiscount(coupon) {
   if (!coupon) return ""
-  const val = Number(coupon.discount_value) || 0
+  const val = Number(coupon.discount_value ?? coupon.value) || 0
   if (coupon.discount_type === "percent") {
     return `${val}% OFF`
   }
@@ -69,21 +69,21 @@ export function formatCouponDiscount(coupon) {
 export function formatCouponRules(coupon, formatMoney = (v) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`) {
   if (!coupon) return ""
   const parts = []
-  const minVal = Number(coupon.min_order_value)
+  const minVal = Number(coupon.min_order_value ?? coupon.min_order_subtotal)
   if (Number.isFinite(minVal) && minVal > 0) {
     parts.push(`Mínimo ${formatMoney(minVal)}`)
   }
-  if (coupon.first_purchase_only) {
+  if (coupon.first_purchase_only || coupon.is_first_purchase_only) {
     parts.push("1ª compra")
   }
   const maxUses = Number(coupon.max_uses)
-  const currentUses = Number(coupon.current_uses) || 0
+  const currentUses = Number(coupon.current_uses ?? coupon.uses_count) || 0
   if (Number.isFinite(maxUses) && maxUses > 0) {
     parts.push(`${currentUses}/${maxUses} usos`)
   } else if (currentUses > 0) {
     parts.push(`${currentUses} usos`)
   }
-  if (coupon.is_referral) {
+  if (coupon.is_referral || coupon.referrer_whatsapp) {
     parts.push(`Indicação (${coupon.referrer_name || "cliente"})`)
   }
   return parts.length ? parts.join(" · ") : "Sem restrições adicionais"
@@ -110,7 +110,7 @@ export function filterCoupons(coupons, { query = "", status = "all" } = {}) {
       const computed = computeCouponStatus(c, now)
       if (status === "active" && computed.tone !== "active") return false
       if (status === "inactive" && computed.tone === "active") return false
-      if (status === "referral" && !c.is_referral) return false
+      if (status === "referral" && !c.is_referral && !c.referrer_whatsapp) return false
     }
 
     if (q) {
@@ -244,11 +244,133 @@ export function validateReferralCodePayload(payload = {}) {
   }
 }
 
+export function computeCouponsMetrics(coupons = []) {
+  const list = Array.isArray(coupons) ? coupons : []
+  const totalCoupons = list.length
+  const now = Date.now()
+
+  let activeCoupons = 0
+  let totalUses = 0
+  let totalOrders = 0
+  let totalSales = 0
+  let totalDiscount = 0
+  let topCoupon = null
+  let maxUses = -1
+
+  for (const c of list) {
+    const status = computeCouponStatus(c, now)
+    if (status.tone === "active") {
+      activeCoupons++
+    }
+
+    const uses = Number(c.uses_count ?? c.current_uses ?? 0) || 0
+    const orders = Number(c.orders_count ?? 0) || 0
+    const sales = Number(c.total_sales ?? 0) || 0
+    const discount = Number(c.total_discount ?? 0) || 0
+
+    totalUses += uses
+    totalOrders += orders
+    totalSales += sales
+    totalDiscount += discount
+
+    if (uses > maxUses && uses > 0) {
+      maxUses = uses
+      topCoupon = {
+        code: c.code,
+        uses,
+        sales,
+        discount
+      }
+    }
+  }
+
+  const averageTicket = totalUses > 0 ? totalSales / totalUses : 0
+
+  return {
+    totalCoupons,
+    activeCoupons,
+    totalUses,
+    totalOrders,
+    totalSales: Number(totalSales.toFixed(2)),
+    totalDiscount: Number(totalDiscount.toFixed(2)),
+    averageTicket: Number(averageTicket.toFixed(2)),
+    topCoupon
+  }
+}
+
+export function computeReferralsMetrics(referrals = []) {
+  const list = Array.isArray(referrals) ? referrals : []
+  const totalReferrals = list.length
+
+  let pendingReferrals = 0
+  let confirmedReferrals = 0
+  let cancelledReferrals = 0
+  let rewardsIssued = 0
+  let rewardsUsed = 0
+
+  const referrerCountMap = new Map()
+
+  for (const r of list) {
+    const status = String(r.status || "pendente").toLowerCase()
+    if (status === "confirmado") {
+      confirmedReferrals++
+    } else if (status === "cancelado") {
+      cancelledReferrals++
+    } else {
+      pendingReferrals++
+    }
+
+    if (r.reward_coupon_code) {
+      rewardsIssued++
+    }
+    if (r.reward_coupon_used) {
+      rewardsUsed++
+    }
+
+    const refKey = String(r.referrer_name || "").trim()
+    if (refKey) {
+      const prev = referrerCountMap.get(refKey) || { name: refKey, count: 0, confirmed: 0 }
+      prev.count++
+      if (status === "confirmado") prev.confirmed++
+      referrerCountMap.set(refKey, prev)
+    }
+  }
+
+  const conversionRate = totalReferrals > 0
+    ? Number(((confirmedReferrals / totalReferrals) * 100).toFixed(1))
+    : 0
+
+  let topReferrer = null
+  let maxCount = 0
+  for (const entry of referrerCountMap.values()) {
+    if (entry.count > maxCount) {
+      maxCount = entry.count
+      topReferrer = entry
+    }
+  }
+
+  return {
+    totalReferrals,
+    pendingReferrals,
+    confirmedReferrals,
+    cancelledReferrals,
+    conversionRate,
+    rewardsIssued,
+    rewardsUsed,
+    topReferrer
+  }
+}
+
 export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`) {
   const status = computeCouponStatus(coupon)
   const discountText = formatCouponDiscount(coupon)
   const rulesText = formatCouponRules(coupon, formatMoney)
   const isActive = coupon.is_active !== false
+  const isReferral = Boolean(coupon.is_referral || coupon.referrer_whatsapp)
+
+  const uses = Number(coupon.uses_count ?? coupon.current_uses ?? 0) || 0
+  const sales = Number(coupon.total_sales ?? 0) || 0
+  const discount = Number(coupon.total_discount ?? 0) || 0
 
   return `
     <article class="coupon-card ${isActive ? "" : "coupon-card--inactive"}" data-coupon-id="${coupon.id}">
@@ -256,7 +378,7 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
         <div class="coupon-card__badge-group">
           <strong class="coupon-card__code">${escapeHtml(coupon.code)}</strong>
           <span class="coupon-status-badge status--${status.tone}">${status.label}</span>
-          ${coupon.is_referral ? `<span class="coupon-referral-tag">Indicação</span>` : ""}
+          ${isReferral ? `<span class="coupon-referral-tag">Indicação</span>` : ""}
         </div>
         <span class="coupon-card__discount">${discountText}</span>
       </div>
@@ -265,8 +387,16 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
 
       <div class="coupon-card__details">
         <span class="coupon-card__rule-item">${rulesText}</span>
-        ${coupon.expires_at ? `<span class="coupon-card__date">Vence em: ${formatDateBR(coupon.expires_at)}</span>` : `<span class="coupon-card__date">Sem expiração</span>`}
+        ${coupon.expires_at || coupon.ends_at ? `<span class="coupon-card__date">Vence em: ${formatDateBR(coupon.expires_at || coupon.ends_at)}</span>` : `<span class="coupon-card__date">Sem expiração</span>`}
       </div>
+
+      ${(uses > 0 || sales > 0) ? `
+        <div class="coupon-card__perf" aria-label="Desempenho do cupom">
+          <span class="coupon-perf-pill">⭐ ${uses} ${uses === 1 ? "uso" : "usos"}</span>
+          ${sales > 0 ? `<span class="coupon-perf-pill coupon-perf-pill--sales">${formatMoney(sales)} em vendas</span>` : ""}
+          ${discount > 0 ? `<span class="coupon-perf-pill coupon-perf-pill--discount">-${formatMoney(discount)}</span>` : ""}
+        </div>
+      ` : ""}
 
       <div class="coupon-card__actions">
         <button type="button" class="btn-coupon-toggle ${isActive ? "btn-coupon-toggle--on" : "btn-coupon-toggle--off"}" data-action="toggle" data-id="${coupon.id}" data-active="${isActive}">
@@ -283,12 +413,13 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
   const couponStatus = options.couponStatus || "all"
   const referralQuery = options.referralQuery || ""
   const referralStatus = options.referralStatus || "all"
+  const formatMoney = options.formatMoney || ((v) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`)
 
   const filteredCoupons = filterCoupons(coupons, { query: couponQuery, status: couponStatus })
   const filteredReferrals = filterReferrals(referrals, { query: referralQuery, status: referralStatus })
 
-  const pendingReferrals = referrals.filter((r) => r.status === "pendente").length
-  const confirmedReferrals = referrals.filter((r) => r.status === "confirmado").length
+  const couponMetrics = options.couponSummary || computeCouponsMetrics(coupons)
+  const refMetrics = options.referralSummary || computeReferralsMetrics(referrals)
 
   return `
     <div class="coupons-view">
@@ -313,6 +444,29 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
       </header>
 
       ${activeTab === "coupons" ? `
+        <div class="coupons-summary-bar">
+          <div class="coupon-stat">
+            <span class="coupon-stat__num">${couponMetrics.totalUses}</span>
+            <span class="coupon-stat__label">Total de Usos</span>
+            <small class="coupon-stat__sub">${couponMetrics.topCoupon ? `Top: <strong>${escapeHtml(couponMetrics.topCoupon.code)}</strong>` : "Nenhum uso registrado"}</small>
+          </div>
+          <div class="coupon-stat coupon-stat--sales">
+            <span class="coupon-stat__num">${formatMoney(couponMetrics.totalSales)}</span>
+            <span class="coupon-stat__label">Vendas com Cupom</span>
+            <small class="coupon-stat__sub">${couponMetrics.totalOrders > 0 ? `${couponMetrics.totalOrders} pedidos pagos` : (couponMetrics.totalUses > 0 ? `Ticket médio ${formatMoney(couponMetrics.averageTicket)}` : "Aguardando pedidos")}</small>
+          </div>
+          <div class="coupon-stat coupon-stat--discount">
+            <span class="coupon-stat__num">${formatMoney(couponMetrics.totalDiscount)}</span>
+            <span class="coupon-stat__label">Descontos Concedidos</span>
+            <small class="coupon-stat__sub">Economia para clientes</small>
+          </div>
+          <div class="coupon-stat coupon-stat--active">
+            <span class="coupon-stat__num">${couponMetrics.activeCoupons} <small class="text-muted">/ ${couponMetrics.totalCoupons}</small></span>
+            <span class="coupon-stat__label">Cupons Ativos</span>
+            <small class="coupon-stat__sub">Disponíveis no catálogo</small>
+          </div>
+        </div>
+
         <div class="coupons-toolbar">
           <div class="coupons-search-field">
             <input id="coupon-search-input" type="search" placeholder="Buscar cupom por código ou descrição..." value="${escapeHtml(couponQuery)}" autocomplete="off">
@@ -326,7 +480,7 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
         </div>
 
         <div class="coupons-grid">
-          ${filteredCoupons.length ? filteredCoupons.map((c) => renderCouponCard(c)).join("") : `
+          ${filteredCoupons.length ? filteredCoupons.map((c) => renderCouponCard(c, formatMoney)).join("") : `
             <div class="coupons-empty">
               <p>Nenhum cupom encontrado.</p>
             </div>
@@ -335,16 +489,24 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
       ` : `
         <div class="referrals-summary-bar">
           <div class="ref-stat">
-            <span class="ref-stat__num">${referrals.length}</span>
-            <span class="ref-stat__label">Total de Indicações</span>
-          </div>
-          <div class="ref-stat ref-stat--pending">
-            <span class="ref-stat__num">${pendingReferrals}</span>
-            <span class="ref-stat__label">Aguardando Pagamento</span>
+            <span class="ref-stat__num">${refMetrics.totalReferrals}</span>
+            <span class="ref-stat__label">Amigas Indicadas</span>
+            <small class="ref-stat__sub">${refMetrics.pendingReferrals} aguardando pedido</small>
           </div>
           <div class="ref-stat ref-stat--confirmed">
-            <span class="ref-stat__num">${confirmedReferrals}</span>
-            <span class="ref-stat__label">Confirmadas (Bônus Liberado)</span>
+            <span class="ref-stat__num">${refMetrics.conversionRate.toFixed(1).replace(".", ",")}%</span>
+            <span class="ref-stat__label">Taxa de Conversão</span>
+            <small class="ref-stat__sub">${refMetrics.confirmedReferrals} pedidos confirmados</small>
+          </div>
+          <div class="ref-stat ref-stat--reward">
+            <span class="ref-stat__num">${refMetrics.rewardsIssued}</span>
+            <span class="ref-stat__label">Bônus Gerados (10%)</span>
+            <small class="ref-stat__sub">${refMetrics.rewardsUsed > 0 ? `${refMetrics.rewardsUsed} já resgatados` : "Aguardando primeiro resgate"}</small>
+          </div>
+          <div class="ref-stat ref-stat--top">
+            <span class="ref-stat__num ref-stat__num--small">${refMetrics.topReferrer ? escapeHtml(refMetrics.topReferrer.name) : "—"}</span>
+            <span class="ref-stat__label">Indicadora Campeã</span>
+            <small class="ref-stat__sub">${refMetrics.topReferrer ? `${refMetrics.topReferrer.count} indicações` : "Nenhuma ainda"}</small>
           </div>
         </div>
 
@@ -360,6 +522,7 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
             <button type="button" class="coupon-chip ${referralStatus === "all" ? "coupon-chip--active" : ""}" data-ref-status="all">Todas</button>
             <button type="button" class="coupon-chip ${referralStatus === "pendente" ? "coupon-chip--active" : ""}" data-ref-status="pendente">Pendentes</button>
             <button type="button" class="coupon-chip ${referralStatus === "confirmado" ? "coupon-chip--active" : ""}" data-ref-status="confirmado">Confirmadas</button>
+            <button type="button" class="coupon-chip ${referralStatus === "cancelado" ? "coupon-chip--active" : ""}" data-ref-status="cancelado">Canceladas</button>
           </div>
         </div>
 
@@ -378,6 +541,21 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
             <tbody>
               ${filteredReferrals.length ? filteredReferrals.map((r) => {
                 const status = computeReferralStatus(r)
+                const orderText = r.order_id
+                  ? `#${r.order_id}${r.order_total != null ? ` · ${formatMoney(r.order_total)}` : ""}`
+                  : "—"
+                let bonusMarkup = `<span class="text-muted">Aguardando pagamento</span>`
+                if (r.reward_coupon_code) {
+                  const usedBadge = r.reward_coupon_used
+                    ? `<span class="bonus-badge bonus-badge--used" title="A indicadora já utilizou este bônus em uma compra">Resgatado</span>`
+                    : `<span class="bonus-badge bonus-badge--available" title="Disponível para a indicadora utilizar">Disponível</span>`
+                  bonusMarkup = `
+                    <div class="bonus-cell">
+                      <strong class="reward-code-pill">${escapeHtml(r.reward_coupon_code)}</strong>
+                      ${usedBadge}
+                    </div>
+                  `
+                }
                 return `
                   <tr>
                     <td>${formatDateBR(r.created_at)}</td>
@@ -389,11 +567,9 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
                       <strong>${escapeHtml(r.referee_name)}</strong><br>
                       <small class="text-muted">${escapeHtml(r.referee_whatsapp)}</small>
                     </td>
-                    <td>${r.order_id ? `#${r.order_id}` : "—"}</td>
+                    <td>${orderText}</td>
                     <td><span class="coupon-status-badge status--${status.tone}">${status.label}</span></td>
-                    <td>
-                      ${r.reward_coupon_code ? `<strong class="reward-code-pill">${escapeHtml(r.reward_coupon_code)}</strong>` : `<span class="text-muted">Aguardando pagamento</span>`}
-                    </td>
+                    <td>${bonusMarkup}</td>
                   </tr>
                 `
               }).join("") : `
@@ -408,6 +584,7 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
     </div>
   `
 }
+
 
 export function renderCouponDialogContent() {
   return `

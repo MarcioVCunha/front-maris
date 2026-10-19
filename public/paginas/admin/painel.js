@@ -1160,11 +1160,13 @@ function paintPromocoes() {
 async function loadCoupons() {
   const res = await fetchCoupons()
   state.coupons = res.ok ? res.coupons : []
+  state.couponSummary = res.summary || null
 }
 
 async function loadReferrals() {
   const res = await fetchReferrals()
   state.referrals = res.ok ? res.referrals : []
+  state.referralSummary = res.summary || null
 }
 
 function openCouponDialog() {
@@ -1274,7 +1276,10 @@ function paintCupons() {
     couponQuery: state.couponQuery,
     couponStatus: state.couponStatus,
     referralQuery: state.referralQuery,
-    referralStatus: state.referralStatus
+    referralStatus: state.referralStatus,
+    couponSummary: state.couponSummary,
+    referralSummary: state.referralSummary,
+    formatMoney: formatPrice
   })
 
   // Tab switching

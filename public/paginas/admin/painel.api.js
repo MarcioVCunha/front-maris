@@ -374,7 +374,8 @@ export async function fetchCoupons(client) {
   }
   return {
     ok: true,
-    coupons: Array.isArray(result.data?.coupons) ? result.data.coupons : []
+    coupons: Array.isArray(result.data?.coupons) ? result.data.coupons : [],
+    summary: result.data?.summary || null
   }
 }
 
@@ -429,7 +430,8 @@ export async function fetchReferrals(client) {
   }
   return {
     ok: true,
-    referrals: Array.isArray(result.data?.referrals) ? result.data.referrals : []
+    referrals: Array.isArray(result.data?.referrals) ? result.data.referrals : [],
+    summary: result.data?.summary || null
   }
 }
 
