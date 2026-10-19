@@ -44,6 +44,8 @@ import {
   STOCK_PAGE_SIZE,
   validateAddProduct,
   validateProductUpdate,
+  renderShortcutsDialog,
+  resolveKeyboardShortcut,
   visibleStock
 } from "./painel.logic.js"
 import {
@@ -326,6 +328,97 @@ function bindFabOnce() {
     if (!fabRoot || fabRoot.hidden || fabMenu.hidden) return
     if (fabRoot.contains(event.target)) return
     closeFabMenu()
+  })
+}
+
+function bindShortcutsOnce() {
+  const dialog = document.getElementById("shortcuts-dialog")
+  if (dialog && !dialog.dataset.bound) {
+    dialog.dataset.bound = "1"
+    dialog.innerHTML = renderShortcutsDialog()
+    dialog.querySelector("#shortcuts-dialog-close")?.addEventListener("click", () => {
+      dialog.close()
+    })
+  }
+
+  const helpBtn = document.getElementById("shortcuts-help-btn")
+  if (helpBtn && !helpBtn.dataset.bound) {
+    helpBtn.dataset.bound = "1"
+    helpBtn.addEventListener("click", () => {
+      if (dialog) dialog.showModal()
+    })
+  }
+
+  if (document.body.dataset.shortcutsBound === "1") return
+  document.body.dataset.shortcutsBound = "1"
+
+  document.addEventListener("keydown", (event) => {
+    const dialogs = Array.from(document.querySelectorAll("dialog[open]"))
+    const isModalOpen = dialogs.length > 0
+    const view = dashboardView(location.pathname, location.search)
+
+    const result = resolveKeyboardShortcut(event, { isModalOpen, currentView: view })
+    if (result.action === "none") return
+
+    if (result.action === "escape") {
+      if (isModalOpen) {
+        event.preventDefault()
+        dialogs.forEach((d) => d.close())
+        return
+      }
+      const active = document.activeElement
+      if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+        if (active.value) {
+          active.value = ""
+          active.dispatchEvent(new Event("input", { bubbles: true }))
+        }
+        active.blur()
+      }
+      return
+    }
+
+    if (result.action === "focus-search") {
+      event.preventDefault()
+      const searchInput = document.getElementById("stock-query")
+      if (searchInput && (view === "estoque" || view === "esgotadas")) {
+        searchInput.focus()
+        searchInput.select()
+      } else {
+        navigate("/admin/estoque")
+        setTimeout(() => {
+          const input = document.getElementById("stock-query")
+          if (input) {
+            input.focus()
+            input.select()
+          }
+        }, 100)
+      }
+      return
+    }
+
+    if (result.action === "new-piece") {
+      event.preventDefault()
+      navigate("/admin/adicionar")
+      return
+    }
+
+    if (result.action === "new-sale") {
+      event.preventDefault()
+      window.location.href = "/vendas/nova"
+      return
+    }
+
+    if (result.action === "toggle-shortcuts-help") {
+      event.preventDefault()
+      if (dialog) {
+        if (dialog.open) {
+          dialog.close()
+        } else {
+          dialog.showModal()
+        }
+      }
+      return
+    }
   })
 }
 
@@ -2415,6 +2508,7 @@ async function boot() {
   window.addEventListener("popstate", () => { showView() })
   bindStockOnce()
   bindFabOnce()
+  bindShortcutsOnce()
   reveal()
   await showView()
 }
