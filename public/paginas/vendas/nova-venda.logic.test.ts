@@ -153,6 +153,7 @@ Deno.test("a seleção guarda várias peças e respeita o estoque", () => {
   const promoSelected = togglePiece([], promo)
   assertEquals(promoSelected[0].unit_price, 79.9)
   assertEquals(promoSelected[0].preco_pix, 75.91)
+  assertEquals(saleTotals(promoSelected, "pix").total, 75.91)
 })
 
 Deno.test("peças com subtipos/conjunto permitem vender partes individuais (só brinco, só colar) ou ambos", () => {

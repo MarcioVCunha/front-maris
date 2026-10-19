@@ -1,3 +1,5 @@
+import { quotePromoPrice } from "../../../compartilhado/promo-price.js"
+
 export const PROMO_CATEGORIES = [
   "Anel",
   "Brinco",
@@ -35,6 +37,30 @@ export function computePromotionStatus(promo, now = Date.now()) {
   }
 
   return { label: "Ativa", tone: "active" }
+}
+
+function moneyBRL(value) {
+  const number = Number(value)
+  const safe = Number.isFinite(number) ? number : 0
+  const negative = safe < 0
+  const [ints, dec] = Math.abs(safe).toFixed(2).split(".")
+  const grouped = ints.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+  return `${negative ? "-" : ""}R$ ${grouped},${dec}`
+}
+
+/** Exemplo do preço promocional: valor exato, sem piso ,90. */
+export function promoPriceExample(discountType, value, listPrice = 100) {
+  const type = discountType === "fixed" ? "fixed" : "percent"
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return "O preço promocional é o valor exato, com 2 casas. Não arredonda para ,90."
+  }
+  const finalPrice = quotePromoPrice(listPrice, type, amount)
+  if (type === "fixed") {
+    return `Exemplo: peça de ${moneyBRL(listPrice)} menos ${moneyBRL(amount)} fica ${moneyBRL(finalPrice)}. O promocional não arredonda para ,90.`
+  }
+  const pct = String(amount).replace(".", ",")
+  return `Exemplo: peça de ${moneyBRL(listPrice)} com ${pct}% fica ${moneyBRL(finalPrice)}. O promocional não arredonda para ,90.`
 }
 
 export function formatDiscountDisplay(promo) {
@@ -391,6 +417,7 @@ export function renderPromoDialogContent(promo = null) {
             <label class="form-field">
               <span id="promo-value-label">${discountType === "percent" ? "Desconto (% OFF) *" : "Desconto (R$ OFF) *"}</span>
               <input type="number" id="promo-form-value" required min="0.01" step="any" placeholder="Ex: 15" value="${escapeHtml(value)}">
+              <small id="promo-price-hint" class="field-hint">${escapeHtml(promoPriceExample(discountType, value))}</small>
             </label>
           </div>
 
@@ -445,6 +472,7 @@ if (typeof globalThis.window !== "undefined") {
     PROMO_CATEGORIES,
     computePromotionStatus,
     formatDiscountDisplay,
+    promoPriceExample,
     formatDateTimeBR,
     toLocalDatetimeInput,
     formatDateRange,

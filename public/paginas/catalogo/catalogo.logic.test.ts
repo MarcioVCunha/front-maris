@@ -311,6 +311,24 @@ Deno.test("preço Pix é 5% sobre o valor final e ignora valor inválido", () =>
   assertEquals(cheio.finalPrice, 80)
   assertEquals(cheio.percentOff, 0)
   assertEquals(cheio.pixPrice, 76)
+
+  const localVinte = offerFromProduct({ unit_price: 100, is_on_sale: true, discount_percent: 20 })
+  assertEquals(localVinte.finalPrice, 80)
+  assertEquals(localVinte.percentOff, 20)
+  assertEquals(localVinte.pixPrice, 76)
+  assertEquals(cartMoneyTotals([{ unit_price: localVinte.finalPrice, quantity: 1 }]).pixTotal, 76)
+
+  const vinte = offerFromProduct({
+    unit_price: 100,
+    is_on_sale: true,
+    discount_percent: 20,
+    preco_efetivo: 79.9,
+    preco_pix: 75.91
+  })
+  assertEquals(vinte.finalPrice, 79.9)
+  assertEquals(vinte.percentOff, 20)
+  assertEquals(vinte.pixPrice, 75.91)
+  assertEquals(cartMoneyTotals([{ unit_price: vinte.finalPrice, quantity: 1 }]).pixTotal, 75.91)
   assertEquals(PIX_PRICE_FIELD, "preco_pix")
   assertEquals(EFFECTIVE_PRICE_FIELD, "preco_efetivo")
 })
