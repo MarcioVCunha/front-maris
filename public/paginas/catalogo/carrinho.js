@@ -64,9 +64,13 @@ function formatWhatsappMask(value) {
 function showCartLoading() {
   if (!cartLinesEl) return
   cartLinesEl.classList.add("cart-lines--loading")
-  cartLinesEl.innerHTML = window.MarisLoading?.html
-    ? window.MarisLoading.html({ size: "md", block: true })
-    : `<div class="maris-loading maris-loading--md" role="status" aria-label="Carregando"></div>`
+  if (window.MarisLoading?.skeletonCartLines) {
+    cartLinesEl.innerHTML = window.MarisLoading.skeletonCartLines(3)
+  } else if (window.MarisLoading?.html) {
+    cartLinesEl.innerHTML = window.MarisLoading.html({ size: "md", block: true })
+  } else {
+    cartLinesEl.innerHTML = `<div class="maris-loading maris-loading--md" role="status" aria-label="Carregando"></div>`
+  }
 }
 
 function setCouponFeedback(text, type = "") {

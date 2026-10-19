@@ -73,7 +73,11 @@ function showCatalogLoading() {
   if (!catalogEl) return
   catalogEl.classList.add("catalog--loading")
   catalogEl.hidden = false
-  catalogEl.innerHTML = loadingMarkup({ size: "md", block: true })
+  if (window.MarisLoading?.skeletonCatalogGrid) {
+    catalogEl.innerHTML = window.MarisLoading.skeletonCatalogGrid(8)
+  } else {
+    catalogEl.innerHTML = loadingMarkup({ size: "md", block: true })
+  }
 }
 
 function clearCatalogLoading() {

@@ -486,7 +486,11 @@ function renderPieces() {
   }
 
   if (state.catalogLoading && !state.allPieces.length) {
-    pieceResultsEl.innerHTML = `<div class="catalog-loading-msg"><p>Carregando peças do catálogo...</p></div>`
+    if (window.MarisLoading?.skeletonNovaVendaGrid) {
+      pieceResultsEl.innerHTML = window.MarisLoading.skeletonNovaVendaGrid(6)
+    } else {
+      pieceResultsEl.innerHTML = `<div class="catalog-loading-msg"><p>Carregando peças do catálogo...</p></div>`
+    }
     return
   }
 

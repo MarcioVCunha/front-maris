@@ -130,7 +130,7 @@ import {
   renderPromoDialogContent,
   validatePromotionPayload as validatePromoPayload
 } from "../estoque/promocoes/promocoes.logic.js"
-import { loadingHtml } from "../../compartilhado/loading.js"
+import { loadingHtml, skeletonAdminDashboardHtml } from "../../compartilhado/loading.js"
 import {
   formatImageFailuresWarning,
   formatImportErrorMessage,
@@ -148,7 +148,10 @@ import {
   escapeHtml
 } from "../estoque/importar/importar.logic.js"
 
-function viewLoading() {
+function viewLoading(view = state?.view) {
+  if (typeof skeletonAdminDashboardHtml === "function") {
+    return skeletonAdminDashboardHtml(view)
+  }
   return loadingHtml({ block: true, size: "md" })
 }
 

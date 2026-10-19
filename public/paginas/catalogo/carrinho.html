@@ -61,11 +61,31 @@
         <h1>Minha cesta</h1>
         <p class="cart-help">Confira os itens e ajuste as quantidades antes de enviar.</p>
         <div id="cart-lines" class="cart-lines cart-lines--loading">
-          <div class="maris-loading maris-loading--md" role="status" aria-label="Carregando">
+          <div class="maris-loading visually-hidden" role="status" aria-label="Carregando">
             <svg class="maris-loading__spark" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true" focusable="false">
               <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
               <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
             </svg>
+          </div>
+          <div class="maris-skeleton-cart-list" role="status" aria-label="Carregando itens da cesta" aria-busy="true">
+            <div class="maris-skeleton-cart-line" aria-hidden="true">
+              <div class="maris-skeleton-cart-thumb maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-cart-info">
+                <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer" style="width: 70%;"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer" style="width: 40%; margin-top: 4px;"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer" style="width: 90px; margin-top: 8px;"></div>
+              </div>
+              <div class="maris-skeleton-cart-qty maris-skeleton-shimmer"></div>
+            </div>
+            <div class="maris-skeleton-cart-line" aria-hidden="true">
+              <div class="maris-skeleton-cart-thumb maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-cart-info">
+                <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer" style="width: 70%;"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer" style="width: 40%; margin-top: 4px;"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer" style="width: 90px; margin-top: 8px;"></div>
+              </div>
+              <div class="maris-skeleton-cart-qty maris-skeleton-shimmer"></div>
+            </div>
           </div>
         </div>
         <div class="cart-coupon-section">
