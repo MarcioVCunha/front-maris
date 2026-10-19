@@ -412,6 +412,26 @@ function categoryOptions(selected) {
   return blank + options
 }
 
+export const ORIGEM_OPTIONS = [
+  { value: 0, label: "0 — Nacional (padrão)" },
+  { value: 1, label: "1 — Importada direto" },
+  { value: 2, label: "2 — Importada comprada no Brasil" },
+  { value: 3, label: "3 — Nacional (importação > 40%)" },
+  { value: 4, label: "4 — Nacional com processo produtivo básico" },
+  { value: 5, label: "5 — Nacional (importação ≤ 40%)" },
+  { value: 6, label: "6 — Importada direto (sem similar nacional)" },
+  { value: 7, label: "7 — Importada no mercado interno (sem similar)" },
+  { value: 8, label: "8 — Nacional (importação > 70%)" }
+]
+
+export function originOptions(selected) {
+  const current = selected === "" || selected == null ? ORIGEM_DEFAULT : Number(selected)
+  return ORIGEM_OPTIONS.map((opt) => {
+    const picked = opt.value === current ? " selected" : ""
+    return `<option value="${opt.value}"${picked}>${escapeHtml(opt.label)}</option>`
+  }).join("")
+}
+
 function field(label, control) {
   return `<label class="field"><span>${label}</span>${control}</label>`
 }
@@ -442,7 +462,7 @@ export function renderPieceForm(piece, defaults = {}, options = {}) {
     ${field("Altura (cm)", input("altura", state.altura_cm, ` inputmode="decimal" placeholder="${escapeHtml(state.placeholders.altura_cm)}"`))}
     ${field("Comprimento (cm)", input("comprimento", state.comprimento_cm, ` inputmode="decimal" placeholder="${escapeHtml(state.placeholders.comprimento_cm)}"`))}
     ${field("NCM", input("ncm", state.ncm, ` placeholder="${escapeHtml(fieldPlaceholder("ncm", defaults))}"`))}
-    ${field("Origem", input("origem", state.origem, ` inputmode="numeric" placeholder="${escapeHtml(fieldPlaceholder("origem", defaults))}"`))}
+    ${field("Origem", `<select id="origem">${originOptions(state.origem)}</select>`)}
     ${field("GTIN", input("gtin", state.gtin, ` placeholder="Opcional"`))}
     <button class="btn-primary" type="submit">Salvar peça</button>
     <button class="btn-ghost" id="piece-history-open" type="button" data-piece-code="${escapeHtml(state.code)}">Ver histórico de estoque</button>
@@ -476,7 +496,7 @@ export function renderAddForm(defaults = {}) {
     ${field("Altura (cm)", `<input id="altura" inputmode="decimal" value="${escapeHtml(pack.altura_cm)}">`)}
     ${field("Comprimento (cm)", `<input id="comprimento" inputmode="decimal" value="${escapeHtml(pack.comprimento_cm)}">`)}
     ${field("NCM", `<input id="ncm" value="${NCM_DEFAULT}">`)}
-    ${field("Origem", `<input id="origem" inputmode="numeric" value="${ORIGEM_DEFAULT}">`)}
+    ${field("Origem", `<select id="origem">${originOptions(ORIGEM_DEFAULT)}</select>`)}
     ${field("GTIN", `<input id="gtin" placeholder="Opcional">`)}
     <button class="btn-primary" type="submit">Adicionar peça</button>
   </form>`

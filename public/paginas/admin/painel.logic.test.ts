@@ -5,6 +5,8 @@ import {
   HOME_CHANNEL_ORDER,
   NCM_DEFAULT,
   ORIGEM_DEFAULT,
+  ORIGEM_OPTIONS,
+  originOptions,
   NO_DATA,
   PACKAGING_DEFAULTS,
   STOCK_PAGE_SIZE,
@@ -203,6 +205,32 @@ Deno.test("adicionar peça repete os campos novos e o arquivamento pede confirma
   assertEquals(archivePayload(piece.code, false), { code: "AN581-R", archive: false })
   assertEquals(archiveConfirmText(piece), "Arquivar Anel rosa (AN581-R)? Ela sai da lista do estoque.")
   assert(renderArchiveDialog(piece).includes("archive-confirm"))
+})
+
+Deno.test("opções de origem da peça cobrem de 0 a 8 e renderizam select no formulário", () => {
+  assertEquals(ORIGEM_OPTIONS.length, 9)
+  assertEquals(ORIGEM_OPTIONS[0], { value: 0, label: "0 — Nacional (padrão)" })
+  assertEquals(ORIGEM_OPTIONS[1], { value: 1, label: "1 — Importada direto" })
+  assertEquals(ORIGEM_OPTIONS[8], { value: 8, label: "8 — Nacional (importação > 70%)" })
+
+  const opts0 = originOptions(0)
+  assert(opts0.includes('<option value="0" selected>0 — Nacional (padrão)</option>'))
+  assert(opts0.includes('<option value="1">1 — Importada direto</option>'))
+
+  const opts2 = originOptions("2")
+  assert(opts2.includes('<option value="2" selected>2 — Importada comprada no Brasil</option>'))
+  assert(!opts2.includes('<option value="0" selected>'))
+
+  const optsNull = originOptions(null)
+  assert(optsNull.includes('<option value="0" selected>0 — Nacional (padrão)</option>'))
+
+  const form = renderPieceForm({ code: "AN581-R", name: "Anel rosa", origem: 1 }, anelDefaults)
+  assert(form.includes('<select id="origem">'))
+  assert(form.includes('<option value="1" selected>1 — Importada direto</option>'))
+
+  const add = renderAddForm()
+  assert(add.includes('<select id="origem">'))
+  assert(add.includes('<option value="0" selected>0 — Nacional (padrão)</option>'))
 })
 
 Deno.test("a embalagem ao adicionar começa no padrão e a categoria só troca o que não foi editado", () => {

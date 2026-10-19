@@ -6,6 +6,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Dropdown amigável para Origem da Peça (`/admin/adicionar` e `/admin/peca`):
+  - Substituição do input numérico cru por `<select id="origem">` com opções amigáveis e padronizadas de 0 a 8 (`0 — Nacional (padrão)`, `1 — Importada direto`, `2 — Importada comprada no Brasil`, etc.).
+  - Integração nos formulários de cadastro de nova peça (`renderAddForm`) e de edição de peça existente (`renderPieceForm`), com seleção correta do valor atual ou padrão (0).
+
 - Importação com Prévia Editável (`/admin/importar`, Etapa 6):
   - **Área de upload com drag-and-drop**: Seleção de arquivo JSON por clique ou arrastar, com leitura instantânea do arquivo sem gravação direta no banco.
   - **Grade de conferência visual e cards editáveis**: Exibição de cards individuais com miniatura da foto, campos editáveis de Código (com validação obrigatória e trava contra duplicatas no lote), Nome da peça, Categoria (select com opções padronizadas da loja), Estoque/Qtd e Preço de Venda (R$) com suporte à formatação brasileira.
