@@ -79,11 +79,295 @@
   padding: 48px 16px;
 }
 
-.catalog.catalog--loading,
+.catalog.catalog--loading {
+  display: block;
+  min-height: 220px;
+}
+
 #cart-lines.cart-lines--loading {
+  display: block;
+  min-height: 180px;
+}
+
+.catalog.catalog--loading > .maris-loading,
+#cart-lines.cart-lines--loading > .maris-loading {
+  display: flex;
+  margin: 48px auto;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Esqueletos de Carregamento Maris (Skeleton Loading com Efeito Shimmer)
+   Paleta refinada: degradê suave com toques de ouro/champagne Maris
+   ========================================================================== */
+
+@keyframes maris-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.maris-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(235, 225, 230, 0.45) 0%,
+    rgba(247, 243, 245, 0.85) 35%,
+    rgba(228, 206, 216, 0.6) 50%,
+    rgba(247, 243, 245, 0.85) 65%,
+    rgba(235, 225, 230, 0.45) 100%
+  );
+  background-size: 200% 100%;
+  animation: maris-shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .maris-skeleton-shimmer {
+    animation: none;
+    background: rgba(235, 225, 230, 0.6);
+  }
+}
+
+/* Grade do Catálogo */
+.maris-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .maris-skeleton-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .maris-skeleton-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 28px;
+  }
+}
+
+/* Card Individual de Produto */
+.maris-skeleton-card {
+  position: relative;
+  background: var(--maris-surface, #fff);
+  border: 1px solid var(--maris-border-soft, #f0e6eb);
+  border-radius: var(--maris-radius-lg, 12px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.maris-skeleton-media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.maris-skeleton-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.maris-skeleton-line {
+  border-radius: 4px;
+}
+
+.maris-skeleton-line--title {
+  width: 82%;
+  height: 16px;
+}
+
+.maris-skeleton-line--subtitle {
+  width: 48%;
+  height: 12px;
+}
+
+.maris-skeleton-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 220px;
-  grid-template-columns: none;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 6px;
+  gap: 8px;
 }
+
+.maris-skeleton-line--price {
+  width: 72px;
+  height: 18px;
+}
+
+.maris-skeleton-line--badge {
+  width: 52px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.maris-skeleton-line--btn {
+  width: 70px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+/* Detalhe da Peça */
+.maris-skeleton-piece {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .maris-skeleton-piece {
+    grid-template-columns: minmax(340px, 460px) 1fr;
+    gap: 36px;
+    padding: 24px 0;
+  }
+}
+
+.maris-skeleton-piece__gallery {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--maris-radius-lg, 12px);
+}
+
+.maris-skeleton-piece__info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Painel Administrativo */
+.maris-skeleton-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  padding: 12px 0;
+  box-sizing: border-box;
+}
+
+.maris-skeleton-admin__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.maris-skeleton-stat-card {
+  height: 94px;
+  border-radius: 12px;
+  border: 1px solid var(--maris-border-soft, #f0e6eb);
+}
+
+.maris-skeleton-admin__chart {
+  width: 100%;
+  height: 240px;
+  border-radius: 12px;
+  border: 1px solid var(--maris-border-soft, #f0e6eb);
+}
+
+.maris-skeleton-admin__main {
+  width: 100%;
+  height: 180px;
+  border-radius: 12px;
+}
+
+.maris-skeleton-admin__bar {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.maris-skeleton-admin__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.maris-skeleton-admin__row {
+  width: 100%;
+  height: 52px;
+  border-radius: 8px;
+}
+
+.maris-skeleton-admin__card {
+  width: 100%;
+  border-radius: 12px;
+}
+
+/* Nova Venda */
+.maris-skeleton-venda-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .maris-skeleton-venda-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+.maris-skeleton-card--venda {
+  border-radius: 16px;
+  border: 1px solid var(--maris-border, #e8dfdf);
+}
+
+/* Carrinho */
+.maris-skeleton-cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.maris-skeleton-cart-line {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--maris-border-soft, #f0e6eb);
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.maris-skeleton-cart-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+}
+
+.maris-skeleton-cart-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.maris-skeleton-cart-qty {
+  width: 52px;
+  height: 36px;
+  border-radius: 8px;
+}
+

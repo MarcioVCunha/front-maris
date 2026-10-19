@@ -246,11 +246,101 @@
 
       <!-- Lista de produtos renderizada pelo `catalog.js`. -->
       <div id="catalog" class="catalog catalog--loading">
-        <div class="maris-loading maris-loading--md" role="status" aria-label="Carregando">
+        <div class="maris-loading visually-hidden" role="status" aria-label="Carregando">
           <svg class="maris-loading__spark" viewBox="0 0 32 32" width="40" height="40" aria-hidden="true" focusable="false">
             <path class="maris-loading__spark-outline" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"></path>
             <path class="maris-loading__spark-fill" d="M16 1.2 19.4 12.6 30.8 16 19.4 19.4 16 30.8 12.6 19.4 1.2 16 12.6 12.6 Z" fill="currentColor"></path>
           </svg>
+        </div>
+        <div class="maris-skeleton-grid" role="status" aria-label="Carregando produtos" aria-busy="true">
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
+          <article class="maris-skeleton-card" aria-hidden="true">
+            <div class="maris-skeleton-media maris-skeleton-shimmer"></div>
+            <div class="maris-skeleton-body">
+              <div class="maris-skeleton-line maris-skeleton-line--title maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-line maris-skeleton-line--subtitle maris-skeleton-shimmer"></div>
+              <div class="maris-skeleton-row">
+                <div class="maris-skeleton-line maris-skeleton-line--price maris-skeleton-shimmer"></div>
+                <div class="maris-skeleton-line maris-skeleton-line--badge maris-skeleton-shimmer"></div>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
 
