@@ -6,6 +6,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Na cesta, antes de pagar: escolha acessível **Pix** (mostra `total_pix` com desconto) ou **Cartão** (total cheio); o front envia `payment_method: "pix" | "card"` em `payment-create-link` (back-maris PR #47). Contrato em `docs/contratos/pagamento-infinitepay.md`.
+
 - Pagamento InfinitePay na cesta (`/catalog/carrinho`): após `create-order`, o front chama a Edge Function `payment-create-link` (back-maris PR #46) e redireciona para o checkout; mantém “Combinar pelo WhatsApp”. Página de retorno `/catalog/obrigado` (rewrite no `vercel.json`) mostra o status do pedido. Contrato em `docs/contratos/pagamento-infinitepay.md`.
 
 - Gráficos Visuais no Início e Atalhos de Teclado (Item 2):

@@ -3,6 +3,7 @@
 export const PAYMENT_CREATE_LINK_FUNCTION = "payment-create-link"
 export const ORDER_STATUS_FUNCTION = "order-status"
 export const OBRIGADO_PATH = "/catalog/obrigado"
+export const PAYMENT_METHODS = Object.freeze(["pix", "card"])
 
 const STATUS_LABELS = {
   a_confirmar: "A confirmar",
@@ -29,11 +30,26 @@ export function buildObrigadoUrl(origin, orderId) {
   return `${base}${OBRIGADO_PATH}?order_id=${encodeURIComponent(String(id))}`
 }
 
+export function normalizePaymentMethod(value) {
+  const key = String(value || "").trim().toLowerCase()
+  if (key === "pix") return "pix"
+  if (key === "card" || key === "cartao" || key === "cartão") return "card"
+  return null
+}
+
+export function paymentMethodLabel(method) {
+  const key = normalizePaymentMethod(method)
+  if (key === "pix") return "Pix"
+  if (key === "card") return "Cartão"
+  return ""
+}
+
 export function buildPaymentCreateLinkBody(input = {}) {
   const orderId = numberOrNull(input.orderId)
   return {
     order_id: orderId != null && orderId > 0 ? orderId : null,
-    redirect_url: String(input.redirectUrl || "").trim()
+    redirect_url: String(input.redirectUrl || "").trim(),
+    payment_method: normalizePaymentMethod(input.paymentMethod)
   }
 }
 
@@ -41,6 +57,10 @@ export function validatePaymentCreateLinkBody(body) {
   const orderId = numberOrNull(body?.order_id)
   if (orderId == null || orderId <= 0 || !Number.isInteger(orderId)) {
     return { ok: false, error: "Pedido inválido para pagamento." }
+  }
+  const method = normalizePaymentMethod(body?.payment_method)
+  if (!method) {
+    return { ok: false, error: "Escolha Pix ou Cartão para pagar." }
   }
   const redirect = String(body?.redirect_url || "").trim()
   if (!redirect) return { ok: false, error: "Falta a página de retorno do pagamento." }
@@ -95,7 +115,12 @@ export async function submitPaymentCreateLink(callFunction, input = {}) {
   if (typeof callFunction !== "function") {
     return { kind: "error", error: "Não foi possível abrir o pagamento." }
   }
-  const result = await callFunction(PAYMENT_CREATE_LINK_FUNCTION, body)
+  const payload = {
+    order_id: body.order_id,
+    redirect_url: body.redirect_url,
+    payment_method: normalizePaymentMethod(body.payment_method)
+  }
+  const result = await callFunction(PAYMENT_CREATE_LINK_FUNCTION, payload)
   return interpretPaymentCreateLinkResponse(result)
 }
 
@@ -176,8 +201,11 @@ export const MarisPagamento = {
   PAYMENT_CREATE_LINK_FUNCTION,
   ORDER_STATUS_FUNCTION,
   OBRIGADO_PATH,
+  PAYMENT_METHODS,
   statusLabel,
   buildObrigadoUrl,
+  normalizePaymentMethod,
+  paymentMethodLabel,
   buildPaymentCreateLinkBody,
   validatePaymentCreateLinkBody,
   checkoutUrlFromData,
