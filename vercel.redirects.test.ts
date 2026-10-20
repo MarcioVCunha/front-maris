@@ -40,6 +40,11 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   const obrigado = config.rewrites.find((item) => item.source === "/catalog/obrigado")
   assertEquals(obrigado?.destination, "/paginas/catalogo/obrigado.html")
 
+  // Retorno InfinitePay do back usa /obrigado?order_nsu=… (query preservada pelo rewrite).
+  const obrigadoRoot = config.rewrites.find((item) => item.source === "/obrigado")
+  assertEquals(obrigadoRoot?.destination, "/paginas/catalogo/obrigado.html")
+  assertEquals(obrigadoRoot?.source.includes("?"), false)
+
   const trocas = config.rewrites.find((item) => item.source === "/trocas")
   assertEquals(trocas?.destination, "/paginas/institucional/trocas.html")
 

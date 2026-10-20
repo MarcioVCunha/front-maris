@@ -47,9 +47,9 @@ O front aceita `checkout_url`, e como alias `payment_url` ou `url`, se o back us
 
 `{ "ok": false, "error": "…" }` ou `{ "error": "…" }` com status HTTP apropriado.
 
-## Página `/catalog/obrigado`
+## Página `/catalog/obrigado` (e `/obrigado`)
 
-Rewrite em `vercel.json` → `public/paginas/catalogo/obrigado.html`.
+Rewrites em `vercel.json` → `public/paginas/catalogo/obrigado.html` para `/catalog/obrigado` e `/obrigado` (retorno do back com `?order_nsu=…`; a query é preservada).
 
 Mostra o status do pedido a partir de:
 
