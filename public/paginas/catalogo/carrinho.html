@@ -157,8 +157,29 @@
           <strong id="order-pix">R$ 0,00</strong>
         </div>
         <div class="order-pay-actions" role="group" aria-label="Formas de concluir o pedido">
-          <p class="cart-help">Pague online com cartão ou Pix, ou combine pelo WhatsApp.</p>
-          <button id="pay-infinitepay-btn" type="button" class="btn-primary">Pagar agora</button>
+          <p class="cart-help">Escolha Pix (com desconto) ou Cartão, ou combine pelo WhatsApp.</p>
+          <fieldset class="pay-method-fieldset">
+            <legend class="pay-method-legend">Como deseja pagar?</legend>
+            <div class="pay-method-grid">
+              <label class="pay-method-option" for="pay-method-pix">
+                <input id="pay-method-pix" type="radio" name="pay-method" value="pix">
+                <span class="pay-method-copy">
+                  <span class="pay-method-title">Pix</span>
+                  <span class="pay-method-hint">5% de desconto</span>
+                  <strong id="pay-method-pix-total" class="pay-method-total">—</strong>
+                </span>
+              </label>
+              <label class="pay-method-option" for="pay-method-card">
+                <input id="pay-method-card" type="radio" name="pay-method" value="card">
+                <span class="pay-method-copy">
+                  <span class="pay-method-title">Cartão</span>
+                  <span class="pay-method-hint">Valor integral</span>
+                  <strong id="pay-method-card-total" class="pay-method-total">—</strong>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+          <button id="pay-infinitepay-btn" type="button" class="btn-primary" disabled>Pagar agora</button>
           <a id="order-whatsapp-link" class="btn-secondary order-whatsapp-link" target="_blank" rel="noopener">Combinar pelo WhatsApp</a>
           <p id="order-pay-message" class="cart-page-message" hidden></p>
         </div>
