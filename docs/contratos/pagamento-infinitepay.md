@@ -1,14 +1,14 @@
 # Pagamento InfinitePay (carrinho)
 
-Contrato alinhado ao back-maris PR #47 (`cursor/checkout-pix-card-dc11`), Edge Function `payment-create-link`.
+Contrato alinhado ao back-maris PR #46 (`cursor/infinitepay-checkout-dc11`), Edge Function `payment-create-link`.
 
-O front **não** grava no banco nem pede coluna de custo. Preços e itens do link saem do pedido já criado em `create-order`. O back cobra `total_pix` quando `payment_method` é `pix`, e `total` quando é `card`.
+O front **não** grava no banco nem pede coluna de custo. Preços e itens do link saem do pedido já criado em `create-order`. A escolha Pix/Cartão fica no checkout da InfinitePay.
 
 ## Fluxo na cesta
 
-1. `create-order` confirma o pedido (`order_id`, `total`, `total_pix`).
-2. A cliente escolhe **Pix** (mostra o total com desconto) ou **Cartão** (total cheio), ou **Combinar pelo WhatsApp**.
-3. Em “Pagar…”, o front chama `payment-create-link` com `order_id`, `redirect_url` e `payment_method` (`pix` | `card`) e redireciona para `checkout_url`.
+1. Em **Pagar**, o front chama `create-order` e, com o `order_id`, chama `payment-create-link` **sem** `payment_method`, depois redireciona para `checkout_url`.
+2. Em **Combinar pelo WhatsApp**, o front cria o pedido e abre o WhatsApp (sem InfinitePay).
+3. A cesta mostra o total cheio e o total no Pix; abaixo de Pagar: “Pix com 5% off, cartão em até 3x sem juros ou até 12x com juros”.
 4. Após o pagamento, a InfinitePay devolve a cliente a `/catalog/obrigado` (ou `/obrigado`) com query params (`order_nsu`, `receipt_url`, `slug`, `capture_method`, `transaction_nsu`).
 
 ## POST payment-create-link
@@ -21,8 +21,7 @@ Auth: pública (mesmo padrão de `create-order`; sem staff token).
 ```json
 {
   "order_id": 123,
-  "redirect_url": "https://front-maris.vercel.app/catalog/obrigado?order_id=123",
-  "payment_method": "pix"
+  "redirect_url": "https://front-maris.vercel.app/catalog/obrigado?order_id=123"
 }
 ```
 
@@ -30,7 +29,7 @@ Auth: pública (mesmo padrão de `create-order`; sem staff token).
 | --- | --- |
 | `order_id` | Obrigatório; id do pedido site já criado |
 | `redirect_url` | Obrigatório; URL absoluta da página de obrigado (host front-maris / preview / localhost) |
-| `payment_method` | Obrigatório: `pix` \| `card` — Pix cobra `total_pix`; Cartão cobra `total` |
+| `payment_method` | **Não** enviar — o método é escolhido no checkout InfinitePay |
 | preços / itens / custo | **Não** enviar — o back monta a partir do pedido |
 
 ### Saída ok
