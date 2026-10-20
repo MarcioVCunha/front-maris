@@ -37,6 +37,9 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   const catalog = config.rewrites.find((item) => item.source === "/catalog")
   assertEquals(catalog?.destination, "/paginas/catalogo/catalogo.html")
 
+  const obrigado = config.rewrites.find((item) => item.source === "/catalog/obrigado")
+  assertEquals(obrigado?.destination, "/paginas/catalogo/obrigado.html")
+
   const trocas = config.rewrites.find((item) => item.source === "/trocas")
   assertEquals(trocas?.destination, "/paginas/institucional/trocas.html")
 

@@ -22,9 +22,13 @@ const couponCodeInputEl = document.getElementById("coupon-code-input")
 const applyCouponBtn = document.getElementById("apply-coupon-btn")
 const couponFeedbackEl = document.getElementById("coupon-feedback")
 const websiteEl = document.getElementById("buyer-website")
+const payInfinitePayBtn = document.getElementById("pay-infinitepay-btn")
+const orderWhatsappLink = document.getElementById("order-whatsapp-link")
+const orderPayMessageEl = document.getElementById("order-pay-message")
 let pendingRequestId = null
 let orderConfirmed = false
 let appliedCoupon = null
+let confirmedOrder = null
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -243,8 +247,22 @@ function callCreateOrder(functionName, body) {
   return window.MarisApi.callFunction(window.ENV.fn(functionName), { body })
 }
 
+function setPayMessage(text, type = "") {
+  window.MarisUI.setFeedback(orderPayMessageEl, text, type, { baseClass: "cart-page-message" })
+}
+
+function wireOrderWhatsapp(order) {
+  if (!orderWhatsappLink || !window.MarisPagamento) return
+  const message = window.MarisPagamento.buildOrderWhatsappMessage(order)
+  const linkFn = window.MarisCatalogLogic?.whatsappLink
+  orderWhatsappLink.href = typeof linkFn === "function"
+    ? linkFn(message)
+    : `https://wa.me/5519992732874?text=${encodeURIComponent(message)}`
+}
+
 function renderOrderConfirmation(order) {
   orderConfirmed = true
+  confirmedOrder = order
   const itemsCard = document.querySelector(".cart-card--items")
   const checkout = document.querySelector(".cart-checkout-column")
   if (itemsCard) itemsCard.hidden = true
@@ -295,7 +313,37 @@ function renderOrderConfirmation(order) {
   }
   if (totalEl) totalEl.textContent = order.total == null ? "—" : formatMoneyBRL(order.total)
   if (pixEl) pixEl.textContent = order.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
+  wireOrderWhatsapp(order)
+  setPayMessage("")
+  if (payInfinitePayBtn) payInfinitePayBtn.disabled = !order.orderId
   setActiveStep(3)
+  void startInfinitePay()
+}
+
+async function startInfinitePay() {
+  setPayMessage("")
+  if (!confirmedOrder?.orderId || !window.MarisPagamento) {
+    setPayMessage("Pedido inválido para pagamento.", "error")
+    return
+  }
+  if (payInfinitePayBtn) payInfinitePayBtn.disabled = true
+  setPayMessage("Abrindo o pagamento…")
+  try {
+    const redirectUrl = window.MarisPagamento.buildObrigadoUrl(window.location.origin, confirmedOrder.orderId)
+    const result = await window.MarisPagamento.submitPaymentCreateLink(callCreateOrder, {
+      orderId: confirmedOrder.orderId,
+      redirectUrl
+    })
+    if (result.kind !== "ready") {
+      setPayMessage(result.error || "Não foi possível abrir o pagamento. Você pode tentar de novo ou combinar pelo WhatsApp.", "error")
+      if (payInfinitePayBtn) payInfinitePayBtn.disabled = false
+      return
+    }
+    window.location.assign(result.checkoutUrl)
+  } catch (_err) {
+    setPayMessage("Não foi possível abrir o pagamento. Tente de novo ou combine pelo WhatsApp.", "error")
+    if (payInfinitePayBtn) payInfinitePayBtn.disabled = false
+  }
 }
 
 function showStockIssues(result) {
@@ -407,6 +455,7 @@ if (buyerWhatsappEl) {
 }
 if (checkStockBtn) checkStockBtn.addEventListener("click", checkStock)
 if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitOrder)
+if (payInfinitePayBtn) payInfinitePayBtn.addEventListener("click", startInfinitePay)
 
 window.addEventListener("maris-cart-updated", renderCart)
 

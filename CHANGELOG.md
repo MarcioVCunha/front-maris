@@ -6,6 +6,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ### Adicionado
 
+- Pagamento InfinitePay na cesta (`/catalog/carrinho`): após `create-order`, o front chama a Edge Function `payment-create-link` (back-maris PR #46) e redireciona para o checkout; mantém “Combinar pelo WhatsApp”. Página de retorno `/catalog/obrigado` (rewrite no `vercel.json`) mostra o status do pedido. Contrato em `docs/contratos/pagamento-infinitepay.md`.
+
 - Gráficos Visuais no Início e Atalhos de Teclado (Item 2):
   - **Gráficos Visuais em SVG nativo (`/admin`)**:
     - **Evolução Diária das Vendas**: Gráfico SVG interativo e responsivo mostrando o faturamento dia a dia do mês selecionado, com linhas de grade, tooltips detalhados acessíveis ao passar o mouse ou tocar em cada coluna (dia, total em R$, pedidos e indicação do dia atual), além de indicadores de pico e média diária.
