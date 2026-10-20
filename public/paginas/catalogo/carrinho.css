@@ -439,6 +439,29 @@
   }
 }
 
+.order-pay-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-pay-actions .btn-primary,
+.order-pay-actions .btn-secondary,
+.order-whatsapp-link {
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.order-whatsapp-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  min-height: 48px;
+}
+
 @media (max-width: 880px) {
   .cart-checkout-column {
     position: static;
