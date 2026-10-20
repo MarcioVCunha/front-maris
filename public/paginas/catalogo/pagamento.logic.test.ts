@@ -2,7 +2,6 @@ import { assertEquals } from "jsr:@std/assert@1"
 import {
   OBRIGADO_PATH,
   PAYMENT_CREATE_LINK_FUNCTION,
-  PAYMENT_METHODS,
   buildObrigadoUrl,
   buildOrderWhatsappMessage,
   buildPaymentCreateLinkBody,
@@ -10,7 +9,6 @@ import {
   inferStatusFromReturn,
   interpretOrderStatusResponse,
   interpretPaymentCreateLinkResponse,
-  normalizePaymentMethod,
   parseObrigadoQuery,
   submitPaymentCreateLink,
   validatePaymentCreateLinkBody
@@ -19,18 +17,9 @@ import {
 Deno.test("payment-create-link usa o nome da Edge Function do back", () => {
   assertEquals(PAYMENT_CREATE_LINK_FUNCTION, "payment-create-link")
   assertEquals(OBRIGADO_PATH, "/catalog/obrigado")
-  assertEquals(PAYMENT_METHODS, ["pix", "card"])
 })
 
-Deno.test("normalizePaymentMethod aceita pix e card", () => {
-  assertEquals(normalizePaymentMethod("pix"), "pix")
-  assertEquals(normalizePaymentMethod("card"), "card")
-  assertEquals(normalizePaymentMethod("cartao"), "card")
-  assertEquals(normalizePaymentMethod(""), null)
-  assertEquals(normalizePaymentMethod("dinheiro"), null)
-})
-
-Deno.test("buildPaymentCreateLinkBody monta order_id, redirect_url e payment_method", () => {
+Deno.test("buildPaymentCreateLinkBody monta order_id e redirect_url sem payment_method", () => {
   const body = buildPaymentCreateLinkBody({
     orderId: 42,
     redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=42",
@@ -38,36 +27,28 @@ Deno.test("buildPaymentCreateLinkBody monta order_id, redirect_url e payment_met
   })
   assertEquals(body, {
     order_id: 42,
-    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=42",
-    payment_method: "pix"
+    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=42"
   })
+  assertEquals(Object.prototype.hasOwnProperty.call(body, "payment_method"), false)
   assertEquals(validatePaymentCreateLinkBody(body).ok, true)
-  assertEquals(
-    buildPaymentCreateLinkBody({
-      orderId: 42,
-      redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=42",
-      paymentMethod: "cartao"
-    }).payment_method,
-    "card"
-  )
 })
 
-Deno.test("validatePaymentCreateLinkBody rejeita método, preço e redirect inválido", () => {
+Deno.test("validatePaymentCreateLinkBody rejeita payment_method, preço e redirect inválido", () => {
+  assertEquals(
+    validatePaymentCreateLinkBody({ order_id: 1, redirect_url: "" }),
+    { ok: false, error: "Falta a página de retorno do pagamento." }
+  )
   assertEquals(
     validatePaymentCreateLinkBody({
       order_id: 1,
-      redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1"
+      redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1",
+      payment_method: "pix"
     }),
-    { ok: false, error: "Escolha Pix ou Cartão para pagar." }
-  )
-  assertEquals(
-    validatePaymentCreateLinkBody({ order_id: 1, redirect_url: "", payment_method: "pix" }),
-    { ok: false, error: "Falta a página de retorno do pagamento." }
+    { ok: false, error: "O pagamento não envia método pela tela." }
   )
   const withCost = {
     order_id: 1,
-    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1",
-    payment_method: "card"
+    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1"
   }
   withCost["cos" + "to"] = 10
   assertEquals(
@@ -75,7 +56,7 @@ Deno.test("validatePaymentCreateLinkBody rejeita método, preço e redirect inv�
     { ok: false, error: "O preço do pagamento não sai da tela." }
   )
   assertEquals(
-    validatePaymentCreateLinkBody({ order_id: 0, redirect_url: "https://x.test/ok", payment_method: "pix" }),
+    validatePaymentCreateLinkBody({ order_id: 0, redirect_url: "https://x.test/ok" }),
     { ok: false, error: "Pedido inválido para pagamento." }
   )
 })
@@ -105,7 +86,7 @@ Deno.test("interpretPaymentCreateLinkResponse lê checkout_url e aliases", () =>
   )
 })
 
-Deno.test("submitPaymentCreateLink chama a função e redireciona com a URL", async () => {
+Deno.test("submitPaymentCreateLink chama a função sem payment_method", async () => {
   let seenName = ""
   let seenBody = null
   const result = await submitPaymentCreateLink((name, body) => {
@@ -118,12 +99,11 @@ Deno.test("submitPaymentCreateLink chama a função e redireciona com a URL", as
     }
   }, {
     orderId: 7,
-    redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=7",
-    paymentMethod: "card"
+    redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=7"
   })
   assertEquals(seenName, "payment-create-link")
   assertEquals(seenBody.order_id, 7)
-  assertEquals(seenBody.payment_method, "card")
+  assertEquals(Object.prototype.hasOwnProperty.call(seenBody, "payment_method"), false)
   assertEquals(result.kind, "ready")
   assertEquals(result.checkoutUrl, "https://checkout.infinitepay.io/pay")
 })

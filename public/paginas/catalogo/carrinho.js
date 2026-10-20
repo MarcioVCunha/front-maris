@@ -23,40 +23,13 @@ const applyCouponBtn = document.getElementById("apply-coupon-btn")
 const couponFeedbackEl = document.getElementById("coupon-feedback")
 const websiteEl = document.getElementById("buyer-website")
 const payInfinitePayBtn = document.getElementById("pay-infinitepay-btn")
-const orderWhatsappLink = document.getElementById("order-whatsapp-link")
 const orderPayMessageEl = document.getElementById("order-pay-message")
-const payMethodPixEl = document.getElementById("pay-method-pix")
-const payMethodCardEl = document.getElementById("pay-method-card")
-const payMethodPixTotalEl = document.getElementById("pay-method-pix-total")
-const payMethodCardTotalEl = document.getElementById("pay-method-card-total")
+const checkoutPayMessageEl = document.getElementById("checkout-pay-message")
 let pendingRequestId = null
 let orderConfirmed = false
 let appliedCoupon = null
 let confirmedOrder = null
-
-function selectedPaymentMethod() {
-  const checked = document.querySelector('input[name="pay-method"]:checked')
-  return window.MarisPagamento?.normalizePaymentMethod(checked?.value) || null
-}
-
-function syncPayButton() {
-  if (!payInfinitePayBtn) return
-  const method = selectedPaymentMethod()
-  const ready = Boolean(confirmedOrder?.orderId && method)
-  payInfinitePayBtn.disabled = !ready
-  if (method === "pix") payInfinitePayBtn.textContent = "Pagar com Pix"
-  else if (method === "card") payInfinitePayBtn.textContent = "Pagar com cartão"
-  else payInfinitePayBtn.textContent = "Pagar agora"
-}
-
-function fillPayMethodTotals(order) {
-  if (payMethodPixTotalEl) {
-    payMethodPixTotalEl.textContent = order?.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
-  }
-  if (payMethodCardTotalEl) {
-    payMethodCardTotalEl.textContent = order?.total == null ? "—" : formatMoneyBRL(order.total)
-  }
-}
+let payingInProgress = false
 
 function setMessage(text, type = "") {
   window.MarisUI.setFeedback(messageEl, text, type, { baseClass: "cart-page-message" })
@@ -275,17 +248,8 @@ function callCreateOrder(functionName, body) {
   return window.MarisApi.callFunction(window.ENV.fn(functionName), { body })
 }
 
-function setPayMessage(text, type = "") {
-  window.MarisUI.setFeedback(orderPayMessageEl, text, type, { baseClass: "cart-page-message" })
-}
-
-function wireOrderWhatsapp(order) {
-  if (!orderWhatsappLink || !window.MarisPagamento) return
-  const message = window.MarisPagamento.buildOrderWhatsappMessage(order)
-  const linkFn = window.MarisCatalogLogic?.whatsappLink
-  orderWhatsappLink.href = typeof linkFn === "function"
-    ? linkFn(message)
-    : `https://wa.me/5519992732874?text=${encodeURIComponent(message)}`
+function setPayMessage(text, type = "", target = orderPayMessageEl) {
+  window.MarisUI.setFeedback(target, text, type, { baseClass: "cart-page-message" })
 }
 
 function renderOrderConfirmation(order) {
@@ -341,45 +305,37 @@ function renderOrderConfirmation(order) {
   }
   if (totalEl) totalEl.textContent = order.total == null ? "—" : formatMoneyBRL(order.total)
   if (pixEl) pixEl.textContent = order.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
-  fillPayMethodTotals(order)
-  if (payMethodPixEl) payMethodPixEl.checked = false
-  if (payMethodCardEl) payMethodCardEl.checked = false
-  wireOrderWhatsapp(order)
   setPayMessage("")
-  syncPayButton()
+  if (payInfinitePayBtn) payInfinitePayBtn.disabled = !order.orderId
   setActiveStep(3)
 }
 
-async function startInfinitePay() {
-  setPayMessage("")
+async function startInfinitePay(messageTarget = orderPayMessageEl) {
+  setPayMessage("", "", messageTarget)
   if (!confirmedOrder?.orderId || !window.MarisPagamento) {
-    setPayMessage("Pedido inválido para pagamento.", "error")
-    return
-  }
-  const paymentMethod = selectedPaymentMethod()
-  if (!paymentMethod) {
-    setPayMessage("Escolha Pix ou Cartão para pagar.", "error")
-    syncPayButton()
-    return
+    setPayMessage("Pedido inválido para pagamento.", "error", messageTarget)
+    return false
   }
   if (payInfinitePayBtn) payInfinitePayBtn.disabled = true
-  setPayMessage("Abrindo o pagamento…")
+  if (placeOrderBtn) placeOrderBtn.disabled = true
+  setPayMessage("Abrindo o pagamento…", "", messageTarget)
   try {
     const redirectUrl = window.MarisPagamento.buildObrigadoUrl(window.location.origin, confirmedOrder.orderId)
     const result = await window.MarisPagamento.submitPaymentCreateLink(callCreateOrder, {
       orderId: confirmedOrder.orderId,
-      redirectUrl,
-      paymentMethod
+      redirectUrl
     })
     if (result.kind !== "ready") {
-      setPayMessage(result.error || "Não foi possível abrir o pagamento. Você pode tentar de novo ou combinar pelo WhatsApp.", "error")
-      syncPayButton()
-      return
+      setPayMessage(result.error || "Não foi possível abrir o pagamento. Tente de novo.", "error", messageTarget)
+      if (payInfinitePayBtn) payInfinitePayBtn.disabled = false
+      return false
     }
     window.location.assign(result.checkoutUrl)
+    return true
   } catch (_err) {
-    setPayMessage("Não foi possível abrir o pagamento. Tente de novo ou combine pelo WhatsApp.", "error")
-    syncPayButton()
+    setPayMessage("Não foi possível abrir o pagamento. Tente de novo.", "error", messageTarget)
+    if (payInfinitePayBtn) payInfinitePayBtn.disabled = false
+    return false
   }
 }
 
@@ -398,8 +354,9 @@ function showStockIssues(result) {
   renderCart()
 }
 
-async function placeOrder(dryRun) {
+async function placeOrder(dryRun, { afterConfirm = "none" } = {}) {
   setMessage("")
+  setPayMessage("", "", checkoutPayMessageEl)
   if (!pendingRequestId) pendingRequestId = window.MarisPedido.newClientRequestId()
   const button = dryRun ? checkStockBtn : placeOrderBtn
   if (button) button.disabled = true
@@ -417,6 +374,7 @@ async function placeOrder(dryRun) {
     if (result.kind === "disabled") return
     if (result.kind === "error") {
       setMessage(result.error, "error")
+      setPayMessage(result.error, "error", checkoutPayMessageEl)
       return
     }
     if (result.kind === "stock") {
@@ -438,13 +396,25 @@ async function placeOrder(dryRun) {
       appliedCoupon = null
       if (couponCodeInputEl) couponCodeInputEl.value = ""
       setCouponFeedback("")
-      renderOrderConfirmation(result.order)
       window.MarisCatalogCart.clear()
       setMessage("")
+      if (afterConfirm === "pay") {
+        confirmedOrder = result.order
+        orderConfirmed = true
+        payingInProgress = true
+        const ok = await startInfinitePay(checkoutPayMessageEl)
+        payingInProgress = false
+        if (!ok) renderOrderConfirmation(result.order)
+        return
+      }
+      renderOrderConfirmation(result.order)
     }
   } finally {
+    if (payingInProgress) return
     if (!button || orderConfirmed) return
-    button.disabled = !window.MarisCatalogCart.getItems().length
+    const hasItems = Boolean(window.MarisCatalogCart.getItems().length)
+    if (placeOrderBtn) placeOrderBtn.disabled = !hasItems
+    if (checkStockBtn) checkStockBtn.disabled = !hasItems
   }
 }
 
@@ -452,8 +422,8 @@ function checkStock() {
   return placeOrder(true)
 }
 
-function submitOrder() {
-  return placeOrder(false)
+function submitPay() {
+  return placeOrder(false, { afterConfirm: "pay" })
 }
 
 cartLinesEl.addEventListener("click", (event) => {
@@ -491,16 +461,12 @@ if (buyerWhatsappEl) {
   buyerWhatsappEl.addEventListener("blur", saveBuyer)
 }
 if (checkStockBtn) checkStockBtn.addEventListener("click", checkStock)
-if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitOrder)
-if (payInfinitePayBtn) payInfinitePayBtn.addEventListener("click", startInfinitePay)
-if (payMethodPixEl) payMethodPixEl.addEventListener("change", () => {
-  setPayMessage("")
-  syncPayButton()
-})
-if (payMethodCardEl) payMethodCardEl.addEventListener("change", () => {
-  setPayMessage("")
-  syncPayButton()
-})
+if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitPay)
+if (payInfinitePayBtn) {
+  payInfinitePayBtn.addEventListener("click", () => {
+    void startInfinitePay(orderPayMessageEl)
+  })
+}
 
 window.addEventListener("maris-cart-updated", renderCart)
 

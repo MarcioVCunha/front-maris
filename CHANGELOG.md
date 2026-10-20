@@ -4,6 +4,10 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Unreleased]
 
+### Alterado
+
+- Carrinho com um único botão **Pagar** (`create-order` + `payment-create-link` sem `payment_method` → `checkout_url`); remove escolha Pix/Cartão e “Combinar pelo WhatsApp”; texto curto sobre Pix 5% off e parcelamento; mantém total cheio e total no Pix. Contrato em `docs/contratos/pagamento-infinitepay.md`.
+
 ### Adicionado
 
 - Na cesta, antes de pagar: escolha acessível **Pix** (mostra `total_pix` com desconto) ou **Cartão** (total cheio); o front envia `payment_method: "pix" | "card"` em `payment-create-link` (back-maris PR #47). Contrato em `docs/contratos/pagamento-infinitepay.md`.
