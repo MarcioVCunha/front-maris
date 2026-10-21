@@ -508,7 +508,7 @@ Deno.test("vendedora não admin manda o seller_id do perfil e não o formulário
 })
 
 Deno.test("o atalho da equipe abre a venda nova", async () => {
-  const hub = await Deno.readTextFile(new URL("../../index.html", import.meta.url))
+  const hub = await Deno.readTextFile(new URL("../admin/inicio.html", import.meta.url))
   const link = hub.match(/<a\b[^>]*href="\/vendas\/nova"[^>]*>/)
   assert(link, "falta o link /vendas/nova")
   assertEquals(link[0].includes("hidden"), false)
