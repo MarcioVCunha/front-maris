@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="/compartilhado/top-bar.css">
     <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
     <script src="/env.js"></script>
+    <script src="/compartilhado/loja-info.js"></script>
     <script src="/compartilhado/utils.js"></script>
     <script src="/compartilhado/api.js"></script>
     <script src="/compartilhado/ui.js"></script>
@@ -43,8 +44,8 @@
         </div>
         <span class="top-bar-sep" aria-hidden="true">·</span>
         <div class="top-bar-item" data-id="trocas">
-          <a href="/trocas" class="top-bar-link" title="Troca ou retorno em até 1 mês no site · Garantia 90 dias">
-            <span class="top-bar-text">Troca ou retorno em até 1 mês no site · Garantia 90 dias</span>
+          <a href="/trocas-e-devolucoes" class="top-bar-link" title="Arrependimento em até 7 dias · Garantia de 1 ano no banho">
+            <span class="top-bar-text">Arrependimento em até 7 dias · Garantia de 1 ano no banho</span>
           </a>
         </div>
       </div>
@@ -225,7 +226,8 @@
           </div>
           <p id="piece-care-text" class="piece-care-intro"></p>
           <div id="piece-care-cards" class="piece-care-cards"></div>
-          <p class="piece-care-guarantee">🛡️ <strong>Garantia & Trocas:</strong> 90 dias de garantia contra defeitos de fabricação e até 1 mês para troca em compras no site. <a href="/trocas" class="piece-care-link">Ver políticas completas →</a></p>
+          <p class="piece-material-honesty">Semijoia banhada a ouro ou ródio (não é ouro maciço). Peças em aço seguem a especificação da página.</p>
+          <p class="piece-care-guarantee"><strong>Garantia e trocas:</strong> 1 ano no banho (inclui os 90 dias legais) e arrependimento em até 7 dias. <a href="/garantia" class="piece-care-link">Garantia</a> · <a href="/trocas-e-devolucoes" class="piece-care-link">Trocas</a></p>
         </section>
         <div id="piece-actions" class="piece-actions"></div>
         <div class="product-contact-actions">
@@ -351,10 +353,22 @@
       </section>
     </main>
 
-    <footer class="site-footer">
-      <a href="/trocas" class="footer-link">Trocas e garantia</a>
-      <span class="footer-sep" aria-hidden="true" style="margin: 0 12px; color: var(--maris-border);">·</span>
-      <a id="footer-whatsapp" target="_blank" rel="noopener">Fale com a gente</a>
+    <footer class="site-footer site-footer--legal">
+      <p class="footer-brand">Maris Semijoias</p>
+      <p class="footer-line"><span data-loja-doc></span></p>
+      <p class="footer-line" data-loja-endereco></p>
+      <p class="footer-line"><a data-loja-email data-loja-fill="text" href="mailto:contato@lojamaris.com.br">contato@lojamaris.com.br</a></p>
+      <p class="footer-line">WhatsApp: <span data-loja-whatsapp-display></span></p>
+      <p class="footer-line" data-loja-prazo></p>
+      <p class="footer-links">
+        <a href="/privacidade" class="footer-link">Privacidade</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a href="/trocas-e-devolucoes" class="footer-link">Trocas e devoluções</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a href="/garantia" class="footer-link">Garantia</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a id="footer-whatsapp" data-loja-whatsapp target="_blank" rel="noopener">Fale com a gente</a>
+      </p>
     </footer>
 
     <aside id="cart-bar" class="cart-bar" aria-label="Cesta">
@@ -406,7 +420,7 @@
       <div class="product-modal-content waitlist-modal-content" role="dialog" aria-modal="true" aria-labelledby="waitlist-modal-title">
         <button id="waitlist-modal-close" class="product-modal-close" type="button" aria-label="Fechar" data-close-waitlist="true">×</button>
         <h3 id="waitlist-modal-title">💖 Quero essa peça</h3>
-        <p class="waitlist-modal-help">Seu interesse já foi registrado! Se quiser ser avisada por WhatsApp ou e-mail quando a peça voltar ao estoque, deixe seu contato:</p>
+        <p class="waitlist-modal-help">Seu interesse já foi registrado! Se quiser ser avisada por WhatsApp ou e-mail quando <strong>esta peça</strong> voltar ao estoque, deixe seu contato. O e-mail serve para o aviso de reposição.</p>
         <form id="waitlist-form" class="waitlist-form">
           <label for="waitlist-whatsapp">WhatsApp (com DDD)</label>
           <input id="waitlist-whatsapp" type="tel" inputmode="numeric" autocomplete="tel" placeholder="(11) 99999-9999">
@@ -414,6 +428,12 @@
           <input id="waitlist-email" type="email" autocomplete="email" placeholder="seu@email.com">
           <label for="waitlist-name">Seu nome (opcional)</label>
           <input id="waitlist-name" type="text" autocomplete="name" placeholder="Como prefere ser chamada">
+          <label class="privacy-remember">
+            <input id="waitlist-remember" type="checkbox">
+            Lembrar meus dados neste aparelho
+          </label>
+          <p class="privacy-notice" id="waitlist-privacy-notice">Usamos seus dados só para avisar sobre esta peça. Veja a <a href="/privacidade">Política de Privacidade</a>.</p>
+          <button type="button" id="waitlist-forget" class="privacy-forget-btn">Esquecer meus dados</button>
           <p id="waitlist-feedback" class="waitlist-feedback" hidden></p>
           <div class="waitlist-actions">
             <button type="button" class="btn-secondary" data-close-waitlist="true">Concluir</button>

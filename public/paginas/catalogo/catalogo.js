@@ -1111,6 +1111,18 @@ waitlistForm.addEventListener("submit", (event) => {
   submitWaitlist()
 })
 
+const waitlistForgetBtn = document.getElementById("waitlist-forget")
+if (waitlistForgetBtn) {
+  waitlistForgetBtn.addEventListener("click", () => {
+    window.MarisCatalogCart?.forgetBuyerProfile?.()
+    if (waitlistNameInput) waitlistNameInput.value = ""
+    if (waitlistWhatsappInput) waitlistWhatsappInput.value = ""
+    if (waitlistEmailInput) waitlistEmailInput.value = ""
+    const rememberEl = document.getElementById("waitlist-remember")
+    if (rememberEl) rememberEl.checked = false
+  })
+}
+
 waitlistModal.addEventListener("click", (event) => {
   const target = event.target
   if (target instanceof HTMLElement && target.dataset.closeWaitlist === "true") {

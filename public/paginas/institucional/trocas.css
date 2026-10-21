@@ -190,6 +190,52 @@ body {
   color: var(--maris-black, #432838);
 }
 
+.legal-paragraph {
+  margin: 0 0 12px;
+}
+
+.legal-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.site-footer--legal {
+  border-top: 1px solid var(--maris-border, #ecdbe4);
+  padding: 28px 24px 40px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--maris-text-muted, #7b5f70);
+  line-height: 1.55;
+}
+
+.site-footer--legal .footer-brand {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--maris-black, #432838);
+}
+
+.site-footer--legal .footer-line {
+  margin: 0 0 4px;
+}
+
+.site-footer--legal .footer-links {
+  margin: 16px 0 0;
+}
+
+.site-footer--legal a {
+  color: var(--maris-gold-dark, #9f6d83);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.site-footer--legal a:hover {
+  text-decoration: underline;
+}
+
+.site-footer--legal .footer-sep {
+  margin: 0 8px;
+  color: var(--maris-border, #ecdbe4);
+}
+
 @media (max-width: 680px) {
   .trocas-page {
     padding: 24px 16px 48px;

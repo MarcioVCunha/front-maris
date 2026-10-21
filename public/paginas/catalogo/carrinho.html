@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
     <link rel="stylesheet" href="/paginas/catalogo/carrinho.css">
     <script src="/env.js"></script>
+    <script src="/compartilhado/loja-info.js"></script>
     <script src="/compartilhado/utils.js"></script>
     <script src="/compartilhado/api.js"></script>
     <script src="/compartilhado/ui.js"></script>
@@ -29,8 +30,8 @@
         </div>
         <span class="top-bar-sep" aria-hidden="true">·</span>
         <div class="top-bar-item" data-id="trocas">
-          <a href="/trocas" class="top-bar-link" title="Troca ou retorno em até 1 mês no site · Garantia 90 dias">
-            <span class="top-bar-text">Troca ou retorno em até 1 mês no site · Garantia 90 dias</span>
+          <a href="/trocas-e-devolucoes" class="top-bar-link" title="Arrependimento em até 7 dias · Garantia de 1 ano no banho">
+            <span class="top-bar-text">Arrependimento em até 7 dias · Garantia de 1 ano no banho</span>
           </a>
         </div>
       </div>
@@ -94,6 +95,7 @@
             <input id="coupon-code-input" type="text" placeholder="Ex: BEMVINDA10 ou indicação" autocomplete="off" autocapitalize="characters">
             <button id="apply-coupon-btn" type="button" class="btn-coupon">Aplicar</button>
           </div>
+          <p class="privacy-notice">Usamos seus dados para aplicar o cupom ou a indicação e falar sobre o pedido. Veja a <a href="/privacidade">Política de Privacidade</a>.</p>
           <p id="coupon-feedback" class="coupon-feedback" hidden></p>
         </div>
         <div class="cart-summary">
@@ -123,6 +125,12 @@
             <input id="buyer-name" type="text" required>
             <label for="buyer-whatsapp">WhatsApp</label>
             <input id="buyer-whatsapp" type="tel" required>
+            <label class="privacy-remember">
+              <input id="buyer-remember" type="checkbox">
+              Lembrar meus dados neste aparelho
+            </label>
+            <p class="privacy-notice">Usamos seus dados para processar o pedido, confirmar e acompanhar a compra. Veja a <a href="/privacidade">Política de Privacidade</a>.</p>
+            <button type="button" id="buyer-forget" class="privacy-forget-btn">Esquecer meus dados</button>
           </form>
           <div class="order-honeypot" aria-hidden="true">
             <label for="buyer-website">Site</label>
@@ -135,6 +143,7 @@
           <div class="order-pay-actions">
             <button id="place-order-btn" type="button" class="btn-primary">Pagar</button>
             <p class="cart-help pay-terms">Pix com 5% off, cartão em até 3x sem juros ou até 12x com juros</p>
+            <p class="cart-help pay-terms">Semijoia banhada a ouro ou ródio — não é ouro maciço. <a href="/garantia">Garantia</a> · <a href="/trocas-e-devolucoes">Trocas</a></p>
             <p id="checkout-pay-message" class="cart-page-message" hidden></p>
           </div>
         </section>
@@ -177,6 +186,24 @@
         </span>
       </a>
     </aside>
+
+    <footer class="site-footer site-footer--legal">
+      <p class="footer-brand">Maris Semijoias</p>
+      <p class="footer-line"><span data-loja-doc></span></p>
+      <p class="footer-line" data-loja-endereco></p>
+      <p class="footer-line"><a data-loja-email data-loja-fill="text" href="mailto:contato@lojamaris.com.br">contato@lojamaris.com.br</a></p>
+      <p class="footer-line">WhatsApp: <span data-loja-whatsapp-display></span></p>
+      <p class="footer-line" data-loja-prazo></p>
+      <p class="footer-links">
+        <a href="/privacidade">Privacidade</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a href="/trocas-e-devolucoes">Trocas e devoluções</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a href="/garantia">Garantia</a>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <a data-loja-whatsapp target="_blank" rel="noopener">Fale com a gente</a>
+      </p>
+    </footer>
 
     <script type="module" src="/compartilhado/loading.js"></script>
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>

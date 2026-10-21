@@ -31,6 +31,16 @@ export function formatDateBR(isoString) {
   return `${day}/${month}/${year}`
 }
 
+/** Validade curta para cupons: "até dd/mm". */
+export function formatValidityUntil(isoString) {
+  if (!isoString) return ""
+  const d = new Date(isoString)
+  if (!Number.isFinite(d.getTime())) return ""
+  const day = String(d.getDate()).padStart(2, "0")
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  return `até ${day}/${month}`
+}
+
 export function computeCouponStatus(coupon, now = Date.now()) {
   if (!coupon) return { label: "Desconhecido", tone: "inactive" }
   if (coupon.is_active === false) {
@@ -387,7 +397,7 @@ export function renderCouponCard(coupon, formatMoney = (v) => `R$ ${Number(v).to
 
       <div class="coupon-card__details">
         <span class="coupon-card__rule-item">${escapeHtml(rulesText)}</span>
-        ${coupon.expires_at || coupon.ends_at ? `<span class="coupon-card__date">Vence em: ${formatDateBR(coupon.expires_at || coupon.ends_at)}</span>` : `<span class="coupon-card__date">Sem expiração</span>`}
+        ${coupon.expires_at || coupon.ends_at ? `<span class="coupon-card__date">${formatValidityUntil(coupon.expires_at || coupon.ends_at)}</span>` : `<span class="coupon-card__date">Sem expiração</span>`}
       </div>
 
       ${(uses > 0 || sales > 0) ? `
