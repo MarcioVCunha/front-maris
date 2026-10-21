@@ -2,13 +2,37 @@
 // No vercel.json, source casa o pathname e ignora a query.
 import { assert, assertEquals } from "jsr:@std/assert@1"
 
-type Rule = { source: string; destination: string; permanent?: boolean }
+type Rule = {
+  source: string
+  destination: string
+  permanent?: boolean
+  has?: Array<{ type: string; value: string }>
+}
 
 const LEGACY_PATHS = ["/catalog/cesta", "/catalog/cesta-compartilhada.html"]
 
 function pathnameOf(url: string) {
   return new URL(url, "https://loja.test").pathname
 }
+
+Deno.test("host de produção vercel.app redireciona 308 ao domínio canônico", async () => {
+  const config = JSON.parse(await Deno.readTextFile(new URL("./vercel.json", import.meta.url))) as {
+    redirects: Rule[]
+  }
+  const rule = config.redirects.find((item) =>
+    item.has?.some((cond) => cond.type === "host" && cond.value === "front-maris\\.vercel\\.app")
+  )
+  assert(rule, "falta redirect por host front-maris.vercel.app")
+  assertEquals(rule.source, "/:path*")
+  assertEquals(rule.destination, "https://lojamaris.com.br/:path*")
+  assertEquals(rule.permanent, true)
+  assertEquals(
+    config.redirects.some((item) =>
+      item.has?.some((cond) => cond.type === "host" && cond.value.includes("*.vercel.app"))
+    ),
+    false
+  )
+})
 
 Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer query", async () => {
   const config = JSON.parse(await Deno.readTextFile(new URL("./vercel.json", import.meta.url))) as {

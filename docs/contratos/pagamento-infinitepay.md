@@ -20,14 +20,14 @@ Auth: pública (mesmo padrão de `create-order`; sem staff token).
 ```json
 {
   "order_id": 123,
-  "redirect_url": "https://front-maris.vercel.app/catalog/obrigado?order_id=123"
+  "redirect_url": "https://lojamaris.com.br/catalog/obrigado?order_id=123"
 }
 ```
 
 | Campo | Regra |
 | --- | --- |
 | `order_id` | Obrigatório; id do pedido site já criado |
-| `redirect_url` | Obrigatório; URL absoluta da página de obrigado (host front-maris / preview / localhost) |
+| `redirect_url` | Obrigatório; URL absoluta da página de obrigado (host lojamaris.com.br / preview / localhost) |
 | `payment_method` | **Não** enviar — o método é escolhido no checkout InfinitePay |
 | preços / itens / custo | **Não** enviar — o back monta a partir do pedido |
 

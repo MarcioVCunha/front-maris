@@ -585,6 +585,9 @@ Deno.test("buildProductShareText monta texto com nome, preços em reais e link",
   assertEquals(text.includes("76,00"), true)
   assertEquals(text.includes("https://maris.test/catalog?peca=BM123"), true)
 
+  const fallbackText = buildProductShareText(product)
+  assertEquals(fallbackText.includes("https://lojamaris.com.br/catalog?peca=BM123"), true)
+
   assertEquals(buildProductShareText(null), "")
 })
 
@@ -612,6 +615,9 @@ Deno.test("buildProductOgMetadata gera metatags para produto ou fallback do cat�
   const catalogMeta = buildProductOgMetadata(null, { origin: "https://maris.test" })
   assertEquals(catalogMeta.title, "Catálogo — Maris Semijoias")
   assertEquals(catalogMeta.url, "https://maris.test/catalog")
+
+  const fallbackMeta = buildProductOgMetadata(null)
+  assertEquals(fallbackMeta.url, "https://lojamaris.com.br/catalog")
 })
 
 Deno.test("updateOpenGraphTags atualiza atributos no DOM", () => {

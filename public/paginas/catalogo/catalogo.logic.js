@@ -1045,7 +1045,7 @@ export function buildProductShareText(product, options = {}) {
   if (!product) return ""
   const name = String(product.name || "Semijoia").trim()
   const offer = offerFromProduct(product)
-  const base = String(options.origin || "").replace(/\/$/, "") || "https://front-maris.vercel.app"
+  const base = String(options.origin || "").replace(/\/$/, "") || "https://lojamaris.com.br"
   const code = options.code || product.code || ""
   const url = options.url || (code ? `${base}/catalog?peca=${encodeURIComponent(code)}` : `${base}/catalog`)
 
@@ -1067,7 +1067,7 @@ export function buildWhatsappShareLink(shareText) {
 }
 
 export function buildProductOgMetadata(product, options = {}) {
-  const base = String(options.origin || "").replace(/\/$/, "") || "https://front-maris.vercel.app"
+  const base = String(options.origin || "").replace(/\/$/, "") || "https://lojamaris.com.br"
   if (!product) {
     return {
       title: "Catálogo — Maris Semijoias",

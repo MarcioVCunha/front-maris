@@ -2,6 +2,12 @@
   "buildCommand": "node scripts/generate-env.js",
   "outputDirectory": "public",
   "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "front-maris\\.vercel\\.app" }],
+      "destination": "https://lojamaris.com.br/:path*",
+      "permanent": true
+    },
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/hubs/admin.html", "destination": "/admin", "permanent": true },
     { "source": "/hubs/vendedoras.html", "destination": "/vendedoras", "permanent": true },
