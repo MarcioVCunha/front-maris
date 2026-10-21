@@ -175,7 +175,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
   const exportBtn = `<button type="button" id="btn-export-sales-vendas" class="btn-ghost btn-sm" title="Exportar lista de vendas em CSV">📥 Exportar vendas (CSV)</button>`
   const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
   const toolbarHeader = `<div class="sales-toolbar-row">${filterToolbar}${exportBtn}</div>`
-  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<p class="empty">${NO_DATA}</p></section>`
+  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<div id="sales-results"><p class="empty">${NO_DATA}</p></div></section>`
   const filtered = typeof options.filterSales === "function"
     ? options.filterSales(rows, selectedStatus)
     : rows
@@ -200,7 +200,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
           <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
       </article>`
     }).join("")
-  return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}${body}</section>`
+  return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<div id="sales-results">${body}</div></section>`
 }
 
 export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {

@@ -1600,9 +1600,6 @@ dialog h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .conjunto-dialog {
-    width: min(560px, calc(100% - 32px));
-  }
 }
 
 /* Cards compartilháveis (Conjuntos; alinhar com venda-edicao do PR #33). */
@@ -1655,11 +1652,16 @@ dialog h2 {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .entity-card__copy strong {
+  display: block;
   font-size: 1rem;
   line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .entity-card__copy small,
@@ -1675,6 +1677,7 @@ dialog h2 {
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  justify-self: end;
   white-space: nowrap;
 }
 
@@ -1809,6 +1812,18 @@ dialog h2 {
   width: min(480px, calc(100% - 32px));
   max-height: min(90vh, 720px);
   overflow: auto;
+}
+
+.conjunto-dialog .entity-card {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.conjunto-dialog .entity-card__side b {
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 /* Coleções Temáticas */
@@ -2529,23 +2544,34 @@ dialog h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .promo-dialog .dialog-header h2 {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   font-family: var(--maris-font-display);
   font-size: 1.35rem;
+  line-height: 1.2;
 }
 
 .promo-dialog .dialog-close {
+  width: auto;
+  flex: 0 0 auto;
+  align-self: center;
+  margin: 0;
   background: transparent;
   border: 0;
   font-size: 1.6rem;
   line-height: 1;
   color: var(--maris-text-muted);
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
-  padding: 4px;
+  padding: 0 4px;
+  min-height: 32px;
   border-radius: 6px;
   transition: color 0.15s ease;
 }
@@ -4572,4 +4598,97 @@ dialog h2 {
   color: var(--maris-gold-dark);
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.sales-results-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sales-results-loading .maris-skeleton-admin__row {
+  height: 72px;
+  border-radius: 12px;
+}
+
+.compras-contacts-dialog,
+.admin-dialog {
+  width: min(640px, calc(100% - 32px));
+}
+
+@media (min-width: 1024px) {
+  dialog {
+    width: min(520px, calc(100% - 48px));
+  }
+
+  .piece-dialog {
+    width: min(960px, calc(100% - 48px));
+  }
+
+  .piece-dialog .stack {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: none;
+  }
+
+  .piece-dialog .stack > .btn-primary,
+  .piece-dialog .stack > .btn-ghost,
+  .piece-dialog .stack > .btn-danger {
+    grid-column: 1 / -1;
+    width: auto;
+    justify-self: end;
+    min-width: 10rem;
+    min-height: 40px;
+    padding-inline: 18px;
+  }
+
+  .conjunto-dialog {
+    width: min(960px, calc(100% - 48px));
+    max-height: min(90vh, 860px);
+  }
+
+  .conjunto-dialog .entity-card-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+
+  .sale-dialog {
+    width: min(760px, calc(100% - 48px));
+  }
+
+  .collection-dialog {
+    width: min(880px, calc(100% - 48px));
+  }
+
+  .promo-dialog {
+    width: min(720px, calc(100% - 48px));
+  }
+
+  .batch-dialog {
+    width: min(640px, calc(100% - 48px));
+    max-width: 640px;
+  }
+
+  .history-dialog {
+    width: min(760px, calc(100% - 48px));
+    max-width: 760px;
+  }
+
+  .shortcuts-dialog {
+    width: min(480px, calc(100% - 48px));
+    max-width: 480px;
+  }
+
+  .compras-contacts-dialog,
+  .admin-dialog {
+    width: min(720px, calc(100% - 48px));
+  }
+
+  dialog .dialog-actions {
+    justify-content: flex-end;
+  }
+
+  dialog .dialog-actions button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 7.5rem;
+  }
 }
