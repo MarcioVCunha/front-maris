@@ -75,18 +75,18 @@ Deno.test("payload admin-product-components exige % 100 e is_active boolean", ()
   assertEquals(auto.sku, "CJ100-O-BRINCO")
 })
 
-Deno.test("com flag on a página mostra cards, Estoque por tipo e criar divisões", () => {
+Deno.test("com flag on a página mostra cards e criar divisões (sem Estoque por tipo)", () => {
   const html = renderConjuntosPage([setPiece], { enabled: true })
   assert(html.includes("conjunto-create-open"))
   assert(html.includes("entity-card"))
   assert(html.includes("CJ100-O-BRINCO"))
   assert(html.includes("data-product-code=\"CJ100-O\""))
   assert(html.includes("45%"))
-  assert(html.includes("Estoque por tipo"))
-  assert(html.includes("divisão de conjunto"))
+  assertEquals(html.includes("Estoque por tipo"), false)
+  assert(html.includes("divisões") || html.includes("Criar divisões"))
 })
 
-Deno.test("Estoque por tipo agrupa quantidade por nome da divisão", () => {
+Deno.test("stockByDivisionType agrupa quantidade por nome da divisão", () => {
   const other = {
     code: "CJ200-O",
     name: "Conjunto folha",
@@ -99,9 +99,7 @@ Deno.test("Estoque por tipo agrupa quantidade por nome da divisão", () => {
   assertEquals(groups.find((g) => g.name === "Brinco")?.quantity, 4)
   assertEquals(groups.find((g) => g.name === "Colar")?.quantity, 2)
   assertEquals(groups.find((g) => g.name === "Pulseira")?.quantity, 4)
-  const html = renderStockByType([setPiece, other])
-  assert(html.includes("Brinco"))
-  assert(html.includes("4 un."))
+  assertEquals(renderStockByType([setPiece, other]), "")
 })
 
 Deno.test("com flag off a página Conjuntos usa o editor legado de SKU", () => {
@@ -116,7 +114,7 @@ Deno.test("com flag off a página Conjuntos usa o editor legado de SKU", () => {
 Deno.test("diálogo de edição e busca para criar divisões", () => {
   const edit = renderConjuntoEditDialog(setPiece)
   assert(edit.includes("Nome da divisão"))
-  assert(edit.includes("% preço"))
+  assert(edit.includes("% do preço") || edit.includes("% preço"))
   assert(edit.includes("conjunto-edit-save"))
   const picker = renderConjuntoCreatePicker([setPiece, plainPiece], "anel")
   assert(picker.includes("data-create-code=\"AN581-R\""))

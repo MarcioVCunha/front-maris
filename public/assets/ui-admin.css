@@ -1,0 +1,99 @@
+/* Padrões reutilizáveis do painel admin */
+
+.ui-period {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  flex-wrap: nowrap;
+  margin: 0 0 var(--ui-space-3);
+}
+
+.ui-period__btn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ui-radius-pill);
+  border: 1px solid var(--maris-border);
+  background: var(--maris-surface);
+  color: var(--maris-black);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ui-period__btn:hover {
+  border-color: var(--maris-gold-dark);
+}
+
+.ui-period__label {
+  min-width: 8.5em;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--maris-black);
+  white-space: nowrap;
+}
+
+.ui-period__today {
+  flex: 0 0 auto;
+  padding: 0 var(--ui-space-2);
+  border: 0;
+  background: none;
+  color: var(--maris-gold-dark);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ui-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  overflow: visible;
+  padding: var(--ui-space-1) 0 var(--ui-space-3);
+  margin: 0;
+}
+
+.ui-pills > button {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+}
+
+.ui-card-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--ui-space-3);
+  overflow: visible;
+}
+
+.ui-card-grid > * {
+  min-width: 0;
+}
+
+.ui-card-grid > .origin-card,
+.ui-card-grid > li > .sale-card {
+  min-height: var(--ui-card-min-h);
+  height: 100%;
+}
+
+.ui-card-grid .ui-truncate,
+.ui-card-grid strong,
+.ui-card-grid small {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -83,7 +83,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
       secondaryBody = options.renderSales(filtered, formatMoney)
     } else {
       secondaryBody = filtered.length
-        ? `<ul class="sale-card-list">${filtered.map((sale) => `<li><article class="sale-card sale-card--static">
+        ? `<ul class="sale-card-list ui-card-grid">${filtered.map((sale) => `<li><article class="sale-card sale-card--static">
             <span class="sale-card__copy"><strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
               <small>${escapeHtml([sale.seller_name, formatWhen(sale.created_at)].filter(Boolean).join(" · "))}</small></span>
             <span class="sale-card__side"><b>${escapeHtml(money(sale.total, formatMoney))}</b>
@@ -144,10 +144,12 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
         <button type="button" id="btn-export-sales-csv" class="btn-ghost btn-sm" title="Baixar relatório de vendas do mês em CSV">📥 Exportar vendas (CSV)</button>
       </div>
     </div>
-    <p class="hint origin-hint">Toque numa origem para ver as vendas. Toque de novo para voltar às mais vendidas.</p>
+    <p class="hint origin-hint">Toque para filtrar as vendas.</p>
     ${origins}
-    <h2 id="inicio-secondary-title">${escapeHtml(secondaryTitle)}</h2>
-    <div id="inicio-secondary">${secondaryBody}</div>
+    <section class="inicio-secondary-section">
+      <h2 id="inicio-secondary-title">${escapeHtml(secondaryTitle)}</h2>
+      <div id="inicio-secondary" class="inicio-secondary-body">${secondaryBody}</div>
+    </section>
     ${categoriesSection}
   </section>`
 }
@@ -161,7 +163,7 @@ export const SALE_STATUS_FILTERS = [
 
 export function renderSalesStatusFilter(selectedStatus = "all") {
   const active = String(selectedStatus || "all").trim().toLowerCase()
-  return `<div class="sale-status-filter" role="tablist" aria-label="Filtrar por status">${SALE_STATUS_FILTERS.map((item) => {
+  return `<div class="sale-status-filter ui-pills" role="tablist" aria-label="Filtrar por status">${SALE_STATUS_FILTERS.map((item) => {
     const pressed = item.id === active
     return `<button type="button" class="status-filter-btn${pressed ? " status-filter-btn--active" : ""}" data-status="${escapeHtml(item.id)}" role="tab" aria-selected="${pressed ? "true" : "false"}">${escapeHtml(item.label)}</button>`
   }).join("")}</div>`
@@ -225,19 +227,19 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
 
     teamSummary = `<section class="team-summary-banner">
       <div class="team-summary-card">
-        <span class="team-summary-label">Vendas da Equipe</span>
+        <span class="team-summary-label">Vendas</span>
         <strong class="team-summary-val">${money(teamTotals.total_charged, formatMoney)}</strong>
-        <small class="team-summary-sub">${teamTotals.paid_units_count} peças em ${teamTotals.paid_orders_count} pedidos</small>
+        <small class="team-summary-sub">${teamTotals.paid_units_count} peças · ${teamTotals.paid_orders_count} pedidos</small>
       </div>
       <div class="team-summary-card">
-        <span class="team-summary-label">Comissões a Pagar</span>
+        <span class="team-summary-label">Comissões</span>
         <strong class="team-summary-val team-summary-val--highlight">${money(teamTotals.total_commission, formatMoney)}</strong>
-        <small class="team-summary-sub">no período selecionado</small>
+        <small class="team-summary-sub">no período</small>
       </div>
       <div class="team-summary-card">
-        <span class="team-summary-label">Saldo a Receber</span>
+        <span class="team-summary-label">A receber</span>
         <strong class="team-summary-val">${money(teamTotals.total_balance, formatMoney)}</strong>
-        <small class="team-summary-sub">pendente de clientes</small>
+        <small class="team-summary-sub">de clientes</small>
       </div>
     </section>`
   }
@@ -260,18 +262,22 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
       ? Math.min(100, Math.max(0, Math.round((charged / maxCharged) * 100)))
       : 0
 
-    const month = seller.month_ready
-      ? `${seller.paid_count} peças em ${seller.paid_orders_count} pedidos · ${money(seller.charged_total, formatMoney)}`
-      : NO_DATA
-    const commission = seller.month_ready
-      ? `${money(seller.commission_amount, formatMoney)}${seller.commission_percent == null ? "" : ` (${seller.commission_percent}%)`}`
-      : NO_DATA
+    const dash = "—"
+    const ready = seller.month_ready
+    const commissionPct = seller.commission_percent == null ? "" : `${seller.commission_percent}%`
     const balance = seller.balance == null || Number.isNaN(Number(seller.balance))
-      ? NO_DATA
+      ? dash
       : money(seller.balance, formatMoney)
-    const avgTicket = seller.month_ready && (seller.average_ticket || seller.paid_orders_count > 0)
+    const avgTicket = ready && (seller.average_ticket || seller.paid_orders_count > 0)
       ? money(seller.average_ticket || (charged / seller.paid_orders_count), formatMoney)
-      : null
+      : dash
+    const metrics = [
+      { label: "Vendas", value: ready ? money(seller.charged_total, formatMoney) : dash },
+      { label: "Peças", value: ready ? String(Number(seller.paid_count) || 0) : dash },
+      { label: commissionPct ? `Comissão ${commissionPct}` : "Comissão", value: ready ? money(seller.commission_amount, formatMoney) : dash },
+      { label: "Ticket", value: avgTicket },
+      { label: "A receber", value: balance }
+    ]
 
     const pressed = selectedId != null && String(seller.seller_id) === String(selectedId)
 
@@ -285,10 +291,11 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
       ${seller.month_ready ? `<div class="seller-progress-track" title="${progressPercent}% em relação ao líder">
         <div class="seller-progress-fill" style="width: ${progressPercent}%;"></div>
       </div>` : ""}
-      <p>Mês: ${escapeHtml(month)}</p>
-      <p>Comissão: ${escapeHtml(commission)}</p>
-      ${avgTicket ? `<p>Ticket médio: ${escapeHtml(avgTicket)}</p>` : ""}
-      <p>Saldo a receber: ${escapeHtml(balance)}</p>
+      ${ready ? "" : `<p class="hint">${NO_DATA}</p>`}
+      <div class="seller-metrics">${metrics.map((m) => `<div class="seller-metric">
+        <b class="seller-metric__value">${escapeHtml(m.value)}</b>
+        <small class="seller-metric__label">${escapeHtml(m.label)}</small>
+      </div>`).join("")}</div>
     </button>`
   }).join("")
 
@@ -308,13 +315,12 @@ export function renderVendedoras(sellers, formatMoney = formatPrice, options = {
         : `<p class="empty">Nenhuma venda desta vendedora.</p>`)
     salesBlock = `<section class="report report--seller-sales">
       <h2>Vendas · ${escapeHtml(name)}</h2>
-      <p class="hint">Toque de novo na vendedora para fechar.</p>
       ${body}
     </section>`
   }
 
   const sectionHeader = hasAnyMonthData
-    ? `<div class="vendedoras-section-header"><h2>🏆 Ranking de Vendas da Equipe</h2></div>`
+    ? `<div class="vendedoras-section-header"><h2>Ranking</h2></div>`
     : ""
 
   return `${periodBar}${teamSummary}${sectionHeader}${cards}${salesBlock}`
@@ -332,20 +338,20 @@ export function renderCompras(purchases, formatMoney = formatPrice, options = {}
 
   const summaryBanner = `<section class="compras-summary-banner">
     <div class="compras-summary-card">
-      <span class="compras-summary-label">Peças Vendidas</span>
+      <span class="compras-summary-label">Peças vendidas</span>
       <strong class="compras-summary-val">${totalUnits} <small>unidades</small></strong>
-      <span class="compras-summary-sub">em ${totalOrders} pedidos pagos no mês</span>
+      <span class="compras-summary-sub">em ${totalOrders} pedidos</span>
     </div>
     <div class="compras-summary-card">
-      <span class="compras-summary-label">Esgotadas Mais Pedidas</span>
+      <span class="compras-summary-label">Em espera</span>
       <strong class="compras-summary-val">${restockRequests.length} <small>peças</small></strong>
-      <span class="compras-summary-sub">com clientes na lista de espera</span>
+      <span class="compras-summary-sub">esgotadas com clientes</span>
     </div>
   </section>`
 
   let topPiecesHtml = ""
   if (topPieces.length === 0) {
-    topPiecesHtml = `<p class="empty">Nenhuma venda registrada no período selecionado.</p>`
+    topPiecesHtml = `<p class="empty">Sem vendas no período.</p>`
   } else {
     topPiecesHtml = `<ul class="compras-piece-list">${topPieces.map((piece, idx) => {
       const photo = entityPhotoHtml({
@@ -370,9 +376,7 @@ export function renderCompras(purchases, formatMoney = formatPrice, options = {}
   }
 
   let restockHtml = ""
-  if (restockRequests.length === 0) {
-    restockHtml = `<p class="empty">Nenhuma cliente aguardando peças esgotadas no momento.</p>`
-  } else {
+  if (restockRequests.length > 0) {
     restockHtml = `<ul class="compras-piece-list">${restockRequests.map((piece) => {
       const photo = entityPhotoHtml({
         image_url: piece.image_url,
@@ -398,26 +402,25 @@ export function renderCompras(purchases, formatMoney = formatPrice, options = {}
     }).join("")}</ul>`
   }
 
+  const restockSection = restockRequests.length === 0 ? "" : `<section class="compras-section">
+      <div class="compras-section-header">
+        <h3>Reposição</h3>
+      </div>
+      ${restockHtml}
+    </section>`
+
   return `<section class="report report--compras">
     <div class="compras-header">
-      <h2>📦 Visão de Compras & Reposição</h2>
-      <p class="hint">Volume de saída para reordenar com fornecedores e lista de espera das clientes.</p>
+      <h2>Compras</h2>
     </div>
     ${periodBar}
     ${summaryBanner}
+    ${restockSection}
     <section class="compras-section">
       <div class="compras-section-header">
-        <h3>🏆 Top 10 Peças Mais Vendidas no Mês</h3>
-        <p class="hint">Prioridade de reposição com base no giro recente.</p>
+        <h3>Top 10 do mês</h3>
       </div>
       ${topPiecesHtml}
-    </section>
-    <section class="compras-section">
-      <div class="compras-section-header">
-        <h3>💖 Reposição — Peças Esgotadas Mais Pedidas</h3>
-        <p class="hint">Peças com estoque zero e alta demanda de clientes na lista de espera.</p>
-      </div>
-      ${restockHtml}
     </section>
   </section>`
 }

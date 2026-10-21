@@ -9,6 +9,7 @@ import {
   formatCouponDiscount,
   formatCouponRules,
   renderCouponCard,
+  renderCouponDialogContent,
   renderCouponsPage,
   validateCouponPayload,
   validateReferralCodePayload
@@ -284,4 +285,22 @@ Deno.test("renderCouponsPage: renderiza barras de KPI na aba de cupons e na de i
   assertEquals(pageRefs.includes("Indicadora Campeã"), true)
   assertEquals(pageRefs.includes("Beatriz"), true)
   assertEquals(pageRefs.includes("Resgatado"), true)
+})
+
+Deno.test("renderCouponDialogContent usa cards de desconto e agrupa opcionais em Opções", () => {
+  const html = renderCouponDialogContent()
+  assertEquals(html.includes('name="coupon-discount-type" value="percent"'), true)
+  assertEquals(html.includes('name="coupon-discount-type" value="fixed"'), true)
+  const details = html.slice(html.indexOf("<details"), html.indexOf("</details>"))
+  assertEquals(details.includes("<summary>Opções</summary>"), true)
+  for (const id of ["coupon-min-order", "coupon-max-uses", "coupon-expires-at", "coupon-first-purchase"]) {
+    assertEquals(details.includes(`id="${id}"`), true)
+  }
+})
+
+Deno.test("aba de indicações: busca no topo, filtros em pills e regras curtas", () => {
+  const html = renderCouponsPage([], [], { tab: "referrals" })
+  assertEquals(html.indexOf("referral-search-input") < html.indexOf("data-ref-status"), true)
+  assertEquals(html.includes("coupons-filter-chips ui-pills"), true)
+  assertEquals(html.includes("Regras do Programa de Indicação"), false)
 })

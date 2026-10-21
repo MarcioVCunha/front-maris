@@ -131,23 +131,8 @@ export function stockByDivisionType(products) {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
 }
 
-export function renderStockByType(products) {
-  const groups = stockByDivisionType(products)
-  if (!groups.length) {
-    return `<section class="stock-by-type">
-      <h3>Estoque por tipo</h3>
-      <p class="hint">Tipo = divisão de conjunto (brinco, colar…). Sem divisões ainda.</p>
-    </section>`
-  }
-  const rows = groups.map((group) => `<li class="stock-by-type__row">
-    <strong>${escapeEntityHtml(group.name)}</strong>
-    <span>${group.quantity} un. · ${group.pieces} peça(s)</span>
-  </li>`).join("")
-  return `<section class="stock-by-type">
-    <h3>Estoque por tipo</h3>
-    <p class="hint">Tipo = divisão de conjunto (não confundir com categoria Anel/Brinco/Colar).</p>
-    <ul class="stock-by-type__list">${rows}</ul>
-  </section>`
+export function renderStockByType() {
+  return ""
 }
 
 function divisionSummary(divisions) {
@@ -193,17 +178,21 @@ export function renderConjuntosList(products) {
 function divisionRowHtml(division, productCode, index) {
   const row = normalizeDivision(division)
   const suggested = row.sku || componentSku(productCode, row.name)
-  return `<article class="division-row" data-division-index="${index}">
+  return `<article class="division-row division-card" data-division-index="${index}">
     <input type="hidden" data-field="id" value="${escapeEntityHtml(row.id ?? "")}">
-    <label class="field"><span>Nome da divisão</span>
-      <input data-field="name" value="${escapeEntityHtml(row.name)}" placeholder="Ex.: Brinco" required></label>
-    <label class="field"><span>SKU</span>
-      <input data-field="sku" value="${escapeEntityHtml(suggested)}" placeholder="${escapeEntityHtml(componentSku(productCode, "DIVISAO"))}"></label>
-    <label class="field"><span>Qtd</span>
-      <input data-field="quantity" inputmode="numeric" value="${escapeEntityHtml(row.quantity)}"></label>
-    <label class="field"><span>% preço</span>
-      <input data-field="price_percent" inputmode="decimal" value="${escapeEntityHtml(row.price_percent ?? "")}" placeholder="Ex.: 45"></label>
-    <button type="button" class="btn-ghost division-remove" data-remove-index="${index}">Remover</button>
+    <header class="division-card__head">
+      <label class="field division-card__name"><span>Nome da divisão</span>
+        <input data-field="name" value="${escapeEntityHtml(row.name)}" placeholder="Ex.: Brinco" required></label>
+      <button type="button" class="btn-ghost division-remove" data-remove-index="${index}" aria-label="Remover divisão">Remover</button>
+    </header>
+    <div class="division-card__grid">
+      <label class="field division-card__sku"><span>SKU</span>
+        <input data-field="sku" value="${escapeEntityHtml(suggested)}" placeholder="${escapeEntityHtml(componentSku(productCode, "DIVISAO"))}"></label>
+      <label class="field"><span>Quantidade</span>
+        <input data-field="quantity" inputmode="numeric" value="${escapeEntityHtml(row.quantity)}"></label>
+      <label class="field"><span>% do preço</span>
+        <input data-field="price_percent" inputmode="decimal" value="${escapeEntityHtml(row.price_percent ?? "")}" placeholder="Ex.: 45"></label>
+    </div>
   </article>`
 }
 
@@ -269,7 +258,6 @@ export function renderConjuntosPage(products, options = {}) {
       <p class="hint">Peças com divisões (brinco, colar…) vendidas separadas. A categoria da peça continua Anel, Brinco, Colar…</p>
       <button type="button" class="btn-primary" id="conjunto-create-open">Criar divisões</button>
     </header>
-    ${renderStockByType(products)}
     ${renderConjuntosList(products)}
   </section>`
 }

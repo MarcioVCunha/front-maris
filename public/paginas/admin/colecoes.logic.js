@@ -194,7 +194,7 @@ export function renderCollectionPieceSuggestions(products) {
 
 export function renderSelectedPieceChips(productCodes = [], allProducts = []) {
   if (!productCodes.length) {
-    return `<p class="collection-picker-empty">Nenhuma peça adicionada manualmente (opcional se usar teto de preço).</p>`
+    return `<p class="collection-picker-empty">Nenhuma peça adicionada (opcional se usar preço máximo).</p>`
   }
   const productsByCode = new Map((allProducts || []).map((p) => [String(p.code).toUpperCase(), p]))
 
@@ -336,82 +336,83 @@ export function renderCollectionEditDialog(collection = null, allProducts = [], 
       <form id="collection-form" class="collection-form stack">
         <input type="hidden" name="id" value="${escapeHtml(collection?.id || "")}" />
 
-        <div class="form-grid-2">
-          <label class="field">
-            <span>Nome da coleção *</span>
-            <input
-              type="text"
-              name="name"
-              id="collection-name-input"
-              required
-              maxlength="120"
-              placeholder="Ex: Dia das Mães, Presentes até R$ 50"
-              value="${escapeHtml(name)}"
-            />
-          </label>
+        <section class="step-card">
+          <h4 class="step-card__title"><span class="step-card__num">1</span> Nome e link</h4>
+          <div class="form-grid-2">
+            <label class="field">
+              <span>Nome *</span>
+              <input
+                type="text"
+                name="name"
+                id="collection-name-input"
+                required
+                maxlength="120"
+                placeholder="Ex: Dia das Mães"
+                value="${escapeHtml(name)}"
+              />
+            </label>
 
-          <label class="field">
-            <span>Link no catálogo (slug) *</span>
-            <input
-              type="text"
-              name="slug"
-              id="collection-slug-input"
-              required
-              maxlength="140"
-              placeholder="Ex: dia-das-maes, presentes-ate-50"
-              value="${escapeHtml(slug)}"
-            />
-            <small class="field-hint">Acessível via /catalog?colecao=<strong>slug</strong></small>
-          </label>
-        </div>
+            <label class="field">
+              <span>Link (slug) *</span>
+              <input
+                type="text"
+                name="slug"
+                id="collection-slug-input"
+                required
+                maxlength="140"
+                placeholder="Gerado pelo nome"
+                title="Acessível via /catalog?colecao=slug"
+                value="${escapeHtml(slug)}"
+              />
+            </label>
+          </div>
+          <div class="form-grid-2">
+            <label class="field">
+              <span>Selo (opcional)</span>
+              <input
+                type="text"
+                name="badge_text"
+                maxlength="40"
+                placeholder="Ex: Mães, Presente"
+                title="Aparece destacado no card das peças"
+                value="${escapeHtml(badge_text)}"
+              />
+            </label>
+            <label class="field">
+              <span>Descrição (opcional)</span>
+              <input
+                type="text"
+                name="description"
+                maxlength="500"
+                placeholder="Texto no topo do catálogo"
+                value="${escapeHtml(description)}"
+              />
+            </label>
+          </div>
+        </section>
 
-        <div class="form-grid-2">
+        <section class="step-card">
+          <h4 class="step-card__title"><span class="step-card__num">2</span> Regra automática ou peças</h4>
           <label class="field">
-            <span>Texto do Selo / Badge (opcional)</span>
-            <input
-              type="text"
-              name="badge_text"
-              maxlength="40"
-              placeholder="Ex: Mães, Especial, Presente"
-              value="${escapeHtml(badge_text)}"
-            />
-            <small class="field-hint">Aparece destacado no card das peças.</small>
-          </label>
-
-          <label class="field">
-            <span>Preço Máximo — Regra Automática (opcional)</span>
+            <span>Preço máximo (automático)</span>
             <input
               type="number"
               name="max_price"
               step="0.01"
               min="0.01"
               placeholder="Ex: 50.00"
+              title="Peças até este valor entram automaticamente"
               value="${escapeHtml(max_price)}"
             />
-            <small class="field-hint">Peças até este valor entram automaticamente.</small>
           </label>
-        </div>
-
-        <label class="field">
-          <span>Descrição da Coleção (opcional)</span>
-          <textarea
-            name="description"
-            rows="2"
-            maxlength="500"
-            placeholder="Texto convidativo exibido no topo do catálogo quando a coleção for selecionada."
-          >${escapeHtml(description)}</textarea>
-        </label>
-
-        <fieldset class="collection-picker-fieldset">
-          <legend>Peças Selecionadas Manualmente</legend>
-          <p class="field-hint">Adicione peças específicas para entrarem na coleção além ou no lugar do teto de preço.</p>
 
           <div class="collection-picker-search-wrap">
             <input
               type="search"
               id="collection-piece-search"
               class="collection-piece-search"
-              placeholder="Digite o código (ex: BM123) ou nome para buscar..."
+              placeholder="Adicionar peça: código ou nome"
+              aria-label="Buscar peças para adicionar"
               autocomplete="off"
             />
             <div id="collection-piece-suggestions" class="collection-piece-suggestions" hidden></div>
@@ -420,24 +421,27 @@ export function renderCollectionEditDialog(collection = null, allProducts = [], 
           <div id="collection-selected-pieces" class="collection-selected-pieces">
             ${chipsHtml}
           </div>
-        </fieldset>
+        </section>
 
-        <div class="form-grid-3">
-          <label class="field">
-            <span>Início (agendamento opcional)</span>
-            <input type="datetime-local" name="starts_at" value="${escapeHtml(starts_at)}" />
-          </label>
+        <section class="step-card">
+          <h4 class="step-card__title"><span class="step-card__num">3</span> Período</h4>
+          <div class="form-grid-3">
+            <label class="field">
+              <span>Início</span>
+              <input type="datetime-local" name="starts_at" value="${escapeHtml(starts_at)}" />
+            </label>
 
-          <label class="field">
-            <span>Término (expiração opcional)</span>
-            <input type="datetime-local" name="ends_at" value="${escapeHtml(ends_at)}" />
-          </label>
+            <label class="field">
+              <span>Término</span>
+              <input type="datetime-local" name="ends_at" value="${escapeHtml(ends_at)}" />
+            </label>
 
-          <label class="field">
-            <span>Ordem de exibição</span>
-            <input type="number" name="sort_order" step="1" value="${escapeHtml(sort_order)}" />
-          </label>
-        </div>
+            <label class="field">
+              <span>Ordem</span>
+              <input type="number" name="sort_order" step="1" value="${escapeHtml(sort_order)}" />
+            </label>
+          </div>
+        </section>
 
         <label class="checkbox-field">
           <input type="checkbox" name="is_active" ${is_active ? "checked" : ""} />

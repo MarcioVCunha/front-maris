@@ -481,7 +481,7 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
           <div class="coupons-search-field">
             <input id="coupon-search-input" type="search" placeholder="Buscar cupom por código ou descrição..." value="${escapeHtml(couponQuery)}" autocomplete="off">
           </div>
-          <div class="coupons-filter-chips" role="group" aria-label="Filtrar cupons">
+          <div class="coupons-filter-chips ui-pills" role="group" aria-label="Filtrar cupons">
             <button type="button" class="coupon-chip ${couponStatus === "all" ? "coupon-chip--active" : ""}" data-status="all">Todos</button>
             <button type="button" class="coupon-chip ${couponStatus === "active" ? "coupon-chip--active" : ""}" data-status="active">Ativos</button>
             <button type="button" class="coupon-chip ${couponStatus === "inactive" ? "coupon-chip--active" : ""}" data-status="inactive">Inativos</button>
@@ -521,14 +521,14 @@ export function renderCouponsPage(coupons = [], referrals = [], options = {}) {
         </div>
 
         <div class="referrals-rules-banner">
-          <p><strong>Regras do Programa de Indicação:</strong> Máximo de 10 indicações por cliente · Cada número indicado só pode ser indicado 1 única vez · Ao confirmar o pagamento do pedido da indicada, a indicadora ganha automaticamente um cupom de 10% (OBRIGADA-XXXXXX).</p>
+          <p><strong>Regras:</strong> até 10 indicações por cliente · cada número só 1 vez · pedido pago gera cupom de 10% (OBRIGADA-XXXXXX) para a indicadora.</p>
         </div>
 
-        <div class="coupons-toolbar">
+        <div class="coupons-toolbar coupons-toolbar--stacked">
           <div class="coupons-search-field">
             <input id="referral-search-input" type="search" placeholder="Buscar por cliente, WhatsApp ou bônus..." value="${escapeHtml(referralQuery)}" autocomplete="off">
           </div>
-          <div class="coupons-filter-chips" role="group" aria-label="Filtrar indicações">
+          <div class="coupons-filter-chips ui-pills" role="group" aria-label="Filtrar indicações">
             <button type="button" class="coupon-chip ${referralStatus === "all" ? "coupon-chip--active" : ""}" data-ref-status="all">Todas</button>
             <button type="button" class="coupon-chip ${referralStatus === "pendente" ? "coupon-chip--active" : ""}" data-ref-status="pendente">Pendentes</button>
             <button type="button" class="coupon-chip ${referralStatus === "confirmado" ? "coupon-chip--active" : ""}" data-ref-status="confirmado">Confirmadas</button>
@@ -600,68 +600,63 @@ export function renderCouponDialogContent() {
   return `
     <form id="coupon-form" method="dialog">
       <div class="dialog-header">
-        <h2>Novo Cupom de Desconto</h2>
+        <h2>Novo cupom</h2>
         <button type="button" class="dialog-close" data-dialog-close="coupon" aria-label="Fechar">×</button>
       </div>
       <div class="dialog-body">
-        <div class="form-row">
-          <div class="form-field">
-            <label for="coupon-code">Código do Cupom *</label>
-            <input id="coupon-code" type="text" placeholder="Ex: BEMVINDA10" required autocomplete="off" autocapitalize="characters" style="text-transform: uppercase;">
-            <span class="field-hint">Letras, números e traço. Sem espaços.</span>
-          </div>
-          <div class="form-field">
-            <label for="coupon-discount-type">Tipo de Desconto *</label>
-            <select id="coupon-discount-type" required>
-              <option value="percent">Porcentagem (% OFF)</option>
-              <option value="fixed">Valor Fixo (R$ OFF)</option>
-            </select>
-          </div>
+        <div class="form-field">
+          <label for="coupon-code">Código *</label>
+          <input id="coupon-code" type="text" placeholder="Ex: BEMVINDA10" title="Letras, números e traço. Sem espaços." required autocomplete="off" autocapitalize="characters" style="text-transform: uppercase;">
         </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label for="coupon-discount-value">Valor do Desconto *</label>
-            <input id="coupon-discount-value" type="number" step="0.01" min="0.01" placeholder="Ex: 10" required>
-            <span class="field-hint" id="coupon-discount-hint">Digite 10 para 10% de desconto.</span>
+        <fieldset class="choice-fieldset">
+          <legend>Desconto *</legend>
+          <div class="choice-cards choice-cards--compact" role="radiogroup" aria-label="Tipo de desconto">
+            <label class="choice-card">
+              <input type="radio" name="coupon-discount-type" value="percent" checked>
+              <span class="choice-card__body"><b aria-hidden="true">%</b><span>Porcentagem</span></span>
+            </label>
+            <label class="choice-card">
+              <input type="radio" name="coupon-discount-type" value="fixed">
+              <span class="choice-card__body"><b aria-hidden="true">R$</b><span>Valor fixo</span></span>
+            </label>
           </div>
-          <div class="form-field">
-            <label for="coupon-min-order">Pedido Mínimo (R$)</label>
-            <input id="coupon-min-order" type="number" step="0.01" min="0" placeholder="0,00">
-            <span class="field-hint">Opcional. Valor mínimo em peças.</span>
-          </div>
-        </div>
+          <input id="coupon-discount-value" type="number" step="0.01" min="0.01" placeholder="Ex: 10 (%)" aria-label="Valor do desconto" required>
+        </fieldset>
 
         <div class="form-field">
           <label for="coupon-description">Descrição interna</label>
-          <input id="coupon-description" type="text" placeholder="Ex: Cupom de boas-vindas para novas clientes">
+          <input id="coupon-description" type="text" placeholder="Ex: Boas-vindas para novas clientes">
         </div>
 
-        <div class="form-row">
-          <div class="form-field">
-            <label for="coupon-max-uses">Limite de Usos Total</label>
-            <input id="coupon-max-uses" type="number" min="1" step="1" placeholder="Ilimitado">
-            <span class="field-hint">Deixe em branco para usos ilimitados.</span>
+        <details class="coupon-options">
+          <summary>Opções</summary>
+          <div class="form-row">
+            <div class="form-field">
+              <label for="coupon-min-order">Pedido mínimo (R$)</label>
+              <input id="coupon-min-order" type="number" step="0.01" min="0" placeholder="0,00">
+            </div>
+            <div class="form-field">
+              <label for="coupon-max-uses">Limite de usos</label>
+              <input id="coupon-max-uses" type="number" min="1" step="1" placeholder="Ilimitado">
+            </div>
           </div>
           <div class="form-field">
-            <label for="coupon-expires-at">Data de Expiração</label>
+            <label for="coupon-expires-at">Expira em</label>
             <input id="coupon-expires-at" type="datetime-local">
-            <span class="field-hint">Deixe em branco para não expirar.</span>
           </div>
-        </div>
-
-        <div class="form-row">
           <label class="form-field-checkbox">
             <input id="coupon-first-purchase" type="checkbox">
-            <span>Válido apenas na primeira compra</span>
+            <span>Só na primeira compra</span>
           </label>
-          <label class="form-field-checkbox">
-            <input id="coupon-is-active" type="checkbox" checked>
-            <span>Cupom ativo imediatamente</span>
-          </label>
-        </div>
+        </details>
 
-        <p class="field-hint" style="margin-top: 8px;"><strong>Importante:</strong> Cupons não acumulam com produtos que já estão com promoção ativa.</p>
+        <label class="form-field-checkbox">
+          <input id="coupon-is-active" type="checkbox" checked>
+          <span>Cupom ativo</span>
+        </label>
+
+        <p class="field-hint">Não acumula com peças em promoção.</p>
       </div>
 
       <div class="dialog-actions">

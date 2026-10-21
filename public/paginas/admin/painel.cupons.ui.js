@@ -39,11 +39,18 @@ export function installCuponsUi(deps) {
 
     closeBtn?.addEventListener("click", () => couponDialog.close())
 
+    const valueInput = form?.querySelector("#coupon-discount-value")
+    form?.querySelectorAll('input[name="coupon-discount-type"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        if (valueInput) valueInput.placeholder = radio.value === "percent" ? "Ex: 10 (%)" : "Ex: 25,00 (R$)"
+      })
+    })
+
     form?.addEventListener("submit", async (e) => {
       e.preventDefault()
       const payload = {
         code: form.querySelector("#coupon-code")?.value,
-        discount_type: form.querySelector("#coupon-discount-type")?.value,
+        discount_type: form.querySelector('input[name="coupon-discount-type"]:checked')?.value,
         discount_value: form.querySelector("#coupon-discount-value")?.value,
         min_order_value: form.querySelector("#coupon-min-order")?.value,
         description: form.querySelector("#coupon-description")?.value,

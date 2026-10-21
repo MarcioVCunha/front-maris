@@ -487,7 +487,7 @@ export function renderImportUploadBlock() {
   return `
     <div class="import-upload-shell stack">
       <div class="upload-block">
-        <input type="file" id="fileInput" accept=".json,.txt,application/json" class="visually-hidden" />
+        <input type="file" id="fileInput" accept=".json,.txt,application/json" class="visually-hidden drop-zone__input" />
 
         <label for="fileInput" class="drop-zone" id="dropZone">
           <span class="drop-zone__icon" aria-hidden="true">
@@ -498,7 +498,7 @@ export function renderImportUploadBlock() {
             </svg>
           </span>
           <span class="drop-zone__title">Escolher ou arrastar arquivo JSON</span>
-          <span class="drop-zone__hint">Arquivo com a lista de novas peças e fotos para importação</span>
+          <span class="drop-zone__hint">Arquivo JSON com as novas peças</span>
         </label>
 
         <p class="file-name" id="fileName">Nenhum arquivo selecionado</p>

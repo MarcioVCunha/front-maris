@@ -261,3 +261,25 @@ Deno.test("renderPromoCard exibe caixa de desempenho quando houver métricas de 
   assert(html.includes("210,00"), "Deve exibir lucro estimado")
 })
 
+
+Deno.test("diálogo de promoção oferece alcance e desconto em cards; parada ainda não é aceita", () => {
+  const html = renderPromoDialogContent(null)
+  assert(html.includes('name="promo-scope" value="categoria"'))
+  assert(html.includes('name="promo-scope" value="produto"'))
+  assert(html.includes('name="promo-scope" value="parada"'))
+  assert(html.includes('id="promo-form-stale-days"'))
+  assert(html.includes('value="60"'))
+  assert(html.includes('name="promo-discount-type" value="percent"'))
+  assert(html.includes('name="promo-discount-type" value="fixed"'))
+  assert(html.includes("TODO: back ainda não aceita scope=parada"))
+  const res = validatePromotionPayload({
+    name: "Paradas",
+    scope: "parada",
+    discount_type: "percent",
+    value: 10,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z",
+  })
+  assertEquals(res.ok, false)
+  assert(String(res.error).includes("Em breve"))
+})
