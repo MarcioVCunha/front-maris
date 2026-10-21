@@ -337,6 +337,7 @@ export function installEstoqueUi(deps) {
     list.innerHTML = listHtml
     bindStockCards()
     updateStockBatchBar()
+    syncStockFilterChips(state.staleOnly ? "stale" : "all")
     const meta = document.getElementById("stock-meta")
     if (meta) meta.textContent = total ? `${rows.length} de ${total}` : ""
     const more = document.getElementById("stock-more")
@@ -389,6 +390,14 @@ export function installEstoqueUi(deps) {
     })
   }
 
+  function syncStockFilterChips(activeFilter) {
+    viewEl.querySelectorAll("[data-stock-filter]").forEach((chip) => {
+      const on = chip.getAttribute("data-stock-filter") === activeFilter
+      chip.classList.toggle("is-active", on)
+      chip.setAttribute("aria-pressed", on ? "true" : "false")
+    })
+  }
+
   function bindStockOnce() {
     if (viewEl.dataset.stockBound === "1") return
     viewEl.dataset.stockBound = "1"
@@ -409,6 +418,7 @@ export function installEstoqueUi(deps) {
         const filter = filterBtn.getAttribute("data-stock-filter")
         state.staleOnly = filter === "stale"
         state.stockLimit = STOCK_PAGE_SIZE
+        syncStockFilterChips(filter)
         const mode = viewEl.querySelector("[data-stock-mode]")?.getAttribute("data-stock-mode") || "estoque"
         paintStock(mode)
         return

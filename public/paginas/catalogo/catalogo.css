@@ -2412,12 +2412,15 @@ body {
     grid-row: 2 / span 12;
     align-self: start;
     min-width: 0;
-    position: sticky;
-    top: calc(var(--maris-header-h, 72px) + 16px);
+    position: static;
   }
 
-  .piece-combina-wrap {
+  .piece-combina-wrap,
+  .piece-related-wrap {
     grid-column: 1 / -1;
+    position: relative;
+    z-index: 1;
+    background: var(--maris-bg);
   }
 
   .product-media .product-photo-nav {

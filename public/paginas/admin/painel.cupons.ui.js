@@ -35,9 +35,9 @@ export function installCuponsUi(deps) {
     if (!couponDialog) return
     couponDialog.innerHTML = renderCouponDialogContent()
     const form = couponDialog.querySelector("#coupon-form")
-    const closeBtn = couponDialog.querySelector("[data-dialog-close='coupon']")
-
-    closeBtn?.addEventListener("click", () => couponDialog.close())
+    couponDialog.querySelectorAll("[data-dialog-close='coupon']").forEach((closeBtn) => {
+      closeBtn.addEventListener("click", () => couponDialog.close())
+    })
 
     const valueInput = form?.querySelector("#coupon-discount-value")
     form?.querySelectorAll('input[name="coupon-discount-type"]').forEach((radio) => {
@@ -95,9 +95,9 @@ export function installCuponsUi(deps) {
     if (!referralCodeDialog) return
     referralCodeDialog.innerHTML = renderReferralCodeDialogContent()
     const form = referralCodeDialog.querySelector("#referral-code-form")
-    const closeBtn = referralCodeDialog.querySelector("[data-dialog-close='referral']")
-
-    closeBtn?.addEventListener("click", () => referralCodeDialog.close())
+    referralCodeDialog.querySelectorAll("[data-dialog-close='referral']").forEach((closeBtn) => {
+      closeBtn.addEventListener("click", () => referralCodeDialog.close())
+    })
 
     form?.addEventListener("submit", async (e) => {
       e.preventDefault()

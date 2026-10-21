@@ -76,14 +76,38 @@ export function installHomeUi(deps) {
     paintInicio()
   }
 
+  let recentRequest = 0
+
   async function loadRecent(status = "all") {
     const normalized = status || "all"
+    const requestId = ++recentRequest
     if (state.recent !== undefined && state.loadedStatus === normalized) return state.recent
     const queryStatus = normalized === "all" ? undefined : normalized
     const result = await fetchRecentSales({ limit: 50, status: queryStatus })
+    if (requestId !== recentRequest) return state.recent
     state.recent = result.ok ? normalizeRecentSales(result.data) : null
     state.loadedStatus = normalized
     return state.recent
+  }
+
+  function markSaleStatusActive(status) {
+    viewEl.querySelectorAll(".status-filter-btn[data-status]").forEach((chip) => {
+      const on = (chip.getAttribute("data-status") || "all") === status
+      chip.classList.toggle("status-filter-btn--active", on)
+      chip.setAttribute("aria-selected", on ? "true" : "false")
+    })
+  }
+
+  function showSalesResultsLoading() {
+    const slot = viewEl.querySelector("#sales-results")
+    if (!slot) return
+    slot.setAttribute("aria-busy", "true")
+    slot.innerHTML = `<div class="sales-results-loading" role="status" aria-label="Carregando vendas">
+      <div class="maris-skeleton-admin__row maris-skeleton-shimmer"></div>
+      <div class="maris-skeleton-admin__row maris-skeleton-shimmer"></div>
+      <div class="maris-skeleton-admin__row maris-skeleton-shimmer"></div>
+      <div class="maris-skeleton-admin__row maris-skeleton-shimmer"></div>
+    </div>`
   }
 
   function bindSaleEditActions(sale) {
@@ -262,9 +286,13 @@ export function installHomeUi(deps) {
     viewEl.querySelectorAll(".status-filter-btn[data-status]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const targetStatus = btn.getAttribute("data-status") || "all"
-        if (state.selectedSaleStatus === targetStatus) return
+        if (state.selectedSaleStatus === targetStatus && state.loadedStatus === targetStatus && !viewEl.querySelector(".sales-results-loading")) return
         state.selectedSaleStatus = targetStatus
+        markSaleStatusActive(targetStatus)
+        const cached = state.recent !== undefined && state.loadedStatus === targetStatus
+        if (!cached) showSalesResultsLoading()
         await loadRecent(targetStatus)
+        if (state.selectedSaleStatus !== targetStatus || state.loadedStatus !== targetStatus) return
         paintVendas()
       })
     })
