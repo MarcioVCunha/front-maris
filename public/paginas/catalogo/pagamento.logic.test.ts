@@ -22,12 +22,12 @@ Deno.test("payment-create-link usa o nome da Edge Function do back", () => {
 Deno.test("buildPaymentCreateLinkBody monta order_id e redirect_url sem payment_method", () => {
   const body = buildPaymentCreateLinkBody({
     orderId: 42,
-    redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=42",
+    redirectUrl: "https://lojamaris.com.br/catalog/obrigado?order_id=42",
     paymentMethod: "pix"
   })
   assertEquals(body, {
     order_id: 42,
-    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=42"
+    redirect_url: "https://lojamaris.com.br/catalog/obrigado?order_id=42"
   })
   assertEquals(Object.prototype.hasOwnProperty.call(body, "payment_method"), false)
   assertEquals(validatePaymentCreateLinkBody(body).ok, true)
@@ -41,14 +41,14 @@ Deno.test("validatePaymentCreateLinkBody rejeita payment_method, preço e redire
   assertEquals(
     validatePaymentCreateLinkBody({
       order_id: 1,
-      redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1",
+      redirect_url: "https://lojamaris.com.br/catalog/obrigado?order_id=1",
       payment_method: "pix"
     }),
     { ok: false, error: "O pagamento não envia método pela tela." }
   )
   const withCost = {
     order_id: 1,
-    redirect_url: "https://front-maris.vercel.app/catalog/obrigado?order_id=1"
+    redirect_url: "https://lojamaris.com.br/catalog/obrigado?order_id=1"
   }
   withCost["cos" + "to"] = 10
   assertEquals(
@@ -99,7 +99,7 @@ Deno.test("submitPaymentCreateLink chama a função sem payment_method", async (
     }
   }, {
     orderId: 7,
-    redirectUrl: "https://front-maris.vercel.app/catalog/obrigado?order_id=7"
+    redirectUrl: "https://lojamaris.com.br/catalog/obrigado?order_id=7"
   })
   assertEquals(seenName, "payment-create-link")
   assertEquals(seenBody.order_id, 7)
@@ -110,8 +110,8 @@ Deno.test("submitPaymentCreateLink chama a função sem payment_method", async (
 
 Deno.test("buildObrigadoUrl e parseObrigadoQuery tratam retorno InfinitePay", () => {
   assertEquals(
-    buildObrigadoUrl("https://front-maris.vercel.app", 99),
-    "https://front-maris.vercel.app/catalog/obrigado?order_id=99"
+    buildObrigadoUrl("https://lojamaris.com.br", 99),
+    "https://lojamaris.com.br/catalog/obrigado?order_id=99"
   )
   const query = parseObrigadoQuery(
     "?order_nsu=99&receipt_url=https%3A%2F%2Fpay.example%2Fr&capture_method=pix&transaction_nsu=tx1&slug=abc"
