@@ -3,6 +3,12 @@
   "outputDirectory": "public",
   "redirects": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "front-maris\\.vercel\\.app" }],
+      "destination": "https://lojamaris.com.br/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "front-maris\\.vercel\\.app" }],
       "destination": "https://lojamaris.com.br/:path*",

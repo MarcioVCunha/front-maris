@@ -19,13 +19,18 @@ Deno.test("host de produção vercel.app redireciona 308 ao domínio canônico",
   const config = JSON.parse(await Deno.readTextFile(new URL("./vercel.json", import.meta.url))) as {
     redirects: Rule[]
   }
-  const rule = config.redirects.find((item) =>
+  const hostRules = config.redirects.filter((item) =>
     item.has?.some((cond) => cond.type === "host" && cond.value === "front-maris\\.vercel\\.app")
   )
-  assert(rule, "falta redirect por host front-maris.vercel.app")
-  assertEquals(rule.source, "/:path*")
-  assertEquals(rule.destination, "https://lojamaris.com.br/:path*")
-  assertEquals(rule.permanent, true)
+  const rootRule = hostRules.find((item) => item.source === "/")
+  const pathRule = hostRules.find((item) => item.source === "/:path*")
+  assert(rootRule, "falta redirect explícito da raiz / por host front-maris.vercel.app")
+  assertEquals(rootRule.destination, "https://lojamaris.com.br/")
+  assertEquals(rootRule.permanent, true)
+  assert(pathRule, "falta redirect por host front-maris.vercel.app")
+  assertEquals(pathRule.source, "/:path*")
+  assertEquals(pathRule.destination, "https://lojamaris.com.br/:path*")
+  assertEquals(pathRule.permanent, true)
   assertEquals(
     config.redirects.some((item) =>
       item.has?.some((cond) => cond.type === "host" && cond.value.includes("*.vercel.app"))
