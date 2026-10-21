@@ -706,7 +706,10 @@ export function renderCatalogPhotoStrip(urls, alt) {
   const shown = (urls || []).filter(Boolean).slice(0, 2)
   if (!shown.length) return `<div class="product-media"><div class="product-photos product-photos-empty"></div></div>`
   const dots = shown.length > 1 ? `<div class="product-photo-dots" aria-hidden="true"><span></span><span></span></div>` : ""
-  return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}</div>`
+  const nav = shown.length > 1
+    ? `<button type="button" class="product-photo-nav prev" data-photo-nav="-1" aria-label="Foto anterior">‹</button><button type="button" class="product-photo-nav next" data-photo-nav="1" aria-label="Próxima foto">›</button>`
+    : ""
+  return `<div class="product-media"><div class="product-photos">${shown.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy">`).join("")}</div>${dots}${nav}</div>`
 }
 
 export function renderSearchSuggestionsHtml(suggestions, query) {

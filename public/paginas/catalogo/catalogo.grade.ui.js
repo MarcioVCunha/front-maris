@@ -376,10 +376,128 @@ export function installGradeUi(deps) {
     `
   }
 
+  const CATALOG_GROUPS_PER_PAGE = 24
+  const DEFAULT_SORT = "name_asc"
+  let fullLoadPromise = null
+  let appendBusy = false
+  let renderToken = 0
+  let sentinelObserver = null
+  const sentinel = document.createElement("div")
+  sentinel.id = "catalog-sentinel"
+  sentinel.className = "catalog-sentinel"
+  sentinel.setAttribute("aria-hidden", "true")
+
+  // Sem filtro e na ordem A-Z, a grade acompanha a ordem do servidor e pode crescer por páginas.
+  function needsFullCatalog(filters, sortMode) {
+    if (!sentinelObserver) return true
+    if (sortMode !== DEFAULT_SORT) return true
+    return Boolean(
+      filters.term
+      || (filters.category && filters.category !== "Todos")
+      || filters.minPrice != null
+      || filters.maxPrice != null
+      || filters.colorId
+      || filters.onlyAvailable
+      || filters.onSaleOnly
+      || filters.collection
+      || filters.favoritos
+    )
+  }
+
+  function computeCatalogLists() {
+    const sortMode = getSortMode()
+    const filters = activeFilters()
+    const partitioned = filterAndPartitionCatalog(estado.allGroups, filters, isCatalogProductAvailable)
+    const sortList = (groups) => sortMode === BESTSELLER_SORT && estado.bestsellerTotals
+      ? sortGroupsByBestsellers(groups, estado.bestsellerTotals)
+      : sortGroupsForCatalog(groups, sortMode, isCatalogProductAvailable, filters)
+    return {
+      filters,
+      sortMode,
+      available: sortList(partitioned.available),
+      soldOut: sortList(partitioned.soldOut),
+    }
+  }
+
+  function catalogSignature(filters, sortMode) {
+    const { favoritesList, ...rest } = filters
+    return JSON.stringify({ ...rest, sortMode })
+  }
+
+  function hasMoreToShow(lists) {
+    return estado.productsHasMore || lists.available.some((group) => !estado.renderedGroupKeys.has(group.key))
+  }
+
+  function syncUnavailableSection(lists) {
+    if (!lists.soldOut.length || hasMoreToShow(lists)) {
+      unavailableProductsSection.hidden = true
+      unavailableProductsGrid.innerHTML = ""
+      return
+    }
+    unavailableProductsSection.hidden = false
+    unavailableProductsGrid.innerHTML = lists.soldOut.map(renderCatalogGroup).join("")
+  }
+
+  function observeSentinel(lists) {
+    if (!sentinelObserver) return
+    sentinelObserver.unobserve(sentinel)
+    const more = hasMoreToShow(lists)
+    sentinel.hidden = !more
+    if (!more) return
+    if (!catalogEl.contains(sentinel)) catalogEl.appendChild(sentinel)
+    sentinelObserver.observe(sentinel)
+  }
+
+  async function appendCatalogPage() {
+    if (appendBusy || estado.pieceGroupKey && piecePage && !piecePage.hidden) return
+    appendBusy = true
+    const token = renderToken
+    try {
+      let lists = computeCatalogLists()
+      let next = lists.available.filter((group) => !estado.renderedGroupKeys.has(group.key))
+      while (!next.length && estado.productsHasMore) {
+        await deps.loadMoreProducts()
+        if (token !== renderToken) return
+        lists = computeCatalogLists()
+        next = lists.available.filter((group) => !estado.renderedGroupKeys.has(group.key))
+      }
+      if (token !== renderToken) return
+      const chunk = next.slice(0, CATALOG_GROUPS_PER_PAGE)
+      if (chunk.length) {
+        for (const group of chunk) estado.renderedGroupKeys.add(group.key)
+        catalogEl.hidden = false
+        if (!catalogEl.contains(sentinel)) catalogEl.appendChild(sentinel)
+        sentinel.insertAdjacentHTML("beforebegin", chunk.map(renderCatalogGroup).join(""))
+      }
+      syncUnavailableSection(lists)
+      observeSentinel(lists)
+    } finally {
+      appendBusy = false
+    }
+  }
+
+  if (typeof IntersectionObserver === "function") {
+    sentinelObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) appendCatalogPage()
+    }, { rootMargin: "600px 0px" })
+  }
+
   function renderCatalogGrids() {
     clearCatalogLoading()
     const term = getSearchTerm()
     const sortMode = getSortMode()
+    const pieceOpen = Boolean(estado.pieceGroupKey && piecePage && !piecePage.hidden)
+
+    if (estado.productsHasMore && !pieceOpen && needsFullCatalog(activeFilters(), sortMode)) {
+      if (!fullLoadPromise) {
+        deps.showCatalogLoading()
+        fullLoadPromise = deps.loadAllProducts().finally(() => {
+          fullLoadPromise = null
+          renderCatalogGrids()
+        })
+      }
+      return
+    }
 
     renderCategoryFilters()
     deps.renderActiveFilters()
@@ -387,19 +505,22 @@ export function installGradeUi(deps) {
     renderCollectionBanner()
     syncFavoritesUi()
 
-    const filters = activeFilters()
-    const partitioned = filterAndPartitionCatalog(estado.allGroups, filters, isCatalogProductAvailable)
-    const sortList = (groups) => sortMode === BESTSELLER_SORT && estado.bestsellerTotals
-      ? sortGroupsByBestsellers(groups, estado.bestsellerTotals)
-      : sortGroupsForCatalog(groups, sortMode, isCatalogProductAvailable, filters)
-    const availFiltered = sortList(partitioned.available)
-    const unavailFiltered = sortList(partitioned.soldOut)
-    if (estado.pieceGroupKey && piecePage && !piecePage.hidden) {
+    const lists = computeCatalogLists()
+    const { filters, available: availFiltered, soldOut: unavailFiltered } = lists
+    if (pieceOpen) {
       catalogEl.hidden = true
       unavailableProductsSection.hidden = true
       if (collectionBannerEl) collectionBannerEl.hidden = true
       return
     }
+
+    renderToken += 1
+    const signature = catalogSignature(filters, sortMode)
+    const keepCount = signature === estado.catalogRenderSignature
+      ? Math.max(CATALOG_GROUPS_PER_PAGE, estado.renderedGroupKeys.size)
+      : CATALOG_GROUPS_PER_PAGE
+    estado.catalogRenderSignature = signature
+    estado.renderedGroupKeys = new Set()
 
     if (!availFiltered.length && !unavailFiltered.length) {
       catalogEl.hidden = false
@@ -415,22 +536,20 @@ export function installGradeUi(deps) {
           : estado.selectedCategory !== "Todos"
             ? "Nenhum produto nessa categoria"
             : "Nenhum produto encontrado"
-    } else if (!availFiltered.length) {
+    } else if (!availFiltered.length && !estado.productsHasMore) {
       catalogEl.hidden = true
       catalogEl.innerHTML = ""
     } else {
-      catalogEl.hidden = false
-      catalogEl.innerHTML = availFiltered.map(renderCatalogGroup).join("")
+      const shown = sentinelObserver ? availFiltered.slice(0, keepCount) : availFiltered
+      for (const group of shown) estado.renderedGroupKeys.add(group.key)
+      catalogEl.hidden = !shown.length
+      catalogEl.innerHTML = shown.map(renderCatalogGroup).join("")
+      catalogEl.appendChild(sentinel)
     }
 
-    if (!unavailFiltered.length) {
-      unavailableProductsSection.hidden = true
-      unavailableProductsGrid.innerHTML = ""
-      return
-    }
-
-    unavailableProductsSection.hidden = false
-    unavailableProductsGrid.innerHTML = unavailFiltered.map(renderCatalogGroup).join("")
+    syncUnavailableSection(lists)
+    observeSentinel(lists)
+    if (!estado.renderedGroupKeys.size && estado.productsHasMore) appendCatalogPage()
   }
 
   return {

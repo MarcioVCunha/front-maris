@@ -113,14 +113,34 @@ window.MarisCatalogRead = {
     return proxy
   },
 
-  selectProducts(client) {
+  // Faixa opcional: { from, to } (índices inclusivos) ou { page, size } (página começa em 0).
+  productRange(options) {
+    if (!options || typeof options !== "object") return null
+    let from = Number(options.from)
+    let to = Number(options.to)
+    if (!Number.isInteger(from) || !Number.isInteger(to)) {
+      const size = Number(options.size)
+      const page = Number(options.page)
+      if (!Number.isInteger(size) || size <= 0 || !Number.isInteger(page) || page < 0) return null
+      from = page * size
+      to = from + size - 1
+    }
+    if (from < 0 || to < from) return null
+    return { from, to }
+  },
+
+  selectProducts(client, options = null) {
     const columns = this.productColumns()
     const primary = () => this._select(client, this.PRODUCTS_RELATION, columns)
+    let query
     if (columns === this.PRODUCT_COLUMNS) {
-      return this.queryWithColumnFallback(primary, primary, "__no_optional_column__")
+      query = this.queryWithColumnFallback(primary, primary, "__no_optional_column__")
+    } else {
+      const fallback = () => this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
+      query = this.queryWithColumnFallback(primary, fallback, this.OPTIONAL_PRICE_FIELDS)
     }
-    const fallback = () => this._select(client, this.PRODUCTS_RELATION, this.PRODUCT_COLUMNS)
-    return this.queryWithColumnFallback(primary, fallback, this.OPTIONAL_PRICE_FIELDS)
+    const range = this.productRange(options)
+    return range ? query.range(range.from, range.to) : query
   },
 
   selectPricedComponents(client) {

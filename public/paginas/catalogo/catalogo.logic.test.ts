@@ -10,6 +10,7 @@ import {
   groupPassesFilters,
   groupProductsByColor,
   offerFromProduct,
+  renderCatalogPhotoStrip,
   parsePriceBound,
   parseProductColor,
   partitionCatalogGroups,
@@ -1032,3 +1033,11 @@ Deno.test("filtro de favoritos no catálogo: URL, pills e groupPassesFilters", (
 
 
 
+
+Deno.test("tira de fotos mostra setas só quando há mais de uma foto", () => {
+  const one = renderCatalogPhotoStrip(["a.jpg"], "Brinco")
+  assertEquals(one.includes("data-photo-nav"), false)
+  const two = renderCatalogPhotoStrip(["a.jpg", "b.jpg"], "Brinco")
+  assertEquals(two.includes('data-photo-nav="-1"'), true)
+  assertEquals(two.includes('data-photo-nav="1"'), true)
+})
