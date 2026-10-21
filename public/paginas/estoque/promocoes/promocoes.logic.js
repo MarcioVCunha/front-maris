@@ -137,6 +137,9 @@ export function validatePromotionPayload(form) {
   }
 
   const scope = String(form?.scope || "").trim()
+  if (scope === "parada") {
+    return { ok: false, error: "Em breve: alcance por dias sem saída." }
+  }
   if (scope !== "categoria" && scope !== "produto") {
     return { ok: false, error: "Selecione o alcance: por categoria ou por produto." }
   }
@@ -339,7 +342,7 @@ export function renderPromotionsPage(promotions, { query = "", status = "all" } 
         <label for="promo-search" class="visually-hidden">Buscar promoções</label>
         <input id="promo-search" class="promo-search" type="search" placeholder="Buscar por nome, categoria ou código…" autocomplete="off" enterkeyhint="search" value="${escapeHtml(query)}">
 
-        <div class="promo-status-filter" role="tablist" aria-label="Filtrar por status">
+        <div class="promo-status-filter ui-pills" role="tablist" aria-label="Filtrar por status">
           <button type="button" class="status-filter-btn ${status === "all" ? "status-filter-btn--active" : ""}" data-status="all" role="tab" aria-selected="${status === "all" ? "true" : "false"}">Todas</button>
           <button type="button" class="status-filter-btn ${status === "active" ? "status-filter-btn--active" : ""}" data-status="active" role="tab" aria-selected="${status === "active" ? "true" : "false"}">Ativas</button>
           <button type="button" class="status-filter-btn ${status === "scheduled" ? "status-filter-btn--active" : ""}" data-status="scheduled" role="tab" aria-selected="${status === "scheduled" ? "true" : "false"}">Agendadas</button>
@@ -355,6 +358,13 @@ export function renderPromotionsPage(promotions, { query = "", status = "all" } 
   `
 }
 
+function choiceCard(name, value, icon, label, checked) {
+  return `<label class="choice-card">
+    <input type="radio" name="${name}" value="${value}" ${checked ? "checked" : ""}>
+    <span class="choice-card__body"><b aria-hidden="true">${icon}</b><span>${label}</span></span>
+  </label>`
+}
+
 export function renderPromoDialogContent(promo = null) {
   const isEditing = Boolean(promo?.id)
   const title = isEditing ? "Editar promoção" : "Nova promoção"
@@ -366,6 +376,7 @@ export function renderPromoDialogContent(promo = null) {
     : (parseProductCodes(promo?.product_codes).join(", ") || "")
   const discountType = promo?.discount_type || "percent"
   const value = promo?.value != null ? String(promo.value) : "10"
+  const staleDays = promo?.stale_days != null ? String(promo.stale_days) : "60"
   const maxUnits = promo?.max_units != null ? String(promo.max_units) : ""
   const isActive = promo ? promo.is_active !== false : true
 
@@ -392,44 +403,45 @@ export function renderPromoDialogContent(promo = null) {
             <input type="text" id="promo-form-name" required maxlength="120" placeholder="Ex: Black Friday Anéis, Mês das Mães" value="${escapeHtml(name)}">
           </label>
 
-          <div class="form-row">
-            <label class="form-field">
-              <span>Alcance *</span>
-              <select id="promo-form-scope" required>
-                <option value="categoria" ${scope === "categoria" ? "selected" : ""}>Por categoria</option>
-                <option value="produto" ${scope === "produto" ? "selected" : ""}>Por peças específicas</option>
-              </select>
-            </label>
-
-            <div id="promo-group-category" class="form-field" ${scope === "categoria" ? "" : "hidden"}>
-              <span>Categoria *</span>
-              <select id="promo-form-category">
-                ${PROMO_CATEGORIES.map((cat) => `<option value="${escapeHtml(cat)}" ${cat === category ? "selected" : ""}>${escapeHtml(cat)}</option>`).join("")}
-              </select>
+          <fieldset class="choice-fieldset">
+            <legend>Alcance *</legend>
+            <div class="choice-cards" role="radiogroup" aria-label="Alcance">
+              ${choiceCard("promo-scope", "categoria", "📂", "Por categoria", scope === "categoria")}
+              ${choiceCard("promo-scope", "produto", "🏷️", "Peças específicas", scope === "produto")}
+              ${choiceCard("promo-scope", "parada", "⏳", "Paradas há X dias", scope === "parada")}
             </div>
+          </fieldset>
+
+          <div id="promo-group-category" class="form-field" ${scope === "categoria" ? "" : "hidden"}>
+            <span>Categoria *</span>
+            <select id="promo-form-category" aria-label="Categoria">
+              ${PROMO_CATEGORIES.map((cat) => `<option value="${escapeHtml(cat)}" ${cat === category ? "selected" : ""}>${escapeHtml(cat)}</option>`).join("")}
+            </select>
           </div>
 
           <div id="promo-group-products" class="form-field" ${scope === "produto" ? "" : "hidden"}>
-            <span>Códigos das peças (separados por vírgula) *</span>
-            <input type="text" id="promo-form-codes" placeholder="Ex: AN01, AN02, BR05" value="${escapeHtml(codes)}">
-            <small class="field-hint">Informe os códigos das peças cadastradas (ex: AN1, CO2).</small>
+            <span>Códigos das peças *</span>
+            <input type="text" id="promo-form-codes" placeholder="Ex: AN01, AN02, BR05" title="Separe os códigos por vírgula" value="${escapeHtml(codes)}">
           </div>
 
-          <div class="form-row">
-            <label class="form-field">
-              <span>Tipo de desconto *</span>
-              <select id="promo-form-discount-type" required>
-                <option value="percent" ${discountType === "percent" ? "selected" : ""}>Porcentagem (% OFF)</option>
-                <option value="fixed" ${discountType === "fixed" ? "selected" : ""}>Valor fixo (R$ OFF)</option>
-              </select>
-            </label>
+          <!-- TODO: back ainda não aceita scope=parada; não inventar endpoint -->
+          <div id="promo-group-stale" class="form-field" ${scope === "parada" ? "" : "hidden"}>
+            <span>Dias sem saída *</span>
+            <input type="number" id="promo-form-stale-days" min="1" step="1" placeholder="Ex: 60" title="Peças paradas no estoque há X dias" value="${escapeHtml(staleDays)}">
+          </div>
 
+          <fieldset class="choice-fieldset">
+            <legend>Desconto *</legend>
+            <div class="choice-cards choice-cards--compact" role="radiogroup" aria-label="Tipo de desconto">
+              ${choiceCard("promo-discount-type", "percent", "%", "Porcentagem", discountType === "percent")}
+              ${choiceCard("promo-discount-type", "fixed", "R$", "Valor fixo", discountType === "fixed")}
+            </div>
             <label class="form-field">
-              <span id="promo-value-label">${discountType === "percent" ? "Desconto (% OFF) *" : "Desconto (R$ OFF) *"}</span>
-              <input type="number" id="promo-form-value" required min="0.01" step="any" placeholder="Ex: 15" value="${escapeHtml(value)}">
+              <span id="promo-value-label" class="visually-hidden">${discountType === "percent" ? "Desconto (% OFF) *" : "Desconto (R$ OFF) *"}</span>
+              <input type="number" id="promo-form-value" required min="0.01" step="any" placeholder="Ex: 15" aria-label="Valor do desconto" value="${escapeHtml(value)}">
               <small id="promo-price-hint" class="field-hint">${escapeHtml(promoPriceExample(discountType, value))}</small>
             </label>
-          </div>
+          </fieldset>
 
           <div class="form-row">
             <label class="form-field">
@@ -446,8 +458,7 @@ export function renderPromoDialogContent(promo = null) {
           <div class="form-row">
             <label class="form-field">
               <span>Limite de peças</span>
-              <input type="number" id="promo-form-max-units" min="1" step="1" placeholder="Sem limite se vazio" value="${escapeHtml(maxUnits)}">
-              <small class="field-hint">Encerra após atingir o total vendido.</small>
+              <input type="number" id="promo-form-max-units" min="1" step="1" placeholder="Sem limite se vazio" title="Encerra após atingir o total vendido" value="${escapeHtml(maxUnits)}">
             </label>
 
             <label class="form-field-checkbox">

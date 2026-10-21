@@ -172,6 +172,7 @@ export {
   formatTicketDelta,
   renderTicketCard,
   renderPeriodFilter,
+  formatMonthLabel,
   CHANNEL_COLORS,
   renderDailySalesChart,
   renderChannelShareChart

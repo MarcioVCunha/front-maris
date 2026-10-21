@@ -72,6 +72,7 @@ import {
   formatTicketDelta,
   renderTicketCard,
   renderPeriodFilter,
+  formatMonthLabel,
   renderCompras,
   renderStockBatchBar,
   renderBatchArchiveDialog,
@@ -381,9 +382,9 @@ Deno.test("o estoque busca, pagina e separa esgotadas sem pedir a lista de novo"
     total: 1,
     query: "",
     mode: "estoque",
-    typeBlock: `<section class="stock-by-type"><h3>Estoque por tipo</h3></section>`,
   })
-  assert(stockPage.includes("stock-by-type"))
+  assertEquals(stockPage.includes("Estoque por tipo"), false)
+  assertEquals(stockPage.includes("stock-by-type"), false)
   assert(stockPage.includes('data-stock-mode="estoque"'))
   const soldOut = renderStockPage({
     rows: outOfStockProducts(products),
@@ -509,7 +510,8 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
     balance: 120,
   }])
   assert(team.includes("Marineide"))
-  assert(team.includes("Saldo a receber"))
+  assert(team.includes("A receber"))
+  assert(team.includes("seller-metrics"))
   assert(team.includes("10%"))
   assert(team.includes('data-seller-id="2"'))
   assert(team.includes('aria-pressed="false"'))
@@ -593,14 +595,13 @@ Deno.test("ranking de vendedoras: normalizeSellersMonth e renderVendedoras com m
   assertEquals(normalized?.[0].average_ticket, 200)
 
   const html = renderVendedoras(normalized, undefined, { month: "2026-10" })
-  assert(html.includes("Ranking de Vendas da Equipe"))
-  assert(html.includes("Vendas da Equipe"))
-  assert(html.includes("Comissões a Pagar"))
+  assert(html.includes("<h2>Ranking</h2>"))
+  assert(html.includes("Comissões"))
   assert(html.includes("#1 🥇"))
   assert(html.includes("#2 🥈"))
   assert(html.includes("Lia Vendedora"))
   assert(html.includes("seller-progress-track"))
-  assert(html.includes("Ticket médio"))
+  assert(html.includes("Ticket"))
   assert(html.includes("inicio-period-bar"))
 })
 
@@ -1087,11 +1088,13 @@ Deno.test("etapa 3: renderPeriodFilter monta a barra com controles de navegaçã
   assert(filterCurrent.includes("btn-prev-month"))
   assert(filterCurrent.includes("btn-next-month"))
   assert(filterCurrent.includes(`value="${current}"`))
-  assertEquals(filterCurrent.includes("btn-current-month"), false, "Não deve mostrar botão Mês atual quando já no mês atual")
+  assertEquals(filterCurrent.includes("btn-current-month"), false, "Não deve mostrar atalho Hoje quando já no mês atual")
+  assertEquals(formatMonthLabel("2026-10"), "Outubro 2026")
+  assert(renderPeriodFilter("2026-10", "2026-10").includes("Outubro 2026"))
 
   const past = "2026-05"
   const filterPast = renderPeriodFilter(past, "2026-10")
-  assert(filterPast.includes("btn-current-month"), "Deve exibir botão Mês atual quando em mês anterior/posterior")
+  assert(filterPast.includes("btn-current-month"), "Deve exibir atalho Hoje quando em mês anterior/posterior")
   assert(filterPast.includes(`value="${past}"`))
 })
 
@@ -1186,24 +1189,29 @@ Deno.test("etapa 4: renderCompras exibe Top 10 com fotos, ranking de reposição
   const html = renderCompras(purchasesData, (v) => `R$ ${v}`, { month: "2026-10" })
 
   // Título e resumo
-  assert(html.includes("Visão de Compras & Reposição"))
+  assert(html.includes("<h2>Compras</h2>"))
   assert(html.includes("58 <small>unidades</small>"))
-  assert(html.includes("em 24 pedidos pagos no mês"))
+  assert(html.includes("em 24 pedidos"))
 
   // Top 10
-  assert(html.includes("Top 10 Peças Mais Vendidas no Mês"))
+  assert(html.includes("Top 10 do mês"))
+  assert(html.indexOf("Reposição") < html.indexOf("Top 10 do mês"), "Reposição vem antes do Top 10")
   assert(html.includes("BM100"))
   assert(html.includes("Brinco Dourado Flor"))
   assert(html.includes("15 un."))
   assert(html.includes("https://example.com/bm100.jpg"))
 
   // Reposição esgotadas
-  assert(html.includes("Reposição — Peças Esgotadas Mais Pedidas"))
+  assert(html.includes("<h3>Reposição</h3>"))
   assert(html.includes("CL200"))
   assert(html.includes("Colar Ponto de Luz"))
   assert(html.includes("💖 7 clientes interessadas"))
   assert(html.includes('data-view-contacts="CL200"'))
   assert(html.includes("Ver contatos (1)"))
+
+  const noRestock = renderCompras({ ...purchasesData, restock_requests: [] }, (v) => `R$ ${v}`, { month: "2026-10" })
+  assertEquals(noRestock.includes("Reposição"), false, "Sem pedidos de reposição a seção some")
+  assert(noRestock.includes("Top 10 do mês"))
 
   // Segurança estrita: zero vazamento de custo, lucro ou comissão
   assertEquals(html.includes("custo"), false, "Nunca deve exibir custo na visão compras")

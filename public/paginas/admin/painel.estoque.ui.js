@@ -21,7 +21,6 @@ export function installEstoqueUi(deps) {
     renderStockList,
     formatPrice,
     renderStockPage,
-    renderStockByType,
     openPieceDialog,
     STOCK_PAGE_SIZE,
   } = deps
@@ -325,7 +324,7 @@ export function installEstoqueUi(deps) {
         total,
         query: state.stockQuery,
         mode,
-        typeBlock: mode === "esgotadas" ? "" : renderStockByType(state.products),
+        typeBlock: "",
         staleOnly: state.staleOnly,
         selectedCodes: state.selectedStockCodes
       })

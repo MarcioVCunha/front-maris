@@ -97,42 +97,55 @@
     <div id="piece-results" class="catalog-grid" aria-live="polite"></div>
   </section>
 
-  <section id="step-customer" hidden>
-    <p class="flow-kicker">Cliente</p>
-    <p id="customer-help" class="flow-help">Escolha uma cliente ou cadastre nome e WhatsApp.</p>
-    <label for="customer-search" class="visually-hidden">Buscar cliente</label>
-    <input id="customer-search" type="search" placeholder="Nome ou WhatsApp" autocomplete="off">
-    <div id="customer-results" class="customer-list"></div>
+  <section id="step-customer" class="step-form" hidden>
+    <h2 class="step-title">Cliente</h2>
+    <p id="customer-help" class="flow-help">Busque ou cadastre.</p>
+    <div class="field-group">
+      <label for="customer-search">Buscar</label>
+      <input id="customer-search" type="search" placeholder="Nome ou WhatsApp" autocomplete="off">
+      <div id="customer-results" class="customer-list"></div>
+    </div>
     <div class="register-box">
       <p class="flow-kicker">Nova cliente</p>
-      <label for="customer-name">Nome</label>
-      <input id="customer-name" type="text" autocomplete="name">
-      <label for="customer-whatsapp">WhatsApp</label>
-      <input id="customer-whatsapp" type="tel" inputmode="numeric" autocomplete="tel">
+      <div class="field-group">
+        <label for="customer-name">Nome</label>
+        <input id="customer-name" type="text" autocomplete="name">
+      </div>
+      <div class="field-group">
+        <label for="customer-whatsapp">WhatsApp</label>
+        <input id="customer-whatsapp" type="tel" inputmode="numeric" autocomplete="tel">
+      </div>
     </div>
   </section>
 
-  <section id="step-payment" hidden>
-    <p class="flow-kicker">Pagamento</p>
-    <p class="flow-help">Uma venda vira um pedido. O estoque baixa no servidor.</p>
-    <div class="choice-grid" role="group" aria-label="Situação">
-      <button type="button" class="choice" data-status="paid">Pago</button>
-      <button type="button" class="choice" data-status="receivable">A receber</button>
-    </div>
-    <div class="choice-grid methods" role="group" aria-label="Forma de pagamento">
-      <button type="button" class="choice" data-method="pix">Pix</button>
-      <button type="button" class="choice" data-method="dinheiro">Dinheiro</button>
-      <button type="button" class="choice" data-method="cartao">Cartão</button>
-    </div>
+  <section id="step-payment" class="step-form" hidden>
+    <h2 class="step-title" title="Uma venda vira um pedido. O estoque baixa no servidor.">Pagamento</h2>
     <div class="pay-summary">
+      <div><span>Peças</span><strong id="pay-pieces">0</strong></div>
+      <div><span>Cliente</span><strong id="pay-customer">—</strong></div>
       <div><span>Subtotal</span><strong id="pay-subtotal">R$ 0,00</strong></div>
       <div id="pay-discount-row" hidden><span>Desconto Pix (5%)</span><strong id="pay-discount">R$ 0,00</strong></div>
-      <div><span>Total</span><strong id="pay-total" class="total-figure">R$ 0,00</strong></div>
+      <div class="pay-total-row"><span>Total</span><strong id="pay-total" class="total-figure">R$ 0,00</strong></div>
+    </div>
+    <div class="field-group">
+      <p class="field-label">Situação</p>
+      <div class="choice-grid choice-cards" role="group" aria-label="Situação">
+        <button type="button" class="choice" data-status="paid">Pago</button>
+        <button type="button" class="choice" data-status="receivable">A receber</button>
+      </div>
+    </div>
+    <div class="field-group">
+      <p class="field-label">Forma de pagamento</p>
+      <div class="choice-grid choice-cards methods" role="group" aria-label="Forma de pagamento">
+        <button type="button" class="choice" data-method="pix">Pix</button>
+        <button type="button" class="choice" data-method="dinheiro">Dinheiro</button>
+        <button type="button" class="choice" data-method="cartao">Cartão</button>
+      </div>
     </div>
   </section>
 
-  <p id="flow-message" class="step-message" hidden></p>
   <div class="flow-actions">
+    <p id="flow-message" class="step-message" hidden></p>
     <button id="flow-next" class="btn-next" type="button">Continuar</button>
     <button id="flow-back" class="btn-back" type="button">Voltar</button>
   </div>

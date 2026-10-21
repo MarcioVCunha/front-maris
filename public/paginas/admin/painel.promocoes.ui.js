@@ -28,22 +28,32 @@ export function installPromocoesUi(deps) {
     const form = promoDialog.querySelector("#promo-form")
     const closeBtn = promoDialog.querySelector("#promo-dialog-close-btn")
     const cancelBtn = promoDialog.querySelector("#promo-dialog-cancel")
-    const scopeSelect = promoDialog.querySelector("#promo-form-scope")
+    const radioValue = (name) =>
+      promoDialog.querySelector(`input[name="${name}"]:checked`)?.value
+    const scopeSelect = {
+      get value() { return radioValue("promo-scope") },
+      addEventListener: (type, fn) => promoDialog.querySelectorAll('input[name="promo-scope"]').forEach((el) => el.addEventListener(type, fn)),
+    }
     const groupCategory = promoDialog.querySelector("#promo-group-category")
     const groupProducts = promoDialog.querySelector("#promo-group-products")
-    const discountTypeSelect = promoDialog.querySelector("#promo-form-discount-type")
+    const groupStale = promoDialog.querySelector("#promo-group-stale")
+    const discountTypeSelect = {
+      get value() { return radioValue("promo-discount-type") },
+      addEventListener: (type, fn) => promoDialog.querySelectorAll('input[name="promo-discount-type"]').forEach((el) => el.addEventListener(type, fn)),
+    }
     const valueLabel = promoDialog.querySelector("#promo-value-label")
     const valueInput = promoDialog.querySelector("#promo-form-value")
     const feedbackEl = promoDialog.querySelector("#promo-dialog-feedback")
 
     const syncScope = () => {
-      const isCategory = scopeSelect?.value === "categoria"
-      if (groupCategory) groupCategory.hidden = !isCategory
-      if (groupProducts) groupProducts.hidden = isCategory
+      const current = scopeSelect.value
+      if (groupCategory) groupCategory.hidden = current !== "categoria"
+      if (groupProducts) groupProducts.hidden = current !== "produto"
+      if (groupStale) groupStale.hidden = current !== "parada"
     }
 
     const syncDiscount = () => {
-      const isPercent = discountTypeSelect?.value === "percent"
+      const isPercent = discountTypeSelect.value === "percent"
       if (valueLabel) valueLabel.textContent = isPercent ? "Desconto (% OFF) *" : "Desconto (R$ OFF) *"
       if (valueInput) {
         valueInput.placeholder = isPercent ? "Ex: 15" : "Ex: 25.00"
@@ -51,7 +61,7 @@ export function installPromocoesUi(deps) {
         else valueInput.removeAttribute("max")
       }
       const hint = promoDialog.querySelector("#promo-price-hint")
-      if (hint) hint.textContent = promoPriceExample(discountTypeSelect?.value, valueInput?.value)
+      if (hint) hint.textContent = promoPriceExample(discountTypeSelect.value, valueInput?.value)
     }
 
     scopeSelect?.addEventListener("change", syncScope)
@@ -80,10 +90,10 @@ export function installPromocoesUi(deps) {
       const formData = {
         id: promo?.id || null,
         name: nameInput?.value,
-        scope: scopeSelect?.value,
+        scope: scopeSelect.value,
         category: categorySelect?.value,
         product_codes: codesInput?.value,
-        discount_type: discountTypeSelect?.value,
+        discount_type: discountTypeSelect.value,
         value: Number(valueInput?.value),
         starts_at: startsAtInput?.value,
         ends_at: endsAtInput?.value,

@@ -2,6 +2,7 @@
 @import url("/assets/maris-internal.css");
 
 .nova-venda {
+  --nv-width: 1140px;
   background: var(--maris-bg);
 }
 
@@ -379,18 +380,43 @@
 }
 
 .flow-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
-  padding: 12px 0 4px;
-  background: linear-gradient(to top, var(--maris-bg) 70%, rgba(252, 247, 250, 0));
+  z-index: 20;
+  width: min(var(--nv-width), 100%);
+  margin: 0 auto;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row-reverse wrap;
+  align-items: center;
+  gap: 8px;
+  background: var(--maris-surface);
+  border-top: 1px solid var(--maris-border);
+  box-shadow: 0 -4px 14px rgba(47, 31, 42, 0.08);
 }
 
-.nova-venda .btn-back {
-  min-height: 48px;
-  border-radius: 12px;
+.flow-actions .step-message {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.nova-venda .flow-actions .btn-next {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 8px 20px;
+  font-size: 0.95rem;
+  border-radius: 10px;
+}
+
+.nova-venda .flow-actions .btn-back {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-radius: 10px;
 }
 
 .step-message.error {
@@ -518,19 +544,96 @@
   border: 1px dashed var(--maris-border);
 }
 
-/* Layout expandido para o fluxo de venda no desktop */
+/* Largura única do fluxo de venda (cabeçalho, etapas, peças e rodapé) */
+.nova-venda:has(#sale-flow:not([hidden])) header,
 .nova-venda #sale-flow.sale-main {
-  width: min(1140px, 100%);
+  width: min(var(--nv-width), 100%);
 }
 
-#sale-flow .step-bar,
+.nova-venda #sale-flow.sale-main {
+  padding-bottom: 96px;
+}
+
 #step-channel,
-#step-customer,
-#step-payment,
-#sale-flow .flow-actions {
-  width: min(520px, 100%);
-  margin-left: auto;
-  margin-right: auto;
+.step-form {
+  width: 100%;
+  max-width: 560px;
+  margin: 0;
+}
+
+.step-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.step-form .flow-help {
+  margin: -12px 0 0;
+  font-size: 0.95rem;
+  color: var(--maris-text-muted);
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-group > label,
+.field-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--maris-text-muted);
+}
+
+#step-customer .register-box {
+  gap: 14px;
+  padding: 16px;
+}
+
+#step-payment .pay-summary {
+  margin: 0;
+  padding: 16px;
+  text-align: left;
+}
+
+#step-payment .pay-summary div {
+  margin-top: 0;
+  gap: 12px;
+}
+
+#step-payment .pay-summary div + div {
+  margin-top: 8px;
+}
+
+#step-payment .pay-summary .pay-total-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--maris-border-soft);
+  align-items: baseline;
+}
+
+#step-payment .pay-summary .total-figure {
+  font-size: 1.6rem;
+}
+
+#step-payment .choice-cards {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+#step-payment .choice-cards .choice {
+  flex: 1 1 0;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  letter-spacing: 0;
 }
 
 /* Cabeçalho da etapa de peças e busca */

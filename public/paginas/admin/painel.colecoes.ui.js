@@ -55,17 +55,15 @@ export function installColecoesUi(deps) {
       cancelBtn?.addEventListener("click", closeDialog)
       closeX?.addEventListener("click", closeDialog)
 
-      // Live slug generation se for criação nova
-      if (!state.collectionEditing?.id) {
-        nameInput?.addEventListener("input", () => {
-          if (!slugInput?.dataset.manual) {
-            slugInput.value = slugify(nameInput.value)
-          }
-        })
-        slugInput?.addEventListener("input", () => {
-          slugInput.dataset.manual = "true"
-        })
-      }
+      // Slug acompanha o nome enquanto estiver vazio ou ainda for o gerado automaticamente
+      let lastAutoSlug = slugify(nameInput?.value || "")
+      nameInput?.addEventListener("input", () => {
+        if (!slugInput) return
+        if (!slugInput.value || slugInput.value === lastAutoSlug) {
+          lastAutoSlug = slugify(nameInput.value)
+          slugInput.value = lastAutoSlug
+        }
+      })
 
       // Busca de peças no seletor
       pieceSearch?.addEventListener("input", () => {

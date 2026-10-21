@@ -166,3 +166,12 @@ Deno.test("renderCollectionsPage e renderCollectionEditDialog geram HTML válido
   assertEquals(dialogHtml.includes("BM100"), true)
   assertEquals(dialogHtml.includes("Brinco Pérola"), true)
 })
+
+Deno.test("renderCollectionEditDialog separa a coleção em 3 passos", () => {
+  const html = renderCollectionEditDialog(null, [])
+  assertEquals((html.match(/class="step-card"/g) || []).length, 3)
+  assertEquals(html.includes("Nome e link"), true)
+  assertEquals(html.includes("Regra automática ou peças"), true)
+  assertEquals(html.includes("Período"), true)
+  assertEquals(html.includes('id="collection-slug-input"'), true)
+})

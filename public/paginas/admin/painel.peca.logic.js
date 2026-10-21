@@ -448,8 +448,8 @@ export function renderStockPage({ rows, total, query, mode = "estoque", typeBloc
       : (String(query || "").trim() ? "Nenhuma peça com esse nome." : "Nenhuma peça no estoque."))
   const staleFilterHtml = !esgotadas
     ? `<div class="stock-filter-chips" role="group" aria-label="Filtro de estoque">
-        <button type="button" class="stock-filter-chip${!staleOnly ? " is-active" : ""}" data-stock-filter="all">Todas as peças</button>
-        <button type="button" class="stock-filter-chip${staleOnly ? " is-active" : ""}" data-stock-filter="stale">⏳ Paradas (+60d)</button>
+        <button type="button" class="stock-filter-chip${!staleOnly ? " is-active" : ""}" data-stock-filter="all">Todas</button>
+        <button type="button" class="stock-filter-chip${staleOnly ? " is-active" : ""}" data-stock-filter="stale">⏳ Paradas</button>
       </div>`
     : ""
   const batchBarHtml = renderStockBatchBar(selectedCodes.size, shown)
@@ -458,9 +458,9 @@ export function renderStockPage({ rows, total, query, mode = "estoque", typeBloc
     <form id="stock-search" class="stock-tools" role="search">
       <div class="stock-tools-top">
         <label class="field"><span>Buscar</span>
-          <input id="stock-query" type="search" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
+          <input id="stock-query" type="search" aria-label="Buscar" enterkeyhint="search" value="${escapeHtml(query || "")}" placeholder="Nome, código ou categoria">
         </label>
-        <button type="button" id="stock-general-history-btn" class="btn-xs btn-ghost stock-general-history-btn" title="Ver últimas alterações no estoque">📜 Histórico geral</button>
+        <button type="button" id="stock-general-history-btn" class="btn-xs btn-ghost stock-general-history-btn" title="Ver últimas alterações no estoque">📜 Histórico</button>
       </div>
       ${staleFilterHtml}
     </form>

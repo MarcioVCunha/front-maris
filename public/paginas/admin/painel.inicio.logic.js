@@ -293,7 +293,7 @@ export function statusLabel(status) {
 
 export function renderOriginStrip(channelRows, selectedChannel, formatMoney, detailed) {
   if (!channelRows.length) return `<p class="empty">${NO_DATA}</p>`
-  return `<div class="origin-strip" role="list">${channelRows.map((item) => {
+  return `<div class="origin-strip ui-card-grid" role="list">${channelRows.map((item) => {
     const active = selectedChannel && selectedChannel === item.channel
     const delta = detailed && item.previous_charged_total != null
       ? formatMoneyDelta(moneyDelta(item.charged_total, item.previous_charged_total), formatMoney)
@@ -563,17 +563,28 @@ export function renderTicketCard(chargedTotal, paidOrdersCount, previousChargedT
   </div>`
 }
 
+const MONTH_NAMES_PT = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+]
+
+export function formatMonthLabel(yyyyMm) {
+  const match = /^(\d{4})-(\d{2})/.exec(String(yyyyMm || "").trim())
+  if (!match) return ""
+  const name = MONTH_NAMES_PT[Number(match[2]) - 1]
+  return name ? `${name} ${match[1]}` : ""
+}
+
 export function renderPeriodFilter(selectedMonth, currentMonth = currentMonthKey()) {
   const month = String(selectedMonth || currentMonth).trim()
   const isCurrent = month === currentMonth
-  return `<div class="inicio-period-bar">
-    <span class="inicio-period-label"><strong>Período:</strong></span>
-    <div class="inicio-period-controls">
-      <button type="button" id="btn-prev-month" class="btn-ghost btn-sm" aria-label="Mês anterior" title="Ver mês anterior">◀</button>
-      <input type="month" id="inicio-month-input" value="${escapeHtml(month)}" class="inicio-month-input" aria-label="Selecionar mês">
-      <button type="button" id="btn-next-month" class="btn-ghost btn-sm" aria-label="Próximo mês" title="Ver próximo mês">▶</button>
-      ${!isCurrent ? `<button type="button" id="btn-current-month" class="btn-ghost btn-sm" title="Ir para o mês atual">Mês atual</button>` : ""}
-    </div>
+  const label = formatMonthLabel(month) || month
+  return `<div class="inicio-period-bar ui-period">
+    <button type="button" id="btn-prev-month" class="ui-period__btn" aria-label="Mês anterior" title="Mês anterior">◀</button>
+    <span class="ui-period__label" aria-live="polite">${escapeHtml(label)}</span>
+    <button type="button" id="btn-next-month" class="ui-period__btn" aria-label="Próximo mês" title="Próximo mês">▶</button>
+    <input type="month" id="inicio-month-input" value="${escapeHtml(month)}" class="inicio-month-input" aria-label="Selecionar mês" hidden>
+    ${!isCurrent ? `<button type="button" id="btn-current-month" class="ui-period__today" title="Ir para o mês atual">Hoje</button>` : ""}
   </div>`
 }
 

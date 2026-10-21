@@ -241,6 +241,15 @@ export function normalizeSaleItems(raw) {
   }))
 }
 
+export function isSaleBugged(sale) {
+  if (!sale) return false
+  const pieces = Array.isArray(sale.items) ? sale.items.length : 0
+  const count = pieces || Number(sale.items_count) || 0
+  return count === 0 || (Number(sale.total) || 0) === 0
+}
+
+const SALE_BUG_TEXT = "Venda sem peças ou com total zerado"
+
 /**
  * Diálogo de venda. Com a flag off: só leitura.
  * Com a flag on: campos para valor, peças, cancelar e marcar como paga.
@@ -292,9 +301,14 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
         <button type="button" class="btn-ghost" id="sale-edit-close">Fechar</button>
       </div>`
 
+  const bugBanner = isSaleBugged(sale)
+    ? `<p class="sale-bug-warning" role="alert">⚠️ ${SALE_BUG_TEXT}</p>`
+    : ""
+
   return `<div class="sale-edit" data-sale-id="${escapeHtml(sale.id)}">
     <p class="kicker">${escapeHtml([channel, when].filter(Boolean).join(" · "))}</p>
     <h2>${escapeHtml(sale.customer_name || "Cliente")}</h2>
+    ${bugBanner}
     ${saleMetaChipsHtml(sale)}
     ${salePhotoHtml(sale)}
     ${totalField}
@@ -310,7 +324,7 @@ export function renderSaleCards(sales, formatMoney, options = {}) {
     return `<p class="empty">${escapeHtml(options.empty || "Nenhuma venda neste canal.")}</p>`
   }
   const clickable = options.clickable !== false
-  return `<ul class="sale-card-list">${rows.map((sale) => {
+  return `<ul class="sale-card-list ui-card-grid">${rows.map((sale) => {
     const status = saleStatusLabel(sale.payment_status)
     const tone = saleStatusTone(sale.payment_status)
     const who = [sale.seller_name, saleChannelLabel(sale.channel)].filter(Boolean).join(" · ")
@@ -322,13 +336,16 @@ export function renderSaleCards(sales, formatMoney, options = {}) {
     const statusChip = status
       ? `<span class="sale-chip sale-chip--status sale-chip--${tone}">${escapeHtml(status)}</span>`
       : ""
+    const bugChip = isSaleBugged(sale)
+      ? `<span class="sale-chip sale-chip--bug" title="${SALE_BUG_TEXT}">⚠️ Revisar</span>`
+      : ""
     return `<li><${tag}${attrs}>
       ${salePhotoHtml(sale)}
       <span class="sale-card__copy">
         <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
         <small>${escapeHtml(who)}</small>
         <small>${escapeHtml(when)}</small>
-        ${statusChip}
+        ${statusChip}${bugChip}
       </span>
       <span class="sale-card__side">
         <b>${escapeHtml(money(sale.total, formatMoney))}</b>

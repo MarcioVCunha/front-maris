@@ -76,6 +76,8 @@ const paySubtotalEl = document.getElementById("pay-subtotal")
 const payDiscountRowEl = document.getElementById("pay-discount-row")
 const payDiscountEl = document.getElementById("pay-discount")
 const payTotalEl = document.getElementById("pay-total")
+const payPiecesEl = document.getElementById("pay-pieces")
+const payCustomerEl = document.getElementById("pay-customer")
 
 const marketplaceReady = shouldShowMarketplaceSale(MARKETPLACE_SALE_ENABLED)
 
@@ -378,7 +380,7 @@ function showFlow(step) {
     else pill.removeAttribute("aria-current")
   })
   if (customerHelpEl) {
-    customerHelpEl.textContent = "Escolha uma cliente ou cadastre nome e WhatsApp."
+    customerHelpEl.textContent = "Busque ou cadastre."
   }
   document.querySelectorAll("[data-marketplace]").forEach((button) => {
     button.setAttribute(
@@ -434,7 +436,7 @@ function renderSelected() {
           <small class="selected-pix-val">ou ${pixFormatted} no Pix (5% off)</small>
         </div>
         <button type="button" class="btn-summary-advance" id="btn-advance-summary">
-          Avançar para finalizar (${count}) →
+          Avançar para cliente (${count}) →
         </button>
       </div>
       <div class="selected-items-list">
@@ -696,6 +698,10 @@ function renderPayment() {
   payDiscountEl.textContent = money(totals.discount)
   payDiscountRowEl.hidden = state.paymentMethod !== "pix"
   payTotalEl.textContent = money(totals.total)
+  if (payPiecesEl) payPiecesEl.textContent = String(totalPiecesCount(state.selected))
+  if (payCustomerEl) {
+    payCustomerEl.textContent = (state.pickedCustomer?.name || customerNameEl.value || "").trim() || "—"
+  }
 }
 
 function chosenCustomer() {

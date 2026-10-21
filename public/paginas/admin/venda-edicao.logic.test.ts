@@ -10,6 +10,7 @@ import {
   normalizeSaleItems,
   parseMoneyInput,
   readSaleEditForm,
+  isSaleBugged,
   renderSaleCards,
   renderSaleEditDialog,
   saleCancelPayload,
@@ -269,4 +270,17 @@ Deno.test("valor da edição de venda aceita ponto decimal do banco (bug venda #
     total: "94.87",
     pieces: [{ id: "1", code: "X", quantity: "1", unit_price: "56.81" }],
   }), { order_id: 147, total: 94.87, items: [{ id: 1, code: "X", quantity: 1, unit_price: 56.81 }] })
+})
+
+Deno.test("venda sem peças ou com total zerado mostra aviso no diálogo e no card", () => {
+  const bugged = { id: 90, customer_name: "Zé", total: 0, payment_status: "paid", items_count: 0, items: [] }
+  assert(isSaleBugged(bugged))
+  assert(isSaleBugged({ ...bugged, total: 50 }))
+  assert(isSaleBugged({ ...bugged, total: null, items_count: 2 }))
+  assertEquals(isSaleBugged({ id: 91, total: 50, items_count: 1, items: [] }), false)
+  assert(renderSaleEditDialog(bugged, formatMoney, { enabled: true }).includes("sale-bug-warning"))
+  assert(renderSaleCards([bugged], formatMoney).includes("sale-chip--bug"))
+  const ok = { id: 92, total: 50, items_count: 1, items: [{ code: "A1", quantity: 1 }] }
+  assertEquals(renderSaleEditDialog(ok, formatMoney, { enabled: true }).includes("sale-bug-warning"), false)
+  assertEquals(renderSaleCards([ok], formatMoney).includes("sale-chip--bug"), false)
 })
