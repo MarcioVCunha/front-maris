@@ -93,16 +93,22 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   assertEquals(obrigadoRoot?.destination, "/paginas/catalogo/obrigado.html")
   assertEquals(obrigadoRoot?.source.includes("?"), false)
 
-  const trocas = config.rewrites.find((item) => item.source === "/trocas")
-  assertEquals(trocas?.destination, "/paginas/institucional/trocas.html")
+  const trocas = config.rewrites.find((item) => item.source === "/trocas-e-devolucoes")
+  assertEquals(trocas?.destination, "/paginas/institucional/trocas-e-devolucoes.html")
+
+  const garantiaPage = config.rewrites.find((item) => item.source === "/garantia")
+  assertEquals(garantiaPage?.destination, "/paginas/institucional/garantia.html")
+
+  const privacidade = config.rewrites.find((item) => item.source === "/privacidade")
+  assertEquals(privacidade?.destination, "/paginas/institucional/privacidade.html")
 
   const trocasHtml = config.redirects.find((item) => item.source === "/trocas.html")
-  assertEquals(trocasHtml?.destination, "/trocas")
+  assertEquals(trocasHtml?.destination, "/trocas-e-devolucoes")
   assertEquals(trocasHtml?.permanent, true)
 
-  const garantia = config.redirects.find((item) => item.source === "/garantia")
-  assertEquals(garantia?.destination, "/trocas")
-  assertEquals(garantia?.permanent, true)
+  const trocasLegacy = config.redirects.find((item) => item.source === "/trocas")
+  assertEquals(trocasLegacy?.destination, "/trocas-e-devolucoes")
+  assertEquals(trocasLegacy?.permanent, true)
 
   const vendedoras = config.redirects.find((item) => item.source === "/vendedoras")
   assertEquals(vendedoras?.destination, "/vendas/nova")

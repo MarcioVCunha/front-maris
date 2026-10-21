@@ -130,6 +130,7 @@ export function installGradeUi(deps) {
   }
 
   function bindStoreWhatsappLinks() {
+    window.MarisLojaInfo?.fillContactLinks?.(document)
     const href = whatsappLink(CATALOG_WHATSAPP_MESSAGE)
     for (const id of ["catalog-whatsapp", "footer-whatsapp"]) {
       const link = document.getElementById(id)

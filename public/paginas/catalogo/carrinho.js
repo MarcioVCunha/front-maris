@@ -54,8 +54,17 @@ function getBuyerPayload() {
 function saveBuyer() {
   const payload = getBuyerPayload()
   if (!payload) return false
-  window.MarisCatalogCart.saveBuyerProfile(payload)
+  const remember = Boolean(document.getElementById("buyer-remember")?.checked)
+  window.MarisCatalogCart.saveBuyerProfile(payload, { remember })
   return true
+}
+
+function forgetBuyer() {
+  window.MarisCatalogCart.forgetBuyerProfile?.()
+  if (buyerNameEl) buyerNameEl.value = ""
+  if (buyerWhatsappEl) buyerWhatsappEl.value = ""
+  const rememberEl = document.getElementById("buyer-remember")
+  if (rememberEl) rememberEl.checked = false
 }
 
 function formatWhatsappMask(value) {
@@ -191,14 +200,19 @@ async function handleApplyCoupon() {
         discount_value: result.data.value,
         discount_amount: result.data.discount_amount,
         is_referral: Boolean(result.data.is_referral),
-        referrer_name: result.data.referrer_name
+        referrer_name: result.data.referrer_name,
+        expires_at: result.data.expires_at || result.data.ends_at || null
       }
     }
     const discountFormatted = formatMoneyBRL(result.data.discount_amount)
     const referralMsg = result.data.is_referral && result.data.referrer_name
       ? ` Indicação de ${result.data.referrer_name}!`
       : ""
-    setCouponFeedback(`Cupom ${appliedCoupon.code} aplicado! Economia de ${discountFormatted}.${referralMsg}`, "success")
+    const validityRaw = result.data.expires_at || result.data.ends_at
+    const validityMsg = validityRaw && window.MarisLojaInfo?.formatValidityUntil
+      ? ` Válido ${window.MarisLojaInfo.formatValidityUntil(validityRaw)}.`
+      : ""
+    setCouponFeedback(`Cupom ${appliedCoupon.code} aplicado! Economia de ${discountFormatted}.${referralMsg}${validityMsg}`, "success")
     renderCart()
   } catch (_err) {
     appliedCoupon = null
@@ -470,12 +484,27 @@ if (payInfinitePayBtn) {
 
 window.addEventListener("maris-cart-updated", renderCart)
 
+const buyerRememberEl = document.getElementById("buyer-remember")
+const buyerForgetEl = document.getElementById("buyer-forget")
+if (buyerRememberEl) {
+  buyerRememberEl.addEventListener("change", () => {
+    if (!buyerRememberEl.checked) {
+      window.MarisCatalogCart.forgetBuyerProfile?.()
+      return
+    }
+    saveBuyer()
+  })
+}
+if (buyerForgetEl) buyerForgetEl.addEventListener("click", forgetBuyer)
+
 ;(async () => {
   showCartLoading()
   try {
+    window.MarisLojaInfo?.fillContactLinks?.(document)
     await window.MarisCatalogCart.init()
     await loadCatalogData()
     await loadSellers()
+    if (buyerRememberEl) buyerRememberEl.checked = Boolean(window.MarisCatalogCart.isRememberEnabled?.())
     const buyer = window.MarisCatalogCart.getBuyerProfile()
     if (buyer && buyerNameEl) {
       buyerNameEl.value = buyer.name || ""

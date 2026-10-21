@@ -140,7 +140,28 @@
     return { ok: true, clamped: next > available, available, quantity: item.quantity }
   }
 
+  function isRememberEnabled() {
+    if (window.MarisLojaInfo?.isRememberEnabled) return window.MarisLojaInfo.isRememberEnabled()
+    try {
+      return localStorage.getItem("maris_buyer_remember_v1") === "1"
+    } catch {
+      return false
+    }
+  }
+
+  function setRememberEnabled(enabled) {
+    if (window.MarisLojaInfo?.setRememberEnabled) {
+      window.MarisLojaInfo.setRememberEnabled(enabled)
+      return
+    }
+    try {
+      if (enabled) localStorage.setItem("maris_buyer_remember_v1", "1")
+      else localStorage.removeItem("maris_buyer_remember_v1")
+    } catch {}
+  }
+
   function getBuyerProfile() {
+    if (!isRememberEnabled()) return null
     const profile = safeParseJson(localStorage.getItem(BUYER_STORAGE_KEY), null)
     if (!profile || typeof profile !== "object") return null
     const name = String(profile.name || "").trim()
@@ -150,11 +171,27 @@
     return { name, whatsapp, email }
   }
 
-  function saveBuyerProfile(profile) {
+  function saveBuyerProfile(profile, { remember = isRememberEnabled() } = {}) {
     const name = String(profile?.name || "").trim()
     const whatsapp = String(profile?.whatsapp || "").replace(/\D/g, "")
     const email = String(profile?.email || "").trim()
+    setRememberEnabled(Boolean(remember))
+    if (!remember) {
+      try { localStorage.removeItem(BUYER_STORAGE_KEY) } catch {}
+      return
+    }
     localStorage.setItem(BUYER_STORAGE_KEY, JSON.stringify({ name, whatsapp, email }))
+  }
+
+  function forgetBuyerProfile() {
+    if (window.MarisLojaInfo?.forgetBuyerData) {
+      window.MarisLojaInfo.forgetBuyerData()
+      return
+    }
+    try {
+      localStorage.removeItem(BUYER_STORAGE_KEY)
+      localStorage.removeItem("maris_buyer_remember_v1")
+    } catch {}
   }
 
   function lineLabel(item) {
@@ -187,6 +224,10 @@
     },
 
     async init() {
+      // Sem opt-in de “lembrar”, não mantém perfil antigo no aparelho (LGPD #9).
+      if (!isRememberEnabled()) {
+        try { localStorage.removeItem(BUYER_STORAGE_KEY) } catch {}
+      }
       loadCart()
     },
 
@@ -272,7 +313,13 @@
 
     getBuyerProfile,
 
-    saveBuyerProfile
+    saveBuyerProfile,
+
+    isRememberEnabled,
+
+    setRememberEnabled,
+
+    forgetBuyerProfile
   }
 
   loadCart()

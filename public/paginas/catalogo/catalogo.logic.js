@@ -316,25 +316,25 @@ export function detectPieceMaterial(product) {
   if (suffix === "R" || nameFolded.includes("rodio") || nameFolded.includes("prata")) {
     return {
       id: "rodio",
-      label: "Semijoia em Ródio Branco",
+      label: "Semijoia banhada a ródio branco",
       metal: "Liga nobre para semijoias",
-      finishing: "Banho nobre de Ródio Branco + Verniz protetor",
-      badge: "Ródio Branco Premium",
+      finishing: "Banho nobre de ródio branco + verniz protetor (não é ouro maciço)",
+      badge: "Banhada a ródio branco",
       isSteel: false,
       hypoallergenic: "100% hipoalergênica e livre de níquel",
-      description: "Banho nobre de ródio branco (acabamento do ouro branco) com verniz protetor especial, garantindo brilho espelhado duradouro.",
+      description: "Semijoia banhada a ródio branco (acabamento semelhante ao ouro branco) com verniz protetor. Não é ouro maciço; o banho garante o brilho espelhado.",
     }
   }
 
   return {
     id: "ouro",
-    label: "Semijoia Banhada a Ouro 18k",
+    label: "Semijoia banhada a ouro 18k",
     metal: "Liga nobre para semijoias",
-    finishing: "Banho multicamadas de Ouro 18k + Verniz Diamond",
-    badge: "Banhada a Ouro 18k",
+    finishing: "Banho multicamadas de ouro 18k + verniz Diamond (não é ouro maciço)",
+    badge: "Banhada a ouro 18k",
     isSteel: false,
     hypoallergenic: "100% hipoalergênica e livre de níquel",
-    description: "Banho multicamadas de Ouro 18k finalizado com camada de verniz protetor que protege o brilho e aumenta a resistência ao atrito.",
+    description: "Semijoia banhada a ouro 18k (não é ouro maciço), com verniz protetor que preserva o brilho e aumenta a resistência ao atrito.",
   }
 }
 
@@ -452,7 +452,7 @@ export function getMaterialCareGuide(product) {
         text: "Limpe sempre com uma flanela macia e seca. Nunca utilize pastas, sabões abrasivos ou esponjas.",
       },
     ],
-    guarantee: "90 dias de garantia contra defeitos de fabricação e 1 mês para troca em compras pelo site.",
+    guarantee: "1 ano de garantia no banho (inclui os 90 dias legais) e arrependimento em até 7 dias nas compras pelo site.",
   }
 }
 
@@ -503,7 +503,7 @@ export function sortGroupsByBestsellers(groups, totals) {
 }
 
 export const COLOR_FILTERS = [
-  { id: "dourado", label: "Dourado (Ouro 18k)", suffixes: ["O"], materialIds: ["ouro"] },
+  { id: "dourado", label: "Dourado (banho a ouro 18k)", suffixes: ["O"], materialIds: ["ouro"] },
   { id: "rodio", label: "Ródio Branco", suffixes: ["R"], materialIds: ["rodio"] },
   { id: "aco", label: "Aço Inox", suffixes: ["A"], materialIds: ["aco"] },
   { id: "aco-dourado", label: "Aço Dourado (PVD)", suffixes: ["AD"], materialIds: ["aco_dourado"] },

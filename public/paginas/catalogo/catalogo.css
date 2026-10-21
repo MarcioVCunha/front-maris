@@ -254,6 +254,83 @@ body {
   text-decoration: underline;
 }
 
+.site-footer--legal {
+  font-size: 0.875rem;
+  color: var(--maris-text-muted);
+  line-height: 1.55;
+}
+
+.site-footer--legal .footer-brand {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--maris-black);
+}
+
+.site-footer--legal .footer-line {
+  margin: 0 0 4px;
+}
+
+.site-footer--legal .footer-links {
+  margin: 16px 0 0;
+}
+
+.site-footer--legal .footer-sep {
+  margin: 0 8px;
+  color: var(--maris-border);
+}
+
+.privacy-notice {
+  margin: 10px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--maris-text-muted);
+}
+
+.privacy-notice a {
+  color: var(--maris-gold-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.privacy-notice a:hover {
+  text-decoration: underline;
+}
+
+.privacy-remember {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.875rem;
+  color: var(--maris-text);
+  cursor: pointer;
+}
+
+.privacy-remember input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.privacy-forget-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--maris-gold-dark);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.piece-material-honesty {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--maris-text-muted);
+}
+
 .product-whatsapp {
   display: inline-block;
   margin-top: 4px;

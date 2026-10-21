@@ -39,8 +39,8 @@
     { "source": "/shared/:path*", "destination": "/compartilhado/:path*", "permanent": true },
     { "source": "/adicionar-peca", "destination": "/admin/adicionar", "permanent": true },
     { "source": "/importar", "destination": "/admin/importar", "permanent": true },
-    { "source": "/trocas.html", "destination": "/trocas", "permanent": true },
-    { "source": "/garantia", "destination": "/trocas", "permanent": true }
+    { "source": "/trocas.html", "destination": "/trocas-e-devolucoes", "permanent": true },
+    { "source": "/trocas", "destination": "/trocas-e-devolucoes", "permanent": true }
   ],
   "headers": [
     {
@@ -90,7 +90,9 @@
     { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
     { "source": "/catalog/obrigado", "destination": "/paginas/catalogo/obrigado.html" },
     { "source": "/obrigado", "destination": "/paginas/catalogo/obrigado.html" },
-    { "source": "/trocas", "destination": "/paginas/institucional/trocas.html" },
+    { "source": "/trocas-e-devolucoes", "destination": "/paginas/institucional/trocas-e-devolucoes.html" },
+    { "source": "/garantia", "destination": "/paginas/institucional/garantia.html" },
+    { "source": "/privacidade", "destination": "/paginas/institucional/privacidade.html" },
     { "source": "/equipe/nova-senha", "destination": "/paginas/admin/nova-senha.html" },
     { "source": "/equipe", "destination": "/paginas/admin/equipe.html" }
   ]

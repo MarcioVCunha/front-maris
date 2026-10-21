@@ -92,13 +92,23 @@ export function toLocalDatetimeInput(isoOrDate) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+export function formatValidityUntil(isoString) {
+  if (!isoString) return ""
+  const d = new Date(isoString)
+  if (!Number.isFinite(d.getTime())) return ""
+  const day = String(d.getDate()).padStart(2, "0")
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  return `até ${day}/${month}`
+}
+
 export function formatDateRange(startsAt, endsAt) {
   const startStr = formatDateTimeBR(startsAt)
   const endStr = formatDateTimeBR(endsAt)
+  const untilShort = formatValidityUntil(endsAt)
   if (!startStr && !endStr) return "Sem período definido"
-  if (!startStr) return `Até ${endStr}`
+  if (!startStr) return untilShort || `Até ${endStr}`
   if (!endStr) return `A partir de ${startStr}`
-  return `${startStr} até ${endStr}`
+  return untilShort ? `${startStr} ${untilShort}` : `${startStr} até ${endStr}`
 }
 
 export function formatUnitsLimit(unitsSold, maxUnits) {

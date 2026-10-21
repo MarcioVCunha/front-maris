@@ -106,6 +106,8 @@ export function installModalUi(deps) {
   function openWaitlistModal({ productCode = null, componentId = null }) {
     estado.pendingWaitlistItem = { productCode, componentId }
     setWaitlistFeedback("")
+    const rememberEl = document.getElementById("waitlist-remember")
+    if (rememberEl) rememberEl.checked = Boolean(window.MarisCatalogCart?.isRememberEnabled?.())
     const buyer = window.MarisCatalogCart?.getBuyerProfile?.()
     if (buyer) {
       if (waitlistNameInput) waitlistNameInput.value = buyer.name || ""
@@ -167,7 +169,8 @@ export function installModalUi(deps) {
       return
     }
 
-    window.MarisCatalogCart?.saveBuyerProfile?.({ name, whatsapp, email })
+    const remember = Boolean(document.getElementById("waitlist-remember")?.checked)
+    window.MarisCatalogCart?.saveBuyerProfile?.({ name, whatsapp, email }, { remember })
 
     const payload = typeof formatRestockAlertPayload === "function"
       ? formatRestockAlertPayload({
