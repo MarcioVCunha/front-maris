@@ -502,7 +502,7 @@ async function readPublic(path: string) {
 }
 
 Deno.test("os menus escondem administração da vendedora e mostram tipos", async () => {
-  const index = await readPublic("index.html")
+  const index = await readPublic("paginas/admin/inicio.html")
   const homeAdmin = anchor(index, "/admin")
   const homeTipos = anchor(index, "/tipos-produto")
   assert(homeAdmin.includes('data-staff-min="admin"'))
@@ -536,7 +536,7 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
     "/compartilhado/staff-auth.js"
   ]
   const staffPages = [
-    "index.html",
+    "paginas/admin/inicio.html",
     "paginas/admin/equipe.html",
     "paginas/admin/nova-senha.html",
     "paginas/admin/admin.html",
@@ -570,7 +570,7 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
   const home = vercel.rewrites.find((item: { source: string }) => item.source === "/")
   assertEquals(home.destination, "/paginas/catalogo/catalogo.html")
   const staffHome = vercel.rewrites.find((item: { source: string }) => item.source === "/inicio")
-  assertEquals(staffHome.destination, "/index.html")
+  assertEquals(staffHome.destination, "/paginas/admin/inicio.html")
 })
 
 async function walkSource(dir: URL): Promise<string[]> {

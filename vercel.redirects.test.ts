@@ -67,7 +67,20 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   assertEquals(home?.destination, "/paginas/catalogo/catalogo.html")
 
   const staffHome = config.rewrites.find((item) => item.source === "/inicio")
-  assertEquals(staffHome?.destination, "/index.html")
+  assertEquals(staffHome?.destination, "/paginas/admin/inicio.html")
+  assertEquals(
+    config.redirects.some((item) => item.source === "/index.html"),
+    false
+  )
+  // Sem public/index.html: a Vercel serve o arquivo real antes do rewrite de /.
+  assertEquals(
+    await Deno.stat(new URL("./public/index.html", import.meta.url)).then(() => true).catch(() => false),
+    false
+  )
+  assertEquals(
+    await Deno.stat(new URL("./public/paginas/admin/inicio.html", import.meta.url)).then(() => true).catch(() => false),
+    true
+  )
 
   const catalog = config.rewrites.find((item) => item.source === "/catalog")
   assertEquals(catalog?.destination, "/paginas/catalogo/catalogo.html")

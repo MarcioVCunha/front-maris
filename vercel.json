@@ -14,7 +14,6 @@
       "destination": "https://lojamaris.com.br/:path*",
       "permanent": true
     },
-    { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/hubs/admin.html", "destination": "/admin", "permanent": true },
     { "source": "/hubs/vendedoras.html", "destination": "/vendedoras", "permanent": true },
     { "source": "/hubs/catalogo.html", "destination": "/catalogo", "permanent": true },
@@ -67,7 +66,7 @@
     { "source": "/cart-resolver.js", "destination": "/compartilhado/cart-resolver.js" },
     { "source": "/staff-auth.js", "destination": "/compartilhado/staff-auth.js" },
     { "source": "/", "destination": "/paginas/catalogo/catalogo.html" },
-    { "source": "/inicio", "destination": "/index.html" },
+    { "source": "/inicio", "destination": "/paginas/admin/inicio.html" },
     { "source": "/admin/inicio", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/estoque", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/esgotadas", "destination": "/paginas/admin/painel.html" },
