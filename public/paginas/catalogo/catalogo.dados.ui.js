@@ -21,7 +21,64 @@ export function installDadosUi(deps) {
     totalsByProductCode,
   } = deps
 
-  function applyCatalogLink() {
+  const PRODUCT_PAGE_SIZE = 30
+  let morePromise = null
+
+  function syncCartCatalog() {
+    if (!window.MarisCatalogCart) return
+    const imagesByCode = Object.create(null)
+    for (const product of estado.rawProducts) {
+      const code = String(product?.code || "")
+      if (!code) continue
+      const urls = deps.getProductImageUrls(product)
+      if (urls.length) imagesByCode[code] = urls[0]
+    }
+    window.MarisCatalogCart.setCatalogData({ products: estado.rawProducts, components: estado.allComponents, imagesByCode })
+  }
+
+  function fetchProductsPage(from) {
+    return window.MarisCatalogRead.selectProducts(supabaseClient, { from, to: from + PRODUCT_PAGE_SIZE - 1 })
+      .order("name")
+      .order("id")
+  }
+
+  function acceptProductsPage(rows) {
+    const known = new Set(estado.rawProducts.map((p) => p.code))
+    const fresh = rows.filter((p) => !known.has(p.code))
+    estado.rawProducts = estado.rawProducts.concat(fresh)
+    estado.productsOffset += rows.length
+    estado.productsHasMore = rows.length >= PRODUCT_PAGE_SIZE
+    estado.allGroups = groupProductsByColor(estado.rawProducts)
+    return fresh.length
+  }
+
+  function loadMoreProducts() {
+    if (!estado.productsHasMore) return Promise.resolve(false)
+    if (morePromise) return morePromise
+    morePromise = (async () => {
+      try {
+        const { data, error } = await fetchProductsPage(estado.productsOffset)
+        if (error || !Array.isArray(data)) throw error || new Error("Resposta inválida")
+        acceptProductsPage(data)
+        syncCartCatalog()
+        deps.renderCategoryFilters()
+        return true
+      } catch (error) {
+        estado.productsHasMore = false
+        console.warn("Falha ao carregar mais produtos", error)
+        return false
+      } finally {
+        morePromise = null
+      }
+    })()
+    return morePromise
+  }
+
+  async function loadAllProducts() {
+    while (estado.productsHasMore) await loadMoreProducts()
+  }
+
+  async function applyCatalogLink() {
     const link = readCatalogLink(location.search)
     estado.linkUtm = {
       utmSource: link.utmSource,
@@ -46,6 +103,8 @@ export function installDadosUi(deps) {
     deps.syncDrawerInputs()
     deps.renderColorFilters()
     syncCollectionPressed()
+
+    if (link.peca && estado.productsHasMore) await loadAllProducts()
 
     if (!link.peca) {
       estado.pieceGroupKey = ""
@@ -72,9 +131,7 @@ export function installDadosUi(deps) {
   async function loadCatalogData() {
     showCatalogLoading()
     const [productsResponse, componentsResponse, imagesResponse, collectionsResponse] = await Promise.all([
-      window.MarisCatalogRead.selectProducts(supabaseClient)
-        .order("quantity", { ascending: false })
-        .order("name"),
+      fetchProductsPage(0),
       window.MarisCatalogRead.selectPricedComponents(supabaseClient).order("name"),
       window.MarisCatalogRead.selectImages(supabaseClient).order("sort_order", { ascending: true }),
       window.MarisCatalogRead.selectCollections
@@ -111,6 +168,9 @@ export function installDadosUi(deps) {
       estado.imageUrlsByProductId[productId].push(imageUrl)
     }
 
+    estado.rawProducts = []
+    estado.productsOffset = 0
+    estado.productsHasMore = false
     if (!data?.length) {
       estado.allGroups = []
       clearCatalogLoading()
@@ -122,21 +182,14 @@ export function installDadosUi(deps) {
       return
     }
 
-    estado.allGroups = groupProductsByColor(data)
+    acceptProductsPage(data)
     estado.selectedCodeByGroup = Object.create(null)
     deps.renderColorFilters()
     renderCollectionChips()
 
     estado.allComponents = componentsData || []
     if (window.MarisCatalogCart) {
-      const imagesByCode = Object.create(null)
-      for (const product of data || []) {
-        const code = String(product?.code || "")
-        if (!code) continue
-        const urls = deps.getProductImageUrls(product)
-        if (urls.length) imagesByCode[code] = urls[0]
-      }
-      window.MarisCatalogCart.setCatalogData({ products: data, components: estado.allComponents, imagesByCode })
+      syncCartCatalog()
       try {
         await window.MarisCatalogCart.init()
       } catch (error) {
@@ -237,6 +290,8 @@ export function installDadosUi(deps) {
   return {
     applyCatalogLink,
     loadCatalogData,
+    loadMoreProducts,
+    loadAllProducts,
     bestsellerControls,
     setBestsellersVisible,
     syncCollectionPressed,

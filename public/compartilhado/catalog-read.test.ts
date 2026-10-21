@@ -14,7 +14,7 @@ const Read = win.MarisCatalogRead as {
   ARCHIVED_AT_FIELD: string
   isArchivedProduct: (row: Record<string, unknown>) => boolean
   withoutArchivedProducts: (rows: Record<string, unknown>[]) => Record<string, unknown>[]
-  selectProducts: (client: FakeClient) => FakeChain
+  selectProducts: (client: FakeClient, options?: Record<string, number> | null) => FakeChain
   selectPricedComponents: (client: FakeClient) => FakeChain
   selectImages: (client: FakeClient) => FakeChain
   selectActiveSellers: (client: FakeClient) => FakeChain
@@ -37,6 +37,10 @@ class FakeChain {
   }
   eq(col: string, val: unknown) {
     this.ops.push(["eq", col, val])
+    return this
+  }
+  range(from: number, to: number) {
+    this.ops.push(["range", from, to])
     return this
   }
   order(col: string, opts?: unknown) {
@@ -120,6 +124,35 @@ Deno.test("selectProducts pede o preço do banco e repete sem a coluna se ela ai
   assertEquals(orders.length, 2)
   assertEquals(result, { data: [{ code: "AN651-R" }], error: null })
   assertEquals(Read.missingOptionalPriceColumn({ message: "Could not find the 'preco_pix' column" }), true)
+})
+
+Deno.test("selectProducts aceita faixa por from/to ou page/size sem trazer custo", async () => {
+  const ranges: unknown[][] = []
+  const selects: string[] = []
+  const client = {
+    from() {
+      return {
+        select(cols: string) {
+          selects.push(cols)
+          const chain = {
+            range(...args: unknown[]) {
+              ranges.push(args)
+              return chain
+            },
+            then(resolve: (value: unknown) => void) {
+              resolve({ data: [], error: null })
+            }
+          }
+          return chain
+        }
+      }
+    }
+  }
+  await Read.selectProducts(client as unknown as FakeClient, { from: 0, to: 29 })
+  await Read.selectProducts(client as unknown as FakeClient, { page: 2, size: 30 })
+  await Read.selectProducts(client as unknown as FakeClient)
+  assertEquals(ranges, [[0, 29], [60, 89]])
+  assert(selects.every((cols) => !/\bcusto\b/i.test(cols)))
 })
 
 Deno.test("componentes com preço, imagens e vendedoras", () => {

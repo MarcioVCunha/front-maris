@@ -44,7 +44,8 @@
     const countEl = document.getElementById("cart-bar-count")
     const totalEl = document.getElementById("cart-bar-total")
     const pixEl = document.getElementById("cart-bar-pix")
-    if (countEl) countEl.textContent = count === 1 ? "1 item" : count ? `${count} itens` : "Cesta vazia"
+    document.getElementById("cart-bar")?.classList.toggle("cart-bar--empty", count === 0)
+    if (countEl) countEl.textContent = count === 1 ? "1 item" : count ? `${count} itens` : "Cesta"
     if (totalEl && format) totalEl.textContent = format(totals.total)
     if (pixEl && format) pixEl.textContent = `${format(totals.pixTotal)} no Pix`
     window.dispatchEvent(new CustomEvent("maris-cart-updated", { detail: { count, total: totals.total, pixTotal: totals.pixTotal } }))

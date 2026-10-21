@@ -15,6 +15,13 @@ export function installGestosUi(deps) {
       estado.ignoreNextCardClick = false
       return
     }
+    const photoNav = event.target.closest("[data-photo-nav]")
+    if (photoNav) {
+      event.stopPropagation()
+      const photos = photoNav.closest(".product-media")?.querySelector(".product-photos")
+      if (photos) photos.scrollBy({ left: Number(photoNav.getAttribute("data-photo-nav")) * photos.clientWidth, behavior: "smooth" })
+      return
+    }
     const favBtn = event.target.closest("[data-fav-code]")
     if (favBtn) {
       event.stopPropagation()
