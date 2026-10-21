@@ -4,11 +4,11 @@
 export function buildPrivacySections(loja) {
   const info = loja || {}
   const email = info.email || "contato@lojamaris.com.br"
-  const doc = info.documento || "[PREENCHER: CPF ou CNPJ]"
+  const doc = info.documento || "CPF 379.743.338-71"
   const encarregado = info.encarregadoNome || "Marcio"
   const endereco = info.endereco
     ? `${info.endereco.logradouro}, ${info.endereco.bairro}, ${info.endereco.cidade}-${info.endereco.uf}, CEP ${info.endereco.cep}`
-    : "[PREENCHER: endereço]"
+    : "Rua Doutor Alfredo Guedes, 47, Centro, Tambaú-SP, CEP 13710-087"
 
   return [
     {

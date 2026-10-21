@@ -53,7 +53,7 @@ Deno.test("páginas L0: privacidade, trocas e garantia têm conteúdo mínimo", 
   const privacy = buildPrivacySections({
     razaoSocial: "Maris",
     nomeFantasia: "Maris Semijoias",
-    documento: "[PREENCHER: CPF ou CNPJ]",
+    documento: "CPF 379.743.338-71",
     email: "contato@lojamaris.com.br",
     encarregadoNome: "Marcio",
     site: "https://lojamaris.com.br",

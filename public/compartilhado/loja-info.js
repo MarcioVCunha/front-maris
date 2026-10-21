@@ -6,7 +6,7 @@
   const LOJA = {
     nomeFantasia: "Maris Semijoias",
     razaoSocial: "Maris",
-    documento: "[PREENCHER: CPF ou CNPJ]",
+    documento: "CPF 379.743.338-71",
     email: "contato@lojamaris.com.br",
     site: "https://lojamaris.com.br",
     whatsappE164: "5519992732874",
@@ -45,7 +45,7 @@
     if (d.length === 11) {
       return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
     }
-    return d || "[PREENCHER: WhatsApp]"
+    return d || ""
   }
 
   function whatsappUrl(message = "Oi, gostaria de falar com a Maris", info = LOJA) {

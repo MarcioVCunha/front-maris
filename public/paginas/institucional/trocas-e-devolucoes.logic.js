@@ -20,7 +20,7 @@ export const TROCAS_DEVOLUCOES = {
     {
       title: "Troca por defeito",
       text:
-        "Defeito de fabricação ou no banho entra na garantia. Fale conosco com nome, foto da peça e, se possível, o número do pedido. Combinamos a troca ou o reparo sem custo indevido.",
+        "Defeito de fabricação ou no banho entra na garantia. Fale conosco com nome, foto da peça e, se possível, o número do pedido. Combinamos a troca ou o reparo sem cobrança indevida.",
     },
     {
       title: "Troca por gosto",

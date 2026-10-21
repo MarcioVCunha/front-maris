@@ -1,13 +1,13 @@
 /**
  * Dados públicos de atendimento e textos legais (Fase L0).
- * Campos com [PREENCHER] precisam ser confirmados pelo Marcio antes de produção.
+ * Documento: CPF enquanto o MEI não abre; depois, CNPJ (DC1).
  */
 
 export const LOJA = {
   nomeFantasia: "Maris Semijoias",
   razaoSocial: "Maris",
   /** CPF enquanto o MEI não abre; depois, CNPJ (DC1). */
-  documento: "[PREENCHER: CPF ou CNPJ]",
+  documento: "CPF 379.743.338-71",
   email: "contato@lojamaris.com.br",
   site: "https://lojamaris.com.br",
   /** Já usado no catálogo; confirmar se é o número oficial de atendimento. */
@@ -56,7 +56,7 @@ export function formatWhatsappDisplay(digits = whatsappDigits()) {
   if (d.length === 11) {
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
   }
-  return d || "[PREENCHER: WhatsApp]"
+  return d || ""
 }
 
 export function whatsappUrl(message = "Oi, gostaria de falar com a Maris", info = LOJA) {

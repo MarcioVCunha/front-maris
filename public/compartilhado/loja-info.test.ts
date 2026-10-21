@@ -16,7 +16,7 @@ Deno.test("formatValidityUntil devolve até dd/mm", () => {
 Deno.test("LOJA centraliza placeholders e contato conhecido", () => {
   assertEquals(LOJA.email, "contato@lojamaris.com.br")
   assertEquals(LOJA.site, "https://lojamaris.com.br")
-  assertEquals(LOJA.documento.includes("PREENCHER"), true)
+  assertEquals(LOJA.documento, "CPF 379.743.338-71")
   assertEquals(LOJA.endereco.cep, "13710-087")
   assertEquals(enderecoLinha().includes("Tambaú"), true)
 })
