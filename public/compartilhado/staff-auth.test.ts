@@ -188,7 +188,7 @@ Deno.test("a sessão fica na chave do Supabase e ignora o token antigo", () => {
 
 Deno.test("vendedora entra em vendas e tipos; o resto é admin", () => {
   pinWindow()
-  const sellerPages = ["/", "/vendedoras", "/vendas", "/vendas/nova", "/tipos-produto"]
+  const sellerPages = ["/", "/inicio", "/vendedoras", "/vendas", "/vendas/nova", "/tipos-produto"]
   const adminPages = ["/admin", "/importar", "/adicionar-peca", "/promocoes", "/contas-vendedoras", "/lista-espera"]
   for (const pathname of sellerPages) {
     assertEquals(
@@ -315,12 +315,12 @@ Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
   assertEquals(linked?.seller_id, 7)
   assertEquals(Auth.normalizeStaffUser({ id: "1", email: "a@b.c", role: "vendedora" })?.role, "seller")
   assertEquals(Auth.safeNextPath("/vendas?id=1"), "/vendas?id=1")
-  assertEquals(Auth.safeNextPath("//evil.test"), "/")
-  assertEquals(Auth.safeNextPath("https://evil.test"), "/")
-  assertEquals(Auth.safeNextPath("/\\\\evil"), "/")
-  assertEquals(Auth.safeNextPath("/%2F%2Fevil"), "/")
-  assertEquals(Auth.safeNextPath("/equipe"), "/")
-  assertEquals(Auth.safeNextPath("/equipe/nova-senha"), "/")
+  assertEquals(Auth.safeNextPath("//evil.test"), "/inicio")
+  assertEquals(Auth.safeNextPath("https://evil.test"), "/inicio")
+  assertEquals(Auth.safeNextPath("/\\\\evil"), "/inicio")
+  assertEquals(Auth.safeNextPath("/%2F%2Fevil"), "/inicio")
+  assertEquals(Auth.safeNextPath("/equipe"), "/inicio")
+  assertEquals(Auth.safeNextPath("/equipe/nova-senha"), "/inicio")
 })
 
 Deno.test("vendedora sem ser admin entra direto na venda nova com o seller_id do perfil", async () => {
@@ -338,6 +338,7 @@ Deno.test("vendedora sem ser admin entra direto na venda nova com o seller_id do
   assertEquals(Auth.accessDecision({ pathname: "/admin", role: marineide?.role, hasSession: true, optional: false }), "deny")
   assertEquals(Auth.landingPath(marineide, null), "/vendas/nova")
   assertEquals(Auth.landingPath(marineide, "/"), "/vendas/nova")
+  assertEquals(Auth.landingPath(marineide, "/inicio"), "/vendas/nova")
   assertEquals(Auth.landingPath(marineide, "/vendedoras"), "/vendas/nova")
   assertEquals(Auth.landingPath(marineide, "/vendas"), "/vendas/nova")
   assertEquals(Auth.landingPath(marineide, "/tipos-produto"), "/tipos-produto")
@@ -349,7 +350,7 @@ Deno.test("vendedora sem ser admin entra direto na venda nova com o seller_id do
     role: "admin",
     seller_id: null
   })
-  assertEquals(Auth.landingPath(admin, null), "/")
+  assertEquals(Auth.landingPath(admin, null), "/inicio")
   assertEquals(Auth.landingPath(admin, "/admin"), "/admin")
   const gate = await Deno.readTextFile(new URL("../paginas/admin/equipe.html", import.meta.url))
   assertEquals(gate.includes("Auth.landingPath"), true)
@@ -566,6 +567,10 @@ Deno.test("páginas da equipe carregam a sessão antes do gate e o catálogo pú
   const vercel = JSON.parse(await Deno.readTextFile(new URL("../../vercel.json", import.meta.url)))
   const rewrite = vercel.rewrites.find((item: { source: string }) => item.source === "/equipe/nova-senha")
   assertEquals(rewrite.destination, "/paginas/admin/nova-senha.html")
+  const home = vercel.rewrites.find((item: { source: string }) => item.source === "/")
+  assertEquals(home.destination, "/paginas/catalogo/catalogo.html")
+  const staffHome = vercel.rewrites.find((item: { source: string }) => item.source === "/inicio")
+  assertEquals(staffHome.destination, "/index.html")
 })
 
 async function walkSource(dir: URL): Promise<string[]> {

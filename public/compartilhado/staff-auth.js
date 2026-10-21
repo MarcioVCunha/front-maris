@@ -11,6 +11,7 @@
 ;(function () {
   const GATE_PATH = "/equipe"
   const RESET_PATH = "/equipe/nova-senha"
+  const STAFF_HOME = "/inicio"
   const PROFILE_KEY = "maris_staff_profile"
   const LEGACY_TOKEN_KEY = "maris_staff_token"
   const STAFF_ME_FALLBACK = "staff-me"
@@ -101,27 +102,27 @@
   }
 
   function safeNextPath(raw) {
-    if (!raw) return "/"
+    if (!raw) return STAFF_HOME
     let decoded = String(raw)
     try {
       decoded = decodeURIComponent(decoded)
     } catch {
-      return "/"
+      return STAFF_HOME
     }
     if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("://") || decoded.includes("\\")) {
-      return "/"
+      return STAFF_HOME
     }
     const pathOnly = decoded.split("?")[0].split("#")[0]
-    if (normalizePath(pathOnly) === GATE_PATH || normalizePath(pathOnly) === RESET_PATH) return "/"
+    if (normalizePath(pathOnly) === GATE_PATH || normalizePath(pathOnly) === RESET_PATH) return STAFF_HOME
     return decoded
   }
 
-  // Vendedora entra direto na tela nova. Admin segue o next, ou o início.
+  // Vendedora entra direto na tela nova. Admin segue o next, ou o hub da equipe.
   function landingPath(user, rawNext) {
     const next = safeNextPath(rawNext)
     if (user?.role !== "seller") return next
     const path = normalizePath(String(next).split("?")[0].split("#")[0])
-    if (path === "/" || path === "/vendedoras" || path === "/vendas") return "/vendas/nova"
+    if (path === "/" || path === STAFF_HOME || path === "/vendedoras" || path === "/vendas") return "/vendas/nova"
     return next
   }
 
@@ -260,7 +261,7 @@
 
   function redirectHomeDenied() {
     if (pageUnloading) return
-    window.location.replace("/?aviso=sem-permissao")
+    window.location.replace(`${STAFF_HOME}?aviso=sem-permissao`)
   }
 
   function sessionSubject(session) {
