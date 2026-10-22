@@ -1,5 +1,6 @@
 import { createCustomerClient } from "../../compartilhado/cliente-auth.js"
 import {
+  accountSavedMessage,
   applyCepResult,
   buildExportDownload,
   customerMeRequest,
@@ -162,7 +163,7 @@ async function boot() {
       return
     }
     customerId = saved.customer?.id ?? customerId
-    setMessage(dadosMsg, "Dados salvos.", "success")
+    setMessage(dadosMsg, accountSavedMessage(saved.data), "success")
   })
 
   document.getElementById("endereco-buscar").addEventListener("click", async () => {

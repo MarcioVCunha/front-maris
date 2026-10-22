@@ -30,7 +30,9 @@ export const ADMIN_DASHBOARD_API = {
   productHistory: "admin-product-history",
   couponList: "admin-coupon-list",
   couponSave: "admin-coupon-save",
-  referralList: "admin-referral-list"
+  referralList: "admin-referral-list",
+  customerReviewList: "staff-merge-review-list",
+  customerReviewResolve: "staff-merge-review-resolve"
 }
 
 function withQuery(url, query) {
@@ -421,6 +423,39 @@ export async function createReferralCode(payload, client) {
     ok: true,
     data: result.data || {}
   }
+}
+
+/**
+ * GET staff-merge-review-list (back-maris PR #52)
+ * Auth: staff (Authorization Bearer). Sem apikey e sem x-client-info.
+ * Resposta: { ok, pending_count, reviews: [{ id, field, pending_value, customer_a, customer_b }] }
+ * field: "whatsapp" | "cpf"
+ * customer_a e customer_b: { id, name, email, whatsapp, cpf | cpf_masked, order_count, has_login }
+ * cpf_masked já vem mascarado e o front não mascara de novo.
+ */
+export async function fetchCustomerReviews(client) {
+  const result = await call(ADMIN_DASHBOARD_API.customerReviewList, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível carregar os cadastros para revisão.")
+  }
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * POST staff-merge-review-resolve (back-maris PR #52)
+ * Corpo: { id, review_id, action: "juntar" | "separado" | "excluir", customer_id? }
+ * id e review_id são o mesmo número da pendência.
+ * juntar: customer_id é o cadastro que fica. excluir: customer_id é o que sai.
+ * separado não manda customer_id.
+ * Resposta: { ok, pending_count }
+ */
+export async function resolveCustomerReview(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.customerReviewResolve, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível concluir a revisão.")
+  }
+  const pending = Number(result.data?.pending_count)
+  return { ok: true, pendingCount: Number.isFinite(pending) ? pending : null }
 }
 
 export async function fetchReferrals(client) {

@@ -17,7 +17,8 @@ export const DASHBOARD_VIEWS = [
   { id: "compras", href: "/admin/compras", label: "Compras" },
   { id: "colecoes", href: "/admin/colecoes", label: "Coleções" },
   { id: "promocoes", href: "/admin/promocoes", label: "Promoções" },
-  { id: "cupons", href: "/admin/cupons", label: "Cupons & Indicação" }
+  { id: "cupons", href: "/admin/cupons", label: "Cupons & Indicação" },
+  { id: "cadastros", href: "/admin/cadastros", label: "Revisar cadastros" }
 ]
 
 export const STOCK_LINKS = [
@@ -60,6 +61,7 @@ export function dashboardView(pathname, search = "") {
     "/admin/promocoes": "promocoes",
     "/admin/cupons": "cupons",
     "/admin/indicacoes": "cupons",
+    "/admin/cadastros": "cadastros",
     "/admin/peca": "peca",
     "/admin/conjuntos": "conjuntos",
     "/admin/tipos": "conjuntos",
@@ -81,10 +83,18 @@ export function isPanelLink(pathname) {
   return path === "/admin" || path.startsWith("/admin/")
 }
 
-export function navHtml(active) {
+function reviewBadge(count) {
+  const number = Number(count)
+  if (!Number.isFinite(number) || number < 0) return ""
+  const shown = number > 99 ? "99+" : String(Math.trunc(number))
+  return `<span class="dash-count">${shown}</span>`
+}
+
+export function navHtml(active, counts) {
   return DASHBOARD_VIEWS.map((item) => {
     const current = item.id === active ? " aria-current=\"page\"" : ""
-    return `<a class="dash-link" href="${item.href}"${current}>${item.label}</a>`
+    const badge = counts && Object.hasOwn(counts, item.id) ? reviewBadge(counts[item.id]) : ""
+    return `<a class="dash-link" href="${item.href}"${current}>${item.label}${badge}</a>`
   }).join("")
 }
 
