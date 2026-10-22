@@ -32,6 +32,16 @@ import {
   safeNextPath,
   saveAddress,
   signupResultMessage,
+  normalizeSignupCode,
+  signupCodeCanConfirm,
+  saveSignupDraft,
+  readSignupDraft,
+  clearSignupDraft,
+  resendButtonState,
+  resendCodeMessage,
+  resendSignupCode,
+  SIGNUP_DRAFT_KEY,
+  SIGNUP_RESEND_COOLDOWN_MS,
   stripForbidden,
   validateAddress,
   validateCustomer
@@ -79,6 +89,66 @@ Deno.test("cadastro desligado não avança como se o código tivesse sido enviad
   assertEquals(server.type, "error")
   assertEquals(server.text, blocked.text)
   assertEquals(signupResultMessage({ message: "email rate limit exceeded", status: 429 }).text, "Aguarde um pouco e tente de novo.")
+})
+
+Deno.test("código de cadastro aceita cola, autofill e só dígitos", () => {
+  assertEquals(normalizeSignupCode(" 123 456 "), "123456")
+  assertEquals(normalizeSignupCode("12a34b56c789"), "123456")
+  assertEquals(normalizeSignupCode("12-34"), "1234")
+  assertEquals(signupCodeCanConfirm("123456"), true)
+  assertEquals(signupCodeCanConfirm("123 456"), true)
+  assertEquals(signupCodeCanConfirm("12345"), false)
+  assertEquals(signupCodeCanConfirm(""), false)
+})
+
+Deno.test("etapa do código sobrevive ao reload e o reenvio tem cooldown", async () => {
+  const store = memory()
+  const now = 1_700_000_000_000
+  assertEquals(readSignupDraft(store, now), null)
+  const saved = saveSignupDraft(store, " Ana@Loja.Test ", now)
+  assertEquals(saved?.step, "code")
+  assertEquals(saved?.email, "ana@loja.test")
+  assertEquals(readSignupDraft(store, now + 1000), saved)
+  assertEquals(readSignupDraft(store, now + 31 * 60 * 1000), null)
+  assertEquals(store.getItem(SIGNUP_DRAFT_KEY), null)
+
+  const fresh = saveSignupDraft(store, "ana@loja.test", now)
+  assertEquals(resendButtonState(fresh?.sentAt, now).disabled, true)
+  assertEquals(resendButtonState(fresh?.sentAt, now + SIGNUP_RESEND_COOLDOWN_MS).text, "Reenviar código")
+  assertEquals(resendButtonState(fresh?.sentAt, now + 1000).text, "Reenviar código (59s)")
+  clearSignupDraft(store)
+  assertEquals(readSignupDraft(store, now), null)
+
+  const calls: string[] = []
+  const client = {
+    auth: {
+      signUp() {
+        calls.push("signUp")
+        return Promise.resolve({ data: {}, error: null })
+      },
+      resend(args: { type: string, email: string }) {
+        calls.push(`resend:${args.type}:${args.email}`)
+        return Promise.resolve({ error: null })
+      }
+    }
+  }
+  const sent = await resendSignupCode(client, " Ana@Loja.Test ", "https://lojamaris.com.br/minha-conta")
+  assertEquals(sent.error, null)
+  assertEquals(calls, ["resend:signup:ana@loja.test"])
+  assertEquals(resendCodeMessage(null).type, "success")
+  assertEquals(resendCodeMessage({ message: "Signups not allowed", status: 422 }).type, "error")
+
+  const page = await Deno.readTextFile(new URL("../paginas/conta/criar-conta.js", import.meta.url))
+  const html = await Deno.readTextFile(new URL("../paginas/conta/criar-conta.html", import.meta.url))
+  assertEquals(page.includes("event.preventDefault()"), true)
+  assertEquals((page.match(/preventDefault\(\)/g) || []).length >= 2, true)
+  assertEquals(page.includes("saveSignupDraft"), true)
+  assertEquals(page.includes("readSignupDraft"), true)
+  assertEquals(page.includes("resendSignupCode"), true)
+  assertEquals(page.includes('getElementById("criar-codigo-confirm")'), true)
+  assertEquals(html.includes('id="criar-codigo-confirm"'), true)
+  assertEquals(html.includes('maxlength="6"'), false)
+  assertEquals(html.includes('onsubmit="event.preventDefault()"'), true)
 })
 
 Deno.test("login fica escondido até a flag e o preview local não vale em produção", () => {
@@ -262,7 +332,8 @@ function memory() {
   const data = new Map<string, string>()
   return {
     getItem(key: string) { return data.get(key) ?? null },
-    setItem(key: string, value: string) { data.set(key, value) }
+    setItem(key: string, value: string) { data.set(key, value) },
+    removeItem(key: string) { data.delete(key) }
   }
 }
 

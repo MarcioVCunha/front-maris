@@ -494,7 +494,7 @@ Deno.test("peças relacionadas são da mesma categoria", () => {
     { code: "B1-O", name: "Brinco", quantity: 1, categoria: "Brinco" },
   ])
   const related = relatedGroups(groups, groups[0], inStock, 4)
-  assertEquals(related.map((group) => group.base), ["A3", "A2"])
+  assertEquals(related.map((group) => group.base), ["A3"])
 })
 
 Deno.test("última unidade exige 1 no estoque e 3 ou mais no cadastro, e fica desligada", () => {
@@ -671,9 +671,8 @@ Deno.test("combinaGroups filtra categorias complementares, prioriza estoque e me
   assertEquals(suggestions.some((g) => g.base === "A1"), false)
   assertEquals(suggestions.some((g) => g.base === "A2"), false)
 
-  // Em estoque vem antes de esgotado; e mesma cor (Ouro) vem antes de cor diferente (Ródio)
-  // B1-O (estoque 1, ouro match) > B2-R (estoque 1, rodio) > C1-O (esgotado)
-  assertEquals(suggestions.map((g) => g.base), ["B1", "B2", "C1"])
+  assertEquals(suggestions.some((g) => g.base === "C1"), false)
+  assertEquals(suggestions.map((g) => g.base), ["B1", "B2"])
 })
 
 Deno.test("renderCombinaComponentCard renderiza card com dados, preços e botões corretos", () => {

@@ -28,7 +28,7 @@
           <h1>Criar conta</h1>
           <p class="conta-lead">O código chega uma vez, para confirmar o e-mail.</p>
           <p id="criar-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
-          <form id="criar-form">
+          <form id="criar-form" method="post" action="#criar-conta" onsubmit="event.preventDefault()">
             <div class="conta-field">
               <label for="criar-email">E-mail</label>
               <input id="criar-email" type="email" autocomplete="username" inputmode="email" required>
@@ -56,17 +56,21 @@
               <button type="submit" class="conta-btn" id="criar-submit" disabled>Criar conta</button>
             </div>
           </form>
-          <form id="criar-codigo" hidden>
+          <form id="criar-codigo" hidden method="post" action="#criar-codigo" onsubmit="event.preventDefault()">
+            <p id="criar-codigo-hint" class="conta-muted" hidden></p>
             <div class="conta-field">
               <label for="criar-token">Código</label>
-              <input id="criar-token" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 dígitos">
+              <input id="criar-token" type="text" inputmode="numeric" autocomplete="one-time-code" enterkeyhint="done" placeholder="6 dígitos">
             </div>
             <div class="conta-actions">
-              <button type="submit" class="conta-btn" id="criar-confirm" disabled>Confirmar</button>
+              <button type="submit" class="conta-btn" id="criar-codigo-confirm" disabled>Confirmar</button>
+              <button type="button" class="conta-text-btn" id="criar-resend">Reenviar código</button>
             </div>
           </form>
-          <p class="conta-links"><a id="link-entrar" href="/entrar">Já tenho conta</a></p>
-          <p class="conta-note"><a href="/privacidade">Privacidade</a></p>
+          <p class="conta-links">
+            <a id="link-entrar" href="/entrar">Já tenho conta</a>
+            <a href="/privacidade">Privacidade</a>
+          </p>
         </section>
       </div>
     </main>
