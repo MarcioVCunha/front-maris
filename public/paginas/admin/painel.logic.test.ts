@@ -483,6 +483,8 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(statusFilterHtml.includes("A receber"))
   assert(statusFilterHtml.includes("Pagas"))
   assert(statusFilterHtml.includes("Canceladas"))
+  assert(statusFilterHtml.includes("A confirmar"))
+  assert(statusFilterHtml.includes('data-status="a_confirmar"'))
   assert(statusFilterHtml.includes('data-status="receivable" role="tab" aria-selected="true"'))
 
   const filteredVendas = renderVendas([
@@ -497,6 +499,8 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
 
   const emptyReceivable = renderVendas([], undefined, { selectedStatus: "receivable" })
   assert(emptyReceivable.includes("Nenhuma venda a receber."))
+  const emptyConfirm = renderVendas([], undefined, { selectedStatus: "a_confirmar" })
+  assert(emptyConfirm.includes("Nenhum pedido a confirmar."))
 
   const team = renderVendedoras([{
     seller_id: 2,

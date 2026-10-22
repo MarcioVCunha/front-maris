@@ -262,7 +262,7 @@ Deno.test("renderPromoCard exibe caixa de desempenho quando houver métricas de 
 })
 
 
-Deno.test("diálogo de promoção oferece alcance e desconto em cards; parada ainda não é aceita", () => {
+Deno.test("diálogo de promoção aceita peças paradas há X dias", () => {
   const html = renderPromoDialogContent(null)
   assert(html.includes('name="promo-scope" value="categoria"'))
   assert(html.includes('name="promo-scope" value="produto"'))
@@ -271,8 +271,35 @@ Deno.test("diálogo de promoção oferece alcance e desconto em cards; parada ai
   assert(html.includes('value="60"'))
   assert(html.includes('name="promo-discount-type" value="percent"'))
   assert(html.includes('name="promo-discount-type" value="fixed"'))
-  assert(html.includes("TODO: back ainda não aceita scope=parada"))
+  assertEquals(html.includes("Em breve"), false)
+  assertEquals(html.includes("TODO: back ainda não aceita scope=parada"), false)
+  const edited = renderPromoDialogContent({ id: 3, scope: "parada", days: 45, name: "Paradas" })
+  assert(edited.includes('value="45"'))
   const res = validatePromotionPayload({
+    name: "Paradas",
+    scope: "parada",
+    days: "60",
+    discount_type: "percent",
+    value: 10,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z",
+  })
+  assertEquals(res.ok, true)
+  assertEquals(res.payload?.scope, "parada")
+  assertEquals(res.payload?.days, 60)
+  assertEquals(res.payload?.category, null)
+  assertEquals(res.payload?.product_codes, [])
+  const fromStale = validatePromotionPayload({
+    name: "Paradas",
+    scope: "parada",
+    stale_days: 30,
+    discount_type: "percent",
+    value: 10,
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: "2026-10-31T00:00:00.000Z",
+  })
+  assertEquals(fromStale.payload?.days, 30)
+  const missing = validatePromotionPayload({
     name: "Paradas",
     scope: "parada",
     discount_type: "percent",
@@ -280,6 +307,6 @@ Deno.test("diálogo de promoção oferece alcance e desconto em cards; parada ai
     starts_at: "2026-10-01T00:00:00.000Z",
     ends_at: "2026-10-31T00:00:00.000Z",
   })
-  assertEquals(res.ok, false)
-  assert(String(res.error).includes("Em breve"))
+  assertEquals(missing.ok, false)
+  assert(String(missing.error).includes("dias"))
 })

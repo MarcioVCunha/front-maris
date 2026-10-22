@@ -22,6 +22,12 @@ import {
   saleStatusTone,
   saleUpdatePayload,
   shouldShowSaleEdit,
+  canReturnItem,
+  confirmOrderPayload,
+  normalizeExpiringOrders,
+  renderExpiringOrderCards,
+  reserveHint,
+  returnOrderItemsPayload,
 } from "./venda-edicao.logic.js"
 
 const formatMoney = (value: number) => `R$ ${Number(value).toFixed(2).replace(".", ",")}`
@@ -72,6 +78,7 @@ Deno.test("filtra vendas por canal ou vendedora e monta cards com chip de status
   assertEquals(filterSalesByStatus(sales, "all").length, 2)
   assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "all").length, 2)
   assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "cancelled").map((s) => s.id), [3])
+  assertEquals(filterSalesByStatus([{ id: 9, payment_status: "a_confirmar" }], "a_confirmar").map((s) => s.id), [9])
   assertEquals(salePrimaryPhoto(sales[0]), "https://exemplo.test/a.jpg")
   assertEquals(salePrimaryPhoto(sales[1]), "")
 
@@ -89,6 +96,8 @@ Deno.test("status do plano vira etiqueta com tom certo", () => {
   assertEquals(saleStatusLabel("paid"), "Paga")
   assertEquals(saleStatusLabel("receivable"), "A receber")
   assertEquals(saleStatusLabel("partial"), "A confirmar")
+  assertEquals(saleStatusLabel("a_confirmar"), "A confirmar")
+  assertEquals(saleStatusTone("a_confirmar"), "confirm")
   assertEquals(saleStatusLabel("cancelled"), "Cancelada")
   assertEquals(saleStatusTone("paid"), "paid")
   assertEquals(saleStatusTone("receivable"), "receivable")
@@ -147,6 +156,23 @@ Deno.test("o diálogo de edição só libera ações com a flag ligada", () => {
   assert(on.includes("sale-edit-cancel"))
   assert(on.includes("sale-edit-total"))
   assert(on.includes('data-item-id="7"'))
+  assert(on.includes("Devolver peça"))
+  assert(on.includes('data-return-item="7"'))
+  assert(on.includes("sale-return-btn"))
+  assertEquals(on.includes("width:100%"), false)
+  assertEquals(on.includes("width: 100%"), false)
+  assert(off.includes("Devolver peça"))
+  const returned = renderSaleEditDialog({
+    ...sale,
+    items: [{ ...sale.items[0], id: 8, status: "devolvido" }],
+  }, formatMoney, { enabled: true })
+  assertEquals(returned.includes("Devolver peça"), false)
+  assertEquals(canReturnItem({ id: 7 }), true)
+  assertEquals(canReturnItem({ id: 7, status: "ativo" }), true)
+  assertEquals(canReturnItem({ id: 0 }), false)
+  assertEquals(returnOrderItemsPayload(10, 7), { order_id: 10, item_ids: [7], restore_stock: true })
+  assertEquals(returnOrderItemsPayload(10, 0), null)
+  assertEquals(confirmOrderPayload(10), { order_id: 10 })
   assert(on.includes('data-code="AN581-R"'))
   assert(on.includes('data-component-id="13"'))
   assert(on.includes("sale-edit__piece-photo"))
@@ -283,4 +309,37 @@ Deno.test("venda sem peças ou com total zerado mostra aviso no diálogo e no ca
   const ok = { id: 92, total: 50, items_count: 1, items: [{ code: "A1", quantity: 1 }] }
   assertEquals(renderSaleEditDialog(ok, formatMoney, { enabled: true }).includes("sale-bug-warning"), false)
   assertEquals(renderSaleCards([ok], formatMoney).includes("sale-chip--bug"), false)
+})
+
+Deno.test("pedidos a confirmar destacam a reserva e confirmam pelo order_id", () => {
+  const orders = normalizeExpiringOrders({
+    ok: true,
+    orders: [{
+      id: 12,
+      customer_name: "Lia",
+      seller_name: "Marineide",
+      hours_left: 2.5,
+      reserved_until: "2026-10-22T18:00:00Z",
+      items: [{ id: 7, product_code: "AN01", product_name: "Anel", quantity: 1 }],
+    }, {
+      id: 13,
+      customer_name: "Bia",
+      hours_left: 20,
+      items: [],
+    }],
+  })
+  assertEquals(orders?.[0].payment_status, "a_confirmar")
+  assertEquals(orders?.[0].items[0].code, "AN01")
+  assertEquals(reserveHint(2.5), { urgent: true, text: "Reserva acaba em 2,5 h" })
+  assertEquals(reserveHint(0).text, "Reserva vencendo")
+  assertEquals(reserveHint(20).urgent, false)
+  const html = renderExpiringOrderCards(orders)
+  assert(html.includes("Lia"))
+  assert(html.includes('class="sale-card sale-card--stack sale-card--expiring" data-sale-id="12"'))
+  assert(html.includes('class="sale-card sale-card--stack" data-sale-id="13"'))
+  assert(html.includes("Reserva acaba em 2,5 h"))
+  assert(html.includes('data-confirm-order="12"'))
+  assert(html.includes("Confirmar pedido"))
+  assert(html.includes("sale-confirm-btn"))
+  assertEquals(html.includes("width:100%"), false)
 })

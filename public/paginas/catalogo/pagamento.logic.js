@@ -151,6 +151,23 @@ export async function submitOrderStatus(callFunction, orderId) {
   return interpretOrderStatusResponse(result)
 }
 
+/** Mantém o status inferido do retorno e sempre expõe o erro do order-status. */
+export function orderStatusPageState(result, inferredStatus = "") {
+  const inferred = String(inferredStatus || "")
+  if (result?.kind === "ok") {
+    return {
+      status: result.status || inferred,
+      message: "",
+      messageType: ""
+    }
+  }
+  return {
+    status: inferred,
+    message: result?.error || "Não foi possível consultar o status agora.",
+    messageType: "error"
+  }
+}
+
 export function buildOrderWhatsappMessage(order) {
   const id = order?.orderId != null ? `#${order.orderId}` : ""
   const total = order?.total != null
@@ -190,6 +207,7 @@ export const MarisPagamento = {
   inferStatusFromReturn,
   interpretOrderStatusResponse,
   submitOrderStatus,
+  orderStatusPageState,
   buildOrderWhatsappMessage
 }
 

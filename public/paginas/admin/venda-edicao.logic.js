@@ -44,7 +44,8 @@ const STATUS_LABEL = {
   cancelled: "Cancelada",
   canceled: "Cancelada",
   to_confirm: "A confirmar",
-  pending: "A confirmar"
+  pending: "A confirmar",
+  a_confirmar: "A confirmar"
 }
 
 const STATUS_TONE = {
@@ -54,7 +55,8 @@ const STATUS_TONE = {
   cancelled: "cancelled",
   canceled: "cancelled",
   to_confirm: "confirm",
-  pending: "confirm"
+  pending: "confirm",
+  a_confirmar: "confirm"
 }
 
 const METHOD_LABEL = {
@@ -212,7 +214,7 @@ export function filterSalesByStatus(sales, status) {
   if (key === "partial" || key === "a_confirmar") {
     return (sales || []).filter((sale) => {
       const s = saleStatusKey(sale?.payment_status)
-      return s === "partial" || s === "to_confirm" || s === "pending"
+      return s === "partial" || s === "to_confirm" || s === "pending" || s === "a_confirmar"
     })
   }
   if (key === "cancelled" || key === "cancelada" || key === "canceladas" || key === "canceled") {
@@ -237,8 +239,22 @@ export function normalizeSaleItems(raw) {
     component_id: item?.component_id == null || item?.component_id === ""
       ? null
       : Number(item.component_id),
-    legacy_sale_id: item?.legacy_sale_id == null ? null : Number(item.legacy_sale_id)
+    legacy_sale_id: item?.legacy_sale_id == null ? null : Number(item.legacy_sale_id),
+    status: String(item?.status || item?.item_status || "").trim()
   }))
+}
+
+export function canReturnItem(item) {
+  const id = Number(item?.id)
+  if (!Number.isInteger(id) || id <= 0) return false
+  const status = String(item?.status || "").trim().toLowerCase()
+  if (!status) return true
+  return status === "ativo" || status === "active"
+}
+
+function returnItemButton(item) {
+  if (!canReturnItem(item)) return ""
+  return `<button type="button" class="btn-ghost sale-return-btn" data-return-item="${escapeHtml(item.id)}">Devolver peça</button>`
 }
 
 export function isSaleBugged(sale) {
@@ -271,6 +287,7 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
           <span class="sale-edit__piece-copy"><strong>${escapeHtml(item.name || item.code || "Peça")}</strong>
             <small>${escapeHtml(item.code || "")} · ${Number(item.quantity) || 0} un.</small></span>
           <b>${escapeHtml(money(line, formatMoney))}</b>
+          ${returnItemButton(item)}
         </article>`
       }
       return `<article class="sale-edit__piece" data-item-index="${index}" data-item-id="${escapeHtml(item.id ?? "")}" data-code="${escapeHtml(item.code || "")}" data-component-id="${escapeHtml(item.component_id ?? "")}">
@@ -281,6 +298,7 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
           <input data-edit="quantity" inputmode="numeric" value="${escapeHtml(item.quantity)}"></label>
         <label class="field"><span>Preço un.</span>
           <input data-edit="unit_price" inputmode="decimal" value="${escapeHtml(item.unit_price ?? "")}"></label>
+        ${returnItemButton(item)}
       </article>`
     }).join("")
     : `<p class="hint">${sale.items_count ? `${Number(sale.items_count)} peça(s).` : "Sem peças listadas."}</p>`
@@ -417,6 +435,82 @@ export function saleUpdatePayload(orderId, form) {
 
 export function saleCancelPayload(orderId) {
   return { order_id: Number(orderId) }
+}
+
+export function confirmOrderPayload(orderId) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return null
+  return { order_id: id }
+}
+
+export function returnOrderItemsPayload(orderId, itemId) {
+  const order = Number(orderId)
+  const item = Number(itemId)
+  if (!Number.isInteger(order) || order <= 0) return null
+  if (!Number.isInteger(item) || item <= 0) return null
+  return { order_id: order, item_ids: [item], restore_stock: true }
+}
+
+export function reserveHint(hoursLeft) {
+  const hours = Number(hoursLeft)
+  if (!Number.isFinite(hours)) return { urgent: true, text: "Reserva perto de vencer" }
+  if (hours <= 0) return { urgent: true, text: "Reserva vencendo" }
+  const rounded = Math.round(hours * 10) / 10
+  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(".", ",")
+  return {
+    urgent: hours <= 6,
+    text: `Reserva acaba em ${text} h`
+  }
+}
+
+export function normalizeExpiringOrders(data) {
+  if (!data || data.ok === false || !Array.isArray(data.orders)) return null
+  return data.orders.map((order) => {
+    const items = normalizeSaleItems(order.items)
+    const hours = Number(order.hours_left)
+    return {
+      id: order.id,
+      created_at: order.reserved_until || "",
+      seller_id: order.seller_id == null || order.seller_id === "" ? null : Number(order.seller_id),
+      seller_name: order.seller_name || "",
+      channel: "",
+      customer_name: order.customer_name || "",
+      customer_whatsapp: order.customer_whatsapp || "",
+      total: order.total,
+      payment_status: "a_confirmar",
+      payment_method: "",
+      reserved_until: order.reserved_until || "",
+      expiry_notice_at: order.expiry_notice_at || "",
+      hours_left: Number.isFinite(hours) ? hours : null,
+      items_count: items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+      items
+    }
+  })
+}
+
+export function renderExpiringOrderCards(orders) {
+  const rows = Array.isArray(orders) ? orders : []
+  if (!rows.length) return `<p class="empty">Nenhum pedido a confirmar.</p>`
+  return `<ul class="sale-card-list ui-card-grid">${rows.map((order) => {
+    const hint = reserveHint(order.hours_left)
+    const pieces = (order.items || []).map((item) => item.name || item.code).filter(Boolean).slice(0, 2).join(", ")
+    const urgent = hint.urgent ? " sale-card--expiring" : ""
+    return `<li><article class="sale-card sale-card--stack${urgent}" data-sale-id="${escapeHtml(order.id)}">
+      <span class="sale-card__row">
+        ${salePhotoHtml(order)}
+        <span class="sale-card__copy">
+          <strong>${escapeHtml(order.customer_name || "Cliente")}</strong>
+          <small>${escapeHtml(order.seller_name || "")}</small>
+          <small>${escapeHtml(pieces)}</small>
+          <span class="sale-chip sale-chip--status sale-chip--confirm">A confirmar</span>
+        </span>
+      </span>
+      <p class="sale-card__reserve">${escapeHtml(hint.text)}</p>
+      <div class="sale-card__actions">
+        <button type="button" class="btn-primary sale-confirm-btn" data-confirm-order="${escapeHtml(order.id)}">Confirmar pedido</button>
+      </div>
+    </article></li>`
+  }).join("")}</ul>`
 }
 
 export function saleMarkPaidPayload(orderId) {

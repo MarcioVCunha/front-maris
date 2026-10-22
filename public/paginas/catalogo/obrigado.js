@@ -65,20 +65,14 @@
 
     try {
       const result = await window.MarisPagamento.submitOrderStatus(callOrderStatus, query.orderId)
-      if (result.kind === "ok") {
-        applyStatus(result.status || inferred, result.orderId ?? query.orderId)
-        setMessage("")
-        return
-      }
-      if (inferred) {
-        setMessage("")
-        return
-      }
-      setMessage(result.error || "Não foi possível consultar o status agora.", "error")
+      const page = window.MarisPagamento.orderStatusPageState(result, inferred)
+      const orderId = result.kind === "ok" ? (result.orderId ?? query.orderId) : query.orderId
+      applyStatus(page.status, orderId)
+      setMessage(page.message, page.messageType)
     } catch (_err) {
-      if (!inferred) {
-        setMessage("Não foi possível consultar o status agora.", "error")
-      }
+      const page = window.MarisPagamento.orderStatusPageState({ kind: "error" }, inferred)
+      applyStatus(page.status, query.orderId)
+      setMessage(page.message, page.messageType)
     }
   }
 

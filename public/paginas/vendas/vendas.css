@@ -382,8 +382,18 @@ button {
   margin-bottom: 2px;
 }
 
+.waitlist-card-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.waitlist-notify-btn,
 .waitlist-mark-btn {
   width: auto !important;
+  flex: 0 0 auto;
   margin-top: 0 !important;
   padding: 8px 14px;
   font-size: 0.85rem;
