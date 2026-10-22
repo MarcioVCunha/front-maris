@@ -24,6 +24,8 @@ Deno.test("vercel.json publica CSP, referrer, nosniff e Permissions-Policy", asy
     "frame-ancestors 'none'",
     "'unsafe-inline'",
     "img-src 'self' data: blob: https:",
+    "https://viacep.com.br",
+    "https://brasilapi.com.br",
   ]) {
     assert(csp.includes(part), `CSP sem ${part}`)
   }
@@ -54,5 +56,5 @@ Deno.test("todo script supabase-js@2.117.2 tem integrity e crossorigin", async (
     assert(!text.includes(`${SUPABASE_SRC}"></script>`), `${file} ainda tem script sem integrity`)
     assert(!text.includes(`${SUPABASE_SRC}"><\\/script>`), `${file} ainda injeta script sem integrity`)
   }
-  assertEquals(found, 11)
+  assertEquals(found, 16)
 })

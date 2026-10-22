@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esqueci a senha — Maris Semijoias</title>
+    <link rel="canonical" href="https://lojamaris.com.br/esqueci-senha">
+    <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/paginas/conta/conta.css">
+    <script src="/env.js"></script>
+  </head>
+  <body hidden>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav" aria-label="Conta">
+          <a href="/catalog" class="site-nav-link">Catálogo</a>
+          <a href="/entrar" class="site-nav-link site-nav-account" id="header-account-link" hidden>Entrar</a>
+        </nav>
+      </div>
+    </header>
+    <main class="conta-page">
+      <div class="conta-stack">
+        <section class="conta-card">
+          <h1>Esqueci a senha</h1>
+          <p class="conta-lead">Enviamos um link para criar outra senha.</p>
+          <p id="esqueci-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <form id="esqueci-form">
+            <div class="conta-field">
+              <label for="esqueci-email">E-mail</label>
+              <input id="esqueci-email" type="email" autocomplete="username" inputmode="email" required>
+            </div>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="esqueci-submit">Enviar link</button>
+            </div>
+          </form>
+          <p class="conta-links"><a href="/entrar">Voltar</a></p>
+          <p class="conta-note"><a href="/privacidade">Privacidade</a></p>
+        </section>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+    <script type="module" src="/compartilhado/cliente-nav.js"></script>
+    <script type="module" src="/paginas/conta/esqueci-senha.js"></script>
+  </body>
+</html>

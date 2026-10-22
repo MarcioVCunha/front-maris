@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar conta — Maris Semijoias</title>
+    <link rel="canonical" href="https://lojamaris.com.br/criar-conta">
+    <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/paginas/conta/conta.css">
+    <script src="/env.js"></script>
+  </head>
+  <body hidden>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav" aria-label="Conta">
+          <a href="/catalog" class="site-nav-link">Catálogo</a>
+          <a href="/entrar" class="site-nav-link site-nav-account" id="header-account-link" hidden>Entrar</a>
+        </nav>
+      </div>
+    </header>
+    <main class="conta-page">
+      <div class="conta-stack">
+        <section class="conta-card">
+          <h1>Criar conta</h1>
+          <p class="conta-lead">O código chega uma vez, para confirmar o e-mail.</p>
+          <p id="criar-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <form id="criar-form">
+            <div class="conta-field">
+              <label for="criar-email">E-mail</label>
+              <input id="criar-email" type="email" autocomplete="username" inputmode="email" required>
+            </div>
+            <div class="conta-field">
+              <label for="criar-password">Senha</label>
+              <div class="conta-password">
+                <input id="criar-password" type="password" autocomplete="new-password" required>
+                <button type="button" class="conta-text-btn" id="criar-toggle" aria-pressed="false">Mostrar</button>
+              </div>
+              <div class="conta-checks" id="criar-checks">
+                <span data-check="minLength">8 caracteres</span>
+                <span data-check="upper">Maiúscula</span>
+                <span data-check="lower">Minúscula</span>
+                <span data-check="digit">Número</span>
+                <span data-check="special">Especial</span>
+              </div>
+            </div>
+            <div class="conta-field">
+              <label for="criar-confirm">Confirmar senha</label>
+              <input id="criar-confirm" type="password" autocomplete="new-password" required>
+            </div>
+            <p id="criar-mismatch" class="conta-note" hidden>As senhas não conferem.</p>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="criar-submit" disabled>Criar conta</button>
+            </div>
+          </form>
+          <form id="criar-codigo" hidden>
+            <div class="conta-field">
+              <label for="criar-token">Código</label>
+              <input id="criar-token" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 dígitos">
+            </div>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="criar-confirm" disabled>Confirmar</button>
+            </div>
+          </form>
+          <p class="conta-links"><a id="link-entrar" href="/entrar">Já tenho conta</a></p>
+          <p class="conta-note"><a href="/privacidade">Privacidade</a></p>
+        </section>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+    <script type="module" src="/compartilhado/cliente-nav.js"></script>
+    <script type="module" src="/paginas/conta/criar-conta.js"></script>
+  </body>
+</html>

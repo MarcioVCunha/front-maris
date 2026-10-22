@@ -113,4 +113,17 @@ Deno.test("cesta compartilhada antiga redireciona ao catálogo com qualquer quer
   const vendedoras = config.redirects.find((item) => item.source === "/vendedoras")
   assertEquals(vendedoras?.destination, "/vendas/nova")
   assertEquals(vendedoras?.permanent, true)
+
+  const conta = [
+    ["/entrar", "/paginas/conta/entrar.html"],
+    ["/criar-conta", "/paginas/conta/criar-conta.html"],
+    ["/esqueci-senha", "/paginas/conta/esqueci-senha.html"],
+    ["/redefinir-senha", "/paginas/conta/redefinir-senha.html"],
+    ["/minha-conta", "/paginas/conta/minha-conta.html"]
+  ]
+  for (const [source, destination] of conta) {
+    const rule = config.rewrites.find((item) => item.source === source)
+    assert(rule, `${source} precisa de rewrite`)
+    assertEquals(rule.destination, destination)
+  }
 })

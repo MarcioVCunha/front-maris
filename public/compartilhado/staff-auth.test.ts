@@ -586,6 +586,9 @@ async function walkSource(dir: URL): Promise<string[]> {
   return hits
 }
 
-Deno.test("não há cadastro público", async () => {
-  assertEquals(await walkSource(publicRoot), [])
+Deno.test("cadastro público fica só na conta da cliente", async () => {
+  const hits = await walkSource(publicRoot)
+  const allowed = "/compartilhado/cliente-login.logic.js"
+  assertEquals(hits.filter((path) => !path.endsWith(allowed)), [])
+  assertEquals(hits.some((path) => path.endsWith(allowed)), true)
 })

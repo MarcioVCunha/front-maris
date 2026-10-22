@@ -14,6 +14,7 @@ const FALLBACK_ANON_KEY =
 const url = process.env.SUPABASE_URL || FALLBACK_URL
 const anonKey = process.env.SUPABASE_ANON_KEY || FALLBACK_ANON_KEY
 const appEnv = process.env.APP_ENV || "production"
+const customerLoginEnabled = process.env.CUSTOMER_LOGIN_ENABLED === "1"
 
 if (!["production", "staging"].includes(appEnv)) {
   console.warn(`[generate-env] APP_ENV="${appEnv}" — esperado production|staging`)
@@ -25,7 +26,8 @@ const contents = `// Gerado por scripts/generate-env.js — sobrescrito no build
 window.__MARIS_ENV__ = {
   SUPABASE_URL: ${JSON.stringify(url)},
   SUPABASE_ANON_KEY: ${JSON.stringify(anonKey)},
-  APP_ENV: ${JSON.stringify(appEnv)}
+  APP_ENV: ${JSON.stringify(appEnv)},
+  CUSTOMER_LOGIN_ENABLED: ${customerLoginEnabled ? "true" : "false"}
 };
 `
 

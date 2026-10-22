@@ -48,7 +48,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com https://vitals.vercel-insights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://va.vercel-scripts.com https://vitals.vercel-insights.com https://viacep.com.br https://brasilapi.com.br; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
         },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -94,6 +94,11 @@
     { "source": "/garantia", "destination": "/paginas/institucional/garantia.html" },
     { "source": "/privacidade", "destination": "/paginas/institucional/privacidade.html" },
     { "source": "/equipe/nova-senha", "destination": "/paginas/admin/nova-senha.html" },
-    { "source": "/equipe", "destination": "/paginas/admin/equipe.html" }
+    { "source": "/equipe", "destination": "/paginas/admin/equipe.html" },
+    { "source": "/entrar", "destination": "/paginas/conta/entrar.html" },
+    { "source": "/criar-conta", "destination": "/paginas/conta/criar-conta.html" },
+    { "source": "/esqueci-senha", "destination": "/paginas/conta/esqueci-senha.html" },
+    { "source": "/redefinir-senha", "destination": "/paginas/conta/redefinir-senha.html" },
+    { "source": "/minha-conta", "destination": "/paginas/conta/minha-conta.html" }
   ]
 }
