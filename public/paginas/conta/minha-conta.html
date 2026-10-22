@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha conta — Maris Semijoias</title>
+    <link rel="canonical" href="https://lojamaris.com.br/minha-conta">
+    <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/paginas/conta/conta.css">
+    <script src="/env.js"></script>
+  </head>
+  <body hidden>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="/catalog" class="site-brand" aria-label="Maris Semijoias — início">
+          <span class="site-brand-main">Maris</span>
+          <span class="site-brand-sub">Semijoias</span>
+        </a>
+        <nav class="site-nav" aria-label="Conta">
+          <a href="/catalog" class="site-nav-link">Catálogo</a>
+          <a href="/minha-conta" class="site-nav-link site-nav-account" id="header-account-link" hidden>Minha conta</a>
+        </nav>
+      </div>
+    </header>
+    <main class="conta-page">
+      <div class="conta-stack">
+        <section class="conta-card">
+          <div class="conta-order-top">
+            <h1>Minha conta</h1>
+            <button type="button" class="conta-text-btn" id="conta-sair">Sair</button>
+          </div>
+          <p id="conta-email" class="conta-email"></p>
+        </section>
+
+        <section class="conta-card" aria-labelledby="dados-titulo">
+          <h2 id="dados-titulo">Dados</h2>
+          <p id="dados-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <form id="dados-form">
+            <div class="conta-field">
+              <label for="dados-nome">Nome</label>
+              <input id="dados-nome" type="text" autocomplete="name" maxlength="80">
+            </div>
+            <div class="conta-field">
+              <label for="dados-whatsapp">WhatsApp</label>
+              <input id="dados-whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="DDD e número">
+            </div>
+            <div class="conta-field">
+              <label for="dados-cpf">CPF</label>
+              <input id="dados-cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14">
+            </div>
+            <label class="conta-check" for="dados-marketing">
+              <input id="dados-marketing" type="checkbox">
+              <span>Quero receber novidades por e-mail. Dá para sair quando quiser.</span>
+            </label>
+            <p class="conta-note"><a href="/privacidade">Privacidade</a></p>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="dados-salvar">Salvar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="conta-section" aria-labelledby="endereco-titulo">
+          <h2 id="endereco-titulo">Endereços</h2>
+          <p class="conta-lead">O CEP preenche a rua. Você pode editar.</p>
+          <p id="endereco-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <p id="endereco-vazio" class="conta-muted" hidden>Nenhum endereço salvo.</p>
+          <div id="endereco-lista"></div>
+          <form id="endereco-form" class="conta-card">
+            <div class="conta-row">
+              <div class="conta-field conta-field--short">
+                <label for="endereco-cep">CEP</label>
+                <input id="endereco-cep" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="9">
+              </div>
+              <div class="conta-actions">
+                <button type="button" class="conta-btn conta-btn--ghost" id="endereco-buscar">Buscar CEP</button>
+              </div>
+            </div>
+            <div class="conta-field">
+              <label for="endereco-rua">Rua</label>
+              <input id="endereco-rua" type="text" autocomplete="address-line1">
+            </div>
+            <div class="conta-row">
+              <div class="conta-field conta-field--short">
+                <label for="endereco-numero">Número</label>
+                <input id="endereco-numero" type="text" autocomplete="off">
+              </div>
+              <div class="conta-field">
+                <label for="endereco-complemento">Complemento</label>
+                <input id="endereco-complemento" type="text" autocomplete="address-line2">
+              </div>
+            </div>
+            <div class="conta-field">
+              <label for="endereco-bairro">Bairro</label>
+              <input id="endereco-bairro" type="text">
+            </div>
+            <div class="conta-row">
+              <div class="conta-field">
+                <label for="endereco-cidade">Cidade</label>
+                <input id="endereco-cidade" type="text" autocomplete="address-level2">
+              </div>
+              <div class="conta-field conta-field--short">
+                <label for="endereco-uf">UF</label>
+                <select id="endereco-uf" autocomplete="address-level1">
+                  <option value="">UF</option>
+                  <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
+                  <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                  <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
+                  <option>MT</option><option>PA</option><option>PB</option><option>PE</option>
+                  <option>PI</option><option>PR</option><option>RJ</option><option>RN</option>
+                  <option>RO</option><option>RR</option><option>RS</option><option>SC</option>
+                  <option>SE</option><option>SP</option><option>TO</option>
+                </select>
+              </div>
+            </div>
+            <label class="conta-check" for="endereco-padrao">
+              <input id="endereco-padrao" type="checkbox">
+              <span>Usar como padrão</span>
+            </label>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="endereco-salvar">Salvar endereço</button>
+              <button type="button" class="conta-text-btn" id="endereco-cancelar" hidden>Cancelar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="conta-section" aria-labelledby="pedidos-titulo">
+          <h2 id="pedidos-titulo">Pedidos</h2>
+          <p id="pedidos-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <p id="pedidos-vazio" class="conta-muted" hidden>Você ainda não tem pedidos.</p>
+          <div id="pedidos-lista"></div>
+        </section>
+
+        <section class="conta-card" aria-labelledby="senha-titulo">
+          <h2 id="senha-titulo">Alterar senha</h2>
+          <p id="senha-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <form id="senha-form">
+            <div class="conta-field">
+              <label for="senha-nova">Nova senha</label>
+              <div class="conta-password">
+                <input id="senha-nova" type="password" autocomplete="new-password">
+                <button type="button" class="conta-text-btn" id="senha-toggle" aria-pressed="false">Mostrar</button>
+              </div>
+              <div class="conta-checks" id="senha-checks">
+                <span data-check="minLength">8 caracteres</span>
+                <span data-check="upper">Maiúscula</span>
+                <span data-check="lower">Minúscula</span>
+                <span data-check="digit">Número</span>
+                <span data-check="special">Especial</span>
+              </div>
+            </div>
+            <div class="conta-field">
+              <label for="senha-confirm">Confirmar senha</label>
+              <input id="senha-confirm" type="password" autocomplete="new-password">
+            </div>
+            <p id="senha-mismatch" class="conta-note" hidden>As senhas não conferem.</p>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn" id="senha-salvar" disabled>Salvar senha</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="conta-card" aria-labelledby="dados-pessoais-titulo">
+          <h2 id="dados-pessoais-titulo">Seus dados</h2>
+          <p class="conta-lead">Baixe uma cópia ou apague a conta. Pedidos pagos ficam só com o mínimo fiscal.</p>
+          <p id="privacidade-msg" class="conta-msg" role="status" aria-live="polite" hidden></p>
+          <div class="conta-actions">
+            <button type="button" class="conta-btn conta-btn--ghost" id="baixar-dados">Baixar meus dados</button>
+          </div>
+          <form id="excluir-form">
+            <div class="conta-field">
+              <label for="excluir-confirm">Digite EXCLUIR para confirmar</label>
+              <input id="excluir-confirm" type="text" autocomplete="off">
+            </div>
+            <div class="conta-actions">
+              <button type="submit" class="conta-btn conta-btn--danger" id="excluir-conta" disabled>Excluir minha conta</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+    <script type="module" src="/compartilhado/cliente-nav.js"></script>
+    <script type="module" src="/paginas/conta/minha-conta.js"></script>
+  </body>
+</html>

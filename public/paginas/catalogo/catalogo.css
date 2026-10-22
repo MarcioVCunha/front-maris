@@ -83,6 +83,10 @@ body {
   background: var(--maris-gold-light);
 }
 
+.site-nav-account {
+  white-space: nowrap;
+}
+
 .site-nav-cart {
   font-family: inherit;
   font-size: 0.8rem;
@@ -1184,21 +1188,44 @@ body {
   .site-header-inner {
     padding: 0 16px;
     height: 64px;
+    gap: 8px;
   }
 
-  .site-nav-link {
-    padding: 8px 10px;
+  .site-nav { gap: 4px; }
+
+  .site-nav-link,
+  .site-nav-account {
+    padding: 8px 6px;
     font-size: 0.72rem;
+    letter-spacing: 0.02em;
   }
 
   .site-nav-cart {
-    padding: 8px 10px;
+    padding: 8px 8px;
     font-size: 0.68rem;
   }
 
   .site-nav-fav {
-    padding: 8px 10px;
+    padding: 8px 8px;
     font-size: 0.68rem;
+  }
+
+  .site-nav-fav .fav-label { display: none; }
+}
+
+@media (max-width: 420px) {
+  .site-header-inner {
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .site-nav {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 }
 
