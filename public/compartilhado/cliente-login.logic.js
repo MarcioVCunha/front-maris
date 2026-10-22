@@ -191,16 +191,20 @@ export function isOffline(error) {
     || msg.includes("abort")
 }
 
+function isExistingAccountError(error) {
+  const msg = messageOf(error).toLowerCase()
+  return msg.includes("already registered")
+    || msg.includes("already been registered")
+    || msg.includes("user already")
+}
+
 function isHiddenAccountError(error) {
   const msg = messageOf(error).toLowerCase()
   return msg.includes("user not found")
     || msg.includes("invalid login")
     || msg.includes("invalid credentials")
     || msg.includes("email not confirmed")
-    || msg.includes("already registered")
-    || msg.includes("already been registered")
-    || msg.includes("user already")
-    || msg.includes("signups not allowed")
+    || isExistingAccountError(error)
 }
 
 function isWeakPassword(error) {
@@ -225,10 +229,10 @@ export function signupResultMessage(error) {
   if (isRateLimited(error)) return { type: "error", text: "Aguarde um pouco e tente de novo." }
   if (isOffline(error)) return { type: "error", text: "Sem conexão. Tente de novo." }
   if (isWeakPassword(error)) return { type: "error", text: "A senha não atende às regras." }
-  if (!error || isHiddenAccountError(error)) {
+  if (!error || isExistingAccountError(error)) {
     return { type: "success", text: "Se o e-mail puder ser usado, enviamos um código." }
   }
-  return { type: "error", text: "Não foi possível criar a conta. Tente de novo." }
+  return { type: "error", text: "Não foi possível criar a conta agora. Tente de novo em instantes." }
 }
 
 export function codeRequestMessage(error) {
@@ -667,7 +671,7 @@ export async function requestEmailCode(client, email) {
 export async function verifyEmailCode(client, email, token, type) {
   const { data, error } = await client.auth.verifyOtp({
     email: normalizeEmail(email),
-    token: String(token || "").replace(/\s/g, ""),
+    token: normalizeSignupCode(token),
     type
   })
   if (error || !data?.session?.access_token) return { ok: false, error: error || { message: "sem sessão" } }
@@ -683,8 +687,84 @@ export async function signUpWithPassword(client, email, password, redirectTo) {
   return { data: data || null, error: error || null }
 }
 
+export async function resendSignupCode(client, email, redirectTo) {
+  try {
+    const { error } = await client.auth.resend({
+      type: "signup",
+      email: normalizeEmail(email),
+      options: { emailRedirectTo: redirectTo || accountUrl(CANONICAL_ORIGIN, "/minha-conta") }
+    })
+    return { error: error || null }
+  } catch (error) {
+    return { error }
+  }
+}
+
 export function signupHasSession(result) {
   return Boolean(result?.data?.session?.access_token)
+}
+
+export const SIGNUP_DRAFT_KEY = "maris_cliente_signup_draft"
+export const SIGNUP_CODE_MAX_AGE_MS = 30 * 60 * 1000
+export const SIGNUP_RESEND_COOLDOWN_MS = 60 * 1000
+
+export function normalizeSignupCode(value) {
+  return onlyDigits(value).slice(0, 6)
+}
+
+export function signupCodeCanConfirm(value) {
+  return normalizeSignupCode(value).length === 6
+}
+
+export function saveSignupDraft(storage, email, sentAt = Date.now()) {
+  const normalized = normalizeEmail(email)
+  if (!storage || !isEmail(normalized)) return null
+  const draft = { step: "code", email: normalized, sentAt: Number(sentAt) || Date.now() }
+  storage.setItem(SIGNUP_DRAFT_KEY, JSON.stringify(draft))
+  return draft
+}
+
+export function readSignupDraft(storage, nowMs = Date.now(), maxAgeMs = SIGNUP_CODE_MAX_AGE_MS) {
+  if (!storage) return null
+  const raw = storage.getItem(SIGNUP_DRAFT_KEY)
+  if (!raw) return null
+  let parsed = null
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    storage.removeItem?.(SIGNUP_DRAFT_KEY)
+    return null
+  }
+  const email = normalizeEmail(parsed?.email)
+  const sentAt = Number(parsed?.sentAt)
+  const fresh = parsed?.step === "code" && isEmail(email) && Number.isFinite(sentAt) && nowMs - sentAt <= maxAgeMs
+  if (!fresh) {
+    storage.removeItem?.(SIGNUP_DRAFT_KEY)
+    return null
+  }
+  return { step: "code", email, sentAt }
+}
+
+export function clearSignupDraft(storage) {
+  storage?.removeItem?.(SIGNUP_DRAFT_KEY)
+}
+
+export function resendCooldownRemaining(sentAt, nowMs = Date.now(), cooldownMs = SIGNUP_RESEND_COOLDOWN_MS) {
+  const left = cooldownMs - (nowMs - Number(sentAt || 0))
+  return left > 0 ? left : 0
+}
+
+export function resendButtonState(sentAt, nowMs = Date.now()) {
+  const left = resendCooldownRemaining(sentAt, nowMs)
+  if (left > 0) return { disabled: true, text: `Reenviar código (${Math.ceil(left / 1000)}s)` }
+  return { disabled: false, text: "Reenviar código" }
+}
+
+export function resendCodeMessage(error) {
+  if (isRateLimited(error)) return { type: "error", text: "Aguarde um pouco e tente de novo." }
+  if (isOffline(error)) return { type: "error", text: "Sem conexão. Tente de novo." }
+  if (error) return { type: "error", text: "Não foi possível reenviar o código agora. Tente de novo em instantes." }
+  return { type: "success", text: "Se o e-mail puder ser usado, enviamos um código." }
 }
 
 export async function requestPasswordReset(client, email, redirectTo) {

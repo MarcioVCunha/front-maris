@@ -676,9 +676,7 @@ export function relatedGroups(groups, group, isAvailable, limit = 4) {
     const product = groupDisplayVariant(item, isAvailable)?.product
     return resolveProductCategory(product) === category
   })
-  const available = same.filter((item) => groupIsAvailable(item, isAvailable))
-  const soldOut = same.filter((item) => !groupIsAvailable(item, isAvailable))
-  return [...available, ...soldOut].slice(0, limit)
+  return same.filter((item) => groupIsAvailable(item, isAvailable)).slice(0, limit)
 }
 
 function escapeHtml(str) {
@@ -774,6 +772,7 @@ export function combinaGroups(groups, group, isAvailable, limit = 4) {
 
   const others = (groups || []).filter((item) => item && item.key !== group?.key)
   const matching = others.filter((item) => {
+    if (!groupIsAvailable(item, isAvailable)) return false
     const product = groupDisplayVariant(item, isAvailable)?.product
     const cat = resolveProductCategory(product)
     return targets.includes(cat)

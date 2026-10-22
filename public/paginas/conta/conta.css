@@ -263,10 +263,26 @@ body {
 
 .conta-links {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px 16px;
   margin: 16px 0 0;
   font-size: 0.875rem;
+}
+
+.conta-links a {
+  white-space: nowrap;
+}
+
+@keyframes maris-otp-autofill {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+#criar-token:-webkit-autofill {
+  animation-name: maris-otp-autofill;
+  animation-duration: 0.01s;
 }
 
 .conta-links a,
