@@ -840,8 +840,7 @@ async function onReviewSubmit(event) {
   const built = resolveReviewBody({
     reviewId: form.dataset.reviewId,
     action: form.dataset.action,
-    keepId: form.querySelector('input[name="keep_id"]:checked')?.value,
-    deleteId: form.querySelector('input[name="delete_id"]:checked')?.value
+    customerId: form.querySelector('input[name="customer_id"]:checked')?.value
   })
   if (!built.ok) {
     showMessage(built.error, "error")

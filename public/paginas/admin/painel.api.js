@@ -31,8 +31,8 @@ export const ADMIN_DASHBOARD_API = {
   couponList: "admin-coupon-list",
   couponSave: "admin-coupon-save",
   referralList: "admin-referral-list",
-  customerReviewList: "admin-customer-review-list",
-  customerReviewResolve: "admin-customer-review-resolve"
+  customerReviewList: "staff-merge-review-list",
+  customerReviewResolve: "staff-merge-review-resolve"
 }
 
 function withQuery(url, query) {
@@ -426,11 +426,11 @@ export async function createReferralCode(payload, client) {
 }
 
 /**
- * GET admin-customer-review-list
+ * GET staff-merge-review-list (back-maris PR #52)
  * Auth: staff (Authorization Bearer). Sem apikey e sem x-client-info.
- * Resposta: { ok, pending_count, reviews: [{ id, matched_field, accounts }] }
- * matched_field: "name" | "email" | "whatsapp" | "cpf"
- * accounts: exatamente dois { id, name, email, whatsapp, cpf, order_count, has_login }
+ * Resposta: { ok, pending_count, reviews: [{ id, field, pending_value, customer_a, customer_b }] }
+ * field: "whatsapp" | "cpf"
+ * customer_a e customer_b: { id, name, email, whatsapp, cpf, order_count, has_login }
  */
 export async function fetchCustomerReviews(client) {
   const result = await call(ADMIN_DASHBOARD_API.customerReviewList, { method: "GET" }, client)
@@ -441,10 +441,11 @@ export async function fetchCustomerReviews(client) {
 }
 
 /**
- * POST admin-customer-review-resolve
- * Corpo: { review_id, action: "merge" | "keep" | "delete", keep_id?, delete_id? }
- * merge exige keep_id (cadastro que fica). delete exige delete_id (cadastro que sai).
- * keep só precisa de review_id e action.
+ * POST staff-merge-review-resolve (back-maris PR #52)
+ * Corpo: { id, review_id, action: "juntar" | "separado" | "excluir", customer_id? }
+ * id e review_id são o mesmo número da pendência.
+ * juntar: customer_id é o cadastro que fica. excluir: customer_id é o que sai.
+ * separado não manda customer_id.
  * Resposta: { ok, pending_count }
  */
 export async function resolveCustomerReview(body, client) {

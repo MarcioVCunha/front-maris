@@ -1,8 +1,7 @@
-// Fila de cadastros duplicados. O back (admin-customer-review-*) ainda vem em paralelo.
+// Fila de cadastros duplicados. Contrato do back-maris PR #52:
+// GET staff-merge-review-list e POST staff-merge-review-resolve.
 
 const MATCH_LABELS = {
-  name: "nome",
-  email: "e-mail",
   whatsapp: "WhatsApp",
   cpf: "CPF"
 }
@@ -37,24 +36,37 @@ export function maskCpf(value) {
   return `***.***.***-${digits.slice(-2)}`
 }
 
+function positiveInt(value) {
+  const number = Number(value)
+  if (!Number.isInteger(number) || number <= 0) return null
+  return number
+}
+
 function normalizeAccount(raw) {
-  const orderCount = Number(raw?.order_count ?? raw?.orderCount ?? 0)
+  const orderCount = Number(raw?.order_count ?? raw?.orders_count ?? raw?.pedidos ?? 0)
+  const id = positiveInt(raw?.id)
+  let hasLogin = false
+  if (raw?.has_login === true || raw?.hasLogin === true) hasLogin = true
+  else if (raw?.has_login === false || raw?.hasLogin === false) hasLogin = false
+  else if (raw && "auth_user_id" in raw) hasLogin = raw.auth_user_id != null && raw.auth_user_id !== ""
   return {
-    id: clean(raw?.id),
-    name: clean(raw?.name),
+    id: id == null ? "" : String(id),
+    name: clean(raw?.name || raw?.nome),
     email: clean(raw?.email),
     whatsapp: clean(raw?.whatsapp),
     cpf: clean(raw?.cpf),
     orderCount: Number.isFinite(orderCount) && orderCount > 0 ? Math.trunc(orderCount) : 0,
-    hasLogin: raw?.has_login === true || raw?.hasLogin === true
+    hasLogin
   }
 }
 
 export function normalizeReview(raw) {
-  const accounts = Array.isArray(raw?.accounts) ? raw.accounts.slice(0, 2).map(normalizeAccount) : []
+  const pair = [raw?.customer_a ?? raw?.customerA, raw?.customer_b ?? raw?.customerB]
+  const accounts = pair.filter((item) => item && typeof item === "object").map(normalizeAccount)
   return {
-    id: clean(raw?.id),
-    matchedField: clean(raw?.matched_field || raw?.matchedField),
+    id: positiveInt(raw?.id) == null ? "" : String(positiveInt(raw?.id)),
+    matchedField: clean(raw?.field),
+    pendingValue: clean(raw?.pending_value ?? raw?.pendingValue),
     accounts
   }
 }
@@ -85,6 +97,11 @@ function accountFields(account, matchedField) {
   }).join("")
 }
 
+function pendingLabel(field, value) {
+  if (!value) return ""
+  return field === "cpf" ? maskCpf(value) : value
+}
+
 export function renderReviewCard(input) {
   const review = normalizeReview(input)
   const sides = review.accounts.map((account, index) => {
@@ -92,8 +109,10 @@ export function renderReviewCard(input) {
     return `<section class="review-side"><h3>${escapeHtml(title)}</h3><dl>${accountFields(account, review.matchedField)}</dl></section>`
   }).join("")
   const match = MATCH_LABELS[review.matchedField]
-  const kicker = match ? `<p class="review-kicker">Bateu em ${escapeHtml(match)}</p>` : ""
-  return `<article class="review-card" data-review-id="${escapeHtml(review.id)}">${kicker}<div class="review-pair">${sides}</div><div class="review-actions"><button type="button" class="btn-primary" data-review-action="merge">Juntar</button><button type="button" class="btn-ghost" data-review-action="keep">Manter separado</button><button type="button" class="btn-danger" data-review-action="delete">Excluir</button></div></article>`
+  const pending = pendingLabel(review.matchedField, review.pendingValue)
+  const detail = pending ? ` · ${escapeHtml(pending)}` : ""
+  const kicker = match ? `<p class="review-kicker">Bateu em ${escapeHtml(match)}${detail}</p>` : ""
+  return `<article class="review-card" data-review-id="${escapeHtml(review.id)}">${kicker}<div class="review-pair">${sides}</div><div class="review-actions"><button type="button" class="btn-primary" data-review-action="juntar">Juntar</button><button type="button" class="btn-ghost" data-review-action="separado">Manter separado</button><button type="button" class="btn-danger" data-review-action="excluir">Excluir</button></div></article>`
 }
 
 export function renderReviewPage(reviews) {
@@ -119,36 +138,42 @@ function choiceList(accounts, name) {
 export function renderReviewDialog(input, action) {
   const review = normalizeReview(input)
   const id = escapeHtml(review.id)
-  if (action === "keep") {
-    return `<form id="review-form" data-action="keep" data-review-id="${id}"><h2>Manter separado</h2><p>Os dois cadastros continuam como estão. Esta pendência sai da fila.</p><div class="dialog-actions"><button type="button" class="btn-ghost" data-review-cancel>Cancelar</button><button type="submit" class="btn-primary">Manter separado</button></div></form>`
+  const wire = action === "excluir" || action === "delete" ? "excluir" : action === "separado" || action === "keep" ? "separado" : "juntar"
+  if (wire === "separado") {
+    return `<form id="review-form" data-action="separado" data-review-id="${id}"><h2>Manter separado</h2><p>Os dois cadastros continuam como estão. Esta pendência sai da fila.</p><div class="dialog-actions"><button type="button" class="btn-ghost" data-review-cancel>Cancelar</button><button type="submit" class="btn-primary">Manter separado</button></div></form>`
   }
-  const removing = action === "delete"
+  const removing = wire === "excluir"
   const title = removing ? "Excluir cadastro" : "Juntar cadastros"
   const copy = removing
     ? "Qual cadastro sai? Esta ação não volta."
     : "Qual cadastro fica? Os dados do outro entram nele."
-  const field = removing ? "delete_id" : "keep_id"
   const submitClass = removing ? "btn-danger" : "btn-primary"
   const submitLabel = removing ? "Excluir" : "Juntar"
-  return `<form id="review-form" data-action="${removing ? "delete" : "merge"}" data-review-id="${id}"><h2>${title}</h2><p>${copy}</p><div class="review-choices">${choiceList(review?.accounts || [], field)}</div><div class="dialog-actions"><button type="button" class="btn-ghost" data-review-cancel>Cancelar</button><button type="submit" class="${submitClass}">${submitLabel}</button></div></form>`
+  return `<form id="review-form" data-action="${wire}" data-review-id="${id}"><h2>${title}</h2><p>${copy}</p><div class="review-choices">${choiceList(review.accounts, "customer_id")}</div><div class="dialog-actions"><button type="button" class="btn-ghost" data-review-cancel>Cancelar</button><button type="submit" class="${submitClass}">${submitLabel}</button></div></form>`
 }
 
 export function resolveReviewBody(input = {}) {
-  const action = clean(input.action)
-  const reviewId = clean(input.reviewId || input.review_id)
-  if (!reviewId || !["merge", "keep", "delete"].includes(action)) {
+  const rawAction = clean(input.action)
+  const action = rawAction === "juntar" || rawAction === "merge"
+    ? "juntar"
+    : rawAction === "separado" || rawAction === "keep"
+    ? "separado"
+    : rawAction === "excluir" || rawAction === "delete"
+    ? "excluir"
+    : ""
+  const reviewId = positiveInt(input.reviewId ?? input.review_id ?? input.id)
+  if (reviewId == null || !action) {
     return { ok: false, error: "Não foi possível concluir a revisão." }
   }
-  const body = { review_id: reviewId, action }
-  if (action === "merge") {
-    const keepId = clean(input.keepId || input.keep_id)
-    if (!keepId) return { ok: false, error: "Escolha qual cadastro fica." }
-    body.keep_id = keepId
+  const body = { id: reviewId, review_id: reviewId, action }
+  if (action === "separado") return { ok: true, body }
+  const customerId = positiveInt(input.customerId ?? input.customer_id ?? input.keepId ?? input.deleteId)
+  if (customerId == null) {
+    return {
+      ok: false,
+      error: action === "juntar" ? "Escolha qual cadastro fica." : "Escolha qual cadastro excluir."
+    }
   }
-  if (action === "delete") {
-    const deleteId = clean(input.deleteId || input.delete_id)
-    if (!deleteId) return { ok: false, error: "Escolha qual cadastro excluir." }
-    body.delete_id = deleteId
-  }
+  body.customer_id = customerId
   return { ok: true, body }
 }

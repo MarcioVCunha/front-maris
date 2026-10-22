@@ -10,28 +10,27 @@ import {
 } from "./painel.cadastros.logic.js"
 
 const sample = {
-  id: "rev-1",
-  matched_field: "email",
-  accounts: [
-    {
-      id: "cus-a",
-      name: "Ana Lima",
-      email: "ana@lojamaris.com.br",
-      whatsapp: "19999998888",
-      cpf: "52998224725",
-      order_count: 3,
-      has_login: true
-    },
-    {
-      id: "cus-b",
-      name: "Ana L.",
-      email: "ana@lojamaris.com.br",
-      whatsapp: "19988887777",
-      cpf: "39053344705",
-      order_count: 0,
-      has_login: false
-    }
-  ]
+  id: 12,
+  field: "cpf",
+  pending_value: "52998224725",
+  customer_a: {
+    id: 3,
+    name: "Ana Lima",
+    email: "ana@lojamaris.com.br",
+    whatsapp: "19999998888",
+    cpf: "52998224725",
+    order_count: 3,
+    has_login: true
+  },
+  customer_b: {
+    id: 8,
+    name: "Ana L.",
+    email: "ana.loja@lojamaris.com.br",
+    whatsapp: "19988887777",
+    cpf: "39053344705",
+    order_count: 0,
+    has_login: false
+  }
 }
 
 Deno.test("CPF mascarado e o campo que bateu fica em destaque nos dois lados", () => {
@@ -49,18 +48,19 @@ Deno.test("CPF mascarado e o campo que bateu fica em destaque nos dois lados", (
   assertEquals(html.includes("39053344705"), false)
   assert(html.includes("Tem login"))
   assert(html.includes("Sem login"))
-  assertEquals((html.match(/review-field is-match/g) || []).length, 2)
-  assert(html.includes("Bateu em e-mail"))
-  assert(html.includes('data-review-action="merge"'))
-  assert(html.includes('data-review-action="keep"'))
-  assert(html.includes('class="btn-danger" data-review-action="delete"'))
+  assertEquals((html.match(/review-field is-match"><dt>CPF/g) || []).length, 2)
+  assert(html.includes("Bateu em CPF"))
+  assert(html.includes('data-review-action="juntar"'))
+  assert(html.includes('data-review-action="separado"'))
+  assert(html.includes('class="btn-danger" data-review-action="excluir"'))
   assertEquals(html.includes("width:100%"), false)
   assertEquals(html.includes("width: 100%"), false)
 })
 
 Deno.test("WhatsApp em destaque e a fila vazia não inventa card", () => {
-  const html = renderReviewCard({ ...sample, matched_field: "whatsapp" })
-  assertEquals((html.match(/review-field is-match"><dt>WhatsApp</g) || []).length, 2)
+  const html = renderReviewCard({ ...sample, field: "whatsapp", pending_value: "19999998888" })
+  assertEquals((html.match(/review-field is-match"><dt>WhatsApp/g) || []).length, 2)
+  assert(html.includes("Bateu em WhatsApp · 19999998888"))
   assertEquals(renderReviewPage([]), `<p class="empty">Nenhum cadastro para revisar.</p>`)
   const parsed = normalizeReviewList({ pending_count: 4, reviews: [sample] })
   assertEquals(parsed.pendingCount, 4)
@@ -73,30 +73,32 @@ Deno.test("juntar, manter e excluir pedem confirmação e mandam o corpo certo",
   assert(merge.includes("Qual cadastro fica?"))
   assert(merge.includes("Ana Lima"))
   assert(merge.includes("Ana L."))
-  assert(merge.includes('name="keep_id"'))
+  assert(merge.includes('name="customer_id"'))
+  assert(merge.includes('value="3"'))
+  assert(merge.includes('value="8"'))
   assert(merge.includes("Cancelar"))
   assertEquals(merge.includes("btn-danger"), false)
-  const keep = renderReviewDialog(sample, "keep")
+  const keep = renderReviewDialog(sample, "separado")
   assert(keep.includes("Manter separado"))
-  assert(keep.includes('data-action="keep"'))
-  const removing = renderReviewDialog(sample, "delete")
+  assert(keep.includes('data-action="separado"'))
+  const removing = renderReviewDialog(sample, "excluir")
   assert(removing.includes("Qual cadastro sai?"))
   assert(removing.includes('class="btn-danger"'))
-  assert(removing.includes('name="delete_id"'))
-  assertEquals(resolveReviewBody({ reviewId: "rev-1", action: "merge", keepId: "cus-a" }), {
+  assert(removing.includes('name="customer_id"'))
+  assertEquals(resolveReviewBody({ reviewId: 12, action: "juntar", customerId: 3 }), {
     ok: true,
-    body: { review_id: "rev-1", action: "merge", keep_id: "cus-a" }
+    body: { id: 12, review_id: 12, action: "juntar", customer_id: 3 }
   })
-  assertEquals(resolveReviewBody({ reviewId: "rev-1", action: "keep" }), {
+  assertEquals(resolveReviewBody({ reviewId: 12, action: "separado" }), {
     ok: true,
-    body: { review_id: "rev-1", action: "keep" }
+    body: { id: 12, review_id: 12, action: "separado" }
   })
-  assertEquals(resolveReviewBody({ reviewId: "rev-1", action: "delete", deleteId: "cus-b" }), {
+  assertEquals(resolveReviewBody({ reviewId: "12", action: "excluir", customerId: "8" }), {
     ok: true,
-    body: { review_id: "rev-1", action: "delete", delete_id: "cus-b" }
+    body: { id: 12, review_id: 12, action: "excluir", customer_id: 8 }
   })
-  assertEquals(resolveReviewBody({ reviewId: "rev-1", action: "merge" }).ok, false)
-  assertEquals(resolveReviewBody({ reviewId: "rev-1", action: "delete" }).ok, false)
+  assertEquals(resolveReviewBody({ reviewId: 12, action: "juntar" }).ok, false)
+  assertEquals(resolveReviewBody({ reviewId: 12, action: "excluir" }).ok, false)
 })
 
 Deno.test("o menu lateral aponta para Revisar cadastros e mostra o contador", async () => {
