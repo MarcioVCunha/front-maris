@@ -68,6 +68,19 @@ Deno.test("erros de entrada não revelam se o e-mail existe", () => {
   assertEquals(resetRequestMessage({ message: "email rate limit" }).text, "Aguarde um pouco e tente de novo.")
 })
 
+Deno.test("cadastro desligado não avança como se o código tivesse sido enviado", () => {
+  const blocked = signupResultMessage({ message: "Signups not allowed", status: 422 })
+  assertEquals(blocked.type, "error")
+  assertEquals(blocked.text, "Não foi possível criar a conta agora. Tente de novo em instantes.")
+  const existing = signupResultMessage({ message: "User already registered" })
+  assertEquals(existing.type, "success")
+  assertEquals(existing.text, signupResultMessage(null).text)
+  const server = signupResultMessage({ message: "Internal server error", status: 500 })
+  assertEquals(server.type, "error")
+  assertEquals(server.text, blocked.text)
+  assertEquals(signupResultMessage({ message: "email rate limit exceeded", status: 429 }).text, "Aguarde um pouco e tente de novo.")
+})
+
 Deno.test("login fica escondido até a flag e o preview local não vale em produção", () => {
   assertEquals(isCustomerLoginEnabled({}, memory(), { hostname: "lojamaris.com.br", search: "" }), false)
   assertEquals(isCustomerLoginEnabled({}, memory(), { hostname: "lojamaris.com.br", search: "?conta=1" }), false)

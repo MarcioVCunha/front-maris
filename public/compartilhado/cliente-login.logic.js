@@ -191,16 +191,20 @@ export function isOffline(error) {
     || msg.includes("abort")
 }
 
+function isExistingAccountError(error) {
+  const msg = messageOf(error).toLowerCase()
+  return msg.includes("already registered")
+    || msg.includes("already been registered")
+    || msg.includes("user already")
+}
+
 function isHiddenAccountError(error) {
   const msg = messageOf(error).toLowerCase()
   return msg.includes("user not found")
     || msg.includes("invalid login")
     || msg.includes("invalid credentials")
     || msg.includes("email not confirmed")
-    || msg.includes("already registered")
-    || msg.includes("already been registered")
-    || msg.includes("user already")
-    || msg.includes("signups not allowed")
+    || isExistingAccountError(error)
 }
 
 function isWeakPassword(error) {
@@ -225,10 +229,10 @@ export function signupResultMessage(error) {
   if (isRateLimited(error)) return { type: "error", text: "Aguarde um pouco e tente de novo." }
   if (isOffline(error)) return { type: "error", text: "Sem conexão. Tente de novo." }
   if (isWeakPassword(error)) return { type: "error", text: "A senha não atende às regras." }
-  if (!error || isHiddenAccountError(error)) {
+  if (!error || isExistingAccountError(error)) {
     return { type: "success", text: "Se o e-mail puder ser usado, enviamos um código." }
   }
-  return { type: "error", text: "Não foi possível criar a conta. Tente de novo." }
+  return { type: "error", text: "Não foi possível criar a conta agora. Tente de novo em instantes." }
 }
 
 export function codeRequestMessage(error) {
