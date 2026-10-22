@@ -17,6 +17,9 @@ export const ADMIN_DASHBOARD_API = {
   saleUpdate: "admin-sale-update",
   saleCancel: "admin-sale-cancel",
   saleMarkPaid: "admin-sale-mark-paid",
+  expiringOrders: "list-expiring-orders",
+  orderConfirm: "confirm-order",
+  orderReturnItems: "return-order-items",
   collectionList: "admin-collection-list",
   collectionSave: "admin-collection-save",
   collectionDelete: "admin-collection-delete",
@@ -245,6 +248,39 @@ export async function cancelAdminSale(body, client) {
 export async function markAdminSalePaid(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.saleMarkPaid, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível marcar a venda como paga.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * GET list-expiring-orders — staff (admin ou vendedora).
+ * Pedidos a_confirmar com reserved_until até 24h.
+ * Resposta: { ok, orders: [{ id, customer_name, customer_whatsapp, seller_id,
+ *   seller_name, reserved_until, expiry_notice_at, hours_left,
+ *   items: [{ id, product_code, product_name, quantity }] }] }
+ */
+export async function fetchExpiringOrders(client) {
+  const result = await call(ADMIN_DASHBOARD_API.expiringOrders, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível listar pedidos a vencer.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * POST confirm-order — { order_id }. payment_method é opcional no back.
+ * Permissão orders.confirm.
+ */
+export async function confirmOrder(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.orderConfirm, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível confirmar o pedido.")
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * POST return-order-items — { order_id, item_ids, restore_stock?, reason? }.
+ * restore_stock true devolve a peça ao estoque. Permissão orders.return.
+ */
+export async function returnOrderItems(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.orderReturnItems, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível devolver a peça.")
   return { ok: true, data: result.data || {} }
 }
 

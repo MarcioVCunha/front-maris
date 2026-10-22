@@ -95,6 +95,7 @@ export function installPromocoesUi(deps) {
         product_codes: codesInput?.value,
         discount_type: discountTypeSelect.value,
         value: Number(valueInput?.value),
+        days: promoDialog.querySelector("#promo-form-stale-days")?.value,
         starts_at: startsAtInput?.value,
         ends_at: endsAtInput?.value,
         max_units: maxUnitsInput?.value,

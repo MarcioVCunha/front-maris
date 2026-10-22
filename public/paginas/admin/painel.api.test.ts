@@ -8,6 +8,9 @@ import {
   fetchCategoryDefaults,
   fetchMonthOverview,
   fetchRecentSales,
+  fetchExpiringOrders,
+  confirmOrder,
+  returnOrderItems,
   fetchSellersMonth,
   importProducts,
   listProducts,
@@ -59,6 +62,9 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.saleUpdate, "admin-sale-update")
   assertEquals(ADMIN_DASHBOARD_API.saleCancel, "admin-sale-cancel")
   assertEquals(ADMIN_DASHBOARD_API.saleMarkPaid, "admin-sale-mark-paid")
+  assertEquals(ADMIN_DASHBOARD_API.expiringOrders, "list-expiring-orders")
+  assertEquals(ADMIN_DASHBOARD_API.orderConfirm, "confirm-order")
+  assertEquals(ADMIN_DASHBOARD_API.orderReturnItems, "return-order-items")
   assertEquals(ADMIN_DASHBOARD_API.collectionList, "admin-collection-list")
   assertEquals(ADMIN_DASHBOARD_API.collectionSave, "admin-collection-save")
   assertEquals(ADMIN_DASHBOARD_API.collectionDelete, "admin-collection-delete")
@@ -170,6 +176,23 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   await fetchRecentSales({ limit: 50, status: "receivable" }, recentStatus)
   assertEquals(recentStatus.calls[0].name, "admin-recent-sales")
   assertEquals(recentStatus.calls[0].options.query, { limit: 50, status: "receivable" })
+
+  const expiring = client({ ok: true, orders: [] })
+  await fetchExpiringOrders(expiring)
+  assertEquals(expiring.calls[0].name, "list-expiring-orders")
+  assertEquals(expiring.calls[0].options.method, "GET")
+  assertEquals(expiring.calls[0].options.body, undefined)
+
+  const confirmed = client({ ok: true })
+  await confirmOrder({ order_id: 12 }, confirmed)
+  assertEquals(confirmed.calls[0].name, "confirm-order")
+  assertEquals(confirmed.calls[0].options.method, "POST")
+  assertEquals(confirmed.calls[0].options.body, { order_id: 12 })
+
+  const returned = client({ ok: true })
+  await returnOrderItems({ order_id: 12, item_ids: [7], restore_stock: true }, returned)
+  assertEquals(returned.calls[0].name, "return-order-items")
+  assertEquals(returned.calls[0].options.body, { order_id: 12, item_ids: [7], restore_stock: true })
 
   const sellers = client({ ok: true, sellers: [{ seller_id: 2, name: "Marineide", balance: 0 }] })
   const team = await fetchSellersMonth({ month: "2026-10" }, sellers)

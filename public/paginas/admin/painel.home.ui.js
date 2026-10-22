@@ -9,6 +9,13 @@ export function installHomeUi(deps) {
     viewLoading,
     fetchRecentSales,
     normalizeRecentSales,
+    fetchExpiringOrders,
+    normalizeExpiringOrders,
+    renderExpiringOrderCards,
+    confirmOrder,
+    confirmOrderPayload,
+    returnOrderItems,
+    returnOrderItemsPayload,
     saleDialog,
     shouldShowSaleEdit,
     ADMIN_SALE_EDIT_ENABLED,
@@ -82,6 +89,14 @@ export function installHomeUi(deps) {
     const normalized = status || "all"
     const requestId = ++recentRequest
     if (state.recent !== undefined && state.loadedStatus === normalized) return state.recent
+    if (normalized === "a_confirmar") {
+      const result = await fetchExpiringOrders()
+      if (requestId !== recentRequest) return state.recent
+      state.recent = result.ok ? normalizeExpiringOrders(result.data) : null
+      state.loadedStatus = normalized
+      if (!result.ok) showMessage(result.error || "Não foi possível listar pedidos a vencer.", "error")
+      return state.recent
+    }
     const queryStatus = normalized === "all" ? undefined : normalized
     const result = await fetchRecentSales({ limit: 50, status: queryStatus })
     if (requestId !== recentRequest) return state.recent
@@ -112,6 +127,39 @@ export function installHomeUi(deps) {
 
   function bindSaleEditActions(sale) {
     saleDialog.querySelector("#sale-edit-close")?.addEventListener("click", () => saleDialog.close())
+    saleDialog.querySelectorAll("[data-return-item]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const itemId = Number(btn.getAttribute("data-return-item"))
+        if (!window.confirm("Devolver esta peça ao estoque?")) return
+        const body = returnOrderItemsPayload(sale.id, itemId)
+        if (!body) {
+          showMessage("Peça inválida.", "error")
+          return
+        }
+        btn.disabled = true
+        showMessage("Devolvendo peça…")
+        const result = await returnOrderItems(body)
+        if (!result.ok) {
+          showMessage(result.error, "error")
+          btn.disabled = false
+          return
+        }
+        state.recent = undefined
+        state.overview = undefined
+        showMessage("Peça devolvida ao estoque.")
+        const loaded = await fetchAdminSale({ orderId: sale.id })
+        if (loaded.ok) {
+          const normalized = normalizeAdminSale(loaded.data)
+          if (normalized) {
+            saleDialog.innerHTML = renderSaleEditDialog(normalized, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
+            bindSaleEditActions(normalized)
+            return
+          }
+        }
+        saleDialog.close()
+        showView()
+      })
+    })
     if (!shouldShowSaleEdit(ADMIN_SALE_EDIT_ENABLED)) return
 
     saleDialog.querySelector("#sale-edit-save")?.addEventListener("click", async () => {
@@ -197,10 +245,39 @@ export function installHomeUi(deps) {
 
   function bindSaleCards() {
     viewEl.querySelectorAll(".sale-card[data-sale-id]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (event) => {
+        if (event.target.closest("[data-confirm-order]")) return
         const id = btn.getAttribute("data-sale-id")
         const sale = (state.recent || []).find((row) => String(row.id) === String(id))
         openSaleDialog(sale)
+      })
+    })
+  }
+
+  function bindConfirmOrders() {
+    viewEl.querySelectorAll("[data-confirm-order]").forEach((btn) => {
+      btn.addEventListener("click", async (event) => {
+        event.stopPropagation()
+        const orderId = Number(btn.getAttribute("data-confirm-order"))
+        if (!window.confirm("Confirmar este pedido?")) return
+        const body = confirmOrderPayload(orderId)
+        if (!body) {
+          showMessage("Pedido inválido.", "error")
+          return
+        }
+        btn.disabled = true
+        showMessage("Confirmando pedido…")
+        const result = await confirmOrder(body)
+        if (!result.ok) {
+          showMessage(result.error, "error")
+          btn.disabled = false
+          return
+        }
+        state.recent = undefined
+        state.overview = undefined
+        showMessage("Pedido confirmado.")
+        await loadRecent("a_confirmar")
+        if (state.selectedSaleStatus === "a_confirmar") paintVendas()
       })
     })
   }
@@ -268,15 +345,19 @@ export function installHomeUi(deps) {
 
   function paintVendas() {
     viewEl.classList.remove("view--inicio")
+    const confirming = (state.selectedSaleStatus || "all") === "a_confirmar"
     viewEl.innerHTML = renderVendas(state.recent, formatPrice, {
       selectedStatus: state.selectedSaleStatus || "all",
       filterSales: filterSalesByStatus,
-      renderSales: (rows, formatMoney) => renderSaleCards(rows, formatMoney, {
-        clickable: true,
-        empty: "Nenhuma venda recente."
-      })
+      renderSales: (rows, formatMoney) => confirming
+        ? renderExpiringOrderCards(rows)
+        : renderSaleCards(rows, formatMoney, {
+          clickable: true,
+          empty: "Nenhuma venda recente."
+        })
     })
     bindSaleCards()
+    if (confirming) bindConfirmOrders()
     viewEl.querySelector("#btn-export-sales-vendas")?.addEventListener("click", () => {
       const csv = generateSalesCsv(state.recent || [])
       const month = state.overview?.month || new Date().toISOString().slice(0, 7)

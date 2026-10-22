@@ -156,6 +156,7 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
 
 export const SALE_STATUS_FILTERS = [
   { id: "all", label: "Todas" },
+  { id: "a_confirmar", label: "A confirmar" },
   { id: "receivable", label: "A receber" },
   { id: "paid", label: "Pagas" },
   { id: "cancelled", label: "Canceladas" }
@@ -179,13 +180,13 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
   const filtered = typeof options.filterSales === "function"
     ? options.filterSales(rows, selectedStatus)
     : rows
-  const emptyMessage = selectedStatus === "receivable"
-    ? "Nenhuma venda a receber."
-    : selectedStatus === "paid"
-    ? "Nenhuma venda paga."
-    : selectedStatus === "cancelled"
-    ? "Nenhuma venda cancelada."
-    : "Nenhuma venda recente."
+  const emptyByStatus = {
+    receivable: "Nenhuma venda a receber.",
+    paid: "Nenhuma venda paga.",
+    cancelled: "Nenhuma venda cancelada.",
+    a_confirmar: "Nenhum pedido a confirmar."
+  }
+  const emptyMessage = emptyByStatus[selectedStatus] || "Nenhuma venda recente."
   const body = !filtered.length
     ? `<p class="empty">${emptyMessage}</p>`
     : typeof options.renderSales === "function"

@@ -27,11 +27,18 @@ function formatJoinedAt(entry) {
   return d.toLocaleDateString("pt-BR")
 }
 
+export function waitlistNotifyPayload(entryId) {
+  const id = Number(entryId)
+  if (!Number.isInteger(id) || id <= 0) return null
+  return { entry_id: id }
+}
+
 export function renderWaitlistEntryCard(entry) {
   const e = entry || {}
   const action =
     e.status === "waiting"
-      ? `<button type="button" data-mark="${escapeHtml(e.id)}" class="btn-primary waitlist-mark-btn">Marcar como avisado</button>`
+      ? `<button type="button" data-notify="${escapeHtml(e.id)}" class="btn-primary waitlist-notify-btn">Avisar por e-mail</button>
+        <button type="button" data-mark="${escapeHtml(e.id)}" class="btn-primary waitlist-mark-btn">Marcar como avisado</button>`
       : `<span class="waitlist-avisado">Avisado em ${e.contacted_at ? escapeHtml(new Date(e.contacted_at).toLocaleDateString("pt-BR")) : "—"}</span>`
   const stockBadge = e.in_stock
     ? `<span class="waitlist-badge waitlist-badge--stock">Em estoque</span>`

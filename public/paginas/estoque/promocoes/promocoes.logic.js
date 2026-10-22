@@ -137,26 +137,30 @@ export function validatePromotionPayload(form) {
   }
 
   const scope = String(form?.scope || "").trim()
-  if (scope === "parada") {
-    return { ok: false, error: "Em breve: alcance por dias sem saída." }
-  }
-  if (scope !== "categoria" && scope !== "produto") {
-    return { ok: false, error: "Selecione o alcance: por categoria ou por produto." }
+  if (scope !== "categoria" && scope !== "produto" && scope !== "parada") {
+    return { ok: false, error: "Selecione o alcance: por categoria, por produto ou peças paradas." }
   }
 
   let category = null
   let productCodes = []
+  let days = null
 
   if (scope === "categoria") {
     category = String(form?.category || "").trim()
     if (!PROMO_CATEGORIES.includes(category)) {
       return { ok: false, error: "Selecione uma categoria válida." }
     }
-  } else {
+  } else if (scope === "produto") {
     productCodes = parseProductCodes(form?.product_codes)
     if (!productCodes.length) {
       return { ok: false, error: "Informe ao menos um código de peça para a promoção." }
     }
+  } else {
+    const parsedDays = Number(form?.days ?? form?.stale_days)
+    if (!Number.isInteger(parsedDays) || parsedDays <= 0) {
+      return { ok: false, error: "Informe os dias sem saída." }
+    }
+    days = parsedDays
   }
 
   const discountType = String(form?.discount_type || "").trim()
@@ -208,6 +212,7 @@ export function validatePromotionPayload(form) {
       ends_at: endsAt,
       max_units: maxUnits,
       is_active: isActive,
+      ...(days != null ? { days } : {}),
     }
   }
 }
@@ -376,7 +381,8 @@ export function renderPromoDialogContent(promo = null) {
     : (parseProductCodes(promo?.product_codes).join(", ") || "")
   const discountType = promo?.discount_type || "percent"
   const value = promo?.value != null ? String(promo.value) : "10"
-  const staleDays = promo?.stale_days != null ? String(promo.stale_days) : "60"
+  const rawDays = promo?.days ?? promo?.stale_days
+  const staleDays = rawDays != null ? String(rawDays) : "60"
   const maxUnits = promo?.max_units != null ? String(promo.max_units) : ""
   const isActive = promo ? promo.is_active !== false : true
 
@@ -424,7 +430,6 @@ export function renderPromoDialogContent(promo = null) {
             <input type="text" id="promo-form-codes" placeholder="Ex: AN01, AN02, BR05" title="Separe os códigos por vírgula" value="${escapeHtml(codes)}">
           </div>
 
-          <!-- TODO: back ainda não aceita scope=parada; não inventar endpoint -->
           <div id="promo-group-stale" class="form-field" ${scope === "parada" ? "" : "hidden"}>
             <span>Dias sem saída *</span>
             <input type="number" id="promo-form-stale-days" min="1" step="1" placeholder="Ex: 60" title="Peças paradas no estoque há X dias" value="${escapeHtml(staleDays)}">

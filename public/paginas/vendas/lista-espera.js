@@ -1,4 +1,4 @@
-import { escapeHtml, renderWaitlistCards } from "./lista-espera.logic.js"
+import { escapeHtml, renderWaitlistCards, waitlistNotifyPayload } from "./lista-espera.logic.js"
 
 const statusFilter = document.getElementById("status-filter")
 const wrap = document.getElementById("waitlist-table-wrap")
@@ -70,6 +70,40 @@ async function loadWaitlist() {
 }
 
 wrap.addEventListener("click", async (e) => {
+  const notifyBtn = e.target.closest("[data-notify]")
+  if (notifyBtn) {
+    const entryId = Number(notifyBtn.getAttribute("data-notify"))
+    if (!window.confirm("Avisar esta cliente por e-mail?")) return
+    const body = waitlistNotifyPayload(entryId)
+    if (!body) {
+      setFeedback("Entrada inválida.", "error")
+      return
+    }
+    notifyBtn.disabled = true
+    try {
+      const { ok, data } = await window.MarisApi.callFunction(window.ENV.fn("admin-waitlist-notify"), {
+        method: "POST",
+        body,
+        auth: "staff"
+      })
+      if (ok && data?.ok !== false) {
+        const count = Number(data?.notified_count) || 0
+        setFeedback(
+          count > 0 ? "Aviso enviado." : (data?.message || "Nenhuma cliente aguardando esta peça."),
+          count > 0 ? "success" : ""
+        )
+        loadWaitlist()
+      } else {
+        setFeedback(data?.error || "Não foi possível avisar por e-mail.", "error")
+        notifyBtn.disabled = false
+      }
+    } catch {
+      setFeedback("Erro de conexão ao avisar por e-mail.", "error")
+      notifyBtn.disabled = false
+    }
+    return
+  }
+
   const btn = e.target.closest("[data-mark]")
   if (!btn) return
   const entryId = Number(btn.getAttribute("data-mark"))
