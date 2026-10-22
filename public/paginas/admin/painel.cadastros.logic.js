@@ -54,7 +54,7 @@ function normalizeAccount(raw) {
     name: clean(raw?.name || raw?.nome),
     email: clean(raw?.email),
     whatsapp: clean(raw?.whatsapp),
-    cpf: clean(raw?.cpf),
+    cpf: clean(raw?.cpf ?? raw?.cpf_masked),
     orderCount: Number.isFinite(orderCount) && orderCount > 0 ? Math.trunc(orderCount) : 0,
     hasLogin
   }

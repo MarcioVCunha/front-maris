@@ -55,6 +55,16 @@ Deno.test("CPF mascarado e o campo que bateu fica em destaque nos dois lados", (
   assert(html.includes('class="btn-danger" data-review-action="excluir"'))
   assertEquals(html.includes("width:100%"), false)
   assertEquals(html.includes("width: 100%"), false)
+  const masked = renderReviewCard({
+    id: 12,
+    field: "cpf",
+    pending_value: "***.***.***-25",
+    customer_a: { ...sample.customer_a, cpf: undefined, cpf_masked: "***.***.***-25" },
+    customer_b: { ...sample.customer_b, cpf: undefined, cpf_masked: "***.456.789-01" }
+  })
+  assert(masked.includes("***.***.***-25"))
+  assert(masked.includes("***.456.789-01"))
+  assertEquals(masked.includes("***.***.***-01"), false)
 })
 
 Deno.test("WhatsApp em destaque e a fila vazia não inventa card", () => {

@@ -430,7 +430,8 @@ export async function createReferralCode(payload, client) {
  * Auth: staff (Authorization Bearer). Sem apikey e sem x-client-info.
  * Resposta: { ok, pending_count, reviews: [{ id, field, pending_value, customer_a, customer_b }] }
  * field: "whatsapp" | "cpf"
- * customer_a e customer_b: { id, name, email, whatsapp, cpf, order_count, has_login }
+ * customer_a e customer_b: { id, name, email, whatsapp, cpf | cpf_masked, order_count, has_login }
+ * cpf_masked já vem mascarado e o front não mascara de novo.
  */
 export async function fetchCustomerReviews(client) {
   const result = await call(ADMIN_DASHBOARD_API.customerReviewList, { method: "GET" }, client)
