@@ -2,10 +2,11 @@
 // Auth: supabase-js (senha ou código, cadastro com código uma vez, reset).
 // Sessão em localStorage, chave própria, para não derrubar a sessão da equipe.
 //
-// customer-me (JWT da cliente; o e-mail sai do token, nunca do corpo):
+// customer-me (JWT da cliente; o e-mail sai do token, nunca do corpo).
+// CORS em prod: métodos GET, POST, OPTIONS e headers authorization, content-type, x-staff-token.
 //   GET  /functions/v1/customer-me
-//   PUT  /functions/v1/customer-me   { name, whatsapp, cpf, phone_e164?, marketing_opt_in }
-//   POST /functions/v1/customer-me   { action: "export" } | { action: "delete" }
+//   POST /functions/v1/customer-me   { name, whatsapp, cpf, phone_e164?, marketing_opt_in }  (op save)
+//   POST /functions/v1/customer-me   { op: "export" } | { op: "delete" }
 // Endereços: tabela customer_addresses (RLS da própria cliente).
 // Pedidos: views my_orders e my_order_items, sem custo, unit_cost nem sales.
 
@@ -264,8 +265,25 @@ export function passwordUpdateMessage(error) {
   return { type: "error", text: "Não foi possível salvar a senha." }
 }
 
-export function dataErrorMessage(statusOrError) {
-  if (isRateLimited(statusOrError) || Number(statusOrError) === 429) return "Aguarde um pouco e tente de novo."
+function apiErrorText(value) {
+  if (!value) return ""
+  if (typeof value === "string") return value.trim()
+  if (typeof value.error === "string") return value.error.trim()
+  return messageOf(value).trim()
+}
+
+export function dataErrorMessage(statusOrError, data) {
+  const status = Number(
+    statusOrError?.status
+    || statusOrError?.statusCode
+    || (typeof statusOrError === "number" ? statusOrError : 0)
+  )
+  if (isRateLimited(statusOrError) || status === 429) return "Aguarde um pouco e tente de novo."
+  if (status >= 400 && status <= 599) {
+    const text = apiErrorText(data) || apiErrorText(statusOrError)
+    if (text && text.length <= 180) return text
+    return "Não foi possível concluir. Tente de novo."
+  }
   if (isOffline(statusOrError)) return "Sem conexão. Tente de novo."
   return "Não foi possível concluir. Tente de novo."
 }
@@ -297,17 +315,24 @@ export function recoveryLinkPresent(locationLike) {
     || search.includes("token_hash=")
 }
 
-export function customerMeRequest({ baseUrl, token, anonKey, method, body }) {
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    apikey: anonKey
-  }
-  if (body !== undefined) headers["Content-Type"] = "application/json"
+function customerMePayload(body) {
+  if (body === undefined) return undefined
+  const next = { ...body }
+  if (typeof next.op !== "string" && typeof next.action === "string") next.op = next.action
+  delete next.action
+  return next
+}
+
+export function customerMeRequest({ baseUrl, token, method, body }) {
+  const verb = String(method || "GET").toUpperCase() === "GET" ? "GET" : "POST"
+  const payload = customerMePayload(body)
+  const headers = { Authorization: `Bearer ${token}` }
+  if (payload !== undefined) headers["Content-Type"] = "application/json"
   return {
     url: `${String(baseUrl || "").replace(/\/$/, "")}/functions/v1/${CUSTOMER_ME_FUNCTION}`,
-    method,
+    method: verb,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined
+    body: payload !== undefined ? JSON.stringify(payload) : undefined
   }
 }
 

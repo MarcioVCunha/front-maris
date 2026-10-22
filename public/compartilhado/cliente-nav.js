@@ -19,7 +19,10 @@ if (link) {
     hasSession = Boolean(readStoredCustomerSession(raw))
   }
   const state = headerAccountLink(enabled, hasSession)
-  link.textContent = state.label
+  const label = link.querySelector(".account-label")
+  if (label) label.textContent = state.label
+  else link.textContent = state.label
   link.setAttribute("href", state.href)
+  link.setAttribute("aria-label", state.label)
   link.hidden = state.hidden
 }

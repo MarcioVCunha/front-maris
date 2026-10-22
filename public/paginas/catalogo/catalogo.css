@@ -1162,6 +1162,14 @@ body {
   background: transparent;
 }
 
+.account-icon,
+.site-nav-cart .nav-icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
 @media (max-width: 720px) {
   .catalog-toolbar {
     grid-template-columns: 1fr;
@@ -1199,46 +1207,49 @@ body {
   }
 
   .site-header-inner {
-    padding: 0 16px;
     height: 64px;
-    gap: 8px;
-  }
-
-  .site-nav { gap: 4px; }
-
-  .site-nav-link,
-  .site-nav-account {
-    padding: 8px 6px;
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
-  }
-
-  .site-nav-cart {
-    padding: 8px 8px;
-    font-size: 0.68rem;
-  }
-
-  .site-nav-fav {
-    padding: 8px 8px;
-    font-size: 0.68rem;
-  }
-
-  .site-nav-fav .fav-label { display: none; }
-}
-
-@media (max-width: 420px) {
-  .site-header-inner {
-    height: auto;
     min-height: 64px;
-    padding: 10px 16px 12px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    row-gap: 8px;
+    padding: 0 16px;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap;
   }
+
+  .site-brand-main { font-size: 1.55rem; }
+  .site-brand-sub { letter-spacing: 0.16em; }
 
   .site-nav {
-    flex: 1 1 100%;
-    justify-content: flex-start;
+    gap: 6px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .site-nav-account,
+  .site-nav-fav,
+  .site-nav-cart {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .site-nav-account .account-label,
+  .site-nav-cart .cart-label,
+  .site-nav-fav .fav-label { display: none; }
+
+  .account-icon,
+  .site-nav-cart .nav-icon { display: block; }
+
+  .site-nav-cart .nav-count {
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
   }
 }
 
@@ -2353,15 +2364,15 @@ body {
   position: fixed;
   left: 0;
   right: 0;
+  top: auto;
   bottom: 0;
   z-index: 40;
   box-sizing: border-box;
-  height: calc(56px + env(safe-area-inset-bottom, 0px));
-  max-height: calc(56px + env(safe-area-inset-bottom, 0px));
+  height: auto;
+  min-height: 56px;
   background: var(--maris-black);
   color: #fff;
-  padding: 0 16px env(safe-area-inset-bottom, 0px);
-  overflow: hidden;
+  padding: 0 16px;
 }
 
 .cart-bar a {
@@ -2369,8 +2380,8 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 56px;
-  min-height: 0;
+  height: auto;
+  min-height: 56px;
   color: inherit;
   text-decoration: none;
 }

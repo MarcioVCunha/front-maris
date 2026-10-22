@@ -1033,6 +1033,17 @@ Deno.test("filtro de favoritos no catálogo: URL, pills e groupPassesFilters", (
 
 
 
+Deno.test("barra da cesta não usa viewport nem safe-area no tamanho", async () => {
+  const css = await Deno.readTextFile(new URL("./catalogo.css", import.meta.url))
+  const start = css.indexOf(".cart-bar {")
+  const end = css.indexOf(".cart-bar a {")
+  const block = css.slice(start, end)
+  assertEquals(block.includes("height: auto"), true)
+  assertEquals(block.includes("min-height: 56px"), true)
+  assertEquals(block.includes("bottom: 0"), true)
+  assertEquals(/vh|dvh|safe-area/.test(block), false)
+})
+
 Deno.test("tira de fotos mostra setas só quando há mais de uma foto", () => {
   const one = renderCatalogPhotoStrip(["a.jpg"], "Brinco")
   assertEquals(one.includes("data-photo-nav"), false)

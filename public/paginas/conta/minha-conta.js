@@ -110,10 +110,9 @@ async function boot() {
     const profile = await readCustomerMe(fetch, customerMeRequest({
       baseUrl: env.SUPABASE_URL,
       token,
-      anonKey: env.SUPABASE_ANON_KEY,
       method: "GET"
     }))
-    if (!profile.ok) setMessage(dadosMsg, dataErrorMessage(profile.status || profile.error), "error")
+    if (!profile.ok) setMessage(dadosMsg, dataErrorMessage(profile.status || profile.error, profile.data), "error")
     const customer = profile.customer
     customerId = customer?.id ?? null
     document.getElementById("dados-nome").value = customer?.name || ""
@@ -154,13 +153,12 @@ async function boot() {
     const saved = await readCustomerMe(fetch, customerMeRequest({
       baseUrl: env.SUPABASE_URL,
       token,
-      anonKey: env.SUPABASE_ANON_KEY,
-      method: "PUT",
+      method: "POST",
       body: customerPutBody(input)
     }))
     button.disabled = false
     if (!saved.ok) {
-      setMessage(dadosMsg, dataErrorMessage(saved.status || saved.error), "error")
+      setMessage(dadosMsg, dataErrorMessage(saved.status || saved.error, saved.data), "error")
       return
     }
     customerId = saved.customer?.id ?? customerId
@@ -262,12 +260,11 @@ async function boot() {
     const result = await readCustomerMe(fetch, customerMeRequest({
       baseUrl: env.SUPABASE_URL,
       token,
-      anonKey: env.SUPABASE_ANON_KEY,
       method: "POST",
-      body: { action: "export" }
+      body: { op: "export" }
     }))
     if (!result.ok) {
-      setMessage(privacidadeMsg, "Não foi possível baixar seus dados.", "error")
+      setMessage(privacidadeMsg, dataErrorMessage(result.status || result.error, result.data), "error")
       return
     }
     const file = buildExportDownload(result)
@@ -294,13 +291,12 @@ async function boot() {
     const result = await readCustomerMe(fetch, customerMeRequest({
       baseUrl: env.SUPABASE_URL,
       token,
-      anonKey: env.SUPABASE_ANON_KEY,
       method: "POST",
-      body: { action: "delete" }
+      body: { op: "delete" }
     }))
     if (!result.ok) {
       excluirBtn.disabled = !deleteConfirmed(excluirInput.value)
-      setMessage(document.getElementById("privacidade-msg"), "Não foi possível excluir a conta.", "error")
+      setMessage(document.getElementById("privacidade-msg"), dataErrorMessage(result.status || result.error, result.data), "error")
       return
     }
     await signOut(client)

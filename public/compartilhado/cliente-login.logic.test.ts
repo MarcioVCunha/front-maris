@@ -14,6 +14,7 @@ import {
   customerFromMe,
   customerMeRequest,
   customerPutBody,
+  dataErrorMessage,
   deleteConfirmed,
   headerAccountLink,
   isCustomerLoginEnabled,
@@ -222,8 +223,11 @@ Deno.test("customer-me, endereços e pedidos não leem custo nem sales", async (
     method: "PUT",
     body: customerPutBody({ name: "Ana", marketingOptIn: false })
   })
-  assertEquals(put.method, "PUT")
+  assertEquals(put.method, "POST")
   assertEquals(put.headers.Authorization, "Bearer jwt-cliente")
+  assertEquals(put.headers.apikey, undefined)
+  assertEquals(put.headers["x-client-info"], undefined)
+  assertEquals(Object.keys(put.headers).sort(), ["Authorization", "Content-Type"])
   assertEquals(JSON.parse(put.body || "{}").email, undefined)
   const exported = customerMeRequest({
     baseUrl: "https://abc.supabase.co",
@@ -232,15 +236,29 @@ Deno.test("customer-me, endereços e pedidos não leem custo nem sales", async (
     method: "POST",
     body: { action: "export" }
   })
-  assertEquals(JSON.parse(exported.body || "{}").action, "export")
+  assertEquals(JSON.parse(exported.body || "{}").op, "export")
+  assertEquals(JSON.parse(exported.body || "{}").action, undefined)
+  assertEquals(exported.headers.apikey, undefined)
   const removed = customerMeRequest({
     baseUrl: "https://abc.supabase.co",
     token: "jwt-cliente",
-    anonKey: "anon",
-    method: "POST",
-    body: { action: "delete" }
+    method: "DELETE",
+    body: { op: "delete" }
   })
-  assertEquals(JSON.parse(removed.body || "{}").action, "delete")
+  assertEquals(removed.method, "POST")
+  assertEquals(JSON.parse(removed.body || "{}").op, "delete")
+  const read = customerMeRequest({
+    baseUrl: "https://abc.supabase.co",
+    token: "jwt-cliente",
+    method: "GET"
+  })
+  assertEquals(read.method, "GET")
+  assertEquals(read.body, undefined)
+  assertEquals(Object.keys(read.headers), ["Authorization"])
+  assertEquals(dataErrorMessage(401, { error: "Faça login para continuar." }), "Faça login para continuar.")
+  assertEquals(dataErrorMessage(400, { error: "Confira o CPF e tente de novo." }), "Confira o CPF e tente de novo.")
+  assertEquals(dataErrorMessage(500, { error: "Não foi possível salvar a conta." }), "Não foi possível salvar a conta.")
+  assertEquals(dataErrorMessage({ message: "Failed to fetch" }), "Sem conexão. Tente de novo.")
 
   for (const columns of [MY_ORDERS_COLUMNS, MY_ORDER_ITEMS_COLUMNS, ADDRESS_COLUMNS]) {
     for (const key of FORBIDDEN_KEYS) assertEquals(columns.split(",").includes(key), false)
