@@ -355,10 +355,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  width: 100%;
 }
 
 .choice-grid.methods {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .nova-venda .choice {
@@ -554,8 +555,51 @@
 #step-channel,
 .step-form {
   width: 100%;
-  max-width: 560px;
+  max-width: none;
   margin: 0;
+  text-align: left;
+  align-self: stretch;
+}
+
+#step-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+#step-channel .flow-help {
+  margin: 0;
+}
+
+#step-channel .choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  gap: 8px;
+}
+
+#step-channel .choice,
+#step-payment .choice-grid .choice {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 12px;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+#step-channel label[for="marketplace-notes"] {
+  margin: 8px 0 0;
+}
+
+#marketplace-notes,
+.step-form .field-group input {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .step-form {
@@ -590,8 +634,21 @@
 }
 
 #step-customer .register-box {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
   padding: 16px;
+}
+
+@media (min-width: 720px) {
+  #step-customer .register-box {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+  }
+
+  #step-customer .register-box > .flow-kicker {
+    grid-column: 1 / -1;
+  }
 }
 
 #step-payment .pay-summary {
