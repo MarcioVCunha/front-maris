@@ -1350,12 +1350,12 @@ dialog h2 {
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 12px 12px 14px;
+    padding: 8px 10px 10px;
     border-right: 1px solid var(--maris-border);
     background: var(--maris-surface);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
     width: 248px;
     max-width: none;
     margin: 0;
@@ -1363,13 +1363,13 @@ dialog h2 {
   }
 
   .panel-rail h1 {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
     line-height: 1.15;
-    margin: 2px 0 6px;
+    margin: 0 0 4px;
   }
 
   .panel-rail .back-link {
-    min-height: 28px;
+    min-height: 24px;
     margin-bottom: 0;
     font-size: 0.75rem;
   }
@@ -1387,29 +1387,29 @@ dialog h2 {
     width: 100%;
     margin: 0;
     padding: 0;
-    gap: 3px;
+    gap: 2px;
   }
 
   .subnav {
-    margin-top: 6px;
-    padding-top: 6px;
+    margin-top: 4px;
+    padding-top: 4px;
     border-top: 1px solid var(--maris-border-soft);
   }
 
   .dash-link,
   .sub-link {
     width: 100%;
-    min-height: 34px;
-    padding: 4px 10px;
+    min-height: 32px;
+    padding: 3px 10px;
     border-radius: 8px;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     justify-content: flex-start;
   }
 
   .panel-rail .shortcuts-help-btn {
-    margin-top: 6px;
-    min-height: 30px;
-    padding: 4px 8px;
+    margin-top: 4px;
+    min-height: 28px;
+    padding: 3px 8px;
     font-size: 0.75rem;
   }
 
@@ -1423,15 +1423,15 @@ dialog h2 {
     position: static;
     width: 100%;
     max-width: none;
-    margin: auto 0 0;
-    padding: 8px 0 0;
+    margin: 6px 0 0;
+    padding: 0;
     background: none;
     flex-shrink: 0;
   }
 
   .panel-rail .btn-sair {
-    min-height: 34px;
-    padding: 6px 10px;
+    min-height: 32px;
+    padding: 4px 10px;
     border-radius: 8px;
     font-size: 0.78rem;
   }
@@ -1597,7 +1597,7 @@ dialog h2 {
   }
 
   .panel-rail {
-    padding: 14px 14px 16px;
+    padding: 10px 14px 12px;
     width: 280px;
     max-width: none;
     margin: 0;
