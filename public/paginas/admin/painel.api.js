@@ -30,7 +30,9 @@ export const ADMIN_DASHBOARD_API = {
   productHistory: "admin-product-history",
   couponList: "admin-coupon-list",
   couponSave: "admin-coupon-save",
-  referralList: "admin-referral-list"
+  referralList: "admin-referral-list",
+  customerReviewList: "admin-customer-review-list",
+  customerReviewResolve: "admin-customer-review-resolve"
 }
 
 function withQuery(url, query) {
@@ -421,6 +423,37 @@ export async function createReferralCode(payload, client) {
     ok: true,
     data: result.data || {}
   }
+}
+
+/**
+ * GET admin-customer-review-list
+ * Auth: staff (Authorization Bearer). Sem apikey e sem x-client-info.
+ * Resposta: { ok, pending_count, reviews: [{ id, matched_field, accounts }] }
+ * matched_field: "name" | "email" | "whatsapp" | "cpf"
+ * accounts: exatamente dois { id, name, email, whatsapp, cpf, order_count, has_login }
+ */
+export async function fetchCustomerReviews(client) {
+  const result = await call(ADMIN_DASHBOARD_API.customerReviewList, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível carregar os cadastros para revisão.")
+  }
+  return { ok: true, data: result.data || {} }
+}
+
+/**
+ * POST admin-customer-review-resolve
+ * Corpo: { review_id, action: "merge" | "keep" | "delete", keep_id?, delete_id? }
+ * merge exige keep_id (cadastro que fica). delete exige delete_id (cadastro que sai).
+ * keep só precisa de review_id e action.
+ * Resposta: { ok, pending_count }
+ */
+export async function resolveCustomerReview(body, client) {
+  const result = await call(ADMIN_DASHBOARD_API.customerReviewResolve, { method: "POST", body }, client)
+  if (!result?.ok || result.data?.ok === false) {
+    return failed(result, "Não foi possível concluir a revisão.")
+  }
+  const pending = Number(result.data?.pending_count)
+  return { ok: true, pendingCount: Number.isFinite(pending) ? pending : null }
 }
 
 export async function fetchReferrals(client) {

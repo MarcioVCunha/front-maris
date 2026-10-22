@@ -11,6 +11,7 @@ import {
   buildExportDownload,
   codeRequestMessage,
   containsForbiddenKey,
+  accountSavedMessage,
   customerFromMe,
   customerMeRequest,
   customerPutBody,
@@ -210,6 +211,9 @@ Deno.test("CPF, marketing desmarcado e corpo sem e-mail", () => {
   assertEquals(body.marketing_opt_in, false)
   assertEquals(body.phone_e164, "+5519999998888")
   assertEquals(Object.hasOwn(body, "email"), false)
+  assertEquals(accountSavedMessage({ needs_review: true }), "Dados salvos. Vamos confirmar seu cadastro.")
+  assertEquals(accountSavedMessage({ customer: { name: "Ana" } }), "Dados salvos.")
+  assertEquals(accountSavedMessage({ ok: false }), "Dados salvos.")
   assertEquals(validateCustomer({ name: "" }), "Informe o nome.")
   assertEquals(validateCustomer({ name: "Ana", cpf: "111" }), "CPF inválido.")
   assertEquals(validateAddress({ cep: "13710087", rua: "Rua", numero: "47", bairro: "Centro", cidade: "Tambaú", uf: "SP" }), "")

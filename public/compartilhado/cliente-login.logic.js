@@ -377,6 +377,13 @@ export function marketingOptInFromCustomer(customer) {
   return customer?.marketingOptIn === true
 }
 
+export function accountSavedMessage(data) {
+  if (data?.needs_review === true || data?.needsReview === true) {
+    return "Dados salvos. Vamos confirmar seu cadastro."
+  }
+  return "Dados salvos."
+}
+
 export async function readCustomerMe(fetchImpl, request) {
   try {
     const res = await fetchImpl(request.url, {

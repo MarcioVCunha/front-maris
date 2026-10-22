@@ -79,6 +79,7 @@
     { "source": "/admin/importar", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/promocoes", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/cupons", "destination": "/paginas/admin/painel.html" },
+    { "source": "/admin/cadastros", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/indicacoes", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin", "destination": "/paginas/admin/painel.html" },
     { "source": "/catalogo", "destination": "/paginas/admin/catalogo.html" },

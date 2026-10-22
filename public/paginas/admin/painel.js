@@ -103,7 +103,9 @@ import {
   saveCoupon,
   toggleCoupon,
   createReferralCode,
-  fetchReferrals
+  fetchReferrals,
+  fetchCustomerReviews,
+  resolveCustomerReview
 } from "./painel.api.js"
 import {
   renderCouponsPage,
@@ -112,6 +114,13 @@ import {
   validateCouponPayload,
   validateReferralCodePayload
 } from "./cupons.logic.js"
+import {
+  normalizeReviewList,
+  renderReviewDialog,
+  renderReviewError,
+  renderReviewPage,
+  resolveReviewBody
+} from "./painel.cadastros.logic.js"
 import {
   filterCollections,
   filterProductsForPicker,
@@ -175,6 +184,7 @@ const TITLES = {
   colecoes: "Coleções",
   promocoes: "Promoções",
   cupons: "Cupons & Indicação",
+  cadastros: "Revisar cadastros",
   peca: "Editar peça",
   conjuntos: "Conjuntos",
   adicionar: "Adicionar peça",
@@ -219,6 +229,7 @@ const batchDialog = document.getElementById("batch-dialog")
 const historyDialog = document.getElementById("history-dialog")
 const couponDialog = document.getElementById("coupon-dialog")
 const referralCodeDialog = document.getElementById("referral-code-dialog")
+const reviewDialog = document.getElementById("review-dialog")
 
 const state = {
   products: [],
@@ -247,6 +258,10 @@ const state = {
   promoEditing: null,
   coupons: undefined,
   referrals: undefined,
+  reviews: undefined,
+  reviewPending: 0,
+  reviewCountKnown: false,
+  reviewNotice: "",
   couponTab: "coupons",
   couponQuery: "",
   couponStatus: "all",
@@ -497,7 +512,8 @@ window.addEventListener("beforeunload", () => {
 
 function paintChrome(view) {
   const top = ["peca", "esgotadas", "conjuntos", "adicionar", "importar"].includes(view) ? "estoque" : view
-  dashNav.innerHTML = navHtml(top)
+  const counts = state.reviewCountKnown ? { cadastros: state.reviewPending } : undefined
+  dashNav.innerHTML = navHtml(top, counts)
   const sub = ["estoque", "esgotadas", "peca", "conjuntos", "adicionar", "importar"].includes(view)
   stockNav.hidden = !sub
   if (sub) {
@@ -796,9 +812,90 @@ function onPanelClick(event) {
   navigate(`${url.pathname}${url.search}`)
 }
 
+function applyReviewCount(data) {
+  const parsed = normalizeReviewList(data)
+  state.reviews = parsed.reviews
+  state.reviewPending = parsed.pendingCount
+  state.reviewCountKnown = true
+  return parsed
+}
+
+async function loadReviewQueue() {
+  const result = await fetchCustomerReviews()
+  if (!result.ok) return result
+  return { ok: true, ...applyReviewCount(result.data) }
+}
+
+function openReviewDialog(review, action) {
+  if (!reviewDialog) return
+  reviewDialog.innerHTML = renderReviewDialog(review, action)
+  if (reviewDialog.open) reviewDialog.close()
+  reviewDialog.showModal()
+}
+
+async function onReviewSubmit(event) {
+  const form = event.target
+  if (form?.id !== "review-form") return
+  event.preventDefault()
+  const built = resolveReviewBody({
+    reviewId: form.dataset.reviewId,
+    action: form.dataset.action,
+    keepId: form.querySelector('input[name="keep_id"]:checked')?.value,
+    deleteId: form.querySelector('input[name="delete_id"]:checked')?.value
+  })
+  if (!built.ok) {
+    showMessage(built.error, "error")
+    return
+  }
+  const submit = form.querySelector("[type=submit]")
+  if (submit) submit.disabled = true
+  const result = await resolveCustomerReview(built.body)
+  if (submit) submit.disabled = false
+  if (!result.ok) {
+    showMessage(result.error, "error")
+    return
+  }
+  if (reviewDialog?.open) reviewDialog.close()
+  if (Number.isFinite(result.pendingCount)) {
+    state.reviewPending = result.pendingCount
+    state.reviewCountKnown = true
+  }
+  state.reviews = undefined
+  state.reviewNotice = "Revisão concluída."
+  showView()
+}
+
+function bindReviewOnce() {
+  if (!reviewDialog || reviewDialog.dataset.bound === "1") return
+  reviewDialog.dataset.bound = "1"
+  reviewDialog.addEventListener("click", (event) => {
+    if (event.target.closest("[data-review-cancel]")) reviewDialog.close()
+  })
+  reviewDialog.addEventListener("submit", (event) => { void onReviewSubmit(event) })
+  viewEl.addEventListener("click", (event) => {
+    const button = event.target.closest?.("[data-review-action]")
+    if (!button || !viewEl.contains(button)) return
+    const reviewId = button.closest("[data-review-id]")?.dataset.reviewId
+    const review = (state.reviews || []).find((item) => item.id === reviewId)
+    if (!review) return
+    openReviewDialog(review, button.dataset.reviewAction)
+  })
+}
+
+async function refreshReviewCount() {
+  const result = await fetchCustomerReviews()
+  if (!result.ok) return
+  if (dashboardView(location.pathname, location.search) === "cadastros") return
+  const parsed = normalizeReviewList(result.data)
+  state.reviewPending = parsed.pendingCount
+  state.reviewCountKnown = true
+  paintChrome(dashboardView(location.pathname, location.search))
+}
+
 async function render(view, token) {
   // Não limpa toast com Desfazer pendente.
   if (!undoAction) showMessage("")
+  viewEl.classList.toggle("view--cadastros", view === "cadastros")
   const stale = () => token !== renderToken
   if (view === "inicio") {
     viewEl.classList.add("view--inicio")
@@ -907,6 +1004,23 @@ async function render(view, token) {
     paintCupons()
     return
   }
+  if (view === "cadastros") {
+    if (state.reviews === undefined) viewEl.innerHTML = viewLoading()
+    const loaded = await loadReviewQueue()
+    if (stale()) return
+    paintChrome(view)
+    if (!loaded.ok) {
+      viewEl.innerHTML = renderReviewError(loaded.error)
+      return
+    }
+    viewEl.innerHTML = renderReviewPage(loaded.reviews)
+    if (state.reviewNotice) {
+      const notice = state.reviewNotice
+      state.reviewNotice = ""
+      showMessage(notice)
+    }
+    return
+  }
   if (view === "adicionar") {
     if (!state.defaultsLoaded) viewEl.innerHTML = viewLoading()
     await loadDefaults()
@@ -956,7 +1070,11 @@ async function boot() {
   bindFabOnce()
   bindShortcutsOnce()
   reveal()
+  bindReviewOnce()
   await showView()
+  if (dashboardView(location.pathname, location.search) !== "cadastros") {
+    void refreshReviewCount()
+  }
 }
 
 
