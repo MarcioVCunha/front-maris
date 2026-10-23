@@ -15,6 +15,10 @@ import {
   renderSaleDelivery,
   renderSaleEditDialog,
   renderShippingToggle,
+  renderLabelActions,
+  labelActionState,
+  labelErrorMessage,
+  LABEL_CONFIRM,
   saleCancelPayload,
   saleChannelLabel,
   saleMarkPaidPayload,
@@ -329,10 +333,23 @@ Deno.test("detalhe da venda mostra entrega, endereço e CPF mascarado", () => {
   assert(html.includes("Paulista"))
   assert(html.includes("***.456.789-01"))
   assertEquals(html.includes("width:100%"), false)
-  const toggle = renderShippingToggle(true)
+  const toggle = renderShippingToggle(true, false)
   assert(toggle.includes("Envio pelo Melhor Envio"))
+  assert(toggle.includes("Etiquetas (Melhor Envio)"))
   assert(toggle.includes("checked"))
-  assertEquals(filterSalesByStatus([{ id: 1, payment_status: "paid" }], "a_enviar").length, 1)
+  assertEquals(toggle.includes('id="labels-enabled-toggle" type="checkbox" checked'), false)
+  assertEquals(filterSalesByStatus([{ id: 1, payment_status: "paid" }], "a_enviar").length, 0)
+  assertEquals(filterSalesByStatus([{
+    id: 2,
+    payment_status: "paid",
+    delivery_type: "envio",
+  }], "a_enviar").map((sale) => sale.id), [2])
+  assertEquals(filterSalesByStatus([{
+    id: 3,
+    payment_status: "pago",
+    delivery_type: "envio",
+    shipped_at: "2026-10-01",
+  }], "a_enviar").length, 0)
 })
 
 Deno.test("pedidos a confirmar destacam a reserva e confirmam pelo order_id", () => {
@@ -366,4 +383,40 @@ Deno.test("pedidos a confirmar destacam a reserva e confirmam pelo order_id", ()
   assert(html.includes("Confirmar pedido"))
   assert(html.includes("sale-confirm-btn"))
   assertEquals(html.includes("width:100%"), false)
+})
+
+Deno.test("etiqueta fica oculta com a flag desligada e mostra os estados do botão", () => {
+  const paid = { id: 8, payment_status: "paid", delivery_type: "envio" }
+  assertEquals(LABEL_CONFIRM, "Isso compra a etiqueta no Melhor Envio. Confirmar?")
+  assertEquals(renderLabelActions(paid, { labelsEnabled: false }), "")
+  assertEquals(renderLabelActions({ ...paid, payment_status: "receivable" }, { labelsEnabled: true }), "")
+  assertEquals(renderLabelActions({ ...paid, delivery_type: "retirada" }, { labelsEnabled: true }), "")
+  const createHtml = renderLabelActions(paid, { labelsEnabled: true })
+  assert(createHtml.includes("Gerar etiqueta"))
+  assert(createHtml.includes("Atualizar rastreio"))
+  assertEquals(createHtml.includes("disabled"), false)
+  assertEquals(createHtml.includes("Imprimir"), false)
+  assert(renderLabelActions(paid, { labelsEnabled: true, busy: true }).includes("disabled"))
+  assertEquals(labelActionState(paid), "create")
+  assertEquals(labelActionState({ ...paid, label_status: "generated", me_order_id: "me-1" }), "print")
+  const printed = renderLabelActions({ ...paid, label_status: "generated", me_order_id: "me-1" }, { labelsEnabled: true })
+  assert(printed.includes("Imprimir"))
+  assertEquals(printed.includes("Gerar etiqueta"), false)
+  const dialog = renderSaleEditDialog(paid, formatMoney, { enabled: true, labelsEnabled: false })
+  assertEquals(dialog.includes("Gerar etiqueta"), false)
+  const dates = renderSaleDelivery({
+    delivery_type: "envio",
+    tracking_code: "ME123",
+    tracking_url: "https://rastreio.exemplo/ME123",
+    shipped_at: "2026-10-23T15:00:00.000Z",
+    delivered_at: "2026-10-28",
+  })
+  assert(dates.includes("ME123"))
+  assert(dates.includes("Rastrear"))
+  assert(dates.includes("23/10"))
+  assert(dates.includes("28/10"))
+  assertEquals(labelErrorMessage({ status: 403, error: "Etiquetas desligadas." }), "Etiquetas desligadas.")
+  assertEquals(labelErrorMessage({ status: 409 }), "Etiqueta já existe.")
+  assertEquals(labelErrorMessage({ status: 502, error: "Melhor Envio não gerou a etiqueta." }), "Melhor Envio não gerou a etiqueta.")
+  assertEquals(labelErrorMessage({ status: 422, error: "Faltam dados para a etiqueta." }), "Faltam dados para a etiqueta.")
 })

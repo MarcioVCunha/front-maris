@@ -164,6 +164,9 @@ export function copyDeliveryFields(raw) {
     tracking_url: source.tracking_url || "",
     shipped_at: source.shipped_at || "",
     delivered_at: source.delivered_at || "",
+    label_status: source.label_status || "",
+    label_url: source.label_url || "",
+    me_order_id: source.me_order_id == null || source.me_order_id === "" ? "" : source.me_order_id,
     customer_email: source.customer_email || "",
     customer_cpf_masked: source.customer_cpf_masked || ""
   }
@@ -195,12 +198,14 @@ export function renderSaleDelivery(sale) {
     days ? ["Prazo", days] : null,
     formatShipTo(delivery.ship_to) ? ["Endereço", formatShipTo(delivery.ship_to)] : null,
     delivery.customer_cpf_masked ? ["CPF", delivery.customer_cpf_masked] : null,
-    delivery.tracking_code ? ["Rastreio", delivery.tracking_code] : null
+    delivery.tracking_code ? ["Rastreio", delivery.tracking_code] : null,
+    formatDayMonth(delivery.shipped_at) ? ["Postado", formatDayMonth(delivery.shipped_at)] : null,
+    formatDayMonth(delivery.delivered_at) ? ["Entregue", formatDayMonth(delivery.delivered_at)] : null
   ].filter(Boolean)
   if (!rows.length) return ""
   return `<section class="sale-delivery">${rows.map(([label, value]) =>
     `<p><span>${escapeHtml(label)}</span> ${escapeHtml(value)}</p>`
-  ).join("")}${delivery.tracking_url ? `<p><a href="${escapeHtml(delivery.tracking_url)}" target="_blank" rel="noopener">Abrir rastreio</a></p>` : ""}</section>`
+  ).join("")}${/^https?:\/\//i.test(delivery.tracking_url) ? `<p><a class="sale-label-link" href="${escapeHtml(delivery.tracking_url)}" target="_blank" rel="noopener">Rastrear</a></p>` : ""}</section>`
 }
 
 function formatBrlLoose(value) {
@@ -209,9 +214,67 @@ function formatBrlLoose(value) {
   return `R$ ${number.toFixed(2).replace(".", ",")}`
 }
 
-export function renderShippingToggle(enabled) {
-  const checked = enabled ? "checked" : ""
-  return `<label class="ship-settings"><input id="shipping-enabled-toggle" type="checkbox" ${checked}><span>Envio pelo Melhor Envio</span></label>`
+export function formatDayMonth(value) {
+  const text = String(value || "").trim()
+  if (!text) return ""
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}`
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit"
+  }).format(date)
+}
+
+export const LABEL_CONFIRM = "Isso compra a etiqueta no Melhor Envio. Confirmar?"
+
+function isPaidStatus(status) {
+  const key = saleStatusKey(status)
+  return key === "paid" || key === "pago" || key === "paga"
+}
+
+/** Botões de etiqueta só com a flag ligada, pedido pago e entrega envio. */
+export function canShowLabelActions(sale, labelsEnabled) {
+  if (labelsEnabled !== true) return false
+  if (!isPaidStatus(sale?.payment_status)) return false
+  return saleStatusKey(sale?.delivery_type) === "envio"
+}
+
+/** create enquanto não há etiqueta; print depois do create ou do 409. */
+export function labelActionState(sale) {
+  const status = saleStatusKey(sale?.label_status)
+  if (sale?.me_order_id || sale?.label_url || status === "generated" || status === "printed") return "print"
+  return "create"
+}
+
+export function labelErrorMessage(result) {
+  const status = Number(result?.status)
+  const server = String(result?.error || result?.data?.error || "").trim()
+  if (server) return server
+  if (status === 403) return "Etiquetas desligadas."
+  if (status === 409) return "Etiqueta já existe."
+  if (status === 422) return "Faltam dados para a etiqueta."
+  if (status === 502) return "Melhor Envio não gerou a etiqueta."
+  return "Não foi possível gerar a etiqueta."
+}
+
+export function renderLabelActions(sale, options = {}) {
+  if (!canShowLabelActions(sale, options.labelsEnabled)) return ""
+  const busy = options.busy === true
+  const action = labelActionState(sale)
+  const main = action === "print"
+    ? `<button type="button" class="btn-primary sale-label-btn" id="sale-label-print" data-label-action="print">Imprimir</button>`
+    : `<button type="button" class="btn-primary sale-label-btn" id="sale-label-create" data-label-action="create"${busy ? " disabled" : ""}>Gerar etiqueta</button>`
+  const sync = `<button type="button" class="btn-ghost sale-label-btn" id="sale-label-sync" data-label-action="sync">Atualizar rastreio</button>`
+  return `<div class="sale-label-actions">${main}${sync}</div>`
+}
+
+export function renderShippingToggle(enabled, labelsEnabled = false) {
+  const ship = enabled ? "checked" : ""
+  const labels = labelsEnabled === true ? "checked" : ""
+  return `<div class="ship-settings-row"><label class="ship-settings"><input id="shipping-enabled-toggle" type="checkbox" ${ship}><span>Envio pelo Melhor Envio</span></label><label class="ship-settings"><input id="labels-enabled-toggle" type="checkbox" ${labels}><span>Etiquetas (Melhor Envio)</span></label></div>`
 }
 
 export function saleMetaChipsHtml(sale, now = new Date()) {
@@ -276,7 +339,13 @@ export function filterSalesByStatus(sales, status) {
   if (key === "paid" || key === "paga" || key === "pagas") {
     return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === "paid")
   }
-  if (key === "a_enviar" || key === "retirada") return sales || []
+  if (key === "retirada") return sales || []
+  if (key === "a_enviar") {
+    return (sales || []).filter((sale) => {
+      const shipped = String(sale?.shipped_at || "").trim()
+      return isPaidStatus(sale?.payment_status) && saleStatusKey(sale?.delivery_type) === "envio" && !shipped
+    })
+  }
   if (key === "partial" || key === "a_confirmar") {
     return (sales || []).filter((sale) => {
       const s = saleStatusKey(sale?.payment_status)
@@ -395,6 +464,7 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
     ${bugBanner}
     ${saleMetaChipsHtml(sale)}
     ${renderSaleDelivery(sale)}
+    ${renderLabelActions(sale, options)}
     ${salePhotoHtml(sale)}
     ${totalField}
     <div class="sale-edit__pieces">${itemRows}</div>

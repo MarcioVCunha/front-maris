@@ -8,6 +8,24 @@ function tokenFromPath(pathname) {
   }
 }
 
+function showTracking(slot, data) {
+  if (!slot || !window.MarisPagamento?.trackingNotice) return
+  const notice = window.MarisPagamento.trackingNotice(data)
+  slot.replaceChildren()
+  if (!notice) {
+    slot.hidden = true
+    return
+  }
+  const link = document.createElement("a")
+  link.className = "track-link"
+  link.href = notice.url
+  link.target = "_blank"
+  link.rel = "noopener"
+  link.textContent = notice.text
+  slot.hidden = false
+  slot.append(link)
+}
+
 function renderItems(items) {
   const slot = document.getElementById("track-items")
   if (!slot) return
@@ -47,10 +65,12 @@ async function load() {
       if (statusEl) statusEl.textContent = page.error || "Pedido não encontrado."
       setMessage(page.error || "Pedido não encontrado.", "error")
       renderItems([])
+      showTracking(document.getElementById("track-shipping"), null)
       return
     }
     if (statusEl) statusEl.textContent = page.statusLabel || page.status
     setMessage("")
+    showTracking(document.getElementById("track-shipping"), page)
     renderItems(page.items)
   } catch {
     if (statusEl) statusEl.textContent = "Não foi possível consultar o pedido."

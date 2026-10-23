@@ -19,6 +19,24 @@
     return value ? String(value) : ""
   }
 
+  function showTracking(slot, data) {
+    if (!slot) return
+    const notice = window.MarisPagamento.trackingNotice(data)
+    slot.replaceChildren()
+    if (!notice) {
+      slot.hidden = true
+      return
+    }
+    const link = document.createElement("a")
+    link.className = "track-link"
+    link.href = notice.url
+    link.target = "_blank"
+    link.rel = "noopener"
+    link.textContent = notice.text
+    slot.hidden = false
+    slot.append(link)
+  }
+
   function applyStatus(status, orderId) {
     const label = window.MarisPagamento.statusLabel(status)
     if (orderIdEl) orderIdEl.textContent = orderId != null ? `#${orderId}` : "—"
@@ -69,6 +87,7 @@
       const orderId = result.kind === "ok" ? (result.orderId ?? query.orderId) : query.orderId
       applyStatus(page.status, orderId)
       setMessage(page.message, page.messageType)
+      showTracking(document.getElementById("obrigado-tracking"), result.kind === "ok" ? result : null)
     } catch (_err) {
       const page = window.MarisPagamento.orderStatusPageState({ kind: "error" }, inferred)
       applyStatus(page.status, query.orderId)

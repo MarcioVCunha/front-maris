@@ -13,6 +13,10 @@ import {
   returnOrderItems,
   fetchShippingSettings,
   saveShippingSettings,
+  saveLabelsEnabled,
+  createShippingLabel,
+  printShippingLabel,
+  syncShippingTracking,
   fetchSellersMonth,
   importProducts,
   listProducts,
@@ -68,6 +72,8 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.orderConfirm, "confirm-order")
   assertEquals(ADMIN_DASHBOARD_API.orderReturnItems, "return-order-items")
   assertEquals(ADMIN_DASHBOARD_API.shippingSettings, "admin-shipping-settings")
+  assertEquals(ADMIN_DASHBOARD_API.shippingLabel, "admin-shipping-label")
+  assertEquals(ADMIN_DASHBOARD_API.shippingTrackingSync, "admin-shipping-tracking-sync")
   assertEquals(ADMIN_DASHBOARD_API.collectionList, "admin-collection-list")
   assertEquals(ADMIN_DASHBOARD_API.collectionSave, "admin-collection-save")
   assertEquals(ADMIN_DASHBOARD_API.collectionDelete, "admin-collection-delete")
@@ -210,6 +216,58 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   const write = await saveShippingSettings(true, shippingSaved)
   assertEquals(write.shipping_enabled, true)
   assertEquals(shippingSaved.calls[0].options.body, { shipping_enabled: true })
+
+  const labelsOff = client({ ok: true, shipping_enabled: true, labels_enabled: false })
+  const labelsRead = await fetchShippingSettings(labelsOff)
+  assertEquals(labelsRead.labels_enabled, false)
+  const labelsSaved = client({ ok: true, labels_enabled: true })
+  const labelsWrite = await saveLabelsEnabled(true, labelsSaved)
+  assertEquals(labelsWrite.labels_enabled, true)
+  assertEquals(labelsSaved.calls[0].options.body, { labels_enabled: true })
+
+  const created = client({ ok: true, order_id: 8, label_status: "generated", me_order_id: "me-8" })
+  const label = await createShippingLabel(8, created)
+  assertEquals(label.label_status, "generated")
+  assertEquals(created.calls[0].name, "admin-shipping-label")
+  assertEquals(created.calls[0].options.body, { order_id: 8, action: "create" })
+
+  const printed = client({ ok: true, order_id: 8, label_url: "https://melhorenvio.com/etiqueta.pdf" })
+  const print = await printShippingLabel(8, printed)
+  assertEquals(print.label_url, "https://melhorenvio.com/etiqueta.pdf")
+  assertEquals(printed.calls[0].options.body, { order_id: 8, action: "print" })
+
+  const synced = client({ ok: true, updated: [{ order_id: 8, tracking_code: "ME123", shipped_at: "2026-10-23", delivered_at: null }] })
+  const sync = await syncShippingTracking(8, synced)
+  assertEquals(sync.updated[0].tracking_code, "ME123")
+  assertEquals(synced.calls[0].name, "admin-shipping-tracking-sync")
+  assertEquals(synced.calls[0].options.body, { order_id: 8 })
+
+  const denied = {
+    call() {
+      return { ok: false, status: 403, data: { error: "Etiquetas desligadas." } }
+    },
+  }
+  const blocked = await createShippingLabel(8, denied)
+  assertEquals(blocked.ok, false)
+  assertEquals(blocked.status, 403)
+  assertEquals(blocked.error, "Etiquetas desligadas.")
+  const conflict = {
+    call() {
+      return { ok: false, status: 409, data: { error: "Etiqueta já existe.", label_status: "generated" } }
+    },
+  }
+  const exists = await createShippingLabel(8, conflict)
+  assertEquals(exists.status, 409)
+  assertEquals(exists.error, "Etiqueta já existe.")
+  assertEquals(exists.label_status, "generated")
+  const upstream = {
+    call() {
+      return { ok: false, status: 502, data: { error: "Melhor Envio não gerou a etiqueta." } }
+    },
+  }
+  const failedLabel = await printShippingLabel(8, upstream)
+  assertEquals(failedLabel.status, 502)
+  assertEquals(failedLabel.error, "Melhor Envio não gerou a etiqueta.")
 
   const sellers = client({ ok: true, sellers: [{ seller_id: 2, name: "Marineide", balance: 0 }] })
   const team = await fetchSellersMonth({ month: "2026-10" }, sellers)
