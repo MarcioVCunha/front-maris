@@ -72,6 +72,8 @@
     { "source": "/admin/esgotadas", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/vendas", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/vendedoras", "destination": "/paginas/admin/painel.html" },
+    { "source": "/admin/compras", "destination": "/paginas/admin/painel.html" },
+    { "source": "/admin/colecoes", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/peca", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/tipos", "destination": "/paginas/admin/painel.html" },
     { "source": "/admin/conjuntos", "destination": "/paginas/admin/painel.html" },

@@ -21,6 +21,9 @@ export const DASHBOARD_VIEWS = [
   { id: "cadastros", href: "/admin/cadastros", label: "Revisar cadastros" }
 ]
 
+/** Abas liberadas para o papel compras (Marineide). */
+export const COMPRAS_VIEWS = ["compras", "vendedoras"]
+
 export const STOCK_LINKS = [
   { id: "estoque", href: "/admin/estoque", label: "Peças" },
   { id: "esgotadas", href: "/admin/esgotadas", label: "Esgotadas" },
@@ -78,6 +81,34 @@ export function isDashboardAdmin(user) {
   return user?.role === "admin"
 }
 
+/** Admin vê tudo; compras entra só nas abas de reposição e vendedoras. */
+export function canAccessPanel(user) {
+  const role = user?.role
+  return role === "admin" || role === "compras"
+}
+
+export function viewsForRole(role) {
+  if (role === "compras") {
+    return DASHBOARD_VIEWS.filter((item) => COMPRAS_VIEWS.includes(item.id))
+  }
+  return DASHBOARD_VIEWS
+}
+
+export function canAccessView(user, view) {
+  if (user?.role === "admin") return true
+  if (user?.role === "compras") return COMPRAS_VIEWS.includes(view)
+  return false
+}
+
+export function defaultPanelView(user) {
+  return user?.role === "compras" ? "compras" : "inicio"
+}
+
+export function panelPathForView(view) {
+  const known = DASHBOARD_VIEWS.find((item) => item.id === view)
+  return known?.href || "/admin/inicio"
+}
+
 export function isPanelLink(pathname) {
   const path = String(pathname || "").replace(/\/$/, "") || "/"
   return path === "/admin" || path.startsWith("/admin/")
@@ -90,8 +121,8 @@ function reviewBadge(count) {
   return `<span class="dash-count">${shown}</span>`
 }
 
-export function navHtml(active, counts) {
-  return DASHBOARD_VIEWS.map((item) => {
+export function navHtml(active, counts, role = "admin") {
+  return viewsForRole(role).map((item) => {
     const current = item.id === active ? " aria-current=\"page\"" : ""
     const badge = counts && Object.hasOwn(counts, item.id) ? reviewBadge(counts[item.id]) : ""
     return `<a class="dash-link" href="${item.href}"${current}>${item.label}${badge}</a>`

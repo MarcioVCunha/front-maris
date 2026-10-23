@@ -88,7 +88,10 @@ export function installHomeUi(deps) {
       history.pushState(null, "", next)
     }
     viewEl.innerHTML = viewLoading()
+    const requestMonth = target
     await loadOverview()
+    if (state.selectedMonth !== requestMonth) return
+    if (dashboardViewSafe() !== "inicio") return
     paintInicio()
   }
 
@@ -584,7 +587,10 @@ export function installHomeUi(deps) {
     }
     history.replaceState(null, "", url.toString())
     showMessage("Carregando vendedoras de " + formatMonthLabel(target) + "…")
+    const requestMonth = target
     await loadSellers(target)
+    if (state.selectedMonth !== requestMonth) return
+    if (dashboardViewSafe() !== "vendedoras") return
     paintVendedoras()
   }
 
@@ -654,8 +660,29 @@ export function installHomeUi(deps) {
     }
     history.replaceState(null, "", url.toString())
     showMessage("Carregando compras de " + formatMonthLabel(target) + "…")
+    const requestMonth = target
     await loadPurchases(target)
+    if (state.selectedMonth !== requestMonth) return
+    if (dashboardViewSafe() !== "compras") return
     paintCompras()
+  }
+
+  function dashboardViewSafe() {
+    try {
+      const path = String(location.pathname || "").replace(/\/$/, "") || "/"
+      if (path.endsWith("/compras")) return "compras"
+      if (path.endsWith("/vendedoras")) return "vendedoras"
+      if (path.endsWith("/inicio") || path === "/admin") return "inicio"
+      return path.split("/").pop() || "inicio"
+    } catch {
+      return "inicio"
+    }
+  }
+
+  function normalizeWaDigits(value) {
+    let digits = String(value || "").replace(/\D/g, "")
+    if (digits.startsWith("55") && digits.length > 11) digits = digits.slice(2)
+    return digits.slice(0, 11)
   }
 
   async function loadPurchases(monthParam) {
@@ -670,6 +697,7 @@ export function installHomeUi(deps) {
     }
     state.purchases = null
     state.purchasesMonth = targetMonth
+    showMessage(result.error || "Não foi possível carregar a visão de compras.", "error")
     return null
   }
 
@@ -686,9 +714,9 @@ export function installHomeUi(deps) {
     const contactsHtml = contacts.length === 0
       ? `<p class="empty">Nenhum dado de contato registrado para esta peça.</p>`
       : `<ul class="compras-contacts-list">${contacts.map((c) => {
-          const telDigits = String(c.buyer_whatsapp || "").replace(/\D/g, "")
-          const waLink = telDigits ? `<a href="https://wa.me/55${telDigits}" target="_blank" rel="noopener" class="btn-xs btn-whatsapp">💬 WhatsApp: ${escapeHtml(c.buyer_whatsapp)}</a>` : ""
-          const emailLink = c.buyer_email ? `<a href="mailto:${escapeHtml(c.buyer_email)}" class="btn-xs btn-email">✉️ ${escapeHtml(c.buyer_email)}</a>` : ""
+          const telDigits = normalizeWaDigits(c.buyer_whatsapp)
+          const waLink = telDigits ? `<a href="https://wa.me/55${telDigits}" target="_blank" rel="noopener" class="btn-xs btn-whatsapp">WhatsApp: ${escapeHtml(c.buyer_whatsapp)}</a>` : ""
+          const emailLink = c.buyer_email ? `<a href="mailto:${escapeHtml(c.buyer_email)}" class="btn-xs btn-email">${escapeHtml(c.buyer_email)}</a>` : ""
           const dateStr = c.created_at ? new Date(c.created_at).toLocaleDateString("pt-BR") : ""
           return `<li class="compras-contact-item">
             <div class="compras-contact-name"><strong>${escapeHtml(c.buyer_name || "Cliente")}</strong>${dateStr ? `<small class="hint">Pedido em ${dateStr}</small>` : ""}</div>

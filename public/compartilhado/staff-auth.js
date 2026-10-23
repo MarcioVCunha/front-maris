@@ -117,9 +117,14 @@
     return decoded
   }
 
-  // Vendedora entra direto na tela nova. Admin segue o next, ou o hub da equipe.
+  // Vendedora entra na venda nova. Compras vai para /admin/compras. Admin segue o next.
   function landingPath(user, rawNext) {
     const next = safeNextPath(rawNext)
+    if (user?.role === "compras") {
+      const path = normalizePath(String(next).split("?")[0].split("#")[0])
+      if (path === "/admin/compras" || path === "/admin/vendedoras") return next
+      return "/admin/compras"
+    }
     if (user?.role !== "seller") return next
     const path = normalizePath(String(next).split("?")[0].split("#")[0])
     if (path === "/" || path === STAFF_HOME || path === "/vendedoras" || path === "/vendas") return "/vendas/nova"
@@ -136,7 +141,10 @@
   function normalizeStaffUser(raw) {
     if (!raw || typeof raw !== "object") return null
     const roleRaw = String(raw.role || "").trim().toLowerCase()
-    const role = roleRaw === "admin" ? "admin" : (roleRaw === "seller" || roleRaw === "vendedora" ? "seller" : "")
+    let role = ""
+    if (roleRaw === "admin") role = "admin"
+    else if (roleRaw === "seller" || roleRaw === "vendedora") role = "seller"
+    else if (roleRaw === "compras") role = "compras"
     if (!role) return null
     const email = String(raw.email || "").trim()
     const name = String(raw.name || "").trim() || email
@@ -153,23 +161,38 @@
   function roleLabel(role) {
     if (role === "admin") return "Administradora"
     if (role === "seller") return "Vendedora"
+    if (role === "compras") return "Compras"
     return ""
+  }
+
+  function canEnterAdminPanel(role) {
+    return role === "admin" || role === "compras"
+  }
+
+  function isComprasAllowedAdminPath(pathname) {
+    const path = normalizePath(pathname)
+    return path === "/admin" || path.startsWith("/admin/") || path === "/paginas/admin/painel.html"
   }
 
   function accessDecision({ pathname, role, hasSession, optional }) {
     const path = normalizePath(pathname)
     if (optional || isAuthPath(path)) return "allow"
     if (!hasSession) return "login"
-    if (isAdminOnlyPath(path) && role !== "admin") return "deny"
+    if (isAdminOnlyPath(path) && role !== "admin") {
+      if (role === "compras" && isComprasAllowedAdminPath(path)) return "allow"
+      return "deny"
+    }
     return "allow"
   }
 
-  // O que cada papel vê no menu. Tipos do produto vale para os dois.
+  // O que cada papel vê no menu. Tipos do produto vale para admin e seller.
   function menuFor(role) {
     const admin = role === "admin"
     const seller = role === "seller"
+    const compras = role === "compras"
     return {
       homeAdmin: admin,
+      homeCompras: compras,
       homeTipos: seller,
       homeVendedoras: admin || seller,
       homeCatalogo: true,
@@ -255,7 +278,7 @@
   // "wait" = a navegação levou o pedido embora. Não é falta de permissão.
   function settleAdminGate(profile, options = {}) {
     if (options.unloading || pageUnloading || profileWasAborted(profile)) return "wait"
-    if (!profile?.ok || profile.user?.role !== "admin") return "deny"
+    if (!profile?.ok || !canEnterAdminPanel(profile.user?.role)) return "deny"
     return "allow"
   }
 
@@ -301,7 +324,7 @@
 
   function freshDeniesAdmin(fresh) {
     if (!fresh || fresh.aborted || fresh.cached) return false
-    if (fresh.ok) return fresh.user?.role !== "admin"
+    if (fresh.ok) return !canEnterAdminPanel(fresh.user?.role)
     return /permiss|equipe|papel/i.test(String(fresh.error || ""))
   }
 
@@ -320,11 +343,18 @@
   function applyMenus(user) {
     if (!user || !document?.querySelectorAll) return
     const admin = user.role === "admin"
+    const compras = user.role === "compras"
     document.querySelectorAll("[data-staff-min='admin']").forEach((el) => {
       el.hidden = !admin
     })
+    document.querySelectorAll("[data-staff-min='compras']").forEach((el) => {
+      el.hidden = !compras
+    })
+    document.querySelectorAll("[data-staff-hide='compras']").forEach((el) => {
+      el.hidden = compras
+    })
     document.querySelectorAll("[data-staff-only='seller']").forEach((el) => {
-      el.hidden = admin
+      el.hidden = admin || compras
     })
     const who = document.getElementById?.("staff-who")
     if (who) {
@@ -378,6 +408,7 @@
     normalizePath,
     isAdminOnlyPath,
     settleAdminGate,
+    canEnterAdminPanel,
     safeNextPath,
     landingPath,
     normalizeStaffUser,
@@ -599,7 +630,7 @@
   function enforceRole() {
     const path = normalizePath(window.location.pathname)
     const cached = readCachedUser()
-    if (cached && (!isAdminOnlyPath(path) || cached.role === "admin")) {
+    if (cached && (!isAdminOnlyPath(path) || canEnterAdminPanel(cached.role))) {
       setPageHidden(false)
       applyMenus(cached)
       window.MarisStaffAuth.loadProfile()
