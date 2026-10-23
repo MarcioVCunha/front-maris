@@ -67,7 +67,7 @@ export function buildPrivacySections(loja) {
       paragraphs: [
         "Você pode solicitar acesso, correção, exclusão, portabilidade, informação sobre compartilhamentos e revogação de consentimento (quando aplicável).",
         `Escreva para ${email}. Respondemos em até 15 dias.`,
-        "Com a conta de cliente (em breve), também será possível editar dados, baixar seus dados e solicitar a exclusão da conta pela área “Minha conta”.",
+        "Com a conta de cliente, também é possível editar dados, baixar seus dados e solicitar a exclusão da conta pela área “Minha conta”.",
       ],
     },
     {

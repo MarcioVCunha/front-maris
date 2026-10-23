@@ -22,9 +22,12 @@ export function installColecoesUi(deps) {
     const result = await fetchCollectionList()
     if (result.ok && Array.isArray(result.data?.collections)) {
       state.collections = result.data.collections
-    } else {
-      state.collections = []
+      state.collectionsError = null
+      return
     }
+    state.collections = null
+    state.collectionsError = result.error || "Não foi possível carregar as coleções."
+    showMessage(state.collectionsError, "error")
   }
 
   function openCollectionEditDialog(collection) {
@@ -170,6 +173,10 @@ export function installColecoesUi(deps) {
   }
 
   function paintColecoes() {
+    if (state.collections == null) {
+      viewEl.innerHTML = `<p class="empty">${state.collectionsError || "Não foi possível carregar as coleções."}</p>`
+      return
+    }
     viewEl.innerHTML = renderCollectionsPage(state.collections, {
       query: state.collectionQuery,
       formatMoney: formatPrice,

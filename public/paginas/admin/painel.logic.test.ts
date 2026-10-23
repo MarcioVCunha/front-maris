@@ -34,6 +34,10 @@ import {
   fieldPlaceholder,
   isComponentSku,
   isDashboardAdmin,
+  canAccessPanel,
+  canAccessView,
+  viewsForRole,
+  defaultPanelView,
   nextPackagingValues,
   normalizeCategoryDefaults,
   normalizeOverview,
@@ -332,6 +336,14 @@ Deno.test("só o administrador entra e a lista mostra quantidade vazia como zero
   assertEquals(isDashboardAdmin({ role: "admin", name: "Marcio" }), true)
   assertEquals(isDashboardAdmin({ role: "seller", name: "Marineide" }), false)
   assertEquals(isDashboardAdmin(null), false)
+  assertEquals(canAccessPanel({ role: "admin" }), true)
+  assertEquals(canAccessPanel({ role: "compras" }), true)
+  assertEquals(canAccessPanel({ role: "seller" }), false)
+  assertEquals(canAccessView({ role: "compras" }, "compras"), true)
+  assertEquals(canAccessView({ role: "compras" }, "vendedoras"), true)
+  assertEquals(canAccessView({ role: "compras" }, "estoque"), false)
+  assertEquals(defaultPanelView({ role: "compras" }), "compras")
+  assertEquals(viewsForRole("compras").map((v) => v.id), ["vendedoras", "compras"])
   assertEquals(dashboardView("/admin/estoque"), "estoque")
   assertEquals(dashboardView("/admin/esgotadas"), "esgotadas")
   assertEquals(dashboardView("/admin/peca", "?code=AN581-R"), "peca")

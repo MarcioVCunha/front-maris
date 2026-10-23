@@ -11,6 +11,10 @@ import {
   isComponentSku,
   currentMonthKey,
   isDashboardAdmin,
+  canAccessPanel,
+  canAccessView,
+  defaultPanelView,
+  panelPathForView,
   isPanelLink,
   navHtml,
   nextPackagingValues,
@@ -248,6 +252,7 @@ const referralCodeDialog = document.getElementById("referral-code-dialog")
 const reviewDialog = document.getElementById("review-dialog")
 
 const state = {
+  staffUser: null,
   products: [],
   productsLoaded: false,
   defaults: {},
@@ -527,10 +532,14 @@ window.addEventListener("beforeunload", () => {
 })
 
 function paintChrome(view) {
+  const role = state.staffUser?.role || "admin"
   const top = ["peca", "esgotadas", "conjuntos", "adicionar", "importar"].includes(view) ? "estoque" : view
-  const counts = state.reviewCountKnown ? { cadastros: state.reviewPending } : undefined
-  dashNav.innerHTML = navHtml(top, counts)
-  const sub = ["estoque", "esgotadas", "peca", "conjuntos", "adicionar", "importar"].includes(view)
+  const counts = role === "admin" && state.reviewCountKnown
+    ? { cadastros: state.reviewPending }
+    : undefined
+  dashNav.innerHTML = navHtml(top, counts, role)
+  const sub = role === "admin" &&
+    ["estoque", "esgotadas", "peca", "conjuntos", "adicionar", "importar"].includes(view)
   stockNav.hidden = !sub
   if (sub) {
     const subActive = view === "peca" ? "estoque" : view
@@ -1052,7 +1061,16 @@ async function render(view, token) {
 
 async function showView() {
   const token = ++renderToken
-  const view = dashboardView(location.pathname, location.search)
+  let view = dashboardView(location.pathname, location.search)
+  const user = state.staffUser
+  if (user && !canAccessView(user, view)) {
+    const fallback = defaultPanelView(user)
+    const href = panelPathForView(fallback)
+    if (`${location.pathname}${location.search}` !== href) {
+      history.replaceState(null, "", href)
+    }
+    view = fallback
+  }
   paintChrome(view)
   await render(view, token)
 }
@@ -1071,23 +1089,35 @@ async function boot() {
   }
   const profile = await window.MarisStaffAuth.loadProfile()
   if (profile?.aborted || window.MarisStaffAuth.settleAdminGate(profile) === "wait") return
-  if (!profile?.ok || !isDashboardAdmin(profile.user)) {
+  if (!profile?.ok || !canAccessPanel(profile.user)) {
     const loading = document.getElementById("staff-loading")
     if (loading) {
       loading.hidden = false
-      loading.innerHTML = `<p class="empty">Só o administrador entra neste painel.</p>`
+      loading.innerHTML = `<p class="empty">Só a equipe autorizada entra neste painel.</p>`
     }
     return
   }
+  state.staffUser = profile.user
+  if (
+    profile.user.role === "compras" &&
+    (location.pathname === "/admin" || location.pathname === "/admin/")
+  ) {
+    history.replaceState(null, "", panelPathForView("compras"))
+  }
   document.addEventListener("click", onPanelClick)
   window.addEventListener("popstate", () => { showView() })
-  bindStockOnce()
-  bindFabOnce()
-  bindShortcutsOnce()
+  if (isDashboardAdmin(profile.user)) {
+    bindStockOnce()
+    bindFabOnce()
+    bindShortcutsOnce()
+    bindReviewOnce()
+  }
   reveal()
-  bindReviewOnce()
   await showView()
-  if (dashboardView(location.pathname, location.search) !== "cadastros") {
+  if (
+    isDashboardAdmin(profile.user) &&
+    dashboardView(location.pathname, location.search) !== "cadastros"
+  ) {
     void refreshReviewCount()
   }
 }

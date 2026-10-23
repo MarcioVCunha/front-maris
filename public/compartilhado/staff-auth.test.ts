@@ -262,6 +262,7 @@ Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração
   pinWindow()
   assertEquals(Auth.menuFor("seller"), {
     homeAdmin: false,
+    homeCompras: false,
     homeTipos: true,
     homeVendedoras: true,
     homeCatalogo: true,
@@ -275,6 +276,7 @@ Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração
   })
   assertEquals(Auth.menuFor("admin"), {
     homeAdmin: true,
+    homeCompras: false,
     homeTipos: false,
     homeVendedoras: true,
     homeCatalogo: true,
@@ -286,9 +288,43 @@ Deno.test("o menu da vendedora inclui tipos e esconde o resto da administração
     adicionarPeca: true,
     promocoes: true
   })
+  assertEquals(Auth.menuFor("compras"), {
+    homeAdmin: false,
+    homeCompras: true,
+    homeTipos: false,
+    homeVendedoras: false,
+    homeCatalogo: true,
+    vendas: false,
+    tipos: false,
+    listaEspera: false,
+    contas: false,
+    importar: false,
+    adicionarPeca: false,
+    promocoes: false
+  })
 })
 
-Deno.test("só aceita papel admin ou seller e caminhos internos", () => {
+Deno.test("papel compras entra no painel de compras e vendedoras", () => {
+  pinWindow()
+  assertEquals(Auth.normalizeStaffUser({ id: "1", email: "n@b.c", name: "Neide", role: "compras" })?.role, "compras")
+  assertEquals(Auth.roleLabel("compras"), "Compras")
+  assertEquals(Auth.settleAdminGate({ ok: true, user: { role: "compras", name: "Neide" } }), "allow")
+  assertEquals(Auth.landingPath({ role: "compras" }, "/inicio"), "/admin/compras")
+  assertEquals(
+    Auth.accessDecision({ pathname: "/admin/compras", role: "compras", hasSession: true, optional: false }),
+    "allow",
+  )
+  assertEquals(
+    Auth.accessDecision({ pathname: "/admin/vendedoras", role: "compras", hasSession: true, optional: false }),
+    "allow",
+  )
+  assertEquals(
+    Auth.accessDecision({ pathname: "/lista-espera", role: "compras", hasSession: true, optional: false }),
+    "deny",
+  )
+})
+
+Deno.test("só aceita papel admin, seller ou compras e caminhos internos", () => {
   pinWindow()
   assertEquals(Auth.normalizeStaffUser({ id: "1", email: "a@b.c", name: "", role: "ADMIN" })?.role, "admin")
   assertEquals(Auth.normalizeStaffUser({ id: "1", email: "a@b.c", role: "seller" })?.name, "a@b.c")

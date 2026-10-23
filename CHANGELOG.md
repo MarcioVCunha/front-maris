@@ -4,6 +4,14 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o 
 
 ## [Unreleased]
 
+### Adicionado
+
+- Papel **compras** no painel: Marineide entra em `/admin/compras` e `/admin/vendedoras` (mais vendidas, “Quero essa peça”, ranking). Rewrites de `/admin/compras` e `/admin/colecoes` no `vercel.json`. Login de cliente ligado (`CUSTOMER_LOGIN_ENABLED`).
+
+### Corrigido
+
+- Compras: erro de API deixa de parecer mês zerado; WhatsApp normaliza DDI `55`; troca de mês não pinta aba errada. Coleções: falha de API mostra erro em vez de lista vazia.
+
 ### Alterado
 
 - Carrinho com um único botão **Pagar** (`create-order` + `payment-create-link` sem `payment_method` → `checkout_url`); remove escolha Pix/Cartão e “Combinar pelo WhatsApp”; texto curto sobre Pix 5% off e parcelamento; mantém total cheio e total no Pix. Contrato em `docs/contratos/pagamento-infinitepay.md`.
