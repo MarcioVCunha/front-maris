@@ -467,10 +467,91 @@
   text-align: center;
 }
 
-.order-pay-actions .btn-primary {
-  width: 100%;
+.order-pay-actions .btn-primary,
+.track-actions .btn-secondary,
+#ship-quote-btn {
+  width: auto;
+  flex: 0 0 auto;
+  align-self: flex-start;
   text-align: center;
   box-sizing: border-box;
+}
+
+.cart-card--shipping {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ship-cep-row,
+.ship-options,
+.ship-login,
+.track-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.ship-cep-row input,
+.ship-address input,
+.ship-address select,
+#ship-email {
+  width: auto;
+  max-width: 100%;
+}
+
+#ship-cep {
+  width: 9.5rem;
+}
+
+.ship-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--maris-border);
+  border-radius: 12px;
+  background: var(--maris-surface, #fff);
+}
+
+.ship-option input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.ship-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: auto;
+}
+
+.ship-address {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  width: min(100%, 420px);
+}
+
+.ship-address .wide,
+.ship-address label.wide {
+  grid-column: 1 / -1;
+}
+
+.ship-terms {
+  width: auto;
+  max-width: 100%;
+}
+
+.ship-login a,
+#order-track a {
+  width: auto;
 }
 
 @media (max-width: 880px) {

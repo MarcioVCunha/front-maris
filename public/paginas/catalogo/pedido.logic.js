@@ -91,6 +91,18 @@ export function buildCreateOrderBody(input = {}) {
   if (input.couponCode) {
     body.coupon_code = String(input.couponCode).trim().toUpperCase()
   }
+  const delivery = String(input.deliveryType || "").trim()
+  if (!delivery) return body
+  body.delivery_type = delivery
+  body.terms_accepted = input.termsAccepted === true
+  body.terms_version = String(input.termsVersion || "")
+  if (input.email) body.customer.email = String(input.email).trim()
+  if (delivery === "retirada") body.shipping_price_seen = 0
+  if (delivery === "envio") {
+    body.ship_to = input.shipTo
+    body.shipping_service_id = input.shippingServiceId
+    body.shipping_price_seen = Number(input.shippingPriceSeen)
+  }
   return body
 }
 
@@ -118,6 +130,25 @@ export function validateCreateOrderBody(body) {
     }
   }
   if (!String(body?.client_request_id || "").trim()) return { ok: false, error: "Não foi possível identificar o envio." }
+  const delivery = String(body?.delivery_type || "").trim()
+  if (!delivery) return { ok: true }
+  if (delivery !== "retirada" && delivery !== "envio") return { ok: false, error: "Escolha a entrega." }
+  if (body.terms_accepted !== true) return { ok: false, error: "Aceite os termos para continuar." }
+  if (!String(body.terms_version || "").trim()) return { ok: false, error: "Aceite os termos para continuar." }
+  if (delivery === "retirada") {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(body.customer?.email || "").trim())) {
+      return { ok: false, error: "Informe o e-mail." }
+    }
+  }
+  if (delivery === "envio") {
+    const ship = body.ship_to || {}
+    if (!ship.cep || !ship.uf || !ship.rua || !ship.numero || !ship.bairro || !ship.cidade) {
+      return { ok: false, error: "Complete o endereço de entrega." }
+    }
+    if (body.shipping_service_id == null || body.shipping_service_id === "") {
+      return { ok: false, error: "Escolha o envio." }
+    }
+  }
   return { ok: true }
 }
 
@@ -140,6 +171,12 @@ export function orderFromResponse(data) {
     couponCode: data?.coupon_code || null,
     couponDiscount: numberOrNull(data?.coupon_discount) || 0,
     reservedUntil: data?.reserved_until || null,
+    deliveryType: data?.delivery_type || "",
+    shippingCost: numberOrNull(data?.shipping_cost),
+    shippingService: data?.shipping_service || "",
+    shippingDeadlineDays: numberOrNull(data?.shipping_deadline_days),
+    publicToken: data?.public_token || "",
+    trackingUrl: data?.tracking_url || "",
     items
   }
 }
@@ -217,6 +254,22 @@ export function cartKeysForStockIssues(lines, issues) {
 
 export function interpretCreateOrderResponse(result, options = {}) {
   const data = result?.data && typeof result.data === "object" ? result.data : {}
+  const errorText = String(data.error || "")
+  const freightChanged = result?.status === 409 && (
+    data.shipping_cost != null || /frete mudou/i.test(errorText)
+  )
+  if (freightChanged) {
+    return {
+      kind: "freight",
+      error: data.error || "O frete mudou. Confira o novo valor.",
+      shippingCost: numberOrNull(data.shipping_cost),
+      shippingServiceId: data.shipping_service_id ?? null,
+      shippingService: data.shipping_service || "",
+      shippingDeadlineDays: numberOrNull(data.shipping_deadline_days),
+      options: Array.isArray(data.options) ? data.options : [],
+      warning: data.warning || ""
+    }
+  }
   const issues = Array.isArray(data.stock_issues) ? data.stock_issues : []
   if (result?.status === 409 || issues.length) {
     return {
@@ -240,7 +293,7 @@ export async function submitCreateOrder(callFunction, input, options = {}) {
   const validation = validateCreateOrderBody(body)
   if (!validation.ok) return { kind: "error", error: validation.error }
   if (typeof callFunction !== "function") return { kind: "error", error: "Não foi possível fazer o pedido." }
-  const result = await callFunction(CREATE_ORDER_FUNCTION, body)
+  const result = await callFunction(CREATE_ORDER_FUNCTION, body, { token: input?.customerToken || "" })
   return interpretCreateOrderResponse(result, { dryRun: body.dry_run })
 }
 

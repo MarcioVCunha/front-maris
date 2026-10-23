@@ -63,6 +63,7 @@ import {
   returnOrderItemsPayload,
   normalizeExpiringOrders,
   renderExpiringOrderCards,
+  renderShippingToggle,
   shouldShowSaleEdit
 } from "./venda-edicao.logic.js"
 import {
@@ -87,6 +88,8 @@ import {
   fetchExpiringOrders,
   confirmOrder,
   returnOrderItems,
+  fetchShippingSettings,
+  saveShippingSettings,
   fetchSellersMonth,
   importProducts,
   listProducts,
@@ -1178,6 +1181,9 @@ const painelDeps = {
   renderExpiringOrderCards,
   confirmOrderPayload,
   returnOrderItemsPayload,
+  fetchShippingSettings,
+  saveShippingSettings,
+  renderShippingToggle,
   saleDialog,
   shouldShowSaleEdit,
   ADMIN_SALE_EDIT_ENABLED,

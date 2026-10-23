@@ -16,6 +16,9 @@ export function installHomeUi(deps) {
     confirmOrderPayload,
     returnOrderItems,
     returnOrderItemsPayload,
+    fetchShippingSettings,
+    saveShippingSettings,
+    renderShippingToggle,
     saleDialog,
     shouldShowSaleEdit,
     ADMIN_SALE_EDIT_ENABLED,
@@ -95,6 +98,14 @@ export function installHomeUi(deps) {
       state.recent = result.ok ? normalizeExpiringOrders(result.data) : null
       state.loadedStatus = normalized
       if (!result.ok) showMessage(result.error || "Não foi possível listar pedidos a vencer.", "error")
+      return state.recent
+    }
+    if (normalized === "a_enviar" || normalized === "retirada") {
+      const result = await fetchRecentSales({ limit: 50, delivery: normalized })
+      if (requestId !== recentRequest) return state.recent
+      state.recent = result.ok ? normalizeRecentSales(result.data) : null
+      state.loadedStatus = normalized
+      if (!result.ok) showMessage(result.error || "Não foi possível listar as vendas.", "error")
       return state.recent
     }
     const queryStatus = normalized === "all" ? undefined : normalized
@@ -343,6 +354,29 @@ export function installHomeUi(deps) {
     bindSaleCards()
   }
 
+  async function bindShippingToggle() {
+    const slot = viewEl.querySelector("#shipping-settings")
+    if (!slot || !fetchShippingSettings || !renderShippingToggle) return
+    const result = await fetchShippingSettings()
+    if (!result.ok) {
+      slot.hidden = true
+      return
+    }
+    slot.hidden = false
+    slot.innerHTML = renderShippingToggle(result.shipping_enabled)
+    slot.querySelector("#shipping-enabled-toggle")?.addEventListener("change", async (event) => {
+      const next = event.target.checked
+      const saved = await saveShippingSettings(next)
+      if (!saved.ok) {
+        event.target.checked = !next
+        showMessage(saved.error || "Não foi possível salvar o envio.", "error")
+        return
+      }
+      event.target.checked = saved.shipping_enabled === true
+      showMessage(saved.shipping_enabled ? "Envio ligado." : "Envio desligado.")
+    })
+  }
+
   function paintVendas() {
     viewEl.classList.remove("view--inicio")
     const confirming = (state.selectedSaleStatus || "all") === "a_confirmar"
@@ -358,6 +392,7 @@ export function installHomeUi(deps) {
     })
     bindSaleCards()
     if (confirming) bindConfirmOrders()
+    void bindShippingToggle()
     viewEl.querySelector("#btn-export-sales-vendas")?.addEventListener("click", () => {
       const csv = generateSalesCsv(state.recent || [])
       const month = state.overview?.month || new Date().toISOString().slice(0, 7)

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acompanhar pedido — Maris Semijoias</title>
+    <link rel="stylesheet" href="/assets/maris-theme.css">
+    <link rel="stylesheet" href="/paginas/catalogo/catalogo.css">
+    <link rel="stylesheet" href="/paginas/catalogo/obrigado.css">
+    <link rel="stylesheet" href="/paginas/catalogo/carrinho.css">
+    <script src="/env.js"></script>
+    <script src="/compartilhado/utils.js"></script>
+    <script src="/compartilhado/api.js"></script>
+    <script src="/compartilhado/ui.js"></script>
+  </head>
+  <body>
+    <main class="obrigado-page">
+      <section class="cart-card obrigado-card">
+        <p class="obrigado-kicker">Maris Semijoias</p>
+        <h1>Acompanhar pedido</h1>
+        <p id="track-status" class="cart-help">Consultando o pedido…</p>
+        <div id="track-items" class="cart-lines"></div>
+        <p id="track-message" class="cart-page-message" hidden></p>
+        <div class="track-actions">
+          <a href="/catalog" class="btn-secondary">Voltar ao catálogo</a>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/paginas/catalogo/pagamento.logic.js"></script>
+    <script type="module" src="/paginas/catalogo/acompanhar.js"></script>
+  </body>
+</html>

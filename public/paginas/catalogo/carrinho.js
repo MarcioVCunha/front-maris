@@ -110,6 +110,8 @@ function renderCart() {
     if (cartCouponRowEl) cartCouponRowEl.hidden = true
     cartTotalEl.textContent = formatMoneyBRL(0)
     if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(0)
+    const freightRow = document.getElementById("cart-freight-row")
+    if (freightRow) freightRow.hidden = true
     if (placeOrderBtn) placeOrderBtn.disabled = true
     if (checkStockBtn) checkStockBtn.disabled = true
     appliedCoupon = null
@@ -163,9 +165,30 @@ function renderCart() {
   }
 
   const finalTotal = Math.max(0, subtotal - couponDiscount)
-  const pixTotal = Math.round(finalTotal * 0.95 * 100) / 100
-  cartTotalEl.textContent = formatMoneyBRL(finalTotal)
-  if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(pixTotal)
+  const selected = shippingState.enabled ? selectedShippingOption() : null
+  const totals = window.MarisFrete
+    ? window.MarisFrete.checkoutTotals({ merchandise: finalTotal, freight: selected ? selected.price : 0 })
+    : { total: finalTotal, pix: Math.round(finalTotal * 0.95 * 100) / 100, freight: 0 }
+  const showFreight = Boolean(selected)
+  const freightRow = document.getElementById("cart-freight-row")
+  const freightEl = document.getElementById("cart-freight")
+  const deadlineEl = document.getElementById("cart-deadline")
+  if (freightRow) freightRow.hidden = !showFreight
+  if (freightEl) freightEl.textContent = formatMoneyBRL(showFreight ? totals.freight : 0)
+  if (deadlineEl) {
+    const days = Number(selected?.deadline_days)
+    const text = !selected
+      ? ""
+      : selected.delivery_type === "retirada"
+        ? "Retirada na loja"
+        : (Number.isFinite(days) && days > 0 ? `Prazo: ${days} dias` : "")
+    deadlineEl.hidden = !text
+    deadlineEl.textContent = text
+  }
+  const hint = document.getElementById("free-ship-hint")
+  if (hint && shippingState.enabled) hint.textContent = window.MarisFrete.freeShippingHint(finalTotal)
+  cartTotalEl.textContent = formatMoneyBRL(showFreight ? totals.total : finalTotal)
+  if (cartPixEl) cartPixEl.textContent = formatMoneyBRL(showFreight ? totals.pix : Math.round(finalTotal * 0.95 * 100) / 100)
 }
 
 async function handleApplyCoupon() {
@@ -258,8 +281,167 @@ async function loadSellers() {
   sellerSelectEl.innerHTML = '<option value="">Sem vendedora</option>' + (data || []).map((s) => `<option value="${window.MarisUI.escapeHtml(s.id)}">${window.MarisUI.escapeHtml(s.name)}</option>`).join("")
 }
 
-function callCreateOrder(functionName, body) {
-  return window.MarisApi.callFunction(window.ENV.fn(functionName), { body })
+function callCreateOrder(functionName, body, extra = {}) {
+  const headers = extra?.token ? { Authorization: `Bearer ${extra.token}` } : undefined
+  return window.MarisApi.callFunction(window.ENV.fn(functionName), { body, headers })
+}
+
+const shippingState = {
+  enabled: false,
+  probed: false,
+  options: [],
+  selectedKey: "",
+  account: { token: "", customer: null, addresses: [] }
+}
+let orderDepth = 0
+
+function selectedShippingOption() {
+  if (!window.MarisFrete) return null
+  return shippingState.options.find((item) => window.MarisFrete.optionKey(item) === shippingState.selectedKey) || null
+}
+
+function setShipMessage(text, type = "") {
+  const el = document.getElementById("ship-quote-msg")
+  window.MarisUI.setFeedback(el, text, type, { baseClass: "cart-page-message" })
+}
+
+function paintShippingBlock() {
+  const block = document.getElementById("shipping-block")
+  if (block) block.hidden = !shippingState.enabled
+}
+
+function readShipTo() {
+  return {
+    cep: document.getElementById("ship-cep")?.value || "",
+    rua: document.getElementById("ship-rua")?.value || "",
+    numero: document.getElementById("ship-numero")?.value || "",
+    complemento: document.getElementById("ship-complemento")?.value || "",
+    bairro: document.getElementById("ship-bairro")?.value || "",
+    cidade: document.getElementById("ship-cidade")?.value || "",
+    uf: document.getElementById("ship-uf")?.value || ""
+  }
+}
+
+function applySavedAddress(address) {
+  if (!address) return
+  const cep = document.getElementById("ship-cep")
+  if (cep) cep.value = window.MarisFrete?.formatCep(address.cep) || address.cep || ""
+  const fields = ["rua", "numero", "complemento", "bairro", "cidade", "uf"]
+  for (const field of fields) {
+    const input = document.getElementById(`ship-${field}`)
+    if (input) input.value = address[field] || ""
+  }
+}
+
+function paintSavedAddresses() {
+  const select = document.getElementById("ship-saved")
+  const addresses = shippingState.account?.addresses || []
+  if (!select) return
+  select.hidden = !addresses.length
+  select.innerHTML = `<option value="">Outro endereço</option>${addresses.map((item, index) => {
+    const label = [item.rua, item.numero, item.cidade].filter(Boolean).join(", ")
+    return `<option value="${index}">${window.MarisUI.escapeHtml(label || "Endereço")}</option>`
+  }).join("")}`
+  const preferred = addresses.findIndex((item) => item.isDefault || item.is_default)
+  if (preferred >= 0) {
+    select.value = String(preferred)
+    applySavedAddress(addresses[preferred])
+  }
+}
+
+function paintDeliveryPanels() {
+  const option = selectedShippingOption()
+  const guest = document.getElementById("ship-guest")
+  const address = document.getElementById("ship-address")
+  const loginBox = document.getElementById("ship-login")
+  const loginLink = document.getElementById("ship-login-link")
+  const cpfLink = document.getElementById("ship-cpf-link")
+  const customer = shippingState.account?.customer
+  const cpf = String(customer?.cpf || "").replace(/\D/g, "")
+  if (guest) guest.hidden = option?.delivery_type !== "retirada"
+  if (address) address.hidden = option?.delivery_type !== "envio"
+  const needsLogin = option?.delivery_type === "envio" && !shippingState.account?.token
+  const needsCpf = option?.delivery_type === "envio" && Boolean(shippingState.account?.token) && cpf.length !== 11
+  if (loginBox) loginBox.hidden = !needsLogin && !needsCpf
+  if (loginLink) loginLink.hidden = !needsLogin
+  if (cpfLink) cpfLink.hidden = !needsCpf
+  if (option?.delivery_type === "envio" && customer) {
+    if (buyerNameEl && !buyerNameEl.value && customer.name) buyerNameEl.value = customer.name
+    if (buyerWhatsappEl && !buyerWhatsappEl.value && customer.whatsapp) {
+      buyerWhatsappEl.value = formatWhatsappMask(customer.whatsapp)
+    }
+  }
+}
+
+function paintShippingOptions() {
+  const slot = document.getElementById("ship-options")
+  if (!slot || !window.MarisFrete) return
+  slot.innerHTML = window.MarisFrete.renderShippingOptions(shippingState.options, shippingState.selectedKey)
+  slot.querySelectorAll('input[name="ship-option"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      shippingState.selectedKey = input.value
+      paintDeliveryPanels()
+      renderCart()
+    })
+  })
+  paintDeliveryPanels()
+}
+
+async function quoteShipping({ probe = false } = {}) {
+  if (!window.MarisFrete || !window.MarisCatalogCart.getItems().length) return
+  const cep = probe ? "01310100" : (document.getElementById("ship-cep")?.value || "")
+  if (!probe && !window.MarisFrete.isValidCep(cep)) {
+    setShipMessage("Informe um CEP válido.", "error")
+    return
+  }
+  if (!probe) setShipMessage("Calculando frete…")
+  let result
+  try {
+    const body = window.MarisFrete.buildShippingQuoteBody({
+      cep,
+      items: window.MarisCatalogCart.getItems()
+    })
+    result = await window.MarisApi.callFunction(window.ENV.fn(window.MarisFrete.SHIPPING_QUOTE_FUNCTION), { body })
+  } catch {
+    result = { ok: false, status: 0, data: {} }
+  }
+  const parsed = window.MarisFrete.interpretShippingQuote(result)
+  shippingState.probed = true
+  if (parsed.kind === "off") {
+    shippingState.enabled = false
+    shippingState.options = []
+    shippingState.selectedKey = ""
+    paintShippingBlock()
+    renderCart()
+    return
+  }
+  shippingState.enabled = true
+  paintShippingBlock()
+  const hint = document.getElementById("free-ship-hint")
+  if (hint) hint.textContent = window.MarisFrete.freeShippingHint(0)
+  if (probe) {
+    setShipMessage("")
+    renderCart()
+    return
+  }
+  if (parsed.kind === "error") {
+    setShipMessage(parsed.error, "error")
+    return
+  }
+  shippingState.options = parsed.options
+  if (!shippingState.options.some((item) => window.MarisFrete.optionKey(item) === shippingState.selectedKey)) {
+    shippingState.selectedKey = ""
+  }
+  paintShippingOptions()
+  setShipMessage(parsed.warning || "")
+  if (!readShipTo().rua && window.MarisFreteConta?.lookupCep) {
+    const found = await window.MarisFreteConta.lookupCep(cep)
+    if (found?.ok && found.address) {
+      const current = readShipTo()
+      applySavedAddress(window.MarisFreteConta.applyCepResult(current, found.address))
+    }
+  }
+  renderCart()
 }
 
 function setPayMessage(text, type = "", target = orderPayMessageEl) {
@@ -319,6 +501,28 @@ function renderOrderConfirmation(order) {
   }
   if (totalEl) totalEl.textContent = order.total == null ? "—" : formatMoneyBRL(order.total)
   if (pixEl) pixEl.textContent = order.totalPix == null ? "—" : formatMoneyBRL(order.totalPix)
+  const orderFreightRow = document.getElementById("order-freight-row")
+  const orderFreight = document.getElementById("order-freight")
+  const orderDeadline = document.getElementById("order-deadline")
+  const hasDelivery = order.deliveryType === "envio" || order.deliveryType === "retirada"
+  if (orderFreightRow) orderFreightRow.hidden = !hasDelivery
+  if (orderFreight) orderFreight.textContent = order.shippingCost == null ? "—" : formatMoneyBRL(order.shippingCost)
+  if (orderDeadline) {
+    const text = order.deliveryType === "retirada"
+      ? "Retirada na loja"
+      : [order.shippingService, order.shippingDeadlineDays ? `${order.shippingDeadlineDays} dias` : ""].filter(Boolean).join(" · ")
+    orderDeadline.hidden = !text
+    orderDeadline.textContent = text
+  }
+  const track = document.getElementById("order-track")
+  const trackLink = document.getElementById("order-track-link")
+  const trackPath = window.MarisFrete?.trackingPath(order.publicToken)
+  if (track && trackLink && trackPath) {
+    track.hidden = false
+    trackLink.href = trackPath
+  } else if (track) {
+    track.hidden = true
+  }
   setPayMessage("")
   if (payInfinitePayBtn) payInfinitePayBtn.disabled = !order.orderId
   setActiveStep(3)
@@ -368,24 +572,73 @@ function showStockIssues(result) {
   renderCart()
 }
 
-async function placeOrder(dryRun, { afterConfirm = "none" } = {}) {
+async function placeOrder(dryRun, { afterConfirm = "none", freightRetry = false } = {}) {
   setMessage("")
   setPayMessage("", "", checkoutPayMessageEl)
   if (!pendingRequestId) pendingRequestId = window.MarisPedido.newClientRequestId()
   const button = dryRun ? checkStockBtn : placeOrderBtn
   if (button) button.disabled = true
+  orderDepth += 1
   try {
+    let shippingFields = {}
+    let customerToken = ""
+    if (shippingState.enabled && window.MarisFrete && !dryRun) {
+      const option = selectedShippingOption()
+      const customer = shippingState.account?.customer
+      const built = window.MarisFrete.buildShippingOrderInput({
+        enabled: true,
+        deliveryType: option?.delivery_type || "",
+        termsAccepted: document.getElementById("ship-terms")?.checked === true,
+        email: document.getElementById("ship-email")?.value || customer?.email || "",
+        hasLogin: Boolean(shippingState.account?.token),
+        cpf: customer?.cpf || "",
+        whatsapp: customer?.whatsapp || buyerWhatsappEl?.value || "",
+        serviceId: option?.service_id,
+        priceSeen: option?.price,
+        shipTo: readShipTo()
+      })
+      if (!built.ok) {
+        setPayMessage(built.error, "error", checkoutPayMessageEl)
+        return
+      }
+      shippingFields = built.fields
+      if (built.fields.deliveryType === "envio") customerToken = shippingState.account?.token || ""
+    }
     const result = await window.MarisPedido.submitCreateOrder(callCreateOrder, {
       clientRequestId: pendingRequestId,
-      name: buyerNameEl?.value || "",
-      whatsapp: buyerWhatsappEl?.value || "",
+      name: buyerNameEl?.value || shippingState.account?.customer?.name || "",
+      whatsapp: buyerWhatsappEl?.value || shippingState.account?.customer?.whatsapp || "",
       sellerId: sellerSelectEl?.value || "",
       couponCode: appliedCoupon?.code || "",
       items: window.MarisCatalogCart.getItems(),
       dryRun,
-      website: websiteEl?.value || ""
+      website: websiteEl?.value || "",
+      customerToken,
+      ...shippingFields
     })
     if (result.kind === "disabled") return
+    if (result.kind === "freight") {
+      const option = selectedShippingOption()
+      if (option && result.shippingCost != null) option.price = result.shippingCost
+      if (option && result.shippingServiceId != null) {
+        option.service_id = result.shippingServiceId
+        shippingState.selectedKey = window.MarisFrete.optionKey(option)
+      }
+      if (Array.isArray(result.options) && result.options.length && window.MarisFrete) {
+        shippingState.options = result.options.map(window.MarisFrete.normalizeShippingOption)
+        const match = shippingState.options.find((item) => String(item.service_id) === String(result.shippingServiceId))
+        if (match) shippingState.selectedKey = window.MarisFrete.optionKey(match)
+      }
+      paintShippingOptions()
+      renderCart()
+      const price = window.MarisFrete?.formatBrl(result.shippingCost) || ""
+      if (freightRetry || !window.confirm(`O frete mudou para ${price}. Confirmar o novo valor?`)) {
+        setPayMessage(result.error || "O frete mudou. Confira o novo valor.", "error", checkoutPayMessageEl)
+        return
+      }
+      await placeOrder(dryRun, { afterConfirm, freightRetry: true })
+      return
+    }
     if (result.kind === "error") {
       setMessage(result.error, "error")
       setPayMessage(result.error, "error", checkoutPayMessageEl)
@@ -424,6 +677,8 @@ async function placeOrder(dryRun, { afterConfirm = "none" } = {}) {
       renderOrderConfirmation(result.order)
     }
   } finally {
+    orderDepth -= 1
+    if (orderDepth > 0) return
     if (payingInProgress) return
     if (!button || orderConfirmed) return
     const hasItems = Boolean(window.MarisCatalogCart.getItems().length)
@@ -475,6 +730,19 @@ if (buyerWhatsappEl) {
   buyerWhatsappEl.addEventListener("blur", saveBuyer)
 }
 if (checkStockBtn) checkStockBtn.addEventListener("click", checkStock)
+document.getElementById("ship-quote-btn")?.addEventListener("click", () => { void quoteShipping() })
+document.getElementById("ship-cep")?.addEventListener("input", (event) => {
+  event.target.value = window.MarisFrete?.formatCep(event.target.value) || event.target.value
+})
+document.getElementById("ship-saved")?.addEventListener("change", (event) => {
+  const index = Number(event.target.value)
+  const address = shippingState.account?.addresses?.[index]
+  if (address) {
+    applySavedAddress(address)
+    void quoteShipping()
+  }
+})
+
 if (placeOrderBtn) placeOrderBtn.addEventListener("click", submitPay)
 if (payInfinitePayBtn) {
   payInfinitePayBtn.addEventListener("click", () => {
@@ -511,6 +779,9 @@ if (buyerForgetEl) buyerForgetEl.addEventListener("click", forgetBuyer)
       buyerWhatsappEl.value = formatWhatsappMask(buyer.whatsapp || "")
     }
     renderCart()
+    shippingState.account = await window.MarisFreteConta?.loadShippingAccount?.() || shippingState.account
+    paintSavedAddresses()
+    if (window.MarisCatalogCart.getItems().length) await quoteShipping({ probe: true })
   } catch (error) {
     console.error(error)
     renderCart()

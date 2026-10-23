@@ -139,6 +139,25 @@ export function interpretOrderStatusResponse(result) {
   }
 }
 
+export function interpretTrackingResponse(result) {
+  const data = result?.data && typeof result.data === "object" ? result.data : {}
+  if (result?.status === 404) {
+    return { kind: "error", error: data.error || "Pedido não encontrado." }
+  }
+  if (!result?.ok || data.ok === false) {
+    return { kind: "error", error: data.error || "Não foi possível consultar o pedido." }
+  }
+  const status = String(data.status || "").trim()
+  if (!status) return { kind: "error", error: "O status do pedido não voltou." }
+  const items = (Array.isArray(data.items) ? data.items : []).map((item) => ({
+    code: String(item?.code || ""),
+    name: String(item?.name || ""),
+    quantity: Number(item?.quantity) || 0,
+    status: String(item?.status || "")
+  }))
+  return { kind: "ok", status, statusLabel: statusLabel(status), items }
+}
+
 export async function submitOrderStatus(callFunction, orderId) {
   const id = numberOrNull(orderId)
   if (id == null || id <= 0 || !Number.isInteger(id)) {
@@ -206,6 +225,7 @@ export const MarisPagamento = {
   parseObrigadoQuery,
   inferStatusFromReturn,
   interpretOrderStatusResponse,
+  interpretTrackingResponse,
   submitOrderStatus,
   orderStatusPageState,
   buildOrderWhatsappMessage

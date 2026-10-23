@@ -20,6 +20,7 @@ export const ADMIN_DASHBOARD_API = {
   expiringOrders: "list-expiring-orders",
   orderConfirm: "confirm-order",
   orderReturnItems: "return-order-items",
+  shippingSettings: "admin-shipping-settings",
   collectionList: "admin-collection-list",
   collectionSave: "admin-collection-save",
   collectionDelete: "admin-collection-delete",
@@ -208,10 +209,11 @@ export async function setMonthlyGoal(goal, client) {
  * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }
  * (chips/foto no Início). Ver docs/contratos/painel-venda-edicao.md.
  */
-export async function fetchRecentSales({ limit = 20, channel, status } = {}, client) {
+export async function fetchRecentSales({ limit = 20, channel, status, delivery } = {}, client) {
   const query = { limit }
   if (channel) query.p_channel = channel
   if (status) query.status = status
+  if (delivery) query.delivery = delivery
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {
     method: "GET",
     query
@@ -278,6 +280,25 @@ export async function confirmOrder(body, client) {
  * POST return-order-items — { order_id, item_ids, restore_stock?, reason? }.
  * restore_stock true devolve a peça ao estoque. Permissão orders.return.
  */
+/**
+ * GET admin-shipping-settings → { ok, shipping_enabled }
+ * POST { shipping_enabled } → { ok, shipping_enabled }. Vendedora: 403.
+ */
+export async function fetchShippingSettings(client) {
+  const result = await call(ADMIN_DASHBOARD_API.shippingSettings, { method: "GET" }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível ler o envio.")
+  return { ok: true, shipping_enabled: result.data?.shipping_enabled === true }
+}
+
+export async function saveShippingSettings(enabled, client) {
+  const result = await call(ADMIN_DASHBOARD_API.shippingSettings, {
+    method: "POST",
+    body: { shipping_enabled: enabled === true }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar o envio.")
+  return { ok: true, shipping_enabled: result.data?.shipping_enabled === true }
+}
+
 export async function returnOrderItems(body, client) {
   const result = await call(ADMIN_DASHBOARD_API.orderReturnItems, { method: "POST", body }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível devolver a peça.")

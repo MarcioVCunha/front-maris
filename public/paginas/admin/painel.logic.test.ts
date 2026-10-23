@@ -485,6 +485,10 @@ Deno.test("início, vendas e vendedoras mostram o mês ou sem dados ainda", () =
   assert(statusFilterHtml.includes("Canceladas"))
   assert(statusFilterHtml.includes("A confirmar"))
   assert(statusFilterHtml.includes('data-status="a_confirmar"'))
+  assert(statusFilterHtml.includes("A enviar"))
+  assert(statusFilterHtml.includes("Retirada"))
+  assert(statusFilterHtml.includes('data-status="a_enviar"'))
+  assert(statusFilterHtml.includes('data-status="retirada"'))
   assert(statusFilterHtml.includes('data-status="receivable" role="tab" aria-selected="true"'))
 
   const filteredVendas = renderVendas([
