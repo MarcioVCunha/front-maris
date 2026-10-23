@@ -1166,7 +1166,8 @@
 }
 
 .sale-confirm-btn,
-.sale-return-btn {
+.sale-return-btn,
+.sale-label-btn {
   width: auto;
   flex: 0 0 auto;
   margin: 0;
@@ -1215,6 +1216,27 @@
 
 .ship-settings-card {
   margin: 0 0 12px;
+}
+
+.ship-settings-row,
+.sale-label-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: auto;
+}
+
+.sale-label-actions {
+  margin: 0 0 12px;
+}
+
+.sale-label-btn {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 14px;
 }
 
 .ship-settings {

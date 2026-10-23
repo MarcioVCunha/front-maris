@@ -9,6 +9,7 @@ import {
   inferStatusFromReturn,
   interpretOrderStatusResponse,
   interpretTrackingResponse,
+  trackingNotice,
   orderStatusPageState,
   interpretPaymentCreateLinkResponse,
   parseObrigadoQuery,
@@ -138,8 +139,31 @@ Deno.test("interpretOrderStatusResponse e mensagem WhatsApp", () => {
       statusLabel: "Pago",
       total: 100,
       totalPix: 95,
-      reservedUntil: null
+      reservedUntil: null,
+      trackingCode: "",
+      trackingUrl: "",
+      shippedAt: null
     }
+  )
+  assertEquals(trackingNotice({
+    tracking_url: "https://rastreio.exemplo/abc",
+    shipped_at: "2026-10-23T15:00:00.000Z",
+  }), { url: "https://rastreio.exemplo/abc", text: "Enviado em 23/10 · Rastrear" })
+  assertEquals(trackingNotice({ tracking_url: "javascript:alert(1)" }), null)
+  assertEquals(
+    interpretTrackingResponse({
+      ok: true,
+      status: 200,
+      data: {
+        ok: true,
+        status: "pago",
+        tracking_code: "ME1",
+        tracking_url: "https://rastreio.exemplo/ME1",
+        shipped_at: "2026-10-23T15:00:00.000Z",
+        items: [],
+      },
+    }).trackingUrl,
+    "https://rastreio.exemplo/ME1"
   )
   assertEquals(
     orderStatusPageState({ kind: "error", error: "Não foi possível consultar o pedido." }, "a_confirmar"),

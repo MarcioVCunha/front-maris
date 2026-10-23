@@ -60,6 +60,17 @@
   gap: 10px;
 }
 
+.obrigado-tracking {
+  margin: 8px 0 0;
+}
+
+.obrigado-tracking .track-link {
+  display: inline-flex;
+  width: auto;
+  align-self: flex-start;
+  font-weight: 700;
+}
+
 .obrigado-actions .btn-primary,
 .obrigado-actions .btn-secondary {
   width: 100%;

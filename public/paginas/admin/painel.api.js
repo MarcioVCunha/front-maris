@@ -21,6 +21,8 @@ export const ADMIN_DASHBOARD_API = {
   orderConfirm: "confirm-order",
   orderReturnItems: "return-order-items",
   shippingSettings: "admin-shipping-settings",
+  shippingLabel: "admin-shipping-label",
+  shippingTrackingSync: "admin-shipping-tracking-sync",
   collectionList: "admin-collection-list",
   collectionSave: "admin-collection-save",
   collectionDelete: "admin-collection-delete",
@@ -281,13 +283,18 @@ export async function confirmOrder(body, client) {
  * restore_stock true devolve a peça ao estoque. Permissão orders.return.
  */
 /**
- * GET admin-shipping-settings → { ok, shipping_enabled }
- * POST { shipping_enabled } → { ok, shipping_enabled }. Vendedora: 403.
+ * GET admin-shipping-settings → { ok, shipping_enabled, labels_enabled }
+ * POST aceita { shipping_enabled? , labels_enabled? }. Vendedora: 403.
+ * Etiquetas: back-maris PR #59. Flag labels_enabled começa desligada.
  */
 export async function fetchShippingSettings(client) {
   const result = await call(ADMIN_DASHBOARD_API.shippingSettings, { method: "GET" }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível ler o envio.")
-  return { ok: true, shipping_enabled: result.data?.shipping_enabled === true }
+  return {
+    ok: true,
+    shipping_enabled: result.data?.shipping_enabled === true,
+    labels_enabled: result.data?.labels_enabled === true
+  }
 }
 
 export async function saveShippingSettings(enabled, client) {
@@ -296,7 +303,82 @@ export async function saveShippingSettings(enabled, client) {
     body: { shipping_enabled: enabled === true }
   }, client)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar o envio.")
-  return { ok: true, shipping_enabled: result.data?.shipping_enabled === true }
+  return {
+    ok: true,
+    shipping_enabled: result.data?.shipping_enabled === true,
+    labels_enabled: result.data?.labels_enabled === true
+  }
+}
+
+export async function saveLabelsEnabled(enabled, client) {
+  const result = await call(ADMIN_DASHBOARD_API.shippingSettings, {
+    method: "POST",
+    body: { labels_enabled: enabled === true }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível salvar as etiquetas.")
+  return {
+    ok: true,
+    shipping_enabled: result.data?.shipping_enabled === true,
+    labels_enabled: result.data?.labels_enabled === true
+  }
+}
+
+function labelCallFailed(result) {
+  return {
+    ok: false,
+    status: result?.status || 0,
+    error: result?.data?.error || "",
+    label_status: result?.data?.label_status || "",
+    field: result?.data?.field || ""
+  }
+}
+
+/** POST admin-shipping-label { order_id, action:"create" }. */
+export async function createShippingLabel(orderId, client) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, status: 0, error: "Pedido inválido." }
+  const result = await call(ADMIN_DASHBOARD_API.shippingLabel, {
+    method: "POST",
+    body: { order_id: id, action: "create" }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return labelCallFailed(result)
+  return {
+    ok: true,
+    order_id: result.data?.order_id,
+    label_status: result.data?.label_status || "generated",
+    me_order_id: result.data?.me_order_id ?? ""
+  }
+}
+
+/** POST admin-shipping-label { order_id, action:"print" }. */
+export async function printShippingLabel(orderId, client) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, status: 0, error: "Pedido inválido." }
+  const result = await call(ADMIN_DASHBOARD_API.shippingLabel, {
+    method: "POST",
+    body: { order_id: id, action: "print" }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return labelCallFailed(result)
+  return {
+    ok: true,
+    order_id: result.data?.order_id,
+    label_url: String(result.data?.label_url || "")
+  }
+}
+
+/** POST admin-shipping-tracking-sync { order_id }. */
+export async function syncShippingTracking(orderId, client) {
+  const id = Number(orderId)
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, status: 0, error: "Pedido inválido." }
+  const result = await call(ADMIN_DASHBOARD_API.shippingTrackingSync, {
+    method: "POST",
+    body: { order_id: id }
+  }, client)
+  if (!result?.ok || result.data?.ok === false) return labelCallFailed(result)
+  return {
+    ok: true,
+    updated: Array.isArray(result.data?.updated) ? result.data.updated : []
+  }
 }
 
 export async function returnOrderItems(body, client) {

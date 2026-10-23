@@ -64,6 +64,8 @@ import {
   normalizeExpiringOrders,
   renderExpiringOrderCards,
   renderShippingToggle,
+  LABEL_CONFIRM,
+  labelErrorMessage,
   shouldShowSaleEdit
 } from "./venda-edicao.logic.js"
 import {
@@ -90,6 +92,10 @@ import {
   returnOrderItems,
   fetchShippingSettings,
   saveShippingSettings,
+  saveLabelsEnabled,
+  createShippingLabel,
+  printShippingLabel,
+  syncShippingTracking,
   fetchSellersMonth,
   importProducts,
   listProducts,
@@ -1183,7 +1189,13 @@ const painelDeps = {
   returnOrderItemsPayload,
   fetchShippingSettings,
   saveShippingSettings,
+  saveLabelsEnabled,
+  createShippingLabel,
+  printShippingLabel,
+  syncShippingTracking,
   renderShippingToggle,
+  labelErrorMessage,
+  LABEL_CONFIRM,
   saleDialog,
   shouldShowSaleEdit,
   ADMIN_SALE_EDIT_ENABLED,

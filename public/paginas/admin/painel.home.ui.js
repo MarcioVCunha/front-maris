@@ -18,7 +18,13 @@ export function installHomeUi(deps) {
     returnOrderItemsPayload,
     fetchShippingSettings,
     saveShippingSettings,
+    saveLabelsEnabled,
+    createShippingLabel,
+    printShippingLabel,
+    syncShippingTracking,
     renderShippingToggle,
+    labelErrorMessage,
+    LABEL_CONFIRM,
     saleDialog,
     shouldShowSaleEdit,
     ADMIN_SALE_EDIT_ENABLED,
@@ -136,8 +142,105 @@ export function installHomeUi(deps) {
     </div>`
   }
 
+  function paintSaleDialog(row) {
+    saleDialog.innerHTML = renderSaleEditDialog(row, formatPrice, {
+      enabled: ADMIN_SALE_EDIT_ENABLED,
+      labelsEnabled: state.labelsEnabled === true
+    })
+    bindSaleEditActions(row)
+  }
+
+  async function ensureLabelFlag() {
+    if (state.labelsEnabled !== undefined) return state.labelsEnabled === true
+    if (!fetchShippingSettings) {
+      state.labelsEnabled = false
+      return false
+    }
+    const result = await fetchShippingSettings()
+    state.labelsEnabled = result.ok && result.labels_enabled === true
+    return state.labelsEnabled
+  }
+
+  async function reloadSale(orderId) {
+    const loaded = await fetchAdminSale({ orderId })
+    if (!loaded.ok) return null
+    return normalizeAdminSale(loaded.data)
+  }
+
   function bindSaleEditActions(sale) {
     saleDialog.querySelector("#sale-edit-close")?.addEventListener("click", () => saleDialog.close())
+    saleDialog.querySelector("#sale-label-create")?.addEventListener("click", async (event) => {
+      const btn = event.currentTarget
+      if (!window.confirm(LABEL_CONFIRM)) return
+      btn.disabled = true
+      const result = await createShippingLabel(sale.id)
+      if (!result.ok) {
+        showMessage(labelErrorMessage(result), "error")
+        if (result.status === 403) {
+          state.labelsEnabled = false
+          paintSaleDialog(sale)
+          return
+        }
+        if (result.status === 409) {
+          const fresh = await reloadSale(sale.id)
+          paintSaleDialog(fresh || { ...sale, label_status: result.label_status || "generated" })
+          return
+        }
+        btn.disabled = false
+        return
+      }
+      showMessage("Etiqueta gerada.")
+      const fresh = await reloadSale(sale.id)
+      paintSaleDialog(fresh || {
+        ...sale,
+        label_status: result.label_status || "generated",
+        me_order_id: result.me_order_id || sale.me_order_id
+      })
+    })
+    saleDialog.querySelector("#sale-label-print")?.addEventListener("click", async (event) => {
+      const btn = event.currentTarget
+      const tab = window.open("about:blank", "_blank")
+      btn.disabled = true
+      const result = await printShippingLabel(sale.id)
+      btn.disabled = false
+      const url = String(result.label_url || "")
+      if (!result.ok || !/^https:\/\//i.test(url)) {
+        tab?.close()
+        showMessage(result.ok ? "Não foi possível abrir a etiqueta." : labelErrorMessage(result), "error")
+        return
+      }
+      if (tab) {
+        tab.opener = null
+        tab.location.href = url
+      } else {
+        window.open(url, "_blank", "noopener")
+      }
+      showMessage("Etiqueta pronta.")
+    })
+    saleDialog.querySelector("#sale-label-sync")?.addEventListener("click", async (event) => {
+      const btn = event.currentTarget
+      btn.disabled = true
+      const result = await syncShippingTracking(sale.id)
+      if (!result.ok) {
+        showMessage(labelErrorMessage(result), "error")
+        if (result.status === 403) {
+          state.labelsEnabled = false
+          paintSaleDialog(sale)
+          return
+        }
+        btn.disabled = false
+        return
+      }
+      const row = (result.updated || []).find((item) => String(item.order_id) === String(sale.id)) || result.updated?.[0]
+      const fresh = await reloadSale(sale.id)
+      showMessage("Rastreio atualizado.")
+      paintSaleDialog(fresh || {
+        ...sale,
+        tracking_code: row?.tracking_code || sale.tracking_code,
+        shipped_at: row?.shipped_at || sale.shipped_at,
+        delivered_at: row?.delivered_at || sale.delivered_at
+      })
+    })
     saleDialog.querySelectorAll("[data-return-item]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const itemId = Number(btn.getAttribute("data-return-item"))
@@ -162,8 +265,7 @@ export function installHomeUi(deps) {
         if (loaded.ok) {
           const normalized = normalizeAdminSale(loaded.data)
           if (normalized) {
-            saleDialog.innerHTML = renderSaleEditDialog(normalized, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
-            bindSaleEditActions(normalized)
+            paintSaleDialog(normalized)
             return
           }
         }
@@ -226,20 +328,16 @@ export function installHomeUi(deps) {
 
   async function openSaleDialog(sale) {
     if (!saleDialog || !sale) return
+    await ensureLabelFlag()
     let detail = sale
-    saleDialog.innerHTML = renderSaleEditDialog(detail, formatPrice, { enabled: ADMIN_SALE_EDIT_ENABLED })
+    paintSaleDialog(detail)
     if (!saleDialog.open) saleDialog.showModal()
-    bindSaleEditActions(detail)
 
     if (shouldShowSaleEdit(ADMIN_SALE_EDIT_ENABLED)) {
-      const loaded = await fetchAdminSale({ orderId: sale.id })
-      if (loaded.ok) {
-        const normalized = normalizeAdminSale(loaded.data)
-        if (normalized) {
-          detail = normalized
-          saleDialog.innerHTML = renderSaleEditDialog(detail, formatPrice, { enabled: true })
-          bindSaleEditActions(detail)
-        }
+      const normalized = await reloadSale(sale.id)
+      if (normalized) {
+        detail = normalized
+        paintSaleDialog(detail)
       }
     }
   }
@@ -363,7 +461,8 @@ export function installHomeUi(deps) {
       return
     }
     slot.hidden = false
-    slot.innerHTML = renderShippingToggle(result.shipping_enabled)
+    state.labelsEnabled = result.labels_enabled === true
+    slot.innerHTML = renderShippingToggle(result.shipping_enabled, result.labels_enabled)
     slot.querySelector("#shipping-enabled-toggle")?.addEventListener("change", async (event) => {
       const next = event.target.checked
       const saved = await saveShippingSettings(next)
@@ -374,6 +473,18 @@ export function installHomeUi(deps) {
       }
       event.target.checked = saved.shipping_enabled === true
       showMessage(saved.shipping_enabled ? "Envio ligado." : "Envio desligado.")
+    })
+    slot.querySelector("#labels-enabled-toggle")?.addEventListener("change", async (event) => {
+      const next = event.target.checked
+      const saved = await saveLabelsEnabled(next)
+      if (!saved.ok) {
+        event.target.checked = !next
+        showMessage(saved.error || "Não foi possível salvar as etiquetas.", "error")
+        return
+      }
+      state.labelsEnabled = saved.labels_enabled === true
+      event.target.checked = state.labelsEnabled
+      showMessage(state.labelsEnabled ? "Etiquetas ligadas." : "Etiquetas desligadas.")
     })
   }
 

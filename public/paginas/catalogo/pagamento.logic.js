@@ -135,7 +135,47 @@ export function interpretOrderStatusResponse(result) {
     statusLabel: statusLabel(status),
     total: numberOrNull(data.total),
     totalPix: numberOrNull(data.total_pix),
-    reservedUntil: data.reserved_until || null
+    reservedUntil: data.reserved_until || null,
+    ...trackingFields(data)
+  }
+}
+
+export function formatShippedDay(value) {
+  const text = String(value || "").trim()
+  if (!text) return ""
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}`
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return ""
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit"
+  }).format(date)
+}
+
+function trackingFields(data) {
+  return {
+    trackingCode: String(data?.tracking_code || ""),
+    trackingUrl: safeTrackingUrl(data?.tracking_url),
+    shippedAt: data?.shipped_at || null
+  }
+}
+
+function safeTrackingUrl(value) {
+  const url = String(value || "").trim()
+  if (!/^https?:\/\//i.test(url)) return ""
+  return url
+}
+
+/** "Enviado em dd/mm · Rastrear" só quando há link de rastreio. */
+export function trackingNotice(data) {
+  const url = safeTrackingUrl(data?.trackingUrl || data?.tracking_url)
+  if (!url) return null
+  const day = formatShippedDay(data?.shippedAt || data?.shipped_at)
+  return {
+    url,
+    text: day ? `Enviado em ${day} · Rastrear` : "Rastrear"
   }
 }
 
@@ -155,7 +195,7 @@ export function interpretTrackingResponse(result) {
     quantity: Number(item?.quantity) || 0,
     status: String(item?.status || "")
   }))
-  return { kind: "ok", status, statusLabel: statusLabel(status), items }
+  return { kind: "ok", status, statusLabel: statusLabel(status), items, ...trackingFields(data) }
 }
 
 export async function submitOrderStatus(callFunction, orderId) {
@@ -226,6 +266,8 @@ export const MarisPagamento = {
   inferStatusFromReturn,
   interpretOrderStatusResponse,
   interpretTrackingResponse,
+  formatShippedDay,
+  trackingNotice,
   submitOrderStatus,
   orderStatusPageState,
   buildOrderWhatsappMessage
