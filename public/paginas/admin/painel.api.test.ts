@@ -11,6 +11,8 @@ import {
   fetchExpiringOrders,
   confirmOrder,
   returnOrderItems,
+  fetchShippingSettings,
+  saveShippingSettings,
   fetchSellersMonth,
   importProducts,
   listProducts,
@@ -65,6 +67,7 @@ Deno.test("os nomes das funções do painel ficam num só lugar", async () => {
   assertEquals(ADMIN_DASHBOARD_API.expiringOrders, "list-expiring-orders")
   assertEquals(ADMIN_DASHBOARD_API.orderConfirm, "confirm-order")
   assertEquals(ADMIN_DASHBOARD_API.orderReturnItems, "return-order-items")
+  assertEquals(ADMIN_DASHBOARD_API.shippingSettings, "admin-shipping-settings")
   assertEquals(ADMIN_DASHBOARD_API.collectionList, "admin-collection-list")
   assertEquals(ADMIN_DASHBOARD_API.collectionSave, "admin-collection-save")
   assertEquals(ADMIN_DASHBOARD_API.collectionDelete, "admin-collection-delete")
@@ -193,6 +196,20 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   await returnOrderItems({ order_id: 12, item_ids: [7], restore_stock: true }, returned)
   assertEquals(returned.calls[0].name, "return-order-items")
   assertEquals(returned.calls[0].options.body, { order_id: 12, item_ids: [7], restore_stock: true })
+
+  const delivery = client({ ok: true, sales: [] })
+  await fetchRecentSales({ limit: 50, delivery: "a_enviar" }, delivery)
+  assertEquals(delivery.calls[0].options.query, { limit: 50, delivery: "a_enviar" })
+
+  const settings = client({ ok: true, shipping_enabled: false })
+  const read = await fetchShippingSettings(settings)
+  assertEquals(read.shipping_enabled, false)
+  assertEquals(settings.calls[0].name, "admin-shipping-settings")
+  assertEquals(settings.calls[0].options.method, "GET")
+  const shippingSaved = client({ ok: true, shipping_enabled: true })
+  const write = await saveShippingSettings(true, shippingSaved)
+  assertEquals(write.shipping_enabled, true)
+  assertEquals(shippingSaved.calls[0].options.body, { shipping_enabled: true })
 
   const sellers = client({ ok: true, sellers: [{ seller_id: 2, name: "Marineide", balance: 0 }] })
   const team = await fetchSellersMonth({ month: "2026-10" }, sellers)

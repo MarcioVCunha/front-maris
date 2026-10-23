@@ -107,6 +107,11 @@
           <span id="cart-coupon-label">Desconto</span>
           <strong id="cart-coupon-discount">-R$ 0,00</strong>
         </div>
+        <div id="cart-freight-row" class="cart-summary" hidden>
+          <span>Frete</span>
+          <strong id="cart-freight">R$ 0,00</strong>
+        </div>
+        <p id="cart-deadline" class="cart-help" hidden></p>
         <div class="cart-summary">
           <span>Total</span>
           <strong id="cart-total">R$ 0,00</strong>
@@ -118,6 +123,45 @@
       </section>
 
       <div class="cart-checkout-column">
+        <section id="shipping-block" class="cart-card cart-card--shipping" hidden>
+          <h2>Entrega</h2>
+          <p id="free-ship-hint" class="cart-help"></p>
+          <div class="ship-cep-row">
+            <label for="ship-cep">CEP</label>
+            <input id="ship-cep" inputmode="numeric" maxlength="9" autocomplete="postal-code" placeholder="00000-000">
+            <button id="ship-quote-btn" type="button" class="btn-secondary">Ver frete</button>
+          </div>
+          <p id="ship-quote-msg" class="cart-page-message" hidden></p>
+          <div id="ship-options" class="ship-options"></div>
+          <div id="ship-guest" hidden>
+            <label for="ship-email">E-mail</label>
+            <input id="ship-email" type="email" autocomplete="email">
+          </div>
+          <div id="ship-login" class="ship-login" hidden>
+            <a id="ship-login-link" href="/entrar?next=%2Fcatalog%2Fcarrinho">Entrar para enviar</a>
+            <a id="ship-cpf-link" href="/minha-conta" hidden>Completar CPF</a>
+          </div>
+          <div id="ship-address" class="ship-address" hidden>
+            <label class="wide" for="ship-saved">Endereço salvo</label>
+            <select id="ship-saved" class="wide"></select>
+            <label class="wide" for="ship-rua">Rua</label>
+            <input id="ship-rua" class="wide" autocomplete="address-line1">
+            <label for="ship-numero">Número</label>
+            <input id="ship-numero" autocomplete="off">
+            <label for="ship-complemento">Complemento</label>
+            <input id="ship-complemento" autocomplete="address-line2">
+            <label for="ship-bairro">Bairro</label>
+            <input id="ship-bairro">
+            <label for="ship-cidade">Cidade</label>
+            <input id="ship-cidade" autocomplete="address-level2">
+            <label for="ship-uf">UF</label>
+            <input id="ship-uf" maxlength="2" autocomplete="address-level1">
+          </div>
+          <label class="privacy-remember ship-terms">
+            <input id="ship-terms" type="checkbox">
+            <span>Li e aceito <a href="/trocas-e-devolucoes">Trocas</a>, <a href="/garantia">Garantia</a> e <a href="/privacidade">Privacidade</a>.</span>
+          </label>
+        </section>
         <section class="cart-card cart-card--checkout cart-card--primary-path">
           <h2>Pagar</h2>
           <p class="cart-help">Informe seu nome e WhatsApp. A vendedora é opcional. O preço de cada item é o vigente no momento em que você o adicionou.</p>
@@ -166,10 +210,16 @@
           <span>Total</span>
           <strong id="order-total">R$ 0,00</strong>
         </div>
+        <div id="order-freight-row" class="cart-summary" hidden>
+          <span>Frete</span>
+          <strong id="order-freight">R$ 0,00</strong>
+        </div>
+        <p id="order-deadline" class="cart-help" hidden></p>
         <div class="cart-summary">
           <span>Total no Pix</span>
           <strong id="order-pix">R$ 0,00</strong>
         </div>
+        <p id="order-track" hidden><a id="order-track-link" href="/catalog">Acompanhar pedido</a></p>
         <div class="order-pay-actions">
           <button id="pay-infinitepay-btn" type="button" class="btn-primary">Pagar</button>
           <p class="cart-help pay-terms">Pix com 5% off, cartão em até 3x sem juros ou até 12x com juros</p>
@@ -209,6 +259,8 @@
     <script type="module" src="/compartilhado/loading.js"></script>
     <script type="module" src="/paginas/catalogo/catalogo.logic.js"></script>
     <script type="module" src="/paginas/catalogo/pedido.logic.js"></script>
+    <script type="module" src="/paginas/catalogo/frete.logic.js"></script>
+    <script type="module" src="/paginas/catalogo/frete-conta.js"></script>
     <script type="module" src="/paginas/catalogo/pagamento.logic.js"></script>
     <script defer src="/paginas/catalogo/catalogo-carrinho.js"></script>
     <script defer src="/paginas/catalogo/carrinho.js"></script>

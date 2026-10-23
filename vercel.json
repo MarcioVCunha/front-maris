@@ -90,6 +90,7 @@
     { "source": "/catalog", "destination": "/paginas/catalogo/catalogo.html" },
     { "source": "/catalog/carrinho", "destination": "/paginas/catalogo/carrinho.html" },
     { "source": "/catalog/obrigado", "destination": "/paginas/catalogo/obrigado.html" },
+    { "source": "/pedido/:token", "destination": "/paginas/catalogo/acompanhar.html" },
     { "source": "/obrigado", "destination": "/paginas/catalogo/obrigado.html" },
     { "source": "/trocas-e-devolucoes", "destination": "/paginas/institucional/trocas-e-devolucoes.html" },
     { "source": "/garantia", "destination": "/paginas/institucional/garantia.html" },

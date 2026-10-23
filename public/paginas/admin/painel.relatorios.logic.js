@@ -157,6 +157,8 @@ export function renderInicio(overview, formatMoney = formatPrice, options = {}) 
 export const SALE_STATUS_FILTERS = [
   { id: "all", label: "Todas" },
   { id: "a_confirmar", label: "A confirmar" },
+  { id: "a_enviar", label: "A enviar" },
+  { id: "retirada", label: "Retirada" },
   { id: "receivable", label: "A receber" },
   { id: "paid", label: "Pagas" },
   { id: "cancelled", label: "Canceladas" }
@@ -176,7 +178,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
   const exportBtn = `<button type="button" id="btn-export-sales-vendas" class="btn-ghost btn-sm" title="Exportar lista de vendas em CSV">📥 Exportar vendas (CSV)</button>`
   const rows = Array.isArray(sales) ? sales : normalizeRecentSales(sales)
   const toolbarHeader = `<div class="sales-toolbar-row">${filterToolbar}${exportBtn}</div>`
-  if (!rows) return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<div id="sales-results"><p class="empty">${NO_DATA}</p></div></section>`
+  if (!rows) return `<section class="report"><h2>Vendas recentes</h2><div id="shipping-settings" class="ship-settings-card" hidden></div>${toolbarHeader}<div id="sales-results"><p class="empty">${NO_DATA}</p></div></section>`
   const filtered = typeof options.filterSales === "function"
     ? options.filterSales(rows, selectedStatus)
     : rows
@@ -184,7 +186,9 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
     receivable: "Nenhuma venda a receber.",
     paid: "Nenhuma venda paga.",
     cancelled: "Nenhuma venda cancelada.",
-    a_confirmar: "Nenhum pedido a confirmar."
+    a_confirmar: "Nenhum pedido a confirmar.",
+    a_enviar: "Nenhum pedido a enviar.",
+    retirada: "Nenhuma retirada."
   }
   const emptyMessage = emptyByStatus[selectedStatus] || "Nenhuma venda recente."
   const body = !filtered.length
@@ -201,7 +205,7 @@ export function renderVendas(sales, formatMoney = formatPrice, options = {}) {
           <small>${escapeHtml([formatWhen(sale.created_at), pay].filter(Boolean).join(" · "))}</small></span>
       </article>`
     }).join("")
-  return `<section class="report"><h2>Vendas recentes</h2>${toolbarHeader}<div id="sales-results">${body}</div></section>`
+  return `<section class="report"><h2>Vendas recentes</h2><div id="shipping-settings" class="ship-settings-card" hidden></div>${toolbarHeader}<div id="sales-results">${body}</div></section>`
 }
 
 export function renderVendedoras(sellers, formatMoney = formatPrice, options = {}) {

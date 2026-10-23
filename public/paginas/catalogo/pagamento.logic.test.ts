@@ -8,6 +8,7 @@ import {
   checkoutUrlFromData,
   inferStatusFromReturn,
   interpretOrderStatusResponse,
+  interpretTrackingResponse,
   orderStatusPageState,
   interpretPaymentCreateLinkResponse,
   parseObrigadoQuery,
@@ -153,6 +154,15 @@ Deno.test("interpretOrderStatusResponse e mensagem WhatsApp", () => {
     "Não foi possível consultar o status agora."
   )
   assertEquals(orderStatusPageState({ kind: "ok", status: "pago" }, "a_confirmar").message, "")
+  assertEquals(interpretTrackingResponse({
+    ok: true,
+    status: 200,
+    data: { ok: true, status: "pago", items: [{ code: "AN01", name: "Anel", quantity: 1, status: "pago" }] },
+  }).items?.[0].code, "AN01")
+  assertEquals(
+    interpretTrackingResponse({ ok: false, status: 404, data: { error: "Pedido não encontrado." } }).error,
+    "Pedido não encontrado."
+  )
 
   const msg = buildOrderWhatsappMessage({
     orderId: 5,

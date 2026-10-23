@@ -149,6 +149,71 @@ export function daysSince(isoDate, now = new Date()) {
   return Math.floor(diffMs / (24 * 60 * 60 * 1000))
 }
 
+export function copyDeliveryFields(raw) {
+  const source = raw || {}
+  return {
+    delivery_type: source.delivery_type || "",
+    ship_to: source.ship_to && typeof source.ship_to === "object" ? source.ship_to : null,
+    shipping_service: source.shipping_service || "",
+    shipping_service_id: source.shipping_service_id ?? null,
+    shipping_cost: source.shipping_cost == null || source.shipping_cost === "" ? null : Number(source.shipping_cost),
+    shipping_deadline_days: source.shipping_deadline_days == null || source.shipping_deadline_days === ""
+      ? null
+      : Number(source.shipping_deadline_days),
+    tracking_code: source.tracking_code || "",
+    tracking_url: source.tracking_url || "",
+    shipped_at: source.shipped_at || "",
+    delivered_at: source.delivered_at || "",
+    customer_email: source.customer_email || "",
+    customer_cpf_masked: source.customer_cpf_masked || ""
+  }
+}
+
+export function formatShipTo(ship) {
+  if (!ship || typeof ship !== "object") return ""
+  const line = [ship.rua, ship.numero].filter(Boolean).join(", ")
+  const extra = [ship.complemento, ship.bairro, ship.cidade, ship.uf, ship.cep].filter(Boolean).join(" · ")
+  return [line, extra].filter(Boolean).join(" · ")
+}
+
+export function renderSaleDelivery(sale) {
+  const delivery = copyDeliveryFields(sale)
+  if (!delivery.delivery_type && delivery.shipping_cost == null && !delivery.customer_cpf_masked && !delivery.ship_to) {
+    return ""
+  }
+  const type = delivery.delivery_type === "envio"
+    ? "Envio"
+    : delivery.delivery_type === "retirada"
+      ? "Retirada"
+      : ""
+  const cost = delivery.shipping_cost == null ? "" : formatBrlLoose(delivery.shipping_cost)
+  const days = delivery.shipping_deadline_days == null ? "" : `${delivery.shipping_deadline_days} dias`
+  const rows = [
+    type ? ["Entrega", type] : null,
+    delivery.shipping_service ? ["Serviço", delivery.shipping_service] : null,
+    cost ? ["Frete", cost] : null,
+    days ? ["Prazo", days] : null,
+    formatShipTo(delivery.ship_to) ? ["Endereço", formatShipTo(delivery.ship_to)] : null,
+    delivery.customer_cpf_masked ? ["CPF", delivery.customer_cpf_masked] : null,
+    delivery.tracking_code ? ["Rastreio", delivery.tracking_code] : null
+  ].filter(Boolean)
+  if (!rows.length) return ""
+  return `<section class="sale-delivery">${rows.map(([label, value]) =>
+    `<p><span>${escapeHtml(label)}</span> ${escapeHtml(value)}</p>`
+  ).join("")}${delivery.tracking_url ? `<p><a href="${escapeHtml(delivery.tracking_url)}" target="_blank" rel="noopener">Abrir rastreio</a></p>` : ""}</section>`
+}
+
+function formatBrlLoose(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return ""
+  return `R$ ${number.toFixed(2).replace(".", ",")}`
+}
+
+export function renderShippingToggle(enabled) {
+  const checked = enabled ? "checked" : ""
+  return `<label class="ship-settings"><input id="shipping-enabled-toggle" type="checkbox" ${checked}><span>Envio pelo Melhor Envio</span></label>`
+}
+
 export function saleMetaChipsHtml(sale, now = new Date()) {
   const chips = []
   const seller = String(sale?.seller_name || "").trim()
@@ -211,6 +276,7 @@ export function filterSalesByStatus(sales, status) {
   if (key === "paid" || key === "paga" || key === "pagas") {
     return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === "paid")
   }
+  if (key === "a_enviar" || key === "retirada") return sales || []
   if (key === "partial" || key === "a_confirmar") {
     return (sales || []).filter((sale) => {
       const s = saleStatusKey(sale?.payment_status)
@@ -328,6 +394,7 @@ export function renderSaleEditDialog(sale, formatMoney, options = {}) {
     <h2>${escapeHtml(sale.customer_name || "Cliente")}</h2>
     ${bugBanner}
     ${saleMetaChipsHtml(sale)}
+    ${renderSaleDelivery(sale)}
     ${salePhotoHtml(sale)}
     ${totalField}
     <div class="sale-edit__pieces">${itemRows}</div>
@@ -479,6 +546,7 @@ export function normalizeExpiringOrders(data) {
       total: order.total,
       payment_status: "a_confirmar",
       payment_method: "",
+      ...copyDeliveryFields(order),
       reserved_until: order.reserved_until || "",
       expiry_notice_at: order.expiry_notice_at || "",
       hours_left: Number.isFinite(hours) ? hours : null,
@@ -530,6 +598,7 @@ export function normalizeAdminSale(data) {
     total: sale.total,
     payment_status: sale.payment_status || "",
     payment_method: sale.payment_method || "",
+    ...copyDeliveryFields(sale),
     items_count: Number(sale.items_count) || (Array.isArray(sale.items) ? sale.items.length : 0),
     image_url: String(sale.image_url || "").trim(),
     items: normalizeSaleItems(sale.items).map((item, index) => ({

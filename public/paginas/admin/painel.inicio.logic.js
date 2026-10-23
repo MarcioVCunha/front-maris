@@ -1,6 +1,7 @@
 // Início, vendas, vendedoras e compras do painel.
 // Preço de marketplace (ceilMarketplacePrice) fica em painel.logic.js — regra do #74.
 import { shouldShowHomeChannels } from "./painel.logic.js"
+import { copyDeliveryFields } from "./venda-edicao.logic.js"
 import { escapeHtml, formatPrice } from "./painel.texto.logic.js"
 
 export const NO_DATA = "sem dados ainda"
@@ -228,6 +229,7 @@ export function normalizeRecentSales(data) {
       total: sale.total,
       payment_status: sale.payment_status || "",
       payment_method: sale.payment_method || "",
+      ...copyDeliveryFields(sale),
       items_count: Number(sale.items_count) || items.length || 0,
       image_url: String(sale.image_url || "").trim(),
       items

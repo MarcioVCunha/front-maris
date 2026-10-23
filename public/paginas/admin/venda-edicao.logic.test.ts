@@ -12,7 +12,9 @@ import {
   readSaleEditForm,
   isSaleBugged,
   renderSaleCards,
+  renderSaleDelivery,
   renderSaleEditDialog,
+  renderShippingToggle,
   saleCancelPayload,
   saleChannelLabel,
   saleMarkPaidPayload,
@@ -309,6 +311,28 @@ Deno.test("venda sem peças ou com total zerado mostra aviso no diálogo e no ca
   const ok = { id: 92, total: 50, items_count: 1, items: [{ code: "A1", quantity: 1 }] }
   assertEquals(renderSaleEditDialog(ok, formatMoney, { enabled: true }).includes("sale-bug-warning"), false)
   assertEquals(renderSaleCards([ok], formatMoney).includes("sale-chip--bug"), false)
+})
+
+Deno.test("detalhe da venda mostra entrega, endereço e CPF mascarado", () => {
+  const html = renderSaleDelivery({
+    delivery_type: "envio",
+    shipping_service: "PAC",
+    shipping_cost: 18.9,
+    shipping_deadline_days: 5,
+    customer_cpf_masked: "***.456.789-01",
+    ship_to: { rua: "Paulista", numero: "100", cidade: "São Paulo", uf: "SP", cep: "01310-100" },
+  })
+  assert(html.includes("Envio"))
+  assert(html.includes("PAC"))
+  assert(html.includes("18,90"))
+  assert(html.includes("5 dias"))
+  assert(html.includes("Paulista"))
+  assert(html.includes("***.456.789-01"))
+  assertEquals(html.includes("width:100%"), false)
+  const toggle = renderShippingToggle(true)
+  assert(toggle.includes("Envio pelo Melhor Envio"))
+  assert(toggle.includes("checked"))
+  assertEquals(filterSalesByStatus([{ id: 1, payment_status: "paid" }], "a_enviar").length, 1)
 })
 
 Deno.test("pedidos a confirmar destacam a reserva e confirmam pelo order_id", () => {

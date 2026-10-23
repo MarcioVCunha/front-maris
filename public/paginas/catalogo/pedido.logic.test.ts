@@ -333,6 +333,56 @@ Deno.test("dry_run, pausa e validação usam o status e o erro do handler", () =
   assertEquals(invalidPhone, { kind: "error", error: "Informe um WhatsApp do Brasil, com DDD." })
 })
 
+Deno.test("entrega entra no corpo só quando a cliente escolhe", () => {
+  const plain = buildCreateOrderBody(sampleInput)
+  assertEquals(Object.prototype.hasOwnProperty.call(plain, "delivery_type"), false)
+  const retirada = buildCreateOrderBody({
+    ...sampleInput,
+    deliveryType: "retirada",
+    termsAccepted: true,
+    termsVersion: "2026-10",
+    email: "ana@exemplo.com",
+    shippingPriceSeen: 12,
+  })
+  assertEquals(retirada.delivery_type, "retirada")
+  assertEquals(retirada.terms_accepted, true)
+  assertEquals(retirada.customer.email, "ana@exemplo.com")
+  assertEquals(retirada.shipping_price_seen, 0)
+  assertEquals(Object.prototype.hasOwnProperty.call(retirada, "ship_to"), false)
+  const envio = buildCreateOrderBody({
+    ...sampleInput,
+    deliveryType: "envio",
+    termsAccepted: true,
+    termsVersion: "2026-10",
+    shipTo: { cep: "01310-100", uf: "SP", rua: "Paulista", numero: "1", bairro: "Centro", cidade: "São Paulo" },
+    shippingServiceId: 3,
+    shippingPriceSeen: 15,
+  })
+  assertEquals(envio.shipping_service_id, 3)
+  assertEquals(envio.shipping_price_seen, 15)
+  assertEquals(envio.ship_to.cep, "01310-100")
+})
+
+Deno.test("409 de frete pede o novo valor e não é tratado como estoque", () => {
+  const result = interpretCreateOrderResponse({
+    ok: false,
+    status: 409,
+    data: {
+      ok: false,
+      error: "O frete mudou. Confira o novo valor.",
+      shipping_cost: 22.5,
+      shipping_service_id: 4,
+      shipping_service: "PAC",
+      shipping_deadline_days: 6,
+      options: [],
+    },
+  })
+  assertEquals(result.kind, "freight")
+  if (result.kind !== "freight") return
+  assertEquals(result.shippingCost, 22.5)
+  assertEquals(result.shippingServiceId, 4)
+})
+
 Deno.test("buildCreateOrderBody inclui coupon_code normalizado", () => {
   const withCoupon = buildCreateOrderBody({
     ...sampleInput,
