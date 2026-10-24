@@ -1,4 +1,6 @@
 // Início, vendas, vendedoras e compras do painel.
+import { recentSalesStatusParam } from "./painel.api.js"
+import { mergeConfirmOrders } from "./venda-edicao.logic.js"
 export function installHomeUi(deps) {
   const {
     currentMonthKey,
@@ -102,11 +104,22 @@ export function installHomeUi(deps) {
     const requestId = ++recentRequest
     if (state.recent !== undefined && state.loadedStatus === normalized) return state.recent
     if (normalized === "a_confirmar") {
-      const result = await fetchExpiringOrders()
+      let expiring = { ok: false }
+      let recent = { ok: false }
+      try {
+        ;[expiring, recent] = await Promise.all([
+          fetchExpiringOrders({ all: 1 }),
+          fetchRecentSales({ limit: 50, status: recentSalesStatusParam("a_confirmar") })
+        ])
+      } catch (_err) {
+        expiring = { ok: false }
+        recent = { ok: false }
+      }
       if (requestId !== recentRequest) return state.recent
-      state.recent = result.ok ? normalizeExpiringOrders(result.data) : null
+      const expiringRows = expiring.ok ? normalizeExpiringOrders(expiring.data) : []
+      const recentRows = recent.ok ? normalizeRecentSales(recent.data) : []
+      state.recent = mergeConfirmOrders(expiringRows, recentRows)
       state.loadedStatus = normalized
-      if (!result.ok) showMessage(result.error || "Não foi possível listar pedidos a vencer.", "error")
       return state.recent
     }
     if (normalized === "a_enviar" || normalized === "retirada") {
@@ -117,7 +130,7 @@ export function installHomeUi(deps) {
       if (!result.ok) showMessage(result.error || "Não foi possível listar as vendas.", "error")
       return state.recent
     }
-    const queryStatus = normalized === "all" ? undefined : normalized
+    const queryStatus = recentSalesStatusParam(normalized)
     const result = await fetchRecentSales({ limit: 50, status: queryStatus })
     if (requestId !== recentRequest) return state.recent
     state.recent = result.ok ? normalizeRecentSales(result.data) : null

@@ -8,6 +8,7 @@ import {
   fetchCategoryDefaults,
   fetchMonthOverview,
   fetchRecentSales,
+  recentSalesStatusParam,
   fetchExpiringOrders,
   confirmOrder,
   returnOrderItems,
@@ -185,12 +186,22 @@ Deno.test("listar, salvar, arquivar e padrões usam o método e o corpo combinad
   await fetchRecentSales({ limit: 50, status: "receivable" }, recentStatus)
   assertEquals(recentStatus.calls[0].name, "admin-recent-sales")
   assertEquals(recentStatus.calls[0].options.query, { limit: 50, status: "receivable" })
+  assertEquals(recentSalesStatusParam("a_confirmar"), "a_confirmar")
+  assertEquals(recentSalesStatusParam("to_confirm"), "a_confirmar")
+  assertEquals(recentSalesStatusParam("partial"), "partial")
+  const confirmList = client({ ok: true, sales: [] })
+  await fetchRecentSales({ limit: 50, status: "a_confirmar" }, confirmList)
+  assertEquals(confirmList.calls[0].options.query, { limit: 50, status: "a_confirmar" })
 
   const expiring = client({ ok: true, orders: [] })
   await fetchExpiringOrders(expiring)
   assertEquals(expiring.calls[0].name, "list-expiring-orders")
   assertEquals(expiring.calls[0].options.method, "GET")
   assertEquals(expiring.calls[0].options.body, undefined)
+  assertEquals(expiring.calls[0].options.query, undefined)
+  const allConfirm = client({ ok: true, orders: [] })
+  await fetchExpiringOrders({ all: 1 }, allConfirm)
+  assertEquals(allConfirm.calls[0].options.query, { all: "1" })
 
   const confirmed = client({ ok: true })
   await confirmOrder({ order_id: 12 }, confirmed)
