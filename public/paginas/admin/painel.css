@@ -1342,6 +1342,11 @@
   color: #5b2d8e;
 }
 
+.sale-chip--status.sale-chip--partial {
+  background: #e7eef6;
+  color: #2f4a73;
+}
+
 .sale-chip--status.sale-chip--cancelled {
   background: #f3d6dc;
   color: #8b1d33;

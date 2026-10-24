@@ -229,6 +229,7 @@ export function normalizeRecentSales(data) {
       total: sale.total,
       payment_status: sale.payment_status || "",
       payment_method: sale.payment_method || "",
+      reserved_until: sale.reserved_until || "",
       ...copyDeliveryFields(sale),
       items_count: Number(sale.items_count) || items.length || 0,
       image_url: String(sale.image_url || "").trim(),
@@ -289,6 +290,7 @@ export function paymentLabel(method) {
 export function statusLabel(status) {
   if (status === "paid") return "Paga"
   if (status === "partial") return "Parcial"
+  if (status === "to_confirm" || status === "a_confirmar") return "A confirmar"
   if (status === "receivable") return "A receber"
   return ""
 }

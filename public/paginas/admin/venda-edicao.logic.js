@@ -39,23 +39,21 @@ function formatWhen(iso) {
 
 const STATUS_LABEL = {
   paid: "Paga",
-  partial: "A confirmar",
+  partial: "Parcial",
   receivable: "A receber",
   cancelled: "Cancelada",
   canceled: "Cancelada",
   to_confirm: "A confirmar",
-  pending: "A confirmar",
   a_confirmar: "A confirmar"
 }
 
 const STATUS_TONE = {
   paid: "paid",
-  partial: "confirm",
+  partial: "partial",
   receivable: "receivable",
   cancelled: "cancelled",
   canceled: "cancelled",
   to_confirm: "confirm",
-  pending: "confirm",
   a_confirmar: "confirm"
 }
 
@@ -81,6 +79,29 @@ export function saleChannelLabel(channel) {
 
 export function saleStatusKey(status) {
   return String(status || "").trim().toLowerCase()
+}
+
+export function isToConfirmStatus(status) {
+  const key = saleStatusKey(status)
+  return key === "to_confirm" || key === "a_confirmar"
+}
+
+/** Data curta da reserva, no fuso de São Paulo. */
+export function formatReservedUntil(value) {
+  const text = String(value || "").trim()
+  if (!text) return ""
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (dateOnly) return `Reserva ${dateOnly[3]}/${dateOnly[2]}`
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return ""
+  const when = date.toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  })
+  return `Reserva ${when}`
 }
 
 export function saleStatusLabel(status) {
@@ -346,11 +367,11 @@ export function filterSalesByStatus(sales, status) {
       return isPaidStatus(sale?.payment_status) && saleStatusKey(sale?.delivery_type) === "envio" && !shipped
     })
   }
-  if (key === "partial" || key === "a_confirmar") {
-    return (sales || []).filter((sale) => {
-      const s = saleStatusKey(sale?.payment_status)
-      return s === "partial" || s === "to_confirm" || s === "pending" || s === "a_confirmar"
-    })
+  if (key === "partial") {
+    return (sales || []).filter((sale) => saleStatusKey(sale?.payment_status) === "partial")
+  }
+  if (key === "a_confirmar" || key === "to_confirm") {
+    return (sales || []).filter((sale) => isToConfirmStatus(sale?.payment_status))
   }
   if (key === "cancelled" || key === "cancelada" || key === "canceladas" || key === "canceled") {
     return (sales || []).filter((sale) => {
@@ -488,6 +509,7 @@ export function renderSaleCards(sales, formatMoney, options = {}) {
     const attrs = clickable
       ? ` type="button" class="sale-card" data-sale-id="${escapeHtml(sale.id)}"`
       : ` class="sale-card sale-card--static"`
+    const reserve = isToConfirmStatus(sale.payment_status) ? formatReservedUntil(sale.reserved_until) : ""
     const statusChip = status
       ? `<span class="sale-chip sale-chip--status sale-chip--${tone}">${escapeHtml(status)}</span>`
       : ""
@@ -500,6 +522,7 @@ export function renderSaleCards(sales, formatMoney, options = {}) {
         <strong>${escapeHtml(sale.customer_name || "Cliente")}</strong>
         <small>${escapeHtml(who)}</small>
         <small>${escapeHtml(when)}</small>
+        ${reserve ? `<small>${escapeHtml(reserve)}</small>` : ""}
         ${statusChip}${bugChip}
       </span>
       <span class="sale-card__side">
@@ -590,7 +613,7 @@ export function returnOrderItemsPayload(orderId, itemId) {
 
 export function reserveHint(hoursLeft) {
   const hours = Number(hoursLeft)
-  if (!Number.isFinite(hours)) return { urgent: true, text: "Reserva perto de vencer" }
+  if (hoursLeft == null || hoursLeft === "" || !Number.isFinite(hours)) return { urgent: false, text: "" }
   if (hours <= 0) return { urgent: true, text: "Reserva vencendo" }
   const rounded = Math.round(hours * 10) / 10
   const text = Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(".", ",")
@@ -626,12 +649,33 @@ export function normalizeExpiringOrders(data) {
   })
 }
 
+/** Junta a aba (hours_left) com as vendas to_confirm que o filtro ainda não trouxe. */
+export function mergeConfirmOrders(expiringRows, recentRows) {
+  const rows = Array.isArray(expiringRows) ? expiringRows.filter(Boolean) : []
+  const seen = new Set(rows.map((row) => String(row?.id)))
+  for (const sale of recentRows || []) {
+    if (!isToConfirmStatus(sale?.payment_status)) continue
+    const id = String(sale?.id)
+    if (seen.has(id)) continue
+    seen.add(id)
+    const hours = Number(sale?.hours_left)
+    rows.push({
+      ...sale,
+      payment_status: "a_confirmar",
+      reserved_until: sale?.reserved_until || "",
+      hours_left: Number.isFinite(hours) ? hours : null
+    })
+  }
+  return rows
+}
+
 export function renderExpiringOrderCards(orders) {
   const rows = Array.isArray(orders) ? orders : []
   if (!rows.length) return `<p class="empty">Nenhum pedido a confirmar.</p>`
   return `<ul class="sale-card-list ui-card-grid">${rows.map((order) => {
     const hint = reserveHint(order.hours_left)
     const pieces = (order.items || []).map((item) => item.name || item.code).filter(Boolean).slice(0, 2).join(", ")
+    const when = formatReservedUntil(order.reserved_until)
     const urgent = hint.urgent ? " sale-card--expiring" : ""
     return `<li><article class="sale-card sale-card--stack${urgent}" data-sale-id="${escapeHtml(order.id)}">
       <span class="sale-card__row">
@@ -640,10 +684,11 @@ export function renderExpiringOrderCards(orders) {
           <strong>${escapeHtml(order.customer_name || "Cliente")}</strong>
           <small>${escapeHtml(order.seller_name || "")}</small>
           <small>${escapeHtml(pieces)}</small>
+          ${when ? `<small>${escapeHtml(when)}</small>` : ""}
           <span class="sale-chip sale-chip--status sale-chip--confirm">A confirmar</span>
         </span>
       </span>
-      <p class="sale-card__reserve">${escapeHtml(hint.text)}</p>
+      ${hint.text ? `<p class="sale-card__reserve">${escapeHtml(hint.text)}</p>` : ""}
       <div class="sale-card__actions">
         <button type="button" class="btn-primary sale-confirm-btn" data-confirm-order="${escapeHtml(order.id)}">Confirmar pedido</button>
       </div>
@@ -668,6 +713,7 @@ export function normalizeAdminSale(data) {
     total: sale.total,
     payment_status: sale.payment_status || "",
     payment_method: sale.payment_method || "",
+    reserved_until: sale.reserved_until || "",
     ...copyDeliveryFields(sale),
     items_count: Number(sale.items_count) || (Array.isArray(sale.items) ? sale.items.length : 0),
     image_url: String(sale.image_url || "").trim(),

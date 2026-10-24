@@ -211,10 +211,20 @@ export async function setMonthlyGoal(goal, client) {
  * items[] { id, code, name, quantity, unit_price, line_total, image_url, … }
  * (chips/foto no Início). Ver docs/contratos/painel-venda-edicao.md.
  */
+/** status do filtro de Vendas. A confirmar não usa partial. */
+export function recentSalesStatusParam(status) {
+  const key = String(status || "").trim().toLowerCase()
+  if (!key || key === "all" || key === "todas") return undefined
+  if (key === "a_confirmar" || key === "to_confirm") return "a_confirmar"
+  if (key === "partial") return "partial"
+  return key
+}
+
 export async function fetchRecentSales({ limit = 20, channel, status, delivery } = {}, client) {
   const query = { limit }
   if (channel) query.p_channel = channel
-  if (status) query.status = status
+  const statusParam = recentSalesStatusParam(status)
+  if (statusParam) query.status = statusParam
   if (delivery) query.delivery = delivery
   const result = await call(ADMIN_DASHBOARD_API.recentSales, {
     method: "GET",
@@ -257,13 +267,20 @@ export async function markAdminSalePaid(body, client) {
 
 /**
  * GET list-expiring-orders — staff (admin ou vendedora).
- * Pedidos a_confirmar com reserved_until até 24h.
- * Resposta: { ok, orders: [{ id, customer_name, customer_whatsapp, seller_id,
- *   seller_name, reserved_until, expiry_notice_at, hours_left,
- *   items: [{ id, product_code, product_name, quantity }] }] }
+ * Sem all: a_confirmar com reserved_until até 24h.
+ * Com all=1: todos os a_confirmar, sem teto. hours_left pode passar de 24.
+ * Se o back ainda não aceitar all, a lista volta vazia e a tela não quebra.
  */
-export async function fetchExpiringOrders(client) {
-  const result = await call(ADMIN_DASHBOARD_API.expiringOrders, { method: "GET" }, client)
+export async function fetchExpiringOrders(options, client) {
+  const directClient = options && typeof options.call === "function"
+  const transport = directClient ? options : client
+  const all = directClient ? undefined : options?.all
+  const query = {}
+  if (all === true || all === 1 || all === "1" || all === "true" || all === "yes") query.all = "1"
+  const result = await call(ADMIN_DASHBOARD_API.expiringOrders, {
+    method: "GET",
+    query: query.all ? query : undefined
+  }, transport)
   if (!result?.ok || result.data?.ok === false) return failed(result, "Não foi possível listar pedidos a vencer.")
   return { ok: true, data: result.data || {} }
 }

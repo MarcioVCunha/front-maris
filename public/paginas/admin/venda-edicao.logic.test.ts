@@ -25,6 +25,8 @@ import {
   saleMetaChipsHtml,
   salePrimaryPhoto,
   saleStatusLabel,
+  formatReservedUntil,
+  mergeConfirmOrders,
   saleStatusTone,
   saleUpdatePayload,
   shouldShowSaleEdit,
@@ -85,6 +87,13 @@ Deno.test("filtra vendas por canal ou vendedora e monta cards com chip de status
   assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "all").length, 2)
   assertEquals(filterSalesByStatus([...sales, { id: 3, payment_status: "cancelled" }], "cancelled").map((s) => s.id), [3])
   assertEquals(filterSalesByStatus([{ id: 9, payment_status: "a_confirmar" }], "a_confirmar").map((s) => s.id), [9])
+  assertEquals(filterSalesByStatus([
+    { id: 1, payment_status: "partial" },
+    { id: 2, payment_status: "to_confirm" },
+    { id: 3, payment_status: "paid" },
+  ], "a_confirmar").map((sale) => sale.id), [2])
+  assertEquals(filterSalesByStatus([{ id: 4, payment_status: "partial" }], "partial").map((sale) => sale.id), [4])
+  assertEquals(filterSalesByStatus([{ id: 5, payment_status: "to_confirm", reserved_until: "2026-10-22T18:00:00Z" }], "all").length, 1)
   assertEquals(salePrimaryPhoto(sales[0]), "https://exemplo.test/a.jpg")
   assertEquals(salePrimaryPhoto(sales[1]), "")
 
@@ -101,13 +110,15 @@ Deno.test("filtra vendas por canal ou vendedora e monta cards com chip de status
 Deno.test("status do plano vira etiqueta com tom certo", () => {
   assertEquals(saleStatusLabel("paid"), "Paga")
   assertEquals(saleStatusLabel("receivable"), "A receber")
-  assertEquals(saleStatusLabel("partial"), "A confirmar")
+  assertEquals(saleStatusLabel("partial"), "Parcial")
+  assertEquals(saleStatusLabel("to_confirm"), "A confirmar")
   assertEquals(saleStatusLabel("a_confirmar"), "A confirmar")
   assertEquals(saleStatusTone("a_confirmar"), "confirm")
+  assertEquals(saleStatusTone("to_confirm"), "confirm")
   assertEquals(saleStatusLabel("cancelled"), "Cancelada")
   assertEquals(saleStatusTone("paid"), "paid")
   assertEquals(saleStatusTone("receivable"), "receivable")
-  assertEquals(saleStatusTone("partial"), "confirm")
+  assertEquals(saleStatusTone("partial"), "partial")
   assertEquals(saleStatusTone("cancelled"), "cancelled")
 })
 
@@ -374,6 +385,27 @@ Deno.test("pedidos a confirmar destacam a reserva e confirmam pelo order_id", ()
   assertEquals(reserveHint(2.5), { urgent: true, text: "Reserva acaba em 2,5 h" })
   assertEquals(reserveHint(0).text, "Reserva vencendo")
   assertEquals(reserveHint(20).urgent, false)
+  assertEquals(reserveHint(30).urgent, false)
+  assertEquals(reserveHint(null).text, "")
+  assertEquals(formatReservedUntil("2026-10-22T18:00:00Z"), "Reserva 22/10, 15:00")
+  const listed = renderSaleCards([{
+    id: 154,
+    customer_name: "Lia",
+    payment_status: "to_confirm",
+    reserved_until: "2026-10-22T18:00:00Z",
+    total: 80,
+    items: [],
+  }], formatMoney)
+  assert(listed.includes("A confirmar"))
+  assert(listed.includes("sale-chip--confirm"))
+  assert(listed.includes("Reserva 22/10, 15:00"))
+  assertEquals(listed.includes("Parcial"), false)
+  const merged = mergeConfirmOrders(orders, [
+    { id: 12, payment_status: "to_confirm", customer_name: "Lia" },
+    { id: 154, payment_status: "to_confirm", reserved_until: "2026-10-25T18:00:00Z", customer_name: "Nia" },
+    { id: 8, payment_status: "partial", customer_name: "Paga metade" },
+  ])
+  assertEquals(merged.map((row) => row.id), [12, 13, 154])
   const html = renderExpiringOrderCards(orders)
   assert(html.includes("Lia"))
   assert(html.includes('class="sale-card sale-card--stack sale-card--expiring" data-sale-id="12"'))
